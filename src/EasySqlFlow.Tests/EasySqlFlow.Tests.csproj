@@ -12,4 +12,8 @@
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\EasySqlFlow\EasySqlFlow.csproj" />
+  </ItemGroup>
+
 </Project>
