@@ -1,15 +1,14 @@
 { 
     "files.exclude": {
         "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
         "**/Thumbs.db": true,
         "**/.vs": true,
         "**/bin": true,
         "**/obj": true,
-        "**/TestResults": true
+        "**/TestResults": true,
+        "**/*.user": true,
+        "**/*.jfm": true,
+        "**/*.dbmdl": true
     },
 
     "editor.tabSize": 4,
@@ -17,7 +16,7 @@
     "[sql]": {
         "editor.tabSize": 4
     },
-    
+
     "dotnet.defaultSolution": "EasySqlFlow.sln",
 
     "testExplorer.useNativeTesting": true,
