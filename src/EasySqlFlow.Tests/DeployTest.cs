@@ -7,12 +7,9 @@ public class DeploySQLTest : TestsBase
     [TestMethod]
     public void TestReadingOfMigrations()
     {
-        string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
-
 		var fileSystem = new Mock<IFileSystem>();
 
-		// WOW! No record/replay weirdness?! :)
-		fileSystem.Setup(fs => fs.EnumerateDirectories(path, "*.*", SearchOption.AllDirectories))
+		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
 				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\001.test1",
@@ -23,8 +20,26 @@ public class DeploySQLTest : TestsBase
 
 		var deploy = new DeploySQL(fileSystem.Object);
 
-		var migrations = deploy.GetMigrations(path);
+		var migrations = deploy.GetMigrations("");
 
 		Assert.AreEqual(4, migrations.Count);
+	}
+
+	[TestMethod]
+	[ExpectedException(typeof(MigrationExistsException))]
+	public void TestReadingOfMigrations_Duplicate()
+	{
+		var fileSystem = new Mock<IFileSystem>();
+
+		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
+			.Returns(new[]
+			{
+				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\_Old\001.test1",
+				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\001.test1"
+			});
+
+		var deploy = new DeploySQL(fileSystem.Object);
+
+		var migrations = deploy.GetMigrations("");
 	}
 }
