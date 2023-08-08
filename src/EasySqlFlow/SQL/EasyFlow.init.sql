@@ -15,7 +15,7 @@ create table easyflow.Migrations (
 )
 
 exec sys.sp_tableoption
-    @TableNamePattern = 'easyflow.Migrations'
+	@TableNamePattern = 'easyflow.Migrations'
   , @OptionName = 'large value types out of row'
   , @OptionValue = '1'
 go
