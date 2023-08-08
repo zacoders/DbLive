@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Code\dbo\Functions\" />
-    <Folder Include="Code\dbo\StoredProcedures\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 
