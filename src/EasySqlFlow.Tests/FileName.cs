@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
+﻿
 public abstract class TestsBase
 {
 	protected readonly Random _random = new();

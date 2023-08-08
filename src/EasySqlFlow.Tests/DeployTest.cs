@@ -1,5 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 
 [TestClass]
 public class DeploySQLTest : TestsBase
