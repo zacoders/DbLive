@@ -10,12 +10,10 @@
         "**/*.jfm": true,
         "**/*.dbmdl": true
     },
-
+    
     "editor.tabSize": 4,
-
-    "[sql]": {
-        "editor.tabSize": 4
-    },
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false,
 
     "dotnet.defaultSolution": "EasySqlFlow.sln",
 
