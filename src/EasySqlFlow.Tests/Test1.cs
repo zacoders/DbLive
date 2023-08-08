@@ -7,7 +7,7 @@ public class Test1
     public void FirstTest()
     {
         Uri uri = new(@"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB");
-
+        
         Console.WriteLine($"AbsolutePath: {uri.AbsolutePath}");
         Console.WriteLine($"AbsoluteUri: {uri.AbsoluteUri}");
         Console.WriteLine($"DnsSafeHost: {uri.DnsSafeHost}");
@@ -29,5 +29,7 @@ public class Test1
         Console.WriteLine($"Segments: {string.Join(", ", uri.Segments)}");
         Console.WriteLine($"UserEscaped: {uri.UserEscaped}");
         Console.WriteLine($"UserInfo: {uri.UserInfo}");
+
+        throw new Exception();
     }
 }

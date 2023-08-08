@@ -10,4 +10,11 @@ public class DeploySQLTest
         var deploy = new DeploySQL();
         deploy.Deploy(path);
 	}
+
+    [TestMethod]
+    public void FailingTest()
+    {
+        int zero = 0;
+        int x = 1 / zero;
+	}
 }

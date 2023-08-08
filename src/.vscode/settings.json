@@ -1,3 +1,7 @@
 { 
-    "dotnet.defaultSolution": "EasySqlFlow.sln"   
+    "dotnet.defaultSolution": "EasySqlFlow.sln",
+    "testExplorer.useNativeTesting": true,
+    "testExplorer.showOnRun": true,
+    "dotnet-test-explorer.autoWatch": true,
+    "dotnet-test-explorer.runInParallel": true
 }
