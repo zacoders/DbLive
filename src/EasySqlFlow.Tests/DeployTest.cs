@@ -12,10 +12,10 @@ public class DeploySQLTest : TestsBase
 		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\001.test1",
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\002.test2",
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\003.test3",
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\004.test4",
+				@"C:\MainTestDB\Migrations\001.test1",
+				@"C:\MainTestDB\Migrations\002.test2",
+				@"C:\MainTestDB\Migrations\003.test3",
+				@"C:\MainTestDB\Migrations\004.test4",
 			});
 
 		var deploy = new DeploySQL(fileSystem.Object);
@@ -34,8 +34,8 @@ public class DeploySQLTest : TestsBase
 		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\_Old\001.test1",
-				@"C:\Data\src\TestDatabases\MainTestDB\Migrations\001.test1"
+				@"C:\MainTestDB\Migrations\_Old\001.dup1",
+				@"C:\MainTestDB\Migrations\001.dup1"
 			});
 
 		var deploy = new DeploySQL(fileSystem.Object);
