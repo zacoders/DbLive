@@ -1,4 +1,4 @@
-﻿internal record Migration
+﻿public record Migration
 {
 	public required int Version { get; set; }
 	public required string Name { get; set; }

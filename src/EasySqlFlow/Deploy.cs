@@ -1,6 +1,13 @@
 
 public class DeploySQL
 {
+	private readonly IFileSystem _fileSystem;
+
+	public DeploySQL(IFileSystem fileSystem)
+	{
+		_fileSystem = fileSystem;
+	}
+
 	public void Deploy(string path)
 	{
 		string migrationsPath = Path.Combine(path, "Migrations");
@@ -10,10 +17,10 @@ public class DeploySQL
 		//TODO: check each migration folder.
 	}
 
-	private static HashSet<Migration> GetMigrations(string path)
+	public HashSet<Migration> GetMigrations(string path)
 	{
 		HashSet<Migration> migrations = new();
-		foreach (string folderPath in Directory.EnumerateDirectories(path, "*.*", SearchOption.AllDirectories))
+		foreach (string folderPath in _fileSystem.EnumerateDirectories(path, "*.*", SearchOption.AllDirectories))
 		{
 			Uri folderUri = new Uri(folderPath);
 			string folderName = folderUri.GetFolder();
