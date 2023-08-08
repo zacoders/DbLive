@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PowerArgs" Version="4.0.2" />
-    
+    <Folder Include="Code\dbo\Functions\" />
+    <Folder Include="Code\dbo\StoredProcedures\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>
