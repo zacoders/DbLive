@@ -1,3 +1,4 @@
+namespace EasySqlFlow.Tests;
 
 [TestClass]
 public class MigrationTasksTests : TestsBase

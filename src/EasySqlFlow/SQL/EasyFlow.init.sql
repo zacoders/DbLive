@@ -2,16 +2,16 @@
 create schema easyflow;
 go
 
+-- drop table if exists easyflow.Migrations
 create table easyflow.Migrations (
-	MigrationId int not null
-  
+	MigrationVersion int not null
   , MigrationName nvarchar(512) not null
   , MigrationStarted datetime2(7) not null
   , MigrationCompleted datetime2(7) null
   , MigrationSQL nvarchar(max) not null
   , UndoSQL nvarchar(max) null
 
-  , constraint PK_EasyFlow_Migrations primary key ( MigrationId )
+  , constraint PK_EasyFlow_Migrations primary key ( MigrationVersion, MigrationName )
 )
 
 exec sys.sp_tableoption

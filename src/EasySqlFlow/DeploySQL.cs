@@ -3,17 +3,22 @@ namespace EasySqlFlow;
 public class DeploySQL
 {
 	private readonly IFileSystem _fileSystem;
+	private readonly IEasySqlFlowDA _easySqlFlowDA;
 
-	public DeploySQL(IFileSystem fileSystem)
+	public DeploySQL(IFileSystem fileSystem, IEasySqlFlowDA easySqlFlowDA)
 	{
 		_fileSystem = fileSystem;
+		_easySqlFlowDA = easySqlFlowDA;
 	}
 
-	public void DeployProject(string path)
+	public void DeployProject(string proejctPath, string sqlConnectionString)
 	{
-		string migrationsPath = Path.Combine(path, "Migrations");
+		var appliedMigrations = _easySqlFlowDA.GetMigrations(sqlConnectionString);
+		int appliedMigrationVersion = appliedMigrations.Max(m => m.MigrationVersion);
 
-		var migrations = GetMigrations(migrationsPath);
+		string migrationsPath = Path.Combine(proejctPath, "Migrations");
+
+		var migrations = GetMigrations(migrationsPath).Where(m => m.Version < appliedMigrationVersion);
 
 		foreach (var migration in migrations)
 		{

@@ -1,4 +1,5 @@
-﻿
+﻿namespace EasySqlFlow.Tests;
+
 public abstract class TestsBase
 {
 	protected readonly Random _random = new();

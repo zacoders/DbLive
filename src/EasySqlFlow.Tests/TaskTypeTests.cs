@@ -1,3 +1,5 @@
+namespace EasySqlFlow.Tests;
+
 [TestClass]
 public class TaskTypeTests : TestsBase
 {

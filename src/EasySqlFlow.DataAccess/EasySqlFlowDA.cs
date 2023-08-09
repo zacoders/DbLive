@@ -5,7 +5,7 @@ public class EasySqlFlowDA : IEasySqlFlowDA
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
-			select MigrationId
+			select MigrationVersion
 				 , MigrationName
 				 , MigrationStarted
 				 , MigrationCompleted

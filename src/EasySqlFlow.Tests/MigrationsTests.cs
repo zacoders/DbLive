@@ -1,12 +1,14 @@
+namespace EasySqlFlow.Tests;
+
 [TestClass]
 public class MigrationsTests : TestsBase
 {
 	[TestMethod]
 	public void TestReadingOfMigrations()
 	{
-		var fileSystem = new Mock<IFileSystem>();
+		var mockSet = new MockSet();
 
-		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
+		mockSet.FileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
@@ -15,7 +17,7 @@ public class MigrationsTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3",
 			});
 
-		var deploy = new DeploySQL(fileSystem.Object);
+		var deploy = new DeploySQL(mockSet.FileSystem.Object, mockSet.EasySqlFlowDA.Object);
 
 		var migrations = deploy.GetMigrations("").ToArray();
 
