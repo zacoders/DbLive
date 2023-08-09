@@ -12,7 +12,7 @@ public abstract class TestsBase
 	}
 }
 
-public abstract class IntegrationTestsBase: TestsBase
+public abstract class IntegrationTestsBase : TestsBase
 {
 	static IntegrationTestsBase()
 	{

@@ -1,6 +1,6 @@
 namespace EasySqlFlow;
 
-public enum MigrationType 
+public enum MigrationType
 {
 	Migration,
 	Undo,

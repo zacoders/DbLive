@@ -15,10 +15,10 @@ public class DeploySQL
 
 		var migrations = GetMigrations(migrationsPath);
 
-		foreach(var migration in migrations)
+		foreach (var migration in migrations)
 		{
 			DeployMigration(migration);
-        }
+		}
 	}
 
 	private void DeployMigration(Migration migration)
@@ -39,10 +39,11 @@ public class DeploySQL
 			var fileUri = new Uri(file);
 			string fileName = fileUri.GetLastSegment();
 			var fileParts = fileName.Split(".");
-			
+
 			var migrationType = GetMigrationType(fileParts[0]);
 
-			MigrationTask task = new() {
+			MigrationTask task = new()
+			{
 				MigrationType = migrationType,
 				Name = "",
 				FileUri = fileUri
@@ -92,10 +93,10 @@ public class DeploySQL
 	}
 
 	private Migration ReadMigration(Uri folderUri)
-	{		
+	{
 		string folderName = folderUri.GetLastSegment();
 		var splitFolder = folderName.Split(".");
-		
+
 		string migrationVersionStr = splitFolder[0];
 
 		if (!int.TryParse(migrationVersionStr, out var version))

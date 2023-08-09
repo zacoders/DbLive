@@ -13,7 +13,7 @@ public class MigrationTask
 	}
 
 	public override int GetHashCode()
-	{		
-        return HashCode.Combine(MigrationType, Name);
+	{
+		return HashCode.Combine(MigrationType, Name);
 	}
 }

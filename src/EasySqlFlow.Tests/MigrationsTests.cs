@@ -1,12 +1,9 @@
-
-using EasySqlFlow;
-
 [TestClass]
 public class MigrationsTests : TestsBase
 {
-    [TestMethod]
-    public void TestReadingOfMigrations()
-    {
+	[TestMethod]
+	public void TestReadingOfMigrations()
+	{
 		var fileSystem = new Mock<IFileSystem>();
 
 		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))

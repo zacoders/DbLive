@@ -14,7 +14,7 @@ public record Migration
 	}
 
 	public override int GetHashCode()
-	{	
-        return System.HashCode.Combine(Version, Name);
+	{
+		return System.HashCode.Combine(Version, Name);
 	}
 }

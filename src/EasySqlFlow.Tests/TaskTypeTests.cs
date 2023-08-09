@@ -1,6 +1,3 @@
-
-using EasySqlFlow;
-
 [TestClass]
 public class TaskTypeTests : TestsBase
 {
@@ -15,10 +12,10 @@ public class TaskTypeTests : TestsBase
 			"Breaking"
 		};
 
-        foreach (var migrationStr in testingValues)
-        {
-            _ = DeploySQL.GetMigrationType(migrationStr);
-        }        
+		foreach (var migrationStr in testingValues)
+		{
+			_ = DeploySQL.GetMigrationType(migrationStr);
+		}
 	}
 
 	[TestMethod]
