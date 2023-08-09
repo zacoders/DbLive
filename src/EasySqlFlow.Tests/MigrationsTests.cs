@@ -1,6 +1,6 @@
 
 [TestClass]
-public class DeploySQLTest : TestsBase
+public class MigrationsTests : TestsBase
 {
     [TestMethod]
     public void TestReadingOfMigrations()

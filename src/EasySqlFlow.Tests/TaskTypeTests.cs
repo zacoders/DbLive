@@ -2,8 +2,6 @@
 [TestClass]
 public class TaskTypeTests : TestsBase
 {
-	private static DeploySQL Deploy = Resolve<DeploySQL>();
-
 	[TestMethod]
 	public void GetMigrationType()
 	{
@@ -17,7 +15,7 @@ public class TaskTypeTests : TestsBase
 
         foreach (var migrationStr in testingValues)
         {
-            _ = Deploy.GetMigrationType(migrationStr);
+            _ = DeploySQL.GetMigrationType(migrationStr);
         }        
 	}
 
@@ -25,6 +23,6 @@ public class TaskTypeTests : TestsBase
 	[ExpectedException(typeof(UnknowMigrationTaskTypeException))]
 	public void GetMigrationType_Unknow()
 	{
-		Deploy.GetMigrationType("test");
+		DeploySQL.GetMigrationType("test-unknown");
 	}
 }

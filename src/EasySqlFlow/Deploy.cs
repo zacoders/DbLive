@@ -19,10 +19,10 @@ public class DeploySQL
 		//TODO: check each migration folder.
 	}
 
-	public HashSet<MigrationTask> GetMigrationTasks(Migration migration)
+	public HashSet<MigrationTask> GetMigrationTasks(string migrationFolder)
 	{
 		HashSet<MigrationTask> tasks = new();
-		foreach (string file in Directory.EnumerateFiles(migration.PathUri.LocalPath))
+		foreach (string file in _fileSystem.EnumerateFiles(migrationFolder, "*.sql"))
 		{
 			var fileUri = new Uri(file);
 			string fileName = fileUri.GetLastSegment();
@@ -35,11 +35,18 @@ public class DeploySQL
 				Name = "",
 				FileUri = fileUri
 			};
+
+			if (tasks.Contains(task))
+			{
+				throw new MigrationTaskExistsException(task);
+			}
+
+			tasks.Add(task);
 		}
 		return tasks;
 	}
 
-	public MigrationType GetMigrationType(string type) =>
+	public static MigrationType GetMigrationType(string type) =>
 		type.ToLower() switch
 		{
 			"migration" => MigrationType.Migration,
