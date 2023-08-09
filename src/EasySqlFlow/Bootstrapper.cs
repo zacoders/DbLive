@@ -2,8 +2,9 @@
 
 public static class Bootstrapper
 {
-	public static void Initialize(IServiceCollection container)
+	public static void InitializeEasySqlFlow(this IServiceCollection container)
 	{
+		container.InitializeDataAccess();
 		container.AddSingleton<IFileSystem, FileSystem>();
 		container.AddSingleton<DeploySQL>();
 	}

@@ -5,10 +5,6 @@ public abstract class TestsBase
 
 	protected static IServiceCollection Container { get; } = new ServiceCollection();
 
-	static TestsBase()
-	{
-	}
-
 	protected static TService Resolve<TService>()
 	{
 		var serviceProvider = Container.BuildServiceProvider();
@@ -20,6 +16,6 @@ public abstract class IntegrationTestsBase: TestsBase
 {
 	static IntegrationTestsBase()
 	{
-		Bootstrapper.Initialize(Container);
+		Container.InitializeEasySqlFlow();
 	}
 }
