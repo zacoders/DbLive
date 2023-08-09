@@ -1,4 +1,5 @@
-﻿
+﻿namespace EasySqlFlow;
+
 [Serializable]
 public class UnknowMigrationTaskTypeException : Exception
 {

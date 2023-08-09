@@ -1,4 +1,6 @@
-﻿internal static class UriHelpers
+﻿namespace EasySqlFlow;
+
+internal static class UriHelpers
 {
 	public static string GetLastSegment(this Uri folderUri)
 	{

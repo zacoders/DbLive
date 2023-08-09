@@ -1,4 +1,6 @@
-﻿public record Migration
+﻿namespace EasySqlFlow;
+
+public record Migration
 {
 	public required int Version { get; set; }
 	public required string Name { get; set; }

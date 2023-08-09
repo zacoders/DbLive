@@ -1,4 +1,6 @@
 
+using EasySqlFlow;
+
 [TestClass]
 public class TaskTypeTests : TestsBase
 {

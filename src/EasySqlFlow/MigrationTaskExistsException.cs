@@ -1,4 +1,5 @@
-﻿
+﻿namespace EasySqlFlow;
+
 [Serializable]
 public class MigrationTaskExistsException : Exception
 {	internal MigrationTask MigrationTask { get; private set; }

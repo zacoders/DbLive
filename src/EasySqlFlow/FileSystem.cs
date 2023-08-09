@@ -1,4 +1,6 @@
-﻿public class FileSystem : IFileSystem
+﻿namespace EasySqlFlow;
+
+public class FileSystem : IFileSystem
 {
 	public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, SearchOption searchOption)
 	{

@@ -1,5 +1,4 @@
-﻿using EasySqlFlow.DataAccess;
-using Microsoft.Extensions.DependencyInjection;
+﻿namespace EasySqlFlow.DataAccess;
 
 public static class Bootstrapper
 {

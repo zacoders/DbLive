@@ -1,3 +1,4 @@
+namespace EasySqlFlow;
 
 public class DeploySQL
 {
