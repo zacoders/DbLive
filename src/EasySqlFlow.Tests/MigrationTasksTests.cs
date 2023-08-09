@@ -6,9 +6,9 @@ public class MigrationTasksTests : TestsBase
 	[TestMethod]
 	public void GetMigrationType()
 	{
-		var fileSystem = new Mock<IFileSystem>();
+		MockSet mockSet = new();
 
-		fileSystem.Setup(fs => fs.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()))
+		mockSet.FileSystem.Setup(fs => fs.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()))
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
@@ -17,7 +17,7 @@ public class MigrationTasksTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
-		var deploy = new DeploySQL(fileSystem.Object);
+		var deploy = new DeploySQL(mockSet.FileSystem.Object, mockSet.EasySqlFlowDA.Object);
 
 		var migrationTasks = deploy.GetMigrationTasks("");
 

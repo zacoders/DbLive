@@ -10,7 +10,6 @@ public class EasySqlFlowDA : IEasySqlFlowDA
 				 , MigrationStarted
 				 , MigrationCompleted
 			from easyflow.Migrations
-			order by MigrationId, MigrationName
 		";
 
 		using (var cnn = new SqlConnection(cnnString))

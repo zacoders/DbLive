@@ -32,16 +32,16 @@ public class MigrationsTests : TestsBase
 	[ExpectedException(typeof(MigrationExistsException))]
 	public void TestReadingOfMigrations_Duplicate()
 	{
-		var fileSystem = new Mock<IFileSystem>();
+		MockSet mockSet = new();
 
-		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
+		mockSet.FileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.dup1",
 				@"C:\MainTestDB\Migrations\001.dup1"
 			});
 
-		var deploy = new DeploySQL(fileSystem.Object);
+		var deploy = new DeploySQL(mockSet.FileSystem.Object, mockSet.EasySqlFlowDA.Object);
 
 		var migrations = deploy.GetMigrations("");
 	}

@@ -14,7 +14,7 @@ public class DeploySQL
 	public void DeployProject(string proejctPath, string sqlConnectionString)
 	{
 		var appliedMigrations = _easySqlFlowDA.GetMigrations(sqlConnectionString);
-		int appliedMigrationVersion = appliedMigrations.Max(m => m.MigrationVersion);
+		int appliedMigrationVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
 
 		string migrationsPath = Path.Combine(proejctPath, "Migrations");
 

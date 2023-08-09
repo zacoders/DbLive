@@ -7,7 +7,7 @@ public class DeploySQLIntegrationTest : IntegrationTestsBase
 	public void FirstTest()
 	{
 		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
-		string sqlConnectionString = "...";
+		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlow_MainTestDB;Integrated Security=True;";
 
 		var deploy = Resolve<DeploySQL>();
 
