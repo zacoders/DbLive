@@ -78,7 +78,7 @@ public class DeploySQL
 
 			if (folderName == "_Old") continue;
 
-			var migration = ParsePath(folderUri);
+			var migration = ReadMigration(folderUri);
 
 			if (migrations.Contains(migration))
 			{
@@ -90,7 +90,7 @@ public class DeploySQL
 		return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
 	}
 
-	private static Migration ParsePath(Uri folderUri)
+	private Migration ReadMigration(Uri folderUri)
 	{		
 		string folderName = folderUri.GetLastSegment();
 		var splitFolder = folderName.Split(".");
@@ -106,7 +106,8 @@ public class DeploySQL
 		{
 			Version = version,
 			Name = splitFolder[1],
-			PathUri = folderUri
+			PathUri = folderUri,
+			Tasks = GetMigrationTasks(folderUri.LocalPath)
 		};
 	}
 }
