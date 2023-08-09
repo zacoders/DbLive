@@ -1,6 +1,4 @@
 
-using System.Drawing;
-
 public class DeploySQL
 {
 	private readonly IFileSystem _fileSystem;
@@ -10,13 +8,26 @@ public class DeploySQL
 		_fileSystem = fileSystem;
 	}
 
-	public void Deploy(string path)
+	public void DeployProject(string path)
 	{
 		string migrationsPath = Path.Combine(path, "Migrations");
 
 		var migrations = GetMigrations(migrationsPath);
 
-		//TODO: check each migration folder.
+		foreach(var migration in migrations)
+		{
+			DeployMigration(migration);
+        }
+	}
+
+	private void DeployMigration(Migration migration)
+	{
+		Console.WriteLine(migration.PathUri.GetLastSegment());
+		var tasks = GetMigrationTasks(migration.PathUri.LocalPath);
+		foreach (var task in tasks)
+		{
+			Console.WriteLine(task.MigrationType);
+		}
 	}
 
 	public HashSet<MigrationTask> GetMigrationTasks(string migrationFolder)
@@ -57,7 +68,7 @@ public class DeploySQL
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
 
-	public HashSet<Migration> GetMigrations(string path)
+	public IEnumerable<Migration> GetMigrations(string path)
 	{
 		HashSet<Migration> migrations = new();
 		foreach (string folderPath in _fileSystem.EnumerateDirectories(path, "*.*", SearchOption.AllDirectories))
@@ -76,7 +87,7 @@ public class DeploySQL
 
 			migrations.Add(migration);
 		}
-		return migrations;
+		return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
 	}
 
 	private static Migration ParsePath(Uri folderUri)

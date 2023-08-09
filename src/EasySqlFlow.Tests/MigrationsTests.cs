@@ -12,15 +12,19 @@ public class MigrationsTests : TestsBase
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
 				@"C:\MainTestDB\Migrations\_Old\002.test2",
-				@"C:\MainTestDB\Migrations\003.test3",
 				@"C:\MainTestDB\Migrations\004.test4",
+				@"C:\MainTestDB\Migrations\003.test3",
 			});
 
 		var deploy = new DeploySQL(fileSystem.Object);
 
-		var migrations = deploy.GetMigrations("");
+		var migrations = deploy.GetMigrations("").ToArray();
 
-		Assert.AreEqual(4, migrations.Count);
+		Assert.AreEqual(4, migrations.Count());
+		Assert.AreEqual(1, migrations[0].Version);
+		Assert.AreEqual(2, migrations[1].Version);
+		Assert.AreEqual(3, migrations[2].Version);
+		Assert.AreEqual(4, migrations[3].Version);
 	}
 
 	[TestMethod]

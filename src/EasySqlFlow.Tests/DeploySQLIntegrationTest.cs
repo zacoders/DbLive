@@ -9,6 +9,6 @@ public class DeploySQLIntegrationTest : IntegrationTestsBase
         
         var deploy = Resolve<DeploySQL>();
 
-		deploy.Deploy(path);
+		deploy.DeployProject(path);
 	}
 }
