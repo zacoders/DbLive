@@ -17,9 +17,9 @@ public class MigrationTasksTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
-		var deploy = new DeploySQL(mockSet.FileSystem.Object, mockSet.EasySqlFlowDA.Object);
+		var sqlProject = new SqlProject(mockSet.FileSystem.Object);
 
-		var migrationTasks = deploy.GetMigrationTasks("");
+		var migrationTasks = sqlProject.GetMigrationTasks("");
 
 		Assert.AreEqual(4, migrationTasks.Count);
 	}

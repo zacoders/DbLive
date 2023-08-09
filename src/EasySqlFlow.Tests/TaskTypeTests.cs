@@ -16,7 +16,7 @@ public class TaskTypeTests : TestsBase
 
 		foreach (var migrationStr in testingValues)
 		{
-			_ = DeploySQL.GetMigrationType(migrationStr);
+			_ = SqlProject.GetMigrationType(migrationStr);
 		}
 	}
 
@@ -24,6 +24,6 @@ public class TaskTypeTests : TestsBase
 	[ExpectedException(typeof(UnknowMigrationTaskTypeException))]
 	public void GetMigrationType_Unknow()
 	{
-		DeploySQL.GetMigrationType("test-unknown");
+		SqlProject.GetMigrationType("test-unknown");
 	}
 }

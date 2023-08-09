@@ -14,6 +14,7 @@ create table easyflow.Migrations (
   , constraint PK_EasyFlow_Migrations primary key ( MigrationVersion, MigrationName )
 )
 
+--TODO: I think it will be good to keep MigrationTasks separatelly.
 exec sys.sp_tableoption
 	@TableNamePattern = 'easyflow.Migrations'
   , @OptionName = 'large value types out of row'
