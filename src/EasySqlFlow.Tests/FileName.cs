@@ -15,3 +15,11 @@ public abstract class TestsBase
 		return serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 }
+
+public abstract class IntegrationTestsBase: TestsBase
+{
+	static IntegrationTestsBase()
+	{
+		Bootstrapper.Initialize(Container);
+	}
+}

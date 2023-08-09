@@ -1,12 +1,7 @@
 
 [TestClass]
-public class DeploySQLIntegrationTest : TestsBase
+public class DeploySQLIntegrationTest : IntegrationTestsBase
 {
-    static DeploySQLIntegrationTest() 
-    {
-        Bootstrapper.Initialize(Container);
-    }
-
     [TestMethod]
     public void FirstTest()
     {
