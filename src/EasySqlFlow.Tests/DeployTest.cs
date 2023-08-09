@@ -10,8 +10,8 @@ public class DeploySQLTest : TestsBase
 		fileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
 			.Returns(new[]
 			{
-				@"C:\MainTestDB\Migrations\001.test1",
-				@"C:\MainTestDB\Migrations\002.test2",
+				@"C:\MainTestDB\Migrations\_Old\001.test1",
+				@"C:\MainTestDB\Migrations\_Old\002.test2",
 				@"C:\MainTestDB\Migrations\003.test3",
 				@"C:\MainTestDB\Migrations\004.test4",
 			});
