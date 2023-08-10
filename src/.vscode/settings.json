@@ -15,7 +15,7 @@
     "editor.detectIndentation": false,
     "editor.insertSpaces": false,
 
-    "dotnet.defaultSolution": "EasySqlFlow.sln",
+    "dotnet.defaultSolution": "EasyFlow.sln",
 
     "testExplorer.useNativeTesting": true,
     "testExplorer.showOnRun": true,

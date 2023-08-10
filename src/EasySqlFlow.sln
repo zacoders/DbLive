@@ -3,15 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasySqlFlow", "EasySqlFlow\EasySqlFlow.csproj", "{A5ADAD33-E29F-4335-AFD9-027F42B784F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow", "EasyFlow\EasyFlow.csproj", "{A5ADAD33-E29F-4335-AFD9-027F42B784F2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestDatabases", "TestDatabases", "{DD98917C-07E2-4102-AAD1-3AD1E16C75E3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MainTestDB", "TestDatabases\MainTestDB\MainTestDB.csproj", "{97810883-746A-476C-99BF-405C51B6A4FD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasySqlFlow.Tests", "EasySqlFlow.Tests\EasySqlFlow.Tests.csproj", "{75B26220-82D6-4A7B-B30D-2BB13712A836}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests", "EasyFlow.Tests\EasyFlow.Tests.csproj", "{75B26220-82D6-4A7B-B30D-2BB13712A836}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasySqlFlow.DataAccess", "EasySqlFlow.DataAccess\EasySqlFlow.DataAccess.csproj", "{28E36308-CD0C-402C-9A32-06646DB1225C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Deploy.MSSQL", "EasyFlow.Deploy.MSSQL\EasyFlow.Deploy.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Deploy", "EasyFlow.Deploy\EasyFlow.Deploy.csproj", "{ABC615B5-236B-4ADD-8C16-F53022094ACC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Console", "EasyFlow.Console\EasyFlow.Console.csproj", "{3C2AADD3-CA5A-4701-AC1F-7424139C3907}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,10 +35,18 @@ Global
 		{75B26220-82D6-4A7B-B30D-2BB13712A836}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75B26220-82D6-4A7B-B30D-2BB13712A836}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75B26220-82D6-4A7B-B30D-2BB13712A836}.Release|Any CPU.Build.0 = Release|Any CPU
-		{28E36308-CD0C-402C-9A32-06646DB1225C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{28E36308-CD0C-402C-9A32-06646DB1225C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{28E36308-CD0C-402C-9A32-06646DB1225C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{28E36308-CD0C-402C-9A32-06646DB1225C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
