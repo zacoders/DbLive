@@ -45,7 +45,7 @@ public class MigrationsTests : TestsBase
 
 		var migrations = sqlProject.GetProjectMigrations("");
 	}
-	
+
 	[TestMethod]
 	[ExpectedException(typeof(MigrationVersionParseException))]
 	public void TestReadingOfMigrations_BadMigrationVersion()

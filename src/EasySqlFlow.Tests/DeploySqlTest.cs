@@ -21,7 +21,7 @@ public class DeploySqlTest : TestsBase
 				NewMigration(2, "sameversion-2"),
 				NewMigration(3, "test3")
 			});
-		
+
 		mockSet.EasyFlowDA.Setup(fs => fs.GetMigrations(It.IsAny<string>()))
 			.Returns(new[]
 			{
