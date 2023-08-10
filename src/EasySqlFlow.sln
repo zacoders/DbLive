@@ -11,9 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MainTestDB", "TestDatabases
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests", "EasyFlow.Tests\EasyFlow.Tests.csproj", "{75B26220-82D6-4A7B-B30D-2BB13712A836}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL", "EasyFlow.Deploy.MSSQL\EasyFlow.Adapter.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL", "EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter", "EasyFlow.Deploy\EasyFlow.Adapter.csproj", "{ABC615B5-236B-4ADD-8C16-F53022094ACC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter", "EasyFlow.Adapter\EasyFlow.Adapter.csproj", "{ABC615B5-236B-4ADD-8C16-F53022094ACC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Console", "EasyFlow.Console\EasyFlow.Console.csproj", "{3C2AADD3-CA5A-4701-AC1F-7424139C3907}"
 EndProject

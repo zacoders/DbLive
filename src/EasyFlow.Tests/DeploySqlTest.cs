@@ -1,4 +1,4 @@
-using EasyFlow.Deploy;
+using EasyFlow.Adapter;
 
 namespace EasyFlow.Tests;
 
