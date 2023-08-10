@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 
-namespace EasyFlow.Deploy.MSSQL
+namespace EasyFlow.Adapter.MSSQL
 {
 	internal class EasyFlowTransaction : IEasyFlowTransaction
 	{

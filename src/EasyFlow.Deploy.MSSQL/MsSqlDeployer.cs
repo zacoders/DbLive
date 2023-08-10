@@ -2,7 +2,7 @@
 using Microsoft.SqlServer.Management.Common;
 using System.Data;
 
-namespace EasyFlow.Deploy.MSSQL;
+namespace EasyFlow.Adapter.MSSQL;
 
 public class MsSqlDeployer : IEasyFlowDeployer
 {

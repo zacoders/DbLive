@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 
-namespace EasyFlow.Deploy.MSSQL;
+namespace EasyFlow.Adapter.MSSQL;
 
 public class EasyFlowDA : IEasyFlowDA
 {

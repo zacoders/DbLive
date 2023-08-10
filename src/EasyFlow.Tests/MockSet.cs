@@ -1,4 +1,6 @@
-﻿namespace EasyFlow.Tests;
+﻿using EasyFlow.Adapter;
+
+namespace EasyFlow.Tests;
 
 internal class MockSet
 {

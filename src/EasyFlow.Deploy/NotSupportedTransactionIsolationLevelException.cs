@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deploy;
+﻿namespace EasyFlow.Adapter;
 
 [Serializable]
 public class NotSupportedTransactionIsolationLevelException : Exception
