@@ -1,4 +1,4 @@
-﻿namespace EasyFlow;
+﻿namespace EasyFlow.Project;
 
 public record Migration
 {
@@ -15,6 +15,6 @@ public record Migration
 
 	public override int GetHashCode()
 	{
-		return System.HashCode.Combine(Version, Name);
+		return HashCode.Combine(Version, Name);
 	}
 }

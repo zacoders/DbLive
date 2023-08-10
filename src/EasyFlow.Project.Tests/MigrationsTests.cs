@@ -1,7 +1,9 @@
-namespace EasyFlow.Tests;
+using EasyFlow.Project;
+
+namespace EasyFlow.Project.Tests;
 
 [TestClass]
-public class MigrationsTests : TestsBase
+public class MigrationsTests
 {
 	[TestMethod]
 	public void TestReadingOfMigrations()

@@ -1,4 +1,4 @@
-namespace EasyFlow;
+namespace EasyFlow.Project;
 
 public enum MigrationType
 {

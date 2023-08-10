@@ -43,7 +43,7 @@ public class EasyFlowDeploy
 
 	private void DeployMigration(Migration migration)
 	{
-		Console.WriteLine(migration.PathUri.GetLastSegment());
+		Console.WriteLine(migration.PathUri);
 		var tasks = _easyFlowProject.GetMigrationTasks(migration.PathUri.LocalPath);
 		foreach (var task in tasks)
 		{

@@ -1,4 +1,4 @@
-﻿namespace EasyFlow;
+﻿namespace EasyFlow.Project;
 
 internal static class UriHelpers
 {

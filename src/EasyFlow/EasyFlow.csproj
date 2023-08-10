@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Deploy.MSSQL\EasyFlow.Deploy.MSSQL.csproj" />
     <ProjectReference Include="..\EasyFlow.Deploy\EasyFlow.Deploy.csproj" />
+    <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
   </ItemGroup>
 
 </Project>

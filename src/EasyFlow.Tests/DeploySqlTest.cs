@@ -3,7 +3,7 @@ using EasyFlow.Deploy;
 namespace EasyFlow.Tests;
 
 [TestClass]
-public class DeploySqlTest : TestsBase
+public class DeploySqlTest
 {
 	[TestMethod]
 	public void GetMigrationsToApply()

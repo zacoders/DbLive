@@ -1,7 +1,7 @@
-namespace EasyFlow.Tests;
+namespace EasyFlow.Project.Tests;
 
 [TestClass]
-public class MigrationTasksTests : TestsBase
+public class MigrationTasksTests
 {
 	[TestMethod]
 	public void GetMigrationType()
