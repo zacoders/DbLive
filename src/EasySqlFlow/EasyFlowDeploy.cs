@@ -1,14 +1,14 @@
 namespace EasySqlFlow;
 
-public class DeploySQL
+public class EasyFlowDeploy
 {
 	private readonly IEasyFlowDA _easyFlowDA;
 	private readonly IEasyFlowProject _easyFlowProject;
 
-	public DeploySQL(IEasyFlowProject sqlProject, IEasyFlowDA easySqlFlowDA)
+	public EasyFlowDeploy(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA)
 	{
-		_easyFlowProject = sqlProject;
-		_easyFlowDA = easySqlFlowDA;
+		_easyFlowProject = easyFlowProject;
+		_easyFlowDA = easyFlowDA;
 	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString)

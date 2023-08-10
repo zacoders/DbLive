@@ -47,6 +47,23 @@ public class MigrationsTests : TestsBase
 	}
 	
 	[TestMethod]
+	[ExpectedException(typeof(MigrationVersionParseException))]
+	public void TestReadingOfMigrations_BadMigrationVersion()
+	{
+		MockSet mockSet = new();
+
+		mockSet.FileSystem.Setup(fs => fs.EnumerateDirectories(It.IsAny<string>(), "*.*", SearchOption.AllDirectories))
+			.Returns(new[]
+			{
+				@"C:\MainTestDB\Migrations\bad001version.bad-version-migration"
+			});
+
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+
+		var migrations = sqlProject.GetProjectMigrations("");
+	}
+
+	[TestMethod]
 	public void GetMigrationsToApply()
 	{
 		var mockSet = new MockSet();

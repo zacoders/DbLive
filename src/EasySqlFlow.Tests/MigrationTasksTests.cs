@@ -23,4 +23,23 @@ public class MigrationTasksTests : TestsBase
 
 		Assert.AreEqual(4, migrationTasks.Count);
 	}
+
+	[TestMethod]
+	[ExpectedException(typeof(MigrationTaskExistsException))]
+	public void GetMigrationType_DuplicateTask()
+	{
+		MockSet mockSet = new();
+
+		mockSet.FileSystem.Setup(fs => fs.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()))
+			.Returns(new[]
+			{
+				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
+				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
+				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql"
+			});
+
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+
+		_ = sqlProject.GetMigrationTasks("");
+	}
 }

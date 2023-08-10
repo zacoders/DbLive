@@ -1,7 +1,7 @@
 ﻿namespace EasySqlFlow;
 
 [Serializable]
-internal class MigrationVersionParseException : Exception
+public class MigrationVersionParseException : Exception
 {
 	public string FolderName { get; private set; }
 	public string MigrationVersionStr { get; private set; }

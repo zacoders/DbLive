@@ -1,7 +1,7 @@
 namespace EasySqlFlow.Tests;
 
 [TestClass]
-public class DeploySQLIntegrationTest : IntegrationTestsBase
+public class DeploySqlIntegrationTest : IntegrationTestsBase
 {
 	[TestMethod]
 	public void FirstTest()
@@ -9,7 +9,7 @@ public class DeploySQLIntegrationTest : IntegrationTestsBase
 		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
 		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlow_MainTestDB;Integrated Security=True;";
 
-		var deploy = Resolve<DeploySQL>();
+		var deploy = Resolve<EasyFlowDeploy>();
 
 		deploy.DeployProject(path, sqlConnectionString);
 	}

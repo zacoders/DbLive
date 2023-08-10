@@ -23,7 +23,6 @@ public class EasyFlowProject : IEasyFlowProject
 			MigrationTask task = new()
 			{
 				MigrationType = migrationType,
-				Name = "",
 				FileUri = fileUri
 			};
 
