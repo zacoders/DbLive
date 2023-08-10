@@ -24,16 +24,17 @@ public class EasyFlowDeploy
 	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString)
 	{
 		var appliedMigrations = _easyFlowDA.GetMigrations(sqlConnectionString);
-		int appliedMigrationVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
+		int appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
 
 		string migrationsPath = Path.Combine(proejctPath, "Migrations");
 
 		var migrationsToApply = _easyFlowProject.GetProjectMigrations(migrationsPath)
 			.Where(m =>
-				   appliedMigrationVersion == 0
-				|| m.Version >= appliedMigrationVersion
+				   appliedVersion == 0
+				|| m.Version > appliedVersion
 				// additional check for the migrations with the same version but different name 
-				|| (m.Version == appliedMigrationVersion && appliedMigrations.Any(am => am.MigrationVersion == appliedMigrationVersion && am.MigrationName == m.Name))
+				|| (m.Version == appliedVersion
+					 && !appliedMigrations.Any(am => am.MigrationVersion == appliedVersion && am.MigrationName == m.Name))
 			)
 			.OrderBy(m => m.Version)
 			.ThenBy(m => m.Name);
