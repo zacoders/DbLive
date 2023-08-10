@@ -17,7 +17,7 @@ public class MigrationsTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3",
 			});
 
-		var sqlProject = new SqlProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
 
 		var migrations = sqlProject.GetProjectMigrations("").ToArray();
 
@@ -41,7 +41,7 @@ public class MigrationsTests : TestsBase
 				@"C:\MainTestDB\Migrations\001.dup1"
 			});
 
-		var sqlProject = new SqlProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
 
 		var migrations = sqlProject.GetProjectMigrations("");
 	}
@@ -60,7 +60,7 @@ public class MigrationsTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3",
 			});
 
-		var sqlProject = new SqlProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
 
 		var migrations = sqlProject.GetProjectMigrations("").ToArray();
 

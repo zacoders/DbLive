@@ -1,6 +1,6 @@
 ﻿namespace EasySqlFlow.DataAccess;
 
-public class EasySqlFlowDA : IEasySqlFlowDA
+public class EasyFlowDA : IEasyFlowDA
 {
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{

@@ -16,7 +16,7 @@ public class TaskTypeTests : TestsBase
 
 		foreach (var migrationStr in testingValues)
 		{
-			_ = SqlProject.GetMigrationType(migrationStr);
+			_ = EasyFlowProject.GetMigrationType(migrationStr);
 		}
 	}
 
@@ -24,6 +24,6 @@ public class TaskTypeTests : TestsBase
 	[ExpectedException(typeof(UnknowMigrationTaskTypeException))]
 	public void GetMigrationType_Unknow()
 	{
-		SqlProject.GetMigrationType("test-unknown");
+		EasyFlowProject.GetMigrationType("test-unknown");
 	}
 }

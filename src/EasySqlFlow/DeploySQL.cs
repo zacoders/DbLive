@@ -2,13 +2,13 @@ namespace EasySqlFlow;
 
 public class DeploySQL
 {
-	private readonly IEasySqlFlowDA _easySqlFlowDA;
-	private readonly ISqlProject _sqlProject;
+	private readonly IEasyFlowDA _easyFlowDA;
+	private readonly IEasyFlowProject _easyFlowProject;
 
-	public DeploySQL(ISqlProject sqlProject, IEasySqlFlowDA easySqlFlowDA)
+	public DeploySQL(IEasyFlowProject sqlProject, IEasyFlowDA easySqlFlowDA)
 	{
-		_sqlProject = sqlProject;
-		_easySqlFlowDA = easySqlFlowDA;
+		_easyFlowProject = sqlProject;
+		_easyFlowDA = easySqlFlowDA;
 	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString)
@@ -23,12 +23,12 @@ public class DeploySQL
 
 	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString)
 	{
-		var appliedMigrations = _easySqlFlowDA.GetMigrations(sqlConnectionString);
+		var appliedMigrations = _easyFlowDA.GetMigrations(sqlConnectionString);
 		int appliedMigrationVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
 
 		string migrationsPath = Path.Combine(proejctPath, "Migrations");
 
-		var migrationsToApply = _sqlProject.GetProjectMigrations(migrationsPath)
+		var migrationsToApply = _easyFlowProject.GetProjectMigrations(migrationsPath)
 			.Where(m =>
 				   appliedMigrationVersion == 0
 				|| m.Version >= appliedMigrationVersion
@@ -43,7 +43,7 @@ public class DeploySQL
 	private void DeployMigration(Migration migration)
 	{
 		Console.WriteLine(migration.PathUri.GetLastSegment());
-		var tasks = _sqlProject.GetMigrationTasks(migration.PathUri.LocalPath);
+		var tasks = _easyFlowProject.GetMigrationTasks(migration.PathUri.LocalPath);
 		foreach (var task in tasks)
 		{
 			Console.WriteLine(task.MigrationType);

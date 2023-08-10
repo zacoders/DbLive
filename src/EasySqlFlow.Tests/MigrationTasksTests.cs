@@ -17,7 +17,7 @@ public class MigrationTasksTests : TestsBase
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
-		var sqlProject = new SqlProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
 
 		var migrationTasks = sqlProject.GetMigrationTasks("");
 

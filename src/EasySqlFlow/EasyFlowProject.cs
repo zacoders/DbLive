@@ -1,10 +1,10 @@
 namespace EasySqlFlow;
 
-public class SqlProject : ISqlProject
+public class EasyFlowProject : IEasyFlowProject
 {
 	private readonly IFileSystem _fileSystem;
 
-	public SqlProject(IFileSystem fileSystem)
+	public EasyFlowProject(IFileSystem fileSystem)
 	{
 		_fileSystem = fileSystem;
 	}

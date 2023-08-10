@@ -6,7 +6,7 @@ public static class Bootstrapper
 	{
 		container.InitializeDataAccess();
 		container.AddSingleton<IFileSystem, FileSystem>();
-		container.AddSingleton<ISqlProject, SqlProject>();
+		container.AddSingleton<IEasyFlowProject, EasyFlowProject>();
 		container.AddSingleton<DeploySQL>();
 	}
 }
