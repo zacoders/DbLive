@@ -1,0 +1,9 @@
+{
+  // TODO: Easy SQL Flow project settings
+  // can be used to configure project
+  // can be overwritten in separate migration folder
+
+  //options: deployment, migration, task, none.
+  "TransactionLevel": "migration"
+
+}

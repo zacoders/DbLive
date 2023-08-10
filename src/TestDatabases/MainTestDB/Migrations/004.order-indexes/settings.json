@@ -1,0 +1,3 @@
+{
+  "TransactionLevel": "none" // indexes will be build online, do not need to use additional transaction
+}
