@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 
 namespace EasyFlow.Adapter.MSSQL;
 
-public class EasyFlowDA : IEasyFlowDA
+public class MsSqlDA : IEasyFlowDA
 {
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
