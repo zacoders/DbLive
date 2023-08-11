@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Adapter;
 
-internal interface IAdapterFactory
+public interface IAdapterFactory
 {
 	public IEasyFlowDeployer GetDeployer(DBEngine dbEngine);
 }

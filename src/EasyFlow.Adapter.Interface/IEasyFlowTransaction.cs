@@ -2,4 +2,5 @@
 
 public interface IEasyFlowTransaction
 {
+	void Commit();
 }

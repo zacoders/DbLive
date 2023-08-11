@@ -6,6 +6,7 @@ public static class Bootstrapper
 	{
 		container.InitializeMSSQL();
 		container.InitializeFlowProject();
+		container.InitializeEasyFlowAdapter();
 		container.AddSingleton<EasyFlowDeploy>();
 	}
 }

@@ -4,10 +4,11 @@ public class MsSqlDeployer : IEasyFlowDeployer
 {
 	public IEasyFlowTransaction BeginTransaction(string cnnString, TransactionIsolationLevel isolationLevel)
 	{
-		using SqlConnection cnn = new(cnnString);
+		SqlConnection cnn = new(cnnString);
+		cnn.Open();
 		SqlTransaction sqlTran = cnn.BeginTransaction(GetMsSqlIsolationLevel(isolationLevel));
 
-		return new EasyFlowTransaction(sqlTran);
+		return new MsSqlTransaction(sqlTran);
 	}
 
 	private IsolationLevel GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
@@ -20,27 +21,24 @@ public class MsSqlDeployer : IEasyFlowDeployer
 			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
 		};
 
-	public void EndTransaction(IEasyFlowTransaction transaction)
-	{
-		var sqlTran = (EasyFlowTransaction)transaction;
-		sqlTran.SqlTransaction.Commit();
-	}
-
 	public void ExecuteNonQuery(string cnnString, string sqlStatement, TimeSpan timeout)
 	{
 		using SqlConnection cnn = new(cnnString);
+		cnn.Open();
 		Execute(sqlStatement, timeout, cnn);
 	}
 
 	public void ExecuteNonQuery(IEasyFlowTransaction transaction, string sqlStatement, TimeSpan timeout)
 	{
-		var sqlTran = (EasyFlowTransaction)transaction;
+		var sqlTran = (MsSqlTransaction)transaction;
 		Execute(sqlStatement, timeout, sqlTran.SqlTransaction.Connection);
 	}
 
 	private static void Execute(string sqlStatement, TimeSpan timeout, SqlConnection cnn)
 	{
 		ServerConnection serverCnn = new(cnn);
+		//serverCnn.BeginTransaction(); //TODO: option for using transaction.
+
 		serverCnn.StatementTimeout = (int)timeout.TotalSeconds;
 		serverCnn.ExecuteNonQuery(sqlStatement);
 	}
