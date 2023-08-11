@@ -1,8 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.SqlServer.Management.Common;
-using System.Data;
-
-namespace EasyFlow.Adapter.MSSQL;
+﻿namespace EasyFlow.Adapter.MSSQL;
 
 public class MsSqlDeployer : IEasyFlowDeployer
 {

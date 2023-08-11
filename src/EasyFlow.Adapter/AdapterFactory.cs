@@ -1,8 +1,4 @@
-﻿using EasyFlow.Adapter.MSSQL;
-using EasyFlow.Adapter.PostgreSQL;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace EasyFlow.Adapter;
+﻿namespace EasyFlow.Adapter;
 
 internal class AdapterFactory : IAdapterFactory
 {

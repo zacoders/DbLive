@@ -1,6 +1,5 @@
-﻿namespace EasyFlow.Adapter
+﻿namespace EasyFlow.Adapter.Interface;
+
+public interface IEasyFlowTransaction
 {
-	public interface IEasyFlowTransaction
-	{
-	}
 }
