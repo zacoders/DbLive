@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
+    <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
   </ItemGroup>
 
 </Project>

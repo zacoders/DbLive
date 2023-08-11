@@ -23,9 +23,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Project.Tests", "E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.Tests", "EasyFlow.Adapter.Tests\EasyFlow.Adapter.Tests.csproj", "{D2C7D36A-3CF2-4E01-86E8-5AEEAA860A06}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.Adapter.PostgreSQL", "EasyFlow.Adapter.PostgreSQL\EasyFlow.Adapter.PostgreSQL.csproj", "{9A082A43-807C-4328-AE6E-70683CC7D45E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.PostgreSQL", "EasyFlow.Adapter.PostgreSQL\EasyFlow.Adapter.PostgreSQL.csproj", "{9A082A43-807C-4328-AE6E-70683CC7D45E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.Adapter.Interface", "EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj", "{BB23AF8A-E703-44BB-BAFF-11019CED34B9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.Interface", "EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj", "{BB23AF8A-E703-44BB-BAFF-11019CED34B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.Tests.Common", "EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj", "{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -77,6 +79,10 @@ Global
 		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

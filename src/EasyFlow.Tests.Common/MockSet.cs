@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Tests;
+﻿namespace EasyFlow.Tests.Common;
 
-internal class MockSet
+public class MockSet
 {
 	public readonly Mock<IFileSystem> FileSystem = new Mock<IFileSystem>();
 	public readonly Mock<IEasyFlowProject> EasyFlowProject = new Mock<IEasyFlowProject>();

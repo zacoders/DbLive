@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Tests;
+﻿namespace EasyFlow.Tests.Common;
 
 public abstract class IntegrationTestsBase
 {
