@@ -9,10 +9,8 @@ public class DeployerTests : IntegrationTestsBase
 	[TestMethod]
 	public void TransactionTest()
 	{
-		var deployer = _factory.GetDeployer(DBEngine.MSSQL);
+		var cnn = _factory.GetDeployer(DBEngine.MSSQL, _cnnString);
 		var sql = "select 1 as col";
-
-		var cnn = deployer.OpenConnection(_cnnString);
 
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
@@ -24,10 +22,8 @@ public class DeployerTests : IntegrationTestsBase
 	[TestMethod]
 	public void ExecuteNonQuery_Simple()
 	{
-		var deployer = _factory.GetDeployer(DBEngine.MSSQL);
+		var cnn = _factory.GetDeployer(DBEngine.MSSQL, _cnnString);
 		var sql = "select 1 as col";
-
-		var cnn = deployer.OpenConnection(_cnnString);
 
 		cnn.ExecuteNonQuery(sql);
 	}

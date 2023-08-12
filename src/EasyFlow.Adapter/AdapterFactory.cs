@@ -9,12 +9,12 @@ internal class AdapterFactory : IAdapterFactory
 		_serviceProvider = serviceProvider;
 	}
 
-	public IEasyFlowDeployer GetDeployer(DBEngine dbEngine)
+	public IEasyFlowSqlConnection GetDeployer(DBEngine dbEngine, string connectionString)
 	{
-		IEasyFlowDeployer? deployer = dbEngine switch
+		IEasyFlowSqlConnection deployer = dbEngine switch
 		{
-			DBEngine.MSSQL => _serviceProvider.GetService<MsSqlDeployer>(),
-			DBEngine.PostgreSql => _serviceProvider.GetService<PostgreSqlDeployer>(),
+			DBEngine.MSSQL => MsSqlDeployer.OpenConnection(connectionString),
+			DBEngine.PostgreSql => PostgreSqlDeployer.OpenConnection(connectionString),
 			_ => throw new NotImplementedException($"Unsupported DBEngine '{dbEngine}' provided.")
 		};
 

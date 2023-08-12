@@ -2,5 +2,5 @@
 
 public interface IAdapterFactory
 {
-	public IEasyFlowDeployer GetDeployer(DBEngine dbEngine);
+	public IEasyFlowSqlConnection GetDeployer(DBEngine dbEngine, string connectionString);
 }
