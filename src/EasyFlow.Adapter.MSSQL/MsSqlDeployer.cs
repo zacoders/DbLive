@@ -16,10 +16,10 @@ public class MsSqlDeployer : IEasyFlowDeployer
 	public void BeginTransaction(IEasyFlowSqlConnection cnn, TransactionIsolationLevel isolationLevel)
 	{
 		var easyFlowConnection = (EasyFlowSqlConnection)cnn;
-		//TODO: change isolation level
-		string sql = @"
+		var isolationLevelStr = GetMsSqlIsolationLevel(isolationLevel);
+		string sql = @$"
 			set xact_abort on;
-			set transaction isolation level read committed;
+			set transaction isolation level {isolationLevelStr};
 			begin transaction; 
 		";
 		easyFlowConnection.ServerConnection.ExecuteNonQuery(sql);
@@ -31,13 +31,13 @@ public class MsSqlDeployer : IEasyFlowDeployer
 		easyFlowConnection.ServerConnection.ExecuteNonQuery("commit transaction");
 	}
 
-	private IsolationLevel GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
+	private string GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
 		isolationLevel switch
 		{
-			TransactionIsolationLevel.Chaos => IsolationLevel.Chaos,
-			TransactionIsolationLevel.ReadCommitted => IsolationLevel.ReadCommitted,
-			TransactionIsolationLevel.RepeatableRead => IsolationLevel.RepeatableRead,
-			TransactionIsolationLevel.Serializable => IsolationLevel.Serializable,
+			TransactionIsolationLevel.Chaos => "read uncommitted",
+			TransactionIsolationLevel.ReadCommitted => "read committed",
+			TransactionIsolationLevel.RepeatableRead => "repeatable read",
+			TransactionIsolationLevel.Serializable => "serializable",
 			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
 		};
 
