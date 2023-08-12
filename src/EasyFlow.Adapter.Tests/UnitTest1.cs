@@ -14,11 +14,11 @@ public class DeployerTests : IntegrationTestsBase
 
 		var cnn = deployer.OpenConnection(cnnString);
 
-		deployer.BeginTransaction(cnn, TransactionIsolationLevel.ReadCommitted);
-		
-		deployer.ExecuteNonQuery(cnn, sql);
+		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
-		deployer.CommitTransaction(cnn);
+		cnn.ExecuteNonQuery(sql);
+
+		cnn.CommitTransaction();
 	}
 
 	[TestMethod]
@@ -29,6 +29,6 @@ public class DeployerTests : IntegrationTestsBase
 
 		var cnn = deployer.OpenConnection(cnnString);
 
-		deployer.ExecuteNonQuery(cnn, sql);
+		cnn.ExecuteNonQuery(sql);
 	}
 }
