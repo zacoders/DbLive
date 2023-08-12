@@ -69,7 +69,7 @@ public class EasyFlow : IEasyFlow
 		var cnn = _easyFlowDeployer.OpenConnection(sqlConnectionString);
 
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-		
+
 		foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
 		{
 			Console.WriteLine(task.MigrationType);
