@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/EasyFlow.sln",
+                "${workspaceFolder}/EasySqlFlow.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -33,7 +33,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/EasyFlow.sln"
+                "${workspaceFolder}/EasySqlFlow.sln"
             ],
             "problemMatcher": "$msCompile"
         }

@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/EasyFlow/bin/Debug/net7.0/EasyFlow.dll",
+            "program": "${workspaceFolder}/EasyFlow/bin/Debug/net7.0/EasySqlFlow.dll",
             "args": [],
             "cwd": "${workspaceFolder}/EasyFlow",
             "console": "internalConsole",
