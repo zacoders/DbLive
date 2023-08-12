@@ -106,7 +106,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	public void TransactionTest()
 	{
 		/* Note: ReadCommitedSnaphot should be enabled on MSSQL DB to run this test. */
-		
+
 		var cnn = GetConnection();
 
 		cnn.ExecuteNonQuery(@"

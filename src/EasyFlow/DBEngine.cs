@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace EasyFlow;
 
 public enum DBEngine
 {

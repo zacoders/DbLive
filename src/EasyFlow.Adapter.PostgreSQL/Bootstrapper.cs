@@ -1,7 +1,6 @@
-﻿using EasyFlow.Adapter.PostgreSQL;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace EasyFlow.Adapter.MSSQL;
+namespace EasyFlow.Adapter.PostgreSQL;
 
 public static class Bootstrapper
 {

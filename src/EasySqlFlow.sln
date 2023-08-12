@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests", "EasyFlow.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL", "EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter", "EasyFlow.Adapter\EasyFlow.Adapter.csproj", "{ABC615B5-236B-4ADD-8C16-F53022094ACC}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Console", "EasyFlow.Console\EasyFlow.Console.csproj", "{3C2AADD3-CA5A-4701-AC1F-7424139C3907}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Project", "EasyFlow.Project\EasyFlow.Project.csproj", "{E2046CB8-824E-4CFE-8F24-2D8251A02C62}"
@@ -51,10 +49,6 @@ Global
 		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ABC615B5-236B-4ADD-8C16-F53022094ACC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Release|Any CPU.ActiveCfg = Release|Any CPU
