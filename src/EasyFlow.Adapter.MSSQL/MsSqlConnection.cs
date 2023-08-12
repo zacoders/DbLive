@@ -11,23 +11,38 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 
 	public void BeginTransaction(TransactionIsolationLevel isolationLevel)
 	{
-		var isolationLevelStr = GetMsSqlIsolationLevel(isolationLevel);
-		string sql = @$"
-			set xact_abort on;
-			set transaction isolation level {isolationLevelStr};
-			begin transaction; 
-		";
-		_serverConnection.ExecuteNonQuery(sql);
+		HandleException(() =>
+		{
+			var isolationLevelStr = GetMsSqlIsolationLevel(isolationLevel);
+			string sql = @$"
+				set xact_abort on;
+				set transaction isolation level {isolationLevelStr};
+				begin transaction; 
+			";
+			_serverConnection.ExecuteNonQuery(sql);
+		});
 	}
 
 	public void CommitTransaction()
 	{
-		_serverConnection.ExecuteNonQuery("commit transaction");
+		HandleException(() => _serverConnection.ExecuteNonQuery("commit transaction"));
 	}
 
 	public void ExecuteNonQuery(string sqlStatementt)
 	{
-		_serverConnection.ExecuteNonQuery(sqlStatementt);
+		HandleException(() => _serverConnection.ExecuteNonQuery(sqlStatementt));
+	}
+
+	private static void HandleException(Action action)
+	{
+		try
+		{
+			action();
+		}
+		catch (Exception e)
+		{
+			throw new EasyFlowSqlException(e.Message, e);
+		}
 	}
 
 	private string GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>

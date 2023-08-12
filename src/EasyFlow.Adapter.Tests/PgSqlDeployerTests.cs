@@ -29,6 +29,16 @@ public class DeployerTests : IntegrationTestsBase
 	}
 
 	[TestMethod]
+	[ExpectedException(typeof(EasyFlowSqlException))]
+	public void EasyFlowSqlException_Expected()
+	{
+		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var sql = "se_le_ct 1 as col";
+
+		cnn.ExecuteNonQuery(sql);
+	}
+
+	[TestMethod]
 	public void ExecuteNonQuery_MultiStatementMsSql()
 	{
 		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);

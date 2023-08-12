@@ -13,22 +13,44 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 
 	public void BeginTransaction(TransactionIsolationLevel isolationLevel)
 	{
-		var cmd = _connection.CreateCommand();
-		cmd.CommandText = "begin transaction";
-		cmd.ExecuteNonQuery();
+		//TODO: support isolation level
+		HandleException(() =>
+		{
+			var cmd = _connection.CreateCommand();
+			cmd.CommandText = "begin transaction";
+			cmd.ExecuteNonQuery();
+		});
 	}
 
 	public void CommitTransaction()
 	{
-		var cmd = _connection.CreateCommand();
-		cmd.CommandText = "commit transaction";
-		cmd.ExecuteNonQuery();
+		HandleException(() =>
+		{
+			var cmd = _connection.CreateCommand();
+			cmd.CommandText = "commit transaction";
+			cmd.ExecuteNonQuery();
+		});
 	}
 
 	public void ExecuteNonQuery(string sqlStatementt)
 	{
-		var cmd = _connection.CreateCommand();
-		cmd.CommandText = sqlStatementt;
-		cmd.ExecuteNonQuery();
+		HandleException(() =>
+		{
+			var cmd = _connection.CreateCommand();
+			cmd.CommandText = sqlStatementt;
+			cmd.ExecuteNonQuery();
+		});
+	}
+
+	private static void HandleException(Action action)
+	{
+		try
+		{
+			action();
+		}
+		catch (Exception e)
+		{
+			throw new EasyFlowSqlException(e.Message, e);
+		}
 	}
 }
