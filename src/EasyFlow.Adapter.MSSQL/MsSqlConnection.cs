@@ -2,7 +2,7 @@
 
 internal class MsSqlConnection : IEasyFlowSqlConnection
 {
-	private ServerConnection _serverConnection;
+	private readonly ServerConnection _serverConnection;
 
 	public MsSqlConnection(ServerConnection serverCnn)
 	{
