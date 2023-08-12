@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow;
 
-public interface IEasyFlowDeploy
+public interface IEasyFlow
 {
 	void DeployProject(string proejctPath, string sqlConnectionString);
 }

@@ -5,7 +5,7 @@ public static class Bootstrapper
 	public static void InitializeEasyFlow(this IServiceCollection container, DBEngine dbEngine)
 	{
 		container.InitializeFlowProject();
-		container.AddSingleton<IEasyFlowDeploy, EasyFlowDeploy>();
+		container.AddSingleton<IEasyFlow, EasyFlow>();
 
 		switch (dbEngine)
 		{

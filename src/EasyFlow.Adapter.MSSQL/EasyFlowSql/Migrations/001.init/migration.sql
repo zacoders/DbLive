@@ -1,8 +1,7 @@
-
 create schema easyflow;
 go
 
--- drop table if exists easyflow.Migrations
+--TODO: I think it will be good to keep MigrationTasks separatelly.
 create table easyflow.Migrations (
 	MigrationVersion int not null
   , MigrationName nvarchar(512) not null
@@ -13,11 +12,10 @@ create table easyflow.Migrations (
 
   , constraint PK_EasyFlow_Migrations primary key ( MigrationVersion, MigrationName )
 )
+go
 
---TODO: I think it will be good to keep MigrationTasks separatelly.
 exec sys.sp_tableoption
 	@TableNamePattern = 'easyflow.Migrations'
   , @OptionName = 'large value types out of row'
   , @OptionValue = '1'
 go
-

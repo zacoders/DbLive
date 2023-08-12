@@ -16,5 +16,11 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="EasyFlowSql\Migrations\001.init\migration.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 	
 </Project>

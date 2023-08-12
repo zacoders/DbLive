@@ -25,7 +25,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.PostgreSQL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.Interface", "EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj", "{BB23AF8A-E703-44BB-BAFF-11019CED34B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.Tests.Common", "EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj", "{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests.Common", "EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj", "{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{376B4355-689E-4585-9E27-C3E79F945023}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +85,10 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{97810883-746A-476C-99BF-405C51B6A4FD} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
+		{75B26220-82D6-4A7B-B30D-2BB13712A836} = {376B4355-689E-4585-9E27-C3E79F945023}
+		{B0BDF4EE-47C9-4034-876E-3B23DE870C79} = {376B4355-689E-4585-9E27-C3E79F945023}
+		{D2C7D36A-3CF2-4E01-86E8-5AEEAA860A06} = {376B4355-689E-4585-9E27-C3E79F945023}
+		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709} = {376B4355-689E-4585-9E27-C3E79F945023}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3BEF8A41-AC0C-4AC0-BADB-6AD40534D8A2}
