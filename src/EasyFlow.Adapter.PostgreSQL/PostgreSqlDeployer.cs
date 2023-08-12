@@ -2,27 +2,22 @@
 
 public class PostgreSqlDeployer : IEasyFlowDeployer
 {
-	public IEasyFlowTransaction BeginTransaction(string cnnString, TransactionIsolationLevel isolationLevel)
+	public void BeginTransaction(IEasyFlowSqlConnection cnn, TransactionIsolationLevel isolationLevel)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void EndTransaction(IEasyFlowTransaction transaction)
+	public void CommitTransaction(IEasyFlowSqlConnection cnn)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void ExecuteNonQuery(IEasyFlowTransaction transaction, string sqlStatement, TimeSpan timeout)
+	public void ExecuteNonQuery(IEasyFlowSqlConnection cnn, string sqlStatementt)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void ExecuteNonQuery(string cnnString, string sqlStatement, TimeSpan timeout)
-	{
-		throw new NotImplementedException();
-	}
-
-	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
+	public IEasyFlowSqlConnection OpenConnection(string cnnString)
 	{
 		throw new NotImplementedException();
 	}

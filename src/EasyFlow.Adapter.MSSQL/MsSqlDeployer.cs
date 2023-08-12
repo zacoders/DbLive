@@ -2,13 +2,33 @@
 
 public class MsSqlDeployer : IEasyFlowDeployer
 {
-	public IEasyFlowTransaction BeginTransaction(string cnnString, TransactionIsolationLevel isolationLevel)
+	public IEasyFlowSqlConnection OpenConnection(string cnnString)
 	{
 		SqlConnection cnn = new(cnnString);
 		cnn.Open();
-		SqlTransaction sqlTran = cnn.BeginTransaction(GetMsSqlIsolationLevel(isolationLevel));
 
-		return new MsSqlTransaction(sqlTran);
+		ServerConnection serverCnn = new(cnn);
+		serverCnn.StatementTimeout = (int)TimeSpan.FromDays(30).TotalSeconds;
+
+		return new EasyFlowSqlConnection(serverCnn);
+	}
+
+	public void BeginTransaction(IEasyFlowSqlConnection cnn, TransactionIsolationLevel isolationLevel)
+	{
+		var easyFlowConnection = (EasyFlowSqlConnection)cnn;
+		//TODO: change isolation level
+		string sql = @"
+			set xact_abort on;
+			set transaction isolation level read committed;
+			begin transaction; 
+		";
+		easyFlowConnection.ServerConnection.ExecuteNonQuery(sql);
+	}
+
+	public void CommitTransaction(IEasyFlowSqlConnection cnn)
+	{
+		var easyFlowConnection = (EasyFlowSqlConnection)cnn;
+		easyFlowConnection.ServerConnection.ExecuteNonQuery("commit transaction");
 	}
 
 	private IsolationLevel GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
@@ -21,25 +41,9 @@ public class MsSqlDeployer : IEasyFlowDeployer
 			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
 		};
 
-	public void ExecuteNonQuery(string cnnString, string sqlStatement, TimeSpan timeout)
+	public void ExecuteNonQuery(IEasyFlowSqlConnection cnn, string sqlStatementt)
 	{
-		using SqlConnection cnn = new(cnnString);
-		cnn.Open();
-		Execute(sqlStatement, timeout, cnn);
-	}
-
-	public void ExecuteNonQuery(IEasyFlowTransaction transaction, string sqlStatement, TimeSpan timeout)
-	{
-		var sqlTran = (MsSqlTransaction)transaction;
-		Execute(sqlStatement, timeout, sqlTran.SqlTransaction.Connection);
-	}
-
-	private static void Execute(string sqlStatement, TimeSpan timeout, SqlConnection cnn)
-	{
-		ServerConnection serverCnn = new(cnn);
-		//serverCnn.BeginTransaction(); //TODO: option for using transaction.
-
-		serverCnn.StatementTimeout = (int)timeout.TotalSeconds;
-		serverCnn.ExecuteNonQuery(sqlStatement);
+		var easyFlowConnection = (EasyFlowSqlConnection)cnn;
+		easyFlowConnection.ServerConnection.ExecuteNonQuery(sqlStatementt);
 	}
 }

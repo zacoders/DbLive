@@ -2,10 +2,8 @@
 
 public interface IEasyFlowDeployer
 {
-	/// <exception cref="NotSupportedTransactionIsolationLevelException"/>
-	IEasyFlowTransaction BeginTransaction(string cnnString, TransactionIsolationLevel isolationLevel);
-
-	void ExecuteNonQuery(IEasyFlowTransaction transaction, string sqlStatement, TimeSpan timeout);
-
-	void ExecuteNonQuery(string cnnString, string sqlStatement, TimeSpan timeout);
+	IEasyFlowSqlConnection OpenConnection(string cnnString);
+	void BeginTransaction(IEasyFlowSqlConnection cnn, TransactionIsolationLevel isolationLevel);
+	void CommitTransaction(IEasyFlowSqlConnection cnn);
+	void ExecuteNonQuery(IEasyFlowSqlConnection cnn, string sqlStatementt);
 }
