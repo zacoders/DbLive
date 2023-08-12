@@ -5,7 +5,7 @@ public class DeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
 	private readonly IAdapterFactory _factory = Resolve<IAdapterFactory>();
-		
+
 	[TestMethod]
 	public void TransactionTest()
 	{

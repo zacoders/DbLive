@@ -5,7 +5,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Data Source=.;Initial Catalog=EasyFlowTestDB;Integrated Security=True;";
 	private readonly IAdapterFactory _factory = Resolve<IAdapterFactory>();
-		
+
 	[TestMethod]
 	public void TransactionTest()
 	{
@@ -57,7 +57,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	public void Complex_WithTransaction()
 	{
 		var cnn = _factory.GetDeployer(DBEngine.MSSQL, _cnnString);
-		
+
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 		cnn.ExecuteNonQuery(@"
