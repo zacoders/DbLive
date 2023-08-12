@@ -16,7 +16,7 @@ public class EasyFlow : IEasyFlow
 	{
 		DeployProjectInternal(proejctPath, sqlConnectionString, true);
 	}
-	
+
 	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, bool chekEasyFlowObjects)
 	{
 		if (chekEasyFlowObjects && !_easyFlowDA.EasyFlowInstalled(sqlConnectionString))

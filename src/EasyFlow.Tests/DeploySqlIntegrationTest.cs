@@ -1,5 +1,4 @@
 using Microsoft.Data.SqlClient;
-using Microsoft.SqlServer.Management.Smo;
 
 namespace EasyFlow.Tests;
 
