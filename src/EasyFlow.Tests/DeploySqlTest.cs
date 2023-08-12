@@ -29,7 +29,7 @@ public class DeploySqlTest
 				new MigrationDto { MigrationVersion = 2, MigrationName = "sameversion-2" }
 			});
 
-		var migrations = deploy.GetMigrationsToApply("", "").ToArray();
+		var migrations = deploy.GetMigrationsToApply("", "", int.MaxValue).ToArray();
 
 		Assert.AreEqual(2, migrations.Length);
 

@@ -12,21 +12,21 @@ public class EasyFlow : IEasyFlow
 		_easyFlowDA = easyFlowDA;
 		_easyFlowDeployer = easyFlowDeployer;
 	}
-	public void DeployProject(string proejctPath, string sqlConnectionString)
+	public void DeployProject(string proejctPath, string sqlConnectionString, int maxVersion)
 	{
-		DeployProjectInternal(proejctPath, sqlConnectionString, true);
+		DeployProjectInternal(proejctPath, sqlConnectionString, maxVersion, true);
 	}
 
-	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, bool chekEasyFlowObjects)
+	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, int maxVersion,  bool chekEasyFlowObjects)
 	{
 		if (chekEasyFlowObjects && !_easyFlowDA.EasyFlowInstalled(sqlConnectionString))
 		{
 			// Self deploy. Deploying EasyFlow to the database
 			string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
-			DeployProjectInternal(easyFlowSqlSource, sqlConnectionString, false);
+			DeployProjectInternal(easyFlowSqlSource, sqlConnectionString, int.MaxValue, false);
 		}
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(proejctPath, sqlConnectionString, chekEasyFlowObjects);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(proejctPath, sqlConnectionString, maxVersion, chekEasyFlowObjects);
 
 		foreach (var migration in migrationsToApply)
 		{
@@ -34,7 +34,7 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString, bool chekEasyFlowObjects = true)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString, int maxVersion, bool chekEasyFlowObjects = true)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
@@ -48,6 +48,7 @@ public class EasyFlow : IEasyFlow
 		string migrationsPath = Path.Combine(proejctPath, "Migrations");
 
 		var migrationsToApply = _easyFlowProject.GetProjectMigrations(migrationsPath)
+			.Where(m => m.Version <= maxVersion)
 			.Where(m =>
 				   appliedVersion == 0
 				|| m.Version > appliedVersion
@@ -62,6 +63,7 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployMigration(Migration migration, string sqlConnectionString)
 	{
+		Console.WriteLine("");
 		Console.WriteLine(migration.PathUri.GetLastSegment());
 		var tasks = _easyFlowProject.GetMigrationTasks(migration.PathUri.LocalPath);
 

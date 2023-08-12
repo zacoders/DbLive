@@ -6,7 +6,7 @@ namespace EasyFlow.Tests;
 public class DeploySqlIntegrationTest : IntegrationTestsBase
 {
 	[TestMethod]
-	public void DeployProject()
+	public void DeployProject_Full()
 	{
 		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
 		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlowTestDBDeploy;Integrated Security=True;";
@@ -17,6 +17,25 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 
 		var deploy = Resolve<IEasyFlow>();
 
+		deploy.DeployProject(path, sqlConnectionString);
+	}
+
+	[TestMethod]
+	public void DeployProject_Two_Deployments()
+	{
+		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
+		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlowTestDBDeploy;Integrated Security=True;";
+
+		RecreateDatabase(sqlConnectionString);
+
+		Container.InitializeEasyFlow(DBEngine.MSSQL);
+
+		var deploy = Resolve<IEasyFlow>();
+
+		// deploy up to version 2
+		deploy.DeployProject(path, sqlConnectionString, 2);
+
+		// deploy other.
 		deploy.DeployProject(path, sqlConnectionString);
 	}
 
