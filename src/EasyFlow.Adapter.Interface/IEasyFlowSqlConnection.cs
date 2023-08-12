@@ -13,4 +13,7 @@ public interface IEasyFlowSqlConnection
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void Close();
+
+	/// <exception cref="EasyFlowSqlException"/>
+	void MigrationCompleted(int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
 }

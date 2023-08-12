@@ -59,4 +59,35 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 			TransactionIsolationLevel.Serializable => "serializable",
 			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
 		};
+
+	public void MigrationCompleted(int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		string query = @"
+			insert into easyflow.Migrations
+			(
+				MigrationVersion
+			  , MigrationName
+			  , MigrationStarted
+			  , MigrationCompleted
+			  , MigrationSQL
+			)
+			values ( 
+				@MigrationVersion
+			  , @MigrationName
+			  , @MigrationStartedUtc
+			  , @MigrationCompletedUtc
+			  , concat('tran count: ', @@trancount)
+			)
+		";
+
+		HandleException(() =>
+			_serverConnection.SqlConnectionObject.Query(query, new
+			{
+				migrationVersion,
+				migrationName,
+				migrationStartedUtc,
+				migrationCompletedUtc
+			})
+		);
+	}
 }

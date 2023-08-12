@@ -58,4 +58,9 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 			throw new EasyFlowSqlException(e.Message, e);
 		}
 	}
+
+	public void MigrationCompleted(int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		throw new NotImplementedException();
+	}
 }

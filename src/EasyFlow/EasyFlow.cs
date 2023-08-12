@@ -67,8 +67,11 @@ public class EasyFlow : IEasyFlow
 		Console.WriteLine(migration.PathUri.GetLastSegment());
 		var tasks = _easyFlowProject.GetMigrationTasks(migration.PathUri.LocalPath);
 
+		DateTime migrationStartedUtc = DateTime.UtcNow;
 		var cnn = _easyFlowDeployer.OpenConnection(sqlConnectionString);
+
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
+		
 		foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
 		{
 			Console.WriteLine(task.MigrationType);
@@ -82,6 +85,11 @@ public class EasyFlow : IEasyFlow
 				Console.WriteLine("  - skipped");
 			}
 		}
+
+		DateTime migrationCompletedUtc = DateTime.UtcNow;
+
+		cnn.MigrationCompleted(migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+
 		cnn.CommitTransaction();
 	}
 }
