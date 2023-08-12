@@ -10,8 +10,8 @@ public class DeploySqlTest
 
 		var deploy = new EasyFlow(mockSet.EasyFlowProject.Object, mockSet.EasyFlowDA.Object, mockSet.EasyFlowDeployer.Object);
 
-		Migration NewMigration(int version, string name) =>
-		 new Migration { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
+		static Migration NewMigration(int version, string name) =>
+		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
 
 		mockSet.EasyFlowProject.Setup(fs => fs.GetProjectMigrations(It.IsAny<string>()))
 			.Returns(new[]

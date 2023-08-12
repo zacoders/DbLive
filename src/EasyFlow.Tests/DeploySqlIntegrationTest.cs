@@ -43,7 +43,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 
 	private static void RecreateDatabase(string sqlConnectionString)
 	{
-		SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(sqlConnectionString);
+		SqlConnectionStringBuilder builder = new(sqlConnectionString);
 		string databaseToDrop = builder.InitialCatalog;
 		builder.InitialCatalog = "master";
 		SqlConnection cnn = new(builder.ConnectionString);

@@ -2,8 +2,8 @@
 
 public class MockSet
 {
-	public readonly Mock<IFileSystem> FileSystem = new Mock<IFileSystem>();
-	public readonly Mock<IEasyFlowProject> EasyFlowProject = new Mock<IEasyFlowProject>();
-	public readonly Mock<IEasyFlowDA> EasyFlowDA = new Mock<IEasyFlowDA>();
-	public readonly Mock<IEasyFlowDeployer> EasyFlowDeployer = new Mock<IEasyFlowDeployer>();
+	public readonly Mock<IFileSystem> FileSystem = new();
+	public readonly Mock<IEasyFlowProject> EasyFlowProject = new();
+	public readonly Mock<IEasyFlowDA> EasyFlowDA = new();
+	public readonly Mock<IEasyFlowDeployer> EasyFlowDeployer = new();
 }

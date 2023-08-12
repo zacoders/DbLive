@@ -50,7 +50,7 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		}
 	}
 
-	private string GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
+	private static string GetMsSqlIsolationLevel(TransactionIsolationLevel isolationLevel) =>
 		isolationLevel switch
 		{
 			TransactionIsolationLevel.Chaos => "read uncommitted",
