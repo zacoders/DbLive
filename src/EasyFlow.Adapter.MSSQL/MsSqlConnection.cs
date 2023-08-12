@@ -33,6 +33,11 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		HandleException(() => _serverConnection.ExecuteNonQuery(sqlStatementt));
 	}
 
+	public void Close()
+	{
+		HandleException(_serverConnection.Disconnect);
+	}
+
 	private static void HandleException(Action action)
 	{
 		try

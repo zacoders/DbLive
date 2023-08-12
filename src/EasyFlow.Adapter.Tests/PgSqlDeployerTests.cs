@@ -6,10 +6,12 @@ public class DeployerTests : IntegrationTestsBase
 	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
 	private readonly IAdapterFactory _factory = Resolve<IAdapterFactory>();
 
+	private IEasyFlowSqlConnection GetConnection() => _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+
 	[TestMethod]
-	public void TransactionTest()
+	public void TransactionTest_Simple()
 	{
-		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
@@ -22,7 +24,7 @@ public class DeployerTests : IntegrationTestsBase
 	[TestMethod]
 	public void ExecuteNonQuery_Simple()
 	{
-		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
 		cnn.ExecuteNonQuery(sql);
@@ -32,7 +34,7 @@ public class DeployerTests : IntegrationTestsBase
 	[ExpectedException(typeof(EasyFlowSqlException))]
 	public void EasyFlowSqlException_Expected()
 	{
-		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var cnn = GetConnection();
 		var sql = "se_le_ct 1 as col";
 
 		cnn.ExecuteNonQuery(sql);
@@ -41,7 +43,7 @@ public class DeployerTests : IntegrationTestsBase
 	[TestMethod]
 	public void ExecuteNonQuery_MultiStatementMsSql()
 	{
-		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var cnn = GetConnection();
 		var sql = @"
 			select 1 as col;
 			
@@ -57,7 +59,7 @@ public class DeployerTests : IntegrationTestsBase
 	[TestMethod]
 	public void Complex_WithTransaction()
 	{
-		var cnn = _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+		var cnn = GetConnection();
 
 		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
@@ -97,5 +99,52 @@ public class DeployerTests : IntegrationTestsBase
 		");
 
 		cnn.CommitTransaction();
+	}
+
+
+	[TestMethod]
+	public void TransactionTest()
+	{
+		var cnn = GetConnection();
+
+		cnn.ExecuteNonQuery(@"
+			drop table if exists TestTran1;
+		
+			create table TestTran1 (
+				id int not null
+			  , name varchar(128) not null
+			);
+			
+			insert into TestTran1 ( id, name )
+			values ( 1, 'Test1' ), ( 2, 'Test2')
+		");
+
+		var cnn1 = GetConnection();
+		var cnn2 = GetConnection();
+
+		cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
+
+		cnn1.ExecuteNonQuery(@"
+			update TestTran1
+			set name = 'new name' 
+		");
+
+		cnn2.ExecuteNonQuery(@"
+			do $$ begin
+
+				if ( select count(*) from TestTran1 ) != 2 then
+					raise exception 'Two rows in the tables is expected!'; 
+				end if;
+
+				if exists ( select * from TestTran1 where name = 'new name' ) then
+					raise exception 'Transaction doesn`t work!'; 
+				end if;
+
+			end $$;  
+		");
+
+		cnn1.CommitTransaction();
+
+		cnn.ExecuteNonQuery("drop table if exists TestTran1;");
 	}
 }

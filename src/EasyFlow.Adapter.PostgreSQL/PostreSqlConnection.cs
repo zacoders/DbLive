@@ -42,6 +42,11 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 		});
 	}
 
+	public void Close()
+	{
+		HandleException(_connection.Close);
+	}
+
 	private static void HandleException(Action action)
 	{
 		try
