@@ -1,6 +1,6 @@
 namespace EasyFlow;
 
-public class EasyFlowDeploy
+public class EasyFlowDeploy : IEasyFlowDeploy
 {
 	private readonly IEasyFlowDA _easyFlowDA;
 	private readonly IEasyFlowProject _easyFlowProject;

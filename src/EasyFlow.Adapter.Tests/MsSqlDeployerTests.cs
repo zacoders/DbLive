@@ -4,9 +4,18 @@ namespace EasyFlow.Adapter.Tests;
 public class MsSqlDeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Data Source=.;Initial Catalog=EasyFlowTestDB;Integrated Security=True;";
-	private readonly IAdapterFactory _factory = Resolve<IAdapterFactory>();
-	
-	private IEasyFlowSqlConnection GetConnection() => _factory.GetDeployer(DBEngine.MSSQL, _cnnString);
+	private readonly IEasyFlowDeployer Deployer;
+
+	public MsSqlDeployerTests()
+	{
+		Container.InitializeEasyFlow(DBEngine.MSSQL);
+		Deployer = Resolve<IEasyFlowDeployer>();
+	}
+
+	private IEasyFlowSqlConnection GetConnection()
+	{
+		return Deployer.OpenConnection(_cnnString);
+	}
 
 	[TestMethod]
 	public void TransactionTest_Simple()

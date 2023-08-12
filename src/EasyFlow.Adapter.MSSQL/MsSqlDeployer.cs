@@ -1,8 +1,8 @@
 ﻿namespace EasyFlow.Adapter.MSSQL;
 
-public class MsSqlDeployer
+public class MsSqlDeployer : IEasyFlowDeployer
 {
-	public static IEasyFlowSqlConnection OpenConnection(string cnnString)
+	public IEasyFlowSqlConnection OpenConnection(string cnnString)
 	{
 		SqlConnection cnn = new(cnnString);
 		cnn.Open();

@@ -1,12 +1,21 @@
 namespace EasyFlow.Adapter.Tests;
 
 [TestClass]
-public class DeployerTests : IntegrationTestsBase
+public class PgSqlDeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
-	private readonly IAdapterFactory _factory = Resolve<IAdapterFactory>();
+	private readonly IEasyFlowDeployer Deployer;
 
-	private IEasyFlowSqlConnection GetConnection() => _factory.GetDeployer(DBEngine.PostgreSql, _cnnString);
+	public PgSqlDeployerTests()
+	{
+		Container.InitializeEasyFlow(DBEngine.PostgreSql);
+		Deployer = Resolve<IEasyFlowDeployer>();
+	}
+
+	private IEasyFlowSqlConnection GetConnection()
+	{
+		return Deployer.OpenConnection(_cnnString);
+	}
 
 	[TestMethod]
 	public void TransactionTest_Simple()

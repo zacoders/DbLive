@@ -9,9 +9,4 @@ public abstract class IntegrationTestsBase
 		IServiceProvider serviceProvider = Container.BuildServiceProvider();
 		return serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
-
-	static IntegrationTestsBase()
-	{
-		Container.InitializeEasyFlow();
-	}
 }

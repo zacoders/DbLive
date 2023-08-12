@@ -4,7 +4,7 @@ public static class Bootstrapper
 {
 	public static void InitializeMSSQL(this IServiceCollection container)
 	{
-		container.AddSingleton<MsSqlDA>();
-		container.AddSingleton<MsSqlDeployer>();
+		container.AddSingleton<IEasyFlowDA, MsSqlDA>();
+		container.AddSingleton<IEasyFlowDeployer, MsSqlDeployer>();
 	}
 }
