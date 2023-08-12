@@ -69,14 +69,12 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 			  , MigrationName
 			  , MigrationStarted
 			  , MigrationCompleted
-			  , MigrationSQL
 			)
 			values ( 
 				@MigrationVersion
 			  , @MigrationName
 			  , @MigrationStartedUtc
 			  , @MigrationCompletedUtc
-			  , concat('tran count: ', @@trancount)
 			)
 		";
 

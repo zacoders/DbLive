@@ -14,19 +14,17 @@ public class EasyFlow : IEasyFlow
 	}
 	public void DeployProject(string proejctPath, string sqlConnectionString, int maxVersion)
 	{
-		DeployProjectInternal(proejctPath, sqlConnectionString, maxVersion, true);
+		// Self deploy. Deploying EasyFlow to the database
+		string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
+		DeployProjectInternal(easyFlowSqlSource, sqlConnectionString, int.MaxValue);
+
+		// Deploy actuall project
+		DeployProjectInternal(proejctPath, sqlConnectionString, maxVersion);
 	}
 
-	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, int maxVersion,  bool chekEasyFlowObjects)
+	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, int maxVersion)
 	{
-		if (chekEasyFlowObjects && !_easyFlowDA.EasyFlowInstalled(sqlConnectionString))
-		{
-			// Self deploy. Deploying EasyFlow to the database
-			string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
-			DeployProjectInternal(easyFlowSqlSource, sqlConnectionString, int.MaxValue, false);
-		}
-
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(proejctPath, sqlConnectionString, maxVersion, chekEasyFlowObjects);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(proejctPath, sqlConnectionString, maxVersion);
 
 		foreach (var migration in migrationsToApply)
 		{
@@ -34,12 +32,12 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString, int maxVersion, bool chekEasyFlowObjects = true)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString, int maxVersion)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
 
-		if (chekEasyFlowObjects)
+		if (_easyFlowDA.EasyFlowInstalled(sqlConnectionString))
 		{
 			appliedMigrations = _easyFlowDA.GetMigrations(sqlConnectionString);
 			appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);

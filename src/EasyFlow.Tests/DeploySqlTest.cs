@@ -22,6 +22,9 @@ public class DeploySqlTest
 				NewMigration(3, "test3")
 			});
 
+		mockSet.EasyFlowDA.Setup(fs => fs.EasyFlowInstalled(It.IsAny<string>()))
+			.Returns(true);
+
 		mockSet.EasyFlowDA.Setup(fs => fs.GetMigrations(It.IsAny<string>()))
 			.Returns(new[]
 			{

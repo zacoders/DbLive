@@ -1,4 +1,6 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.SqlServer.Management.Common;
+using System.Collections.Specialized;
 
 namespace EasyFlow.Tests;
 
@@ -32,10 +34,10 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 
 		var deploy = Resolve<IEasyFlow>();
 
-		// deploy up to version 2
+		Console.WriteLine("=== deploy up to version 2 ===");
 		deploy.DeployProject(path, sqlConnectionString, 2);
 
-		// deploy other.
+		Console.WriteLine("=== deploy other ===");
 		deploy.DeployProject(path, sqlConnectionString);
 	}
 
@@ -46,13 +48,12 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 		builder.InitialCatalog = "master";
 		SqlConnection cnn = new(builder.ConnectionString);
 		cnn.Open();
-		var cmd = cnn.CreateCommand();
-		cmd.CommandText = @$"
-			alter database [{databaseToDrop}] set single_user with rollback immediate;
-			drop database [{databaseToDrop}];
-			create database [{databaseToDrop}];
-		";
-		cmd.ExecuteNonQuery();
-		cnn.Close();
+		ServerConnection serverCnn = new(cnn);
+		serverCnn.ExecuteNonQuery(new StringCollection {
+			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
+			$"drop database[{ databaseToDrop}];",
+			$"create database[{ databaseToDrop}];"
+		});
+		serverCnn.Disconnect();
 	}
 }
