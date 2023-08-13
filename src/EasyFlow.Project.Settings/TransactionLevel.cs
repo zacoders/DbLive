@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Project.Settings;
 
-public enum TransactionLevel
+public enum TransactionWrapLevel
 {
 	/// <summary>
 	/// Full deployment will be wrapped withing transaction

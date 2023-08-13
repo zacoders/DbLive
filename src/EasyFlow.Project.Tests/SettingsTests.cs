@@ -16,7 +16,7 @@ public class SettingsTests
 		mockSet.FileSystem.Setup(fs => fs.FileReadAllText(It.Is<string>(v => v == settingsPath)))
 			.Returns("""
 			{
-				"TransactionLevel": "None"
+				"TransactionWrapLevel": "None"
 			}
 			""");
 
@@ -26,6 +26,6 @@ public class SettingsTests
 		var settings = sqlProject.GetSettings();
 
 		Assert.IsNotNull(settings);
-		Assert.AreEqual(TransactionLevel.None, settings.TransactionLevel);
+		Assert.AreEqual(TransactionWrapLevel.None, settings.TransactionWrapLevel);
 	}
 }

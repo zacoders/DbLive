@@ -2,6 +2,6 @@
 
 public class EasyFlowSettings
 {
-	public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Migration;
+	public TransactionWrapLevel TransactionWrapLevel { get; set; } = TransactionWrapLevel.Migration;
 	public TransactionIsolationLevel TransactionIsolationLevel { get; set; } = TransactionIsolationLevel.Serializable;
 }

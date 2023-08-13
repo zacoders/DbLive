@@ -8,7 +8,7 @@
       migration - each migration wrapped by transaction
       task - migration task wrapped by transaction
       none - no transactions introduced */
-  "TransactionLevel": "migration", //TODO: rename to TransactionWrapLevel
+  "TransactionWrapLevel": "migration", //TODO: rename to TransactionWrapLevel
 
   /* Options:
       Chaos,

@@ -35,7 +35,7 @@ public class EasyFlow : IEasyFlow
 
 		IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 
-		if (_projectSettings.TransactionLevel == TransactionLevel.Deployment)
+		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
 			cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
 
 		foreach (var migration in migrationsToApply)
@@ -43,7 +43,7 @@ public class EasyFlow : IEasyFlow
 			DeployMigration(domain, migration, cnn);
 		}
 
-		if (_projectSettings.TransactionLevel == TransactionLevel.Deployment)
+		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
 			cnn.CommitTransaction();
 	}
 
@@ -80,12 +80,12 @@ public class EasyFlow : IEasyFlow
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
-		if (_projectSettings.TransactionLevel == TransactionLevel.Migration)
+		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration)
 			cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
 
 		foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
 		{
-			if (_projectSettings.TransactionLevel == TransactionLevel.Task)
+			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
 				cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
 
 			Console.WriteLine(task.MigrationType);
@@ -99,7 +99,7 @@ public class EasyFlow : IEasyFlow
 				Console.WriteLine("  - skipped");
 			}
 
-			if (_projectSettings.TransactionLevel == TransactionLevel.Task)
+			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
 				cnn.CommitTransaction();
 		}
 
@@ -107,7 +107,7 @@ public class EasyFlow : IEasyFlow
 
 		cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
 
-		if (_projectSettings.TransactionLevel == TransactionLevel.Migration)
+		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration)
 			cnn.CommitTransaction();
 	}
 }
