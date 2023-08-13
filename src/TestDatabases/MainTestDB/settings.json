@@ -1,5 +1,4 @@
 {
-  // TODO: Easy SQL Flow project settings
   // can be used to configure project
   // can be overwritten in separate migration folder
 
@@ -8,7 +7,7 @@
       migration - each migration wrapped by transaction
       task - migration task wrapped by transaction
       none - no transactions introduced */
-  "TransactionWrapLevel": "migration", //TODO: rename to TransactionWrapLevel
+  "TransactionWrapLevel": "migration",
 
   /* Options:
       Chaos,
