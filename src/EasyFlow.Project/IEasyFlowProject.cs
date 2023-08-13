@@ -1,6 +1,4 @@
-﻿using EasyFlow.Project.Settings;
-
-namespace EasyFlow.Project;
+﻿namespace EasyFlow.Project;
 
 public interface IEasyFlowProject
 {

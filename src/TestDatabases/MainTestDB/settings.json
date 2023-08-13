@@ -8,6 +8,12 @@
       migration - each migration wrapped by transaction
       task - migration task wrapped by transaction
       none - no transactions introduced */
-  "TransactionLevel": "migration"
+  "TransactionLevel": "migration", //TODO: rename to TransactionWrapLevel
 
+  /* Options:
+      Chaos,
+	    ReadCommitted,
+	    RepeatableRead,
+	    Serializable */
+  "TransactionIsolationLevel": "serializable"
 }
