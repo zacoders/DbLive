@@ -33,10 +33,18 @@ public class EasyFlow : IEasyFlow
 
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, maxVersion);
 
+		IEasyFlowSqlConnection cnn = _easyFlowDeployer.OpenConnection(sqlConnectionString);
+
+		if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Deployment)
+			cnn.BeginTransaction(TransactionIsolationLevel.Serializable);
+
 		foreach (var migration in migrationsToApply)
 		{
-			DeployMigration(domain, migration, sqlConnectionString);
+			DeployMigration(domain, migration, cnn);
 		}
+
+		if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Deployment)
+			cnn.CommitTransaction();
 	}
 
 	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, int maxVersion)
@@ -64,19 +72,22 @@ public class EasyFlow : IEasyFlow
 		return migrationsToApply;
 	}
 
-	private void DeployMigration(string domain, Migration migration, string sqlConnectionString)
+	private void DeployMigration(string domain, Migration migration, IEasyFlowSqlConnection cnn)
 	{
 		Console.WriteLine("");
 		Console.WriteLine(migration.PathUri.GetLastSegment());
 		var tasks = _easyFlowProject.GetMigrationTasks(migration.PathUri.LocalPath);
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
-		var cnn = _easyFlowDeployer.OpenConnection(sqlConnectionString);
 
-		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
+		if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Migration)
+			cnn.BeginTransaction(TransactionIsolationLevel.Serializable);
 
 		foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
 		{
+			if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Task)
+				cnn.BeginTransaction(TransactionIsolationLevel.Serializable);
+
 			Console.WriteLine(task.MigrationType);
 			if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
 			{
@@ -87,7 +98,13 @@ public class EasyFlow : IEasyFlow
 			{
 				Console.WriteLine("  - skipped");
 			}
+
+			if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Task)
+				cnn.CommitTransaction();
 		}
+
+		if (_easyFlowProjectSettings.TransactionLevel == TransactionLevel.Migration)
+			cnn.CommitTransaction();
 
 		DateTime migrationCompletedUtc = DateTime.UtcNow;
 
