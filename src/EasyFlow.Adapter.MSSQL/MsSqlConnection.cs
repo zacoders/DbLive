@@ -60,18 +60,20 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
 		};
 
-	public void MigrationCompleted(int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MigrationCompleted(string domain, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
 	{
 		string query = @"
 			insert into easyflow.Migrations
 			(
-				MigrationVersion
+				Domain
+			  , MigrationVersion
 			  , MigrationName
 			  , MigrationStarted
 			  , MigrationCompleted
 			)
-			values ( 
-				@MigrationVersion
+			values (
+				@Domain
+			  , @MigrationVersion
 			  , @MigrationName
 			  , @MigrationStartedUtc
 			  , @MigrationCompletedUtc
@@ -81,6 +83,7 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		HandleException(() =>
 			_serverConnection.SqlConnectionObject.Query(query, new
 			{
+				domain,
 				migrationVersion,
 				migrationName,
 				migrationStartedUtc,

@@ -3,14 +3,36 @@ namespace EasyFlow.Project;
 public class EasyFlowProject : IEasyFlowProject
 {
 	private readonly IFileSystem _fileSystem;
+	
+	private EasyFlowSettings _settings = new();
+	private string _projectPath = "";
+	private bool _isLoaded = false;
 
 	public EasyFlowProject(IFileSystem fileSystem)
 	{
 		_fileSystem = fileSystem;
 	}
 
+	public void Load(string projectPath)
+	{
+		_isLoaded = true;
+		_projectPath = projectPath;
+		string settingsPath = Path.Combine(projectPath, "settings.json");
+		if (File.Exists(settingsPath))
+		{
+			string settingsJson = File.ReadAllText(settingsPath);
+			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? new EasyFlowSettings();
+		}
+	}
+
+	public EasyFlowSettings GetSettings()
+	{
+		return _settings;
+	}
+
 	public HashSet<MigrationTask> GetMigrationTasks(string migrationFolder)
 	{
+		ThrowIfProjectWasNotLoaded();
 		HashSet<MigrationTask> tasks = new();
 		foreach (string file in _fileSystem.EnumerateFiles(migrationFolder, "*.sql"))
 		{
@@ -36,6 +58,11 @@ public class EasyFlowProject : IEasyFlowProject
 		return tasks;
 	}
 
+	private void ThrowIfProjectWasNotLoaded()
+	{
+		if (_isLoaded == false) throw new ProjectWasNotLoadedException();
+	}
+
 	public static MigrationType GetMigrationType(string type) =>
 		type.ToLower() switch
 		{
@@ -47,10 +74,12 @@ public class EasyFlowProject : IEasyFlowProject
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
 
-	public IEnumerable<Migration> GetProjectMigrations(string projectPath)
+	public IEnumerable<Migration> GetProjectMigrations()
 	{
+		ThrowIfProjectWasNotLoaded();
 		HashSet<Migration> migrations = new();
-		foreach (string folderPath in _fileSystem.EnumerateDirectories(projectPath, "*.*", SearchOption.AllDirectories))
+		string migrationsPath = Path.Combine(_projectPath, "Migrations");
+		foreach (string folderPath in _fileSystem.EnumerateDirectories(migrationsPath, "*.*", SearchOption.AllDirectories))
 		{
 			Uri folderUri = new(folderPath);
 			string folderName = folderUri.GetLastSegment();
@@ -89,4 +118,5 @@ public class EasyFlowProject : IEasyFlowProject
 			Tasks = GetMigrationTasks(folderUri.LocalPath)
 		};
 	}
+
 }

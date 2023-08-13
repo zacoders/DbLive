@@ -18,8 +18,9 @@ public class MigrationsTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations("").ToArray();
+		var migrations = sqlProject.GetProjectMigrations().ToArray();
 
 		Assert.AreEqual(4, migrations.Count());
 		Assert.AreEqual(1, migrations[0].Version);
@@ -42,8 +43,9 @@ public class MigrationsTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations("");
+		var migrations = sqlProject.GetProjectMigrations();
 	}
 
 	[TestMethod]
@@ -59,8 +61,9 @@ public class MigrationsTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations("");
+		var migrations = sqlProject.GetProjectMigrations();
 	}
 
 	[TestMethod]
@@ -78,8 +81,9 @@ public class MigrationsTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations("").ToArray();
+		var migrations = sqlProject.GetProjectMigrations().ToArray();
 
 		Assert.AreEqual(4, migrations.Count());
 		Assert.AreEqual(1, migrations[0].Version);

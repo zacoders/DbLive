@@ -2,6 +2,8 @@
 
 public interface IEasyFlowProject
 {
+	void Load(string projectPath);
+	EasyFlowSettings GetSettings();
 	HashSet<MigrationTask> GetMigrationTasks(string migrationFolder);
-	IEnumerable<Migration> GetProjectMigrations(string projectPath);
+	IEnumerable<Migration> GetProjectMigrations();
 }

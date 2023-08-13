@@ -13,7 +13,7 @@ public class DeploySqlTest
 		static Migration NewMigration(int version, string name) =>
 		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
 
-		mockSet.EasyFlowProject.Setup(fs => fs.GetProjectMigrations(It.IsAny<string>()))
+		mockSet.EasyFlowProject.Setup(fs => fs.GetProjectMigrations())
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -25,7 +25,7 @@ public class DeploySqlTest
 		mockSet.EasyFlowDA.Setup(fs => fs.EasyFlowInstalled(It.IsAny<string>()))
 			.Returns(true);
 
-		mockSet.EasyFlowDA.Setup(fs => fs.GetMigrations(It.IsAny<string>()))
+		mockSet.EasyFlowDA.Setup(fs => fs.GetMigrations(It.IsAny<string>(), It.IsAny<string>()))
 			.Returns(new[]
 			{
 				new MigrationDto { MigrationVersion = 1, MigrationName = "test1" },

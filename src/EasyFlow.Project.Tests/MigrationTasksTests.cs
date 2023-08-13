@@ -18,6 +18,7 @@ public class MigrationTasksTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
 		var migrationTasks = sqlProject.GetMigrationTasks("");
 
@@ -39,6 +40,7 @@ public class MigrationTasksTests
 			});
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		sqlProject.Load("");
 
 		_ = sqlProject.GetMigrationTasks("");
 	}

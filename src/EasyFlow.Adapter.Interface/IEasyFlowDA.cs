@@ -2,6 +2,6 @@
 
 public interface IEasyFlowDA
 {
-	IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString);
+	IReadOnlyCollection<MigrationDto> GetMigrations(string domain, string cnnString);
 	bool EasyFlowInstalled(string cnnString);
 }

@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace EasyFlow.Project;
+﻿namespace EasyFlow.Project;
 
 public static class Bootstrapper
 {

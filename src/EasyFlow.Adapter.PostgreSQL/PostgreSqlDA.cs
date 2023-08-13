@@ -7,7 +7,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
+	public IReadOnlyCollection<MigrationDto> GetMigrations(string domain, string cnnString)
 	{
 		throw new NotImplementedException();
 	}

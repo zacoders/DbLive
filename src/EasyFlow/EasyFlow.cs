@@ -5,6 +5,7 @@ public class EasyFlow : IEasyFlow
 	private readonly IEasyFlowDA _easyFlowDA;
 	private readonly IEasyFlowDeployer _easyFlowDeployer;
 	private readonly IEasyFlowProject _easyFlowProject;
+	private EasyFlowSettings _easyFlowProjectSettings = new EasyFlowSettings();
 
 	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer)
 	{
@@ -12,40 +13,42 @@ public class EasyFlow : IEasyFlow
 		_easyFlowDA = easyFlowDA;
 		_easyFlowDeployer = easyFlowDeployer;
 	}
+
 	public void DeployProject(string proejctPath, string sqlConnectionString, int maxVersion)
 	{
 		// Self deploy. Deploying EasyFlow to the database
 		string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
-		DeployProjectInternal(easyFlowSqlSource, sqlConnectionString, int.MaxValue);
+		DeployProjectInternal("self", easyFlowSqlSource, sqlConnectionString, int.MaxValue);
 
 		// Deploy actuall project
-		DeployProjectInternal(proejctPath, sqlConnectionString, maxVersion);
+		DeployProjectInternal("project", proejctPath, sqlConnectionString, maxVersion);
 	}
 
-	private void DeployProjectInternal(string proejctPath, string sqlConnectionString, int maxVersion)
+	private void DeployProjectInternal(string domain, string proejctPath, string sqlConnectionString, int maxVersion)
 	{
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(proejctPath, sqlConnectionString, maxVersion);
+		_easyFlowProject.Load(proejctPath);
+		_easyFlowProjectSettings = _easyFlowProject.GetSettings();
+		
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, maxVersion);
 
 		foreach (var migration in migrationsToApply)
 		{
-			DeployMigration(migration, sqlConnectionString);
+			DeployMigration(domain, migration, sqlConnectionString);
 		}
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(string proejctPath, string sqlConnectionString, int maxVersion)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, int maxVersion)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
 
 		if (_easyFlowDA.EasyFlowInstalled(sqlConnectionString))
 		{
-			appliedMigrations = _easyFlowDA.GetMigrations(sqlConnectionString);
+			appliedMigrations = _easyFlowDA.GetMigrations(domain, sqlConnectionString);
 			appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
 		}
 
-		string migrationsPath = Path.Combine(proejctPath, "Migrations");
-
-		var migrationsToApply = _easyFlowProject.GetProjectMigrations(migrationsPath)
+		var migrationsToApply = _easyFlowProject.GetProjectMigrations()
 			.Where(m => m.Version <= maxVersion)
 			.Where(m =>
 				   appliedVersion == 0
@@ -59,7 +62,7 @@ public class EasyFlow : IEasyFlow
 		return migrationsToApply;
 	}
 
-	private void DeployMigration(Migration migration, string sqlConnectionString)
+	private void DeployMigration(string domain, Migration migration, string sqlConnectionString)
 	{
 		Console.WriteLine("");
 		Console.WriteLine(migration.PathUri.GetLastSegment());
@@ -86,7 +89,7 @@ public class EasyFlow : IEasyFlow
 
 		DateTime migrationCompletedUtc = DateTime.UtcNow;
 
-		cnn.MigrationCompleted(migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+		cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
 
 		cnn.CommitTransaction();
 	}
