@@ -3,7 +3,11 @@
   // can be used to configure project
   // can be overwritten in separate migration folder
 
-  //options: deployment, migration, task, none.
+  /* Options:
+      deployment - full deployment will be wrapped withing transaction
+      migration - each migration wrapped by transaction
+      task - migration task wrapped by transaction
+      none - no transactions introduced */
   "TransactionLevel": "migration"
 
 }

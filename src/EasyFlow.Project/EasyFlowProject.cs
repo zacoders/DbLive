@@ -1,3 +1,5 @@
+using EasyFlow.Project.Settings;
+
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject
@@ -18,9 +20,9 @@ public class EasyFlowProject : IEasyFlowProject
 		_isLoaded = true;
 		_projectPath = projectPath;
 		string settingsPath = Path.Combine(projectPath, "settings.json");
-		if (File.Exists(settingsPath))
+		if (_fileSystem.FileExists(settingsPath))
 		{
-			string settingsJson = File.ReadAllText(settingsPath);
+			string settingsJson = _fileSystem.FileReadAllText(settingsPath);
 			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? new EasyFlowSettings();
 		}
 	}

@@ -1,3 +1,5 @@
+using EasyFlow.Project.Settings;
+
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
