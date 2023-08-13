@@ -5,7 +5,7 @@ namespace EasyFlow.Project;
 public class EasyFlowProject : IEasyFlowProject
 {
 	private readonly IFileSystem _fileSystem;
-	
+
 	private EasyFlowSettings _settings = new();
 	private string _projectPath = "";
 	private bool _isLoaded = false;

@@ -30,7 +30,7 @@ public class EasyFlow : IEasyFlow
 	{
 		_easyFlowProject.Load(proejctPath);
 		_easyFlowProjectSettings = _easyFlowProject.GetSettings();
-		
+
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, maxVersion);
 
 		foreach (var migration in migrationsToApply)

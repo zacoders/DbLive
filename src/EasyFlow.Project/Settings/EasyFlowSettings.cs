@@ -2,5 +2,5 @@
 
 public class EasyFlowSettings
 {
-    public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Migration;
+	public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Migration;
 }

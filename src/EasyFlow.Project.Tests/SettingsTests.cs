@@ -1,5 +1,3 @@
-using EasyFlow.Project.Settings;
-
 namespace EasyFlow.Project.Tests;
 
 [TestClass]
