@@ -2,8 +2,8 @@
 
 public class MockSet
 {
-	public readonly Mock<IFileSystem> FileSystem = new();
-	public readonly Mock<IEasyFlowProject> EasyFlowProject = new();
-	public readonly Mock<IEasyFlowDA> EasyFlowDA = new();
-	public readonly Mock<IEasyFlowDeployer> EasyFlowDeployer = new();
+	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
+	public readonly IEasyFlowProject EasyFlowProject = Substitute.For<IEasyFlowProject>();
+	public readonly IEasyFlowDA EasyFlowDA = Substitute.For<IEasyFlowDA>();
+	public readonly IEasyFlowDeployer EasyFlowDeployer = Substitute.For<IEasyFlowDeployer>();
 }

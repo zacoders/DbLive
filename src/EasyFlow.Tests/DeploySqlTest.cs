@@ -1,3 +1,6 @@
+
+using NSubstitute.Core;
+
 namespace EasyFlow.Tests;
 
 [TestClass]
@@ -8,12 +11,12 @@ public class DeploySqlTest
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new EasyFlow(mockSet.EasyFlowProject.Object, mockSet.EasyFlowDA.Object, mockSet.EasyFlowDeployer.Object);
+		var deploy = new EasyFlow(mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.EasyFlowDeployer);
 
 		static Migration NewMigration(int version, string name) =>
 		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
-
-		mockSet.EasyFlowProject.Setup(fs => fs.GetProjectMigrations())
+		
+		mockSet.EasyFlowProject.GetProjectMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -22,10 +25,10 @@ public class DeploySqlTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.Setup(fs => fs.EasyFlowInstalled(It.IsAny<string>()))
+		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>())
 			.Returns(true);
 
-		mockSet.EasyFlowDA.Setup(fs => fs.GetMigrations(It.IsAny<string>(), It.IsAny<string>()))
+		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>(), Arg.Any<string>())
 			.Returns(new[]
 			{
 				new MigrationDto { MigrationVersion = 1, MigrationName = "test1" },

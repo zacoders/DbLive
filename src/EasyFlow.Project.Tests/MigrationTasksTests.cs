@@ -8,7 +8,7 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.FileSystem.Setup(fs => fs.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()))
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>())
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
@@ -17,7 +17,7 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
 		var migrationTasks = sqlProject.GetMigrationTasks("");
@@ -31,7 +31,7 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.FileSystem.Setup(fs => fs.EnumerateFiles(It.IsAny<string>(), It.IsAny<string>()))
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>())
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
@@ -39,7 +39,7 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql"
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
 		_ = sqlProject.GetMigrationTasks("");

@@ -11,16 +11,16 @@ public class SettingsTests
 
 		var mockSet = new MockSet();
 
-		mockSet.FileSystem.Setup(fs => fs.FileExists(It.Is<string>(v => v == settingsPath))).Returns(true);
+		mockSet.FileSystem.FileExists(Arg.Is<string>(v => v == settingsPath)).Returns(true);
 
-		mockSet.FileSystem.Setup(fs => fs.FileReadAllText(It.Is<string>(v => v == settingsPath)))
+		mockSet.FileSystem.FileReadAllText(Arg.Is<string>(v => v == settingsPath))
 			.Returns("""
 			{
 				"TransactionWrapLevel": "None"
 			}
 			""");
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem.Object);
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load(projectPath);
 
 		var settings = sqlProject.GetSettings();
