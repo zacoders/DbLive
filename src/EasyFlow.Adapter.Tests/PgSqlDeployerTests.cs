@@ -1,6 +1,5 @@
 namespace EasyFlow.Adapter.Tests;
 
-[TestClass]
 public class PgSqlDeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
@@ -17,7 +16,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 		return Deployer.OpenConnection(_cnnString);
 	}
 
-	[TestMethod]
+	[Fact]
 	public void TransactionTest_Simple()
 	{
 		var cnn = GetConnection();
@@ -30,7 +29,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 		cnn.CommitTransaction();
 	}
 
-	[TestMethod]
+	[Fact]
 	public void ExecuteNonQuery_Simple()
 	{
 		var cnn = GetConnection();
@@ -39,17 +38,16 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 		cnn.ExecuteNonQuery(sql);
 	}
 
-	[TestMethod]
-	[ExpectedException(typeof(EasyFlowSqlException))]
+	[Fact]
 	public void EasyFlowSqlException_Expected()
 	{
 		var cnn = GetConnection();
 		var sql = "se_le_ct 1 as col";
 
-		cnn.ExecuteNonQuery(sql);
+		Assert.Throws<EasyFlowSqlException>(() => cnn.ExecuteNonQuery(sql));
 	}
 
-	[TestMethod]
+	[Fact]
 	public void ExecuteNonQuery_MultiStatementMsSql()
 	{
 		var cnn = GetConnection();
@@ -65,7 +63,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	}
 
 
-	[TestMethod]
+	[Fact]
 	public void Complex_WithTransaction()
 	{
 		var cnn = GetConnection();
@@ -111,7 +109,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	}
 
 
-	[TestMethod]
+	[Fact]
 	public void TransactionTest()
 	{
 		var cnn = GetConnection();

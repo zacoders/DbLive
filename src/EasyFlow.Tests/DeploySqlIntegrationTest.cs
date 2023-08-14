@@ -1,13 +1,8 @@
-using Microsoft.Data.SqlClient;
-using Microsoft.SqlServer.Management.Common;
-using System.Collections.Specialized;
-
 namespace EasyFlow.Tests;
 
-[TestClass]
 public class DeploySqlIntegrationTest : IntegrationTestsBase
 {
-	[TestMethod]
+	[Fact]
 	public void DeployProject_Full()
 	{
 		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
@@ -22,7 +17,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 		deploy.DeployProject(path, sqlConnectionString);
 	}
 
-	[TestMethod]
+	[Fact]
 	public void DeployProject_Two_Deployments()
 	{
 		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";

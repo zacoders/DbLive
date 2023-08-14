@@ -1,9 +1,8 @@
 namespace EasyFlow.Project.Tests;
 
-[TestClass]
 public class SettingsTests
 {
-	[TestMethod]
+	[Fact]
 	public void GetMigrationType()
 	{
 		string projectPath = new Uri("c:/project1").LocalPath;
@@ -25,7 +24,7 @@ public class SettingsTests
 
 		var settings = sqlProject.GetSettings();
 
-		Assert.IsNotNull(settings);
-		Assert.AreEqual(TransactionWrapLevel.None, settings.TransactionWrapLevel);
+		Assert.NotNull(settings);
+		Assert.Equal(TransactionWrapLevel.None, settings.TransactionWrapLevel);
 	}
 }

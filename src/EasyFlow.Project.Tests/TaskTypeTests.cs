@@ -1,9 +1,8 @@
 namespace EasyFlow.Project.Tests;
 
-[TestClass]
 public class TaskTypeTests
 {
-	[TestMethod]
+	[Fact]
 	public void GetMigrationType()
 	{
 		var testingValues = new[] {
@@ -20,10 +19,9 @@ public class TaskTypeTests
 		}
 	}
 
-	[TestMethod]
-	[ExpectedException(typeof(UnknowMigrationTaskTypeException))]
+	[Fact]
 	public void GetMigrationType_Unknow()
 	{
-		EasyFlowProject.GetMigrationType("test-unknown");
+		Assert.Throws<UnknowMigrationTaskTypeException>(() => EasyFlowProject.GetMigrationType("test-unknown"));
 	}
 }

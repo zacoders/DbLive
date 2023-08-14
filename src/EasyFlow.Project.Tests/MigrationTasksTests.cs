@@ -1,9 +1,8 @@
 namespace EasyFlow.Project.Tests;
 
-[TestClass]
 public class MigrationTasksTests
 {
-	[TestMethod]
+	[Fact]
 	public void GetMigrationType()
 	{
 		MockSet mockSet = new();
@@ -22,11 +21,10 @@ public class MigrationTasksTests
 
 		var migrationTasks = sqlProject.GetMigrationTasks("");
 
-		Assert.AreEqual(4, migrationTasks.Count);
+		Assert.Equal(4, migrationTasks.Count);
 	}
 
-	[TestMethod]
-	[ExpectedException(typeof(MigrationTaskExistsException))]
+	[Fact]
 	public void GetMigrationType_DuplicateTask()
 	{
 		MockSet mockSet = new();
@@ -42,6 +40,6 @@ public class MigrationTasksTests
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
-		_ = sqlProject.GetMigrationTasks("");
+		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationTasks(""));
 	}
 }

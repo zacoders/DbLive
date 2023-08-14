@@ -1,9 +1,8 @@
 namespace EasyFlow.Project.Tests;
 
-[TestClass]
 public class MigrationsTests
 {
-	[TestMethod]
+	[Fact]
 	public void TestReadingOfMigrations()
 	{
 		var mockSet = new MockSet();
@@ -22,15 +21,14 @@ public class MigrationsTests
 
 		var migrations = sqlProject.GetProjectMigrations().ToArray();
 
-		Assert.AreEqual(4, migrations.Count());
-		Assert.AreEqual(1, migrations[0].Version);
-		Assert.AreEqual(2, migrations[1].Version);
-		Assert.AreEqual(3, migrations[2].Version);
-		Assert.AreEqual(4, migrations[3].Version);
+		Assert.Equal(4, migrations.Count());
+		Assert.Equal(1, migrations[0].Version);
+		Assert.Equal(2, migrations[1].Version);
+		Assert.Equal(3, migrations[2].Version);
+		Assert.Equal(4, migrations[3].Version);
 	}
 
-	[TestMethod]
-	[ExpectedException(typeof(MigrationExistsException))]
+	[Fact]
 	public void TestReadingOfMigrations_Duplicate()
 	{
 		MockSet mockSet = new();
@@ -44,11 +42,11 @@ public class MigrationsTests
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
-		_ = sqlProject.GetProjectMigrations();
+
+		Assert.Throws<MigrationExistsException>(sqlProject.GetProjectMigrations);
 	}
 
-	[TestMethod]
-	[ExpectedException(typeof(MigrationVersionParseException))]
+	[Fact]
 	public void TestReadingOfMigrations_BadMigrationVersion()
 	{
 		MockSet mockSet = new();
@@ -61,10 +59,11 @@ public class MigrationsTests
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
-		_ = sqlProject.GetProjectMigrations();
+
+		Assert.Throws<MigrationVersionParseException>(sqlProject.GetProjectMigrations);
 	}
 
-	[TestMethod]
+	[Fact]
 	public void GetMigrationsToApply()
 	{
 		var mockSet = new MockSet();
@@ -83,10 +82,10 @@ public class MigrationsTests
 
 		var migrations = sqlProject.GetProjectMigrations().ToArray();
 
-		Assert.AreEqual(4, migrations.Count());
-		Assert.AreEqual(1, migrations[0].Version);
-		Assert.AreEqual(2, migrations[1].Version);
-		Assert.AreEqual(3, migrations[2].Version);
-		Assert.AreEqual(4, migrations[3].Version);
+		Assert.Equal(4, migrations.Count());
+		Assert.Equal(1, migrations[0].Version);
+		Assert.Equal(2, migrations[1].Version);
+		Assert.Equal(3, migrations[2].Version);
+		Assert.Equal(4, migrations[3].Version);
 	}
 }

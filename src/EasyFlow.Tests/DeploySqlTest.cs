@@ -1,12 +1,8 @@
-
-using NSubstitute.Core;
-
 namespace EasyFlow.Tests;
 
-[TestClass]
 public class DeploySqlTest
 {
-	[TestMethod]
+	[Fact]
 	public void GetMigrationsToApply()
 	{
 		var mockSet = new MockSet();
@@ -15,7 +11,7 @@ public class DeploySqlTest
 
 		static Migration NewMigration(int version, string name) =>
 		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
-		
+
 		mockSet.EasyFlowProject.GetProjectMigrations()
 			.Returns(new[]
 			{
@@ -37,12 +33,12 @@ public class DeploySqlTest
 
 		var migrations = deploy.GetMigrationsToApply("", "", int.MaxValue).ToArray();
 
-		Assert.AreEqual(2, migrations.Length);
+		Assert.Equal(2, migrations.Length);
 
-		Assert.AreEqual(2, migrations[0].Version);
-		Assert.AreEqual("sameversion-1", migrations[0].Name);
+		Assert.Equal(2, migrations[0].Version);
+		Assert.Equal("sameversion-1", migrations[0].Name);
 
-		Assert.AreEqual(3, migrations[1].Version);
-		Assert.AreEqual("test3", migrations[1].Name);
+		Assert.Equal(3, migrations[1].Version);
+		Assert.Equal("test3", migrations[1].Name);
 	}
 }
