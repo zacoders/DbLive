@@ -1,7 +1,11 @@
 ﻿namespace EasyFlow.Tests.Common;
 
-public abstract class IntegrationTestsBase
+public abstract class IntegrationTestsBase : TestBase
 {
+	protected IntegrationTestsBase(ITestOutputHelper output) : base(output)
+	{
+	}
+
 	protected IServiceCollection Container { get; } = new ServiceCollection();
 
 	protected TService Resolve<TService>()

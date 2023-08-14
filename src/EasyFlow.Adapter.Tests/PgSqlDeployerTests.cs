@@ -1,3 +1,5 @@
+using Xunit.Abstractions;
+
 namespace EasyFlow.Adapter.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase
@@ -5,7 +7,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
 	private readonly IEasyFlowDeployer Deployer;
 
-	public PgSqlDeployerTests()
+	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.PostgreSql);
 		Deployer = Resolve<IEasyFlowDeployer>();

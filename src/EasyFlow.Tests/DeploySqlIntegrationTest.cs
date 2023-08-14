@@ -2,6 +2,10 @@ namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationTest : IntegrationTestsBase
 {
+	public DeploySqlIntegrationTest(ITestOutputHelper output) : base(output)
+	{
+	}
+
 	[Fact]
 	public void DeployProject_Full()
 	{
@@ -29,10 +33,10 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 
 		var deploy = Resolve<IEasyFlow>();
 
-		Console.WriteLine("=== deploy up to version 2 ===");
+		Log.Information("=== deploy up to version 2 ===");
 		deploy.DeployProject(path, sqlConnectionString, 2);
 
-		Console.WriteLine("=== deploy other ===");
+		Log.Information("=== deploy other ===");
 		deploy.DeployProject(path, sqlConnectionString);
 	}
 

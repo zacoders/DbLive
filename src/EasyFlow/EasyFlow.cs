@@ -1,9 +1,9 @@
-using EasyFlow.Project.Settings;
-
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
 {
+	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
+
 	private readonly IEasyFlowDA _DA;
 	private readonly IEasyFlowDeployer _deployer;
 	private readonly IEasyFlowProject _project;
@@ -74,8 +74,7 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployMigration(string domain, Migration migration, IEasyFlowSqlConnection cnn)
 	{
-		Console.WriteLine("");
-		Console.WriteLine(migration.PathUri.GetLastSegment());
+		Logger.Information(migration.PathUri.GetLastSegment());
 		var tasks = _project.GetMigrationTasks(migration.PathUri.LocalPath);
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
@@ -88,7 +87,7 @@ public class EasyFlow : IEasyFlow
 			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
 				cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
 
-			Console.WriteLine(task.MigrationType);
+			Logger.Information("Migration {migrationType}", task.MigrationType);
 			if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
 			{
 				string sql = File.ReadAllText(task.FileUri.LocalPath);
@@ -96,7 +95,7 @@ public class EasyFlow : IEasyFlow
 			}
 			else
 			{
-				Console.WriteLine("  - skipped");
+				Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
 			}
 
 			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
