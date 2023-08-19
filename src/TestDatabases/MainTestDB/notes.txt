@@ -1,18 +1,8 @@
-{
-  // can be used to configure project
-  // can be overwritten in separate migration folder
-
-  /* Options:
-      deployment - full deployment will be wrapped withing transaction
-      migration - each migration wrapped by transaction
-      task - migration task wrapped by transaction
-      none - no transactions introduced */
-  "TransactionWrapLevel": "migration",
-
-  /* Options:
-      Chaos,
-	    ReadCommitted,
-	    RepeatableRead,
-	    Serializable */
-  "TransactionIsolationLevel": "serializable"
-}
+#REM Use this command line script to copy files to output directory if needed.
+#REM For example it can be usefulll for the app which deploy database by itself.
+robocopy $(ProjectDir) "$(TargetDir)EasyFlow" /e /purge /xd bin obj
+IF %ERRORLEVEL% EQU 1 (
+    exit /b 0
+) ELSE (
+    exit /b %ERRORLEVEL%
+)
