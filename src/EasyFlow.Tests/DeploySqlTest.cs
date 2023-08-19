@@ -31,7 +31,7 @@ public class DeploySqlTest
 				new MigrationDto { MigrationVersion = 2, MigrationName = "sameversion-2" }
 			});
 
-		var migrations = deploy.GetMigrationsToApply("", "", int.MaxValue).ToArray();
+		var migrations = deploy.GetMigrationsToApply("", "", EasyFlowDeployParameters.Default).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 

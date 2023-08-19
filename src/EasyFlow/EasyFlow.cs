@@ -7,7 +7,7 @@ public class EasyFlow : IEasyFlow
 	private readonly IEasyFlowDA _DA;
 	private readonly IEasyFlowDeployer _deployer;
 	private readonly IEasyFlowProject _project;
-	private EasyFlowSettings _projectSettings = new EasyFlowSettings();
+	private EasyFlowSettings _projectSettings = new();
 
 	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer)
 	{
@@ -16,22 +16,23 @@ public class EasyFlow : IEasyFlow
 		_deployer = easyFlowDeployer;
 	}
 
-	public void DeployProject(string proejctPath, string sqlConnectionString, int maxVersion)
+	public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		// Self deploy. Deploying EasyFlow to the database
 		string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
-		DeployProjectInternal("self", easyFlowSqlSource, sqlConnectionString, int.MaxValue);
+		EasyFlowDeployParameters selfDeployParams = new();
+		DeployProjectInternal("self", easyFlowSqlSource, sqlConnectionString, selfDeployParams);
 
 		// Deploy actuall project
-		DeployProjectInternal("project", proejctPath, sqlConnectionString, maxVersion);
+		DeployProjectInternal("project", proejctPath, sqlConnectionString, parameters);
 	}
 
-	private void DeployProjectInternal(string domain, string proejctPath, string sqlConnectionString, int maxVersion)
+	private void DeployProjectInternal(string domain, string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		_project.Load(proejctPath);
 		_projectSettings = _project.GetSettings();
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, maxVersion);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, parameters);
 
 		IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 
@@ -47,7 +48,7 @@ public class EasyFlow : IEasyFlow
 			cnn.CommitTransaction();
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, int maxVersion)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
@@ -59,7 +60,7 @@ public class EasyFlow : IEasyFlow
 		}
 
 		var migrationsToApply = _project.GetProjectMigrations()
-			.Where(m => m.Version <= maxVersion)
+			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 			.Where(m =>
 				   appliedVersion == 0
 				|| m.Version > appliedVersion

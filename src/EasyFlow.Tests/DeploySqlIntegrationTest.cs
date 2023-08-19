@@ -18,7 +18,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 
 		var deploy = Resolve<IEasyFlow>();
 
-		deploy.DeployProject(path, sqlConnectionString);
+		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
 
 	[Fact]
@@ -34,10 +34,11 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 		var deploy = Resolve<IEasyFlow>();
 
 		Log.Information("=== deploy up to version 2 ===");
-		deploy.DeployProject(path, sqlConnectionString, 2);
+		EasyFlowDeployParameters parameters = new() { MaxVersionToDeploy = 2 };
+		deploy.DeployProject(path, sqlConnectionString, parameters);
 
 		Log.Information("=== deploy other ===");
-		deploy.DeployProject(path, sqlConnectionString);
+		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
 
 	private static void RecreateDatabase(string sqlConnectionString)
