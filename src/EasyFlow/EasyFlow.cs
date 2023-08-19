@@ -4,7 +4,7 @@ public class EasyFlow : IEasyFlow
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
 
-	private readonly IEasyFlowDA _DA;
+	private readonly IEasyFlowDA _da;
 	private readonly IEasyFlowDeployer _deployer;
 	private readonly IEasyFlowProject _project;
 	private EasyFlowSettings _projectSettings = new();
@@ -12,7 +12,7 @@ public class EasyFlow : IEasyFlow
 	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer)
 	{
 		_project = easyFlowProject;
-		_DA = easyFlowDA;
+		_da = easyFlowDA;
 		_deployer = easyFlowDeployer;
 	}
 
@@ -39,13 +39,48 @@ public class EasyFlow : IEasyFlow
 		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
 			cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
 
+		DeployMigrations(domain, migrationsToApply, cnn);
+
+		if (parameters.DeployCode)
+			DeployCode(domain, cnn, parameters);
+
+		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
+			cnn.CommitTransaction();
+	}
+
+	private void DeployCode(string domain, IEasyFlowSqlConnection cnn, EasyFlowDeployParameters parameters)
+	{
+		Logger.Information("DeployCode.");
+
+		//TODO: collect errors for each CodeItem, use thread safe collection. pass collection to the task.
+		//List<Errors!>
+		List<Task> tasks = new();
+		var codeItems = _project.GetCodeItems();
+		foreach (IEnumerable<CodeItem> codeItemsBatch in codeItems.Batch(parameters.NumberOfThreadsForCodeDeploy))
+		{
+			var task = Task.Run(() => DeployCodeBathc(domain, cnn, codeItemsBatch.ToList()));
+			tasks.Add(task);
+		}
+		Task.WhenAll(tasks).Wait();
+	}
+
+	private void DeployCodeBathc(string domain, IEasyFlowSqlConnection cnn, List<CodeItem> codeItems)
+	{
+		foreach (var codeItem in codeItems)
+		{
+			Logger.Information("Deploy code file: {filePath}", codeItem.FileUri.GetLastSegment());
+			string sql = File.ReadAllText(codeItem.FileUri.LocalPath);
+			cnn.ExecuteNonQuery(sql);
+			//TODO: save execution result to the database?
+		}
+	}
+
+	private void DeployMigrations(string domain, IOrderedEnumerable<Migration> migrationsToApply, IEasyFlowSqlConnection cnn)
+	{
 		foreach (var migration in migrationsToApply)
 		{
 			DeployMigration(domain, migration, cnn);
 		}
-
-		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
-			cnn.CommitTransaction();
 	}
 
 	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
@@ -53,13 +88,13 @@ public class EasyFlow : IEasyFlow
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
 
-		if (_DA.EasyFlowInstalled(sqlConnectionString))
+		if (_da.EasyFlowInstalled(sqlConnectionString))
 		{
-			appliedMigrations = _DA.GetMigrations(domain, sqlConnectionString);
+			appliedMigrations = _da.GetMigrations(domain, sqlConnectionString);
 			appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
 		}
 
-		var migrationsToApply = _project.GetProjectMigrations()
+		var migrationsToApply = _project.GetMigrations()
 			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 			.Where(m =>
 				   appliedVersion == 0

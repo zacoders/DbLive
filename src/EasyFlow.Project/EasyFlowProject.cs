@@ -74,7 +74,25 @@ public class EasyFlowProject : IEasyFlowProject
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
 
-	public IEnumerable<Migration> GetProjectMigrations()
+	public IEnumerable<CodeItem> GetCodeItems()
+	{
+		ThrowIfProjectWasNotLoaded();
+		List<CodeItem> codeItems = new();
+		string codePath = Path.Combine(_projectPath, "Code");
+		if (Path.Exists(codePath))
+		{
+			foreach (string filePath in _fileSystem.EnumerateFiles(codePath, "*.sql", true))
+			{
+				var fileUri = new Uri(filePath);
+				string fileName = fileUri.GetLastSegment();
+				var codeItem = new CodeItem { Name = fileName, FileUri = fileUri };
+				codeItems.Add(codeItem);
+			}
+		}
+		return codeItems;
+	}
+
+	public IEnumerable<Migration> GetMigrations()
 	{
 		ThrowIfProjectWasNotLoaded();
 		HashSet<Migration> migrations = new();
@@ -118,5 +136,4 @@ public class EasyFlowProject : IEasyFlowProject
 			Tasks = GetMigrationTasks(folderUri.LocalPath)
 		};
 	}
-
 }

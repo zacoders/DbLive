@@ -19,7 +19,7 @@ public class MigrationsTests
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations().ToArray();
+		var migrations = sqlProject.GetMigrations().ToArray();
 
 		Assert.Equal(4, migrations.Count());
 		Assert.Equal(1, migrations[0].Version);
@@ -43,7 +43,7 @@ public class MigrationsTests
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
-		Assert.Throws<MigrationExistsException>(sqlProject.GetProjectMigrations);
+		Assert.Throws<MigrationExistsException>(sqlProject.GetMigrations);
 	}
 
 	[Fact]
@@ -60,7 +60,7 @@ public class MigrationsTests
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
-		Assert.Throws<MigrationVersionParseException>(sqlProject.GetProjectMigrations);
+		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
 	}
 
 	[Fact]
@@ -80,7 +80,7 @@ public class MigrationsTests
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load("");
 
-		var migrations = sqlProject.GetProjectMigrations().ToArray();
+		var migrations = sqlProject.GetMigrations().ToArray();
 
 		Assert.Equal(4, migrations.Count());
 		Assert.Equal(1, migrations[0].Version);

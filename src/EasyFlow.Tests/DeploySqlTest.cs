@@ -12,7 +12,7 @@ public class DeploySqlTest
 		static Migration NewMigration(int version, string name) =>
 		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };
 
-		mockSet.EasyFlowProject.GetProjectMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
