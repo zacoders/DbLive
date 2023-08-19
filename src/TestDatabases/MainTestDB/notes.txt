@@ -1,0 +1,18 @@
+{
+  // can be used to configure project
+  // can be overwritten in separate migration folder
+
+  /* Options:
+      deployment - full deployment will be wrapped withing transaction
+      migration - each migration wrapped by transaction
+      task - migration task wrapped by transaction
+      none - no transactions introduced */
+  "TransactionWrapLevel": "migration",
+
+  /* Options:
+      Chaos,
+	    ReadCommitted,
+	    RepeatableRead,
+	    Serializable */
+  "TransactionIsolationLevel": "serializable"
+}
