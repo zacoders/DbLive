@@ -1,6 +1,4 @@
-﻿using Npgsql;
-
-namespace EasyFlow.Adapter.PostgreSQL;
+﻿namespace EasyFlow.Adapter.PostgreSQL;
 
 public class PostgreSqlDeployer : IEasyFlowDeployer
 {

@@ -1,6 +1,4 @@
-﻿using EasyFlow.Project.Settings;
-
-namespace EasyFlow.Adapter.MSSQL;
+﻿namespace EasyFlow.Adapter.MSSQL;
 
 internal class MsSqlConnection : IEasyFlowSqlConnection
 {

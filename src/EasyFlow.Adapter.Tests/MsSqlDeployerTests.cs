@@ -1,5 +1,3 @@
-using Xunit.Abstractions;
-
 namespace EasyFlow.Adapter.Tests;
 
 public class MsSqlDeployerTests : IntegrationTestsBase
