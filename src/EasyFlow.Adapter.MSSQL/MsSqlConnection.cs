@@ -28,6 +28,11 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		HandleException(() => _serverConnection.ExecuteNonQuery("commit transaction"));
 	}
 
+	public void RollbackTransaction()
+	{
+		HandleException(() => _serverConnection.ExecuteNonQuery("rollback transaction"));
+	}
+
 	public void ExecuteNonQuery(string sqlStatementt)
 	{
 		HandleException(() => _serverConnection.ExecuteNonQuery(sqlStatementt));
@@ -90,5 +95,17 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 				migrationCompletedUtc
 			})
 		);
+	}
+
+	public void Dispose()
+	{
+		try
+		{
+			// rolling all open transaction back
+			_serverConnection.ExecuteNonQuery("while @@trancount > 0 rollback transaction");
+		}
+		catch { }
+		try { _serverConnection.Cancel(); } catch { }
+		try { _serverConnection.Disconnect(); } catch { }
 	}
 }

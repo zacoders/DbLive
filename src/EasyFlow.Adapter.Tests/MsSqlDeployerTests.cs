@@ -9,6 +9,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 		Deployer = Resolve<IEasyFlowDeployer>();
+		Deployer.CreateDB(_cnnString, skipIfExists: true);
 	}
 
 	private IEasyFlowSqlConnection GetConnection()
@@ -103,8 +104,6 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	[Fact]
 	public void TransactionTest()
 	{
-		/* Note: ReadCommitedSnaphot should be enabled on MSSQL DB to run this test. */
-
 		var cnn = GetConnection();
 
 		cnn.ExecuteNonQuery(@"
@@ -120,27 +119,91 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		");
 
 		var cnn1 = GetConnection();
-		var cnn2 = GetConnection();
-
 		cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 		cnn1.ExecuteNonQuery(@"
-			update dbo.TestTran1
-			set name = 'new name' 
-		");
+				insert into dbo.TestTran1 ( id, name )
+				values ( 3, 'Test3' )
+			");
+
+		cnn1.ExecuteNonQuery(@"
+				if ( select count(*) from dbo.TestTran1 ) != 3
+					raiserror('Three rows in the tables is expected!', 16, 1);
+			
+				if not exists ( select * from dbo.TestTran1 where name = 'Test3' )
+					raiserror('This row should exists.', 16, 1);
+			");
+
+		cnn1.RollbackTransaction();
+
+
+		var cnn2 = GetConnection();
+		cnn2.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 		cnn2.ExecuteNonQuery(@"
-
-			if ( select count(*) from dbo.TestTran1 ) != 2
-				raiserror('Two rows in the tables is expected!', 16, 1);
+				if ( select count(*) from dbo.TestTran1 ) != 2
+					raiserror('Two rows in the tables is expected!', 16, 1);
 			
-			if exists ( select * from dbo.TestTran1 where name = 'new name' )
-				raiserror('Transaction doesn`t work!', 16, 1);
+				if exists ( select * from dbo.TestTran1 where name = 'Test3' )
+					raiserror('This rows should not be available in this transaction.', 16, 1);
+			");
 
-		");
-
-		cnn1.CommitTransaction();
+		cnn2.CommitTransaction();
 
 		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran1;");
+	}
+
+
+	[Fact]
+	public void TransactionTest_RollbackOnException()
+	{
+		var cnn = GetConnection();
+
+		cnn.ExecuteNonQuery(@"
+			drop table if exists dbo.TestTran2;
+		
+			create table dbo.TestTran2 (
+				id int not null
+			  , name varchar(128) not null
+			);
+			
+			insert into dbo.TestTran2 ( id, name )
+			values ( 1, 'Test1' ), ( 2, 'Test2')
+		");
+
+		try
+		{
+			using var cnn1 = GetConnection();
+			cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
+
+			cnn1.ExecuteNonQuery(@"
+				insert into dbo.TestTran2 ( id, name )
+				values ( 3, 'Test3' )
+			");
+
+			cnn1.ExecuteNonQuery(@"
+				insert into dbo.TestTran2 ( id, name )
+				values ( 4, 'Test4' !! syntax error !! )
+			");
+		}
+		catch
+		{
+			// just ignoring syntax error exeption
+		}
+
+		var cnn2 = GetConnection();
+		cnn2.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
+
+		cnn2.ExecuteNonQuery(@"
+				if ( select count(*) from dbo.TestTran2 ) != 2
+					raiserror('Two rows in the tables is expected!', 16, 1);
+			
+				if exists ( select * from dbo.TestTran2 where name = 'Test3' )
+					raiserror('This rows should not be available in this transaction.', 16, 1);
+			");
+
+		cnn2.CommitTransaction();
+
+		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
 	}
 }

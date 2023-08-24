@@ -30,6 +30,16 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 		});
 	}
 
+	public void RollbackTransaction()
+	{
+		HandleException(() =>
+		{
+			var cmd = _connection.CreateCommand();
+			cmd.CommandText = "rollback transaction";
+			cmd.ExecuteNonQuery();
+		});
+	}
+
 	public void ExecuteNonQuery(string sqlStatementt)
 	{
 		HandleException(() =>
@@ -58,6 +68,11 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 	}
 
 	public void MigrationCompleted(string domain, int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void Dispose()
 	{
 		throw new NotImplementedException();
 	}
