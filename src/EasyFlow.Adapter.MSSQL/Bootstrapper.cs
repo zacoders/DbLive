@@ -6,5 +6,6 @@ public static class Bootstrapper
 	{
 		container.AddSingleton<IEasyFlowDA, MsSqlDA>();
 		container.AddSingleton<IEasyFlowDeployer, MsSqlDeployer>();
+		container.AddSingleton<IEasyFlowPaths, MsSqlPaths>();
 	}
 }

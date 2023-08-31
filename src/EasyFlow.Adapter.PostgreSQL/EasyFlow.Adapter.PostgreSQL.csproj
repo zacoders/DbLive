@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -15,6 +15,12 @@
 	
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <None Update="EasySqlFlow_PostgreSQL\Migrations\001.easyflow-init\migration.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

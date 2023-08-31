@@ -19,9 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="EasyFlowSql\Migrations\001.easyflow-init\migration.sql">
+    <None Update="EasySqlFlow_MSSQL\Migrations\001.easyflow-init\migration.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /y &quot;$(ProjectDir)\EasySqlFlow_MSSQL&quot; &quot;$(OutDir)\EasySqlFlow_MSSQL&quot;" />
+  </Target>
 	
 </Project>

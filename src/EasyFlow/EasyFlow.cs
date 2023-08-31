@@ -6,25 +6,25 @@ public class EasyFlow : IEasyFlow
 
 	private readonly IEasyFlowDA _da;
 	private readonly IEasyFlowDeployer _deployer;
-	private readonly IEasyFlowProject _project;
-	private EasyFlowSettings _projectSettings = new();
+    private readonly IEasyFlowProject _project;
+    private readonly IEasyFlowPaths _paths;
+    private EasyFlowSettings _projectSettings = new();
 
-	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_deployer = easyFlowDeployer;
-	}
+    public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer, IEasyFlowPaths paths)
+    {
+        _project = easyFlowProject;
+        _da = easyFlowDA;
+        _deployer = easyFlowDeployer;
+        _paths = paths;
+    }
 
-	public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
+    public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		if (parameters.CreateDbIfNotExists)
 			_deployer.CreateDB(sqlConnectionString, true);
 
         // Self deploy. Deploying EasyFlow to the database
-        string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
-		EasyFlowDeployParameters selfDeployParams = new();
-		DeployProjectInternal("self", easyFlowSqlSource, sqlConnectionString, selfDeployParams);
+        DeployProjectInternal("self", _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
 
 		// Deploy actuall project
 		DeployProjectInternal("project", proejctPath, sqlConnectionString, parameters);

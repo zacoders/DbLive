@@ -7,7 +7,7 @@ public class DeploySqlTest
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new EasyFlow(mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.EasyFlowDeployer);
+		var deploy = new EasyFlow(mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.EasyFlowDeployer, mockSet.EasyFlowPaths);
 
 		static Migration NewMigration(int version, string name) =>
 		 new() { Version = version, Name = name, PathUri = new Uri("c:/"), Tasks = new HashSet<MigrationTask>() };

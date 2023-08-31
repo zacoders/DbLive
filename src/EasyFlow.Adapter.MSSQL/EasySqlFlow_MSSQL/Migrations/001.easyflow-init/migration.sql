@@ -1,7 +1,6 @@
 create schema easyflow;
 go
 
---TODO: I think it will be good to keep MigrationTasks separatelly.
 create table easyflow.Migrations (
 	Domain nvarchar(128) not null constraint DEF_EasyFlow_Migrations_Domain default ('default')
   , MigrationVersion int not null
