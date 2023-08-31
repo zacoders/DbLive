@@ -19,7 +19,7 @@ public class MsSqlDeployer : IEasyFlowDeployer
 		if (dbExists && skipIfExists) return;
 
 		ServerConnection serverCnn = new(cnn);
-		serverCnn.ExecuteNonQuery($"create database[{databaseToCreate}];");
+		serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
 
 		serverCnn.Disconnect();
 	}

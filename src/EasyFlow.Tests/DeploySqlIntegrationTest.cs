@@ -1,33 +1,38 @@
+using System.Xml.Linq;
+
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationTest : IntegrationTestsBase
+public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 {
 	public DeploySqlIntegrationTest(ITestOutputHelper output) : base(output)
 	{
 	}
 
-	[Fact]
+    public void Dispose()
+    {
+		DropTestingDatabases();
+    }
+
+    [Fact]
 	public void DeployProject_Full()
 	{
-		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
-		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlowTestDBDeploy;Integrated Security=True;";
+		string path = Path.GetFullPath(@"..\..\..\..\TestDatabases\MainTestDB");
+        string dbName = GetRanomDbName();
+        string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
-		RecreateDatabase(sqlConnectionString);
-
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
+        Container.InitializeEasyFlow(DBEngine.MSSQL);
 
 		var deploy = Resolve<IEasyFlow>();
-
+		
 		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
 
 	[Fact]
 	public void DeployProject_Two_Deployments()
 	{
-		string path = @"C:\Data\Code\Personal\EasySqlFlow\src\TestDatabases\MainTestDB";
-		string sqlConnectionString = "Data Source=.;Initial Catalog=EasyFlowTestDBDeploy;Integrated Security=True;";
-
-		RecreateDatabase(sqlConnectionString);
+		string path = Path.GetFullPath(@"..\..\..\..\TestDatabases\MainTestDB");
+		string dbName = GetRanomDbName();
+        string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 
@@ -41,19 +46,36 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase
 		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
 
-	private static void RecreateDatabase(string sqlConnectionString)
+	private static string TestDbNamePrefix = "EasyFlow--";
+
+    private static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
+
+	private static void DropTestingDatabases()
 	{
-		SqlConnectionStringBuilder builder = new(sqlConnectionString);
-		string databaseToDrop = builder.InitialCatalog;
-		builder.InitialCatalog = "master";
-		SqlConnection cnn = new(builder.ConnectionString);
+        string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+
+		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();
-		ServerConnection serverCnn = new(cnn);
-		serverCnn.ExecuteNonQuery(new StringCollection {
-			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
-			$"drop database[{ databaseToDrop}];",
-			$"create database[{ databaseToDrop}];"
-		});
-		serverCnn.Disconnect();
+		var cmd = cnn.CreateCommand();
+		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
+		var reader = cmd.ExecuteReader();
+		List<string> databases = new();
+		while (reader.Read())
+		{
+			databases.Add(reader.GetString(0));
+		}
+		reader.Close();
+		cnn.Close();
+
+		foreach (var database in databases)
+		{
+			ServerConnection serverCnn = new(cnn);
+			serverCnn.ExecuteNonQuery(new StringCollection {
+				$"alter database [{database}] set single_user with rollback immediate;",
+				$"drop database[{ database}];"
+			});
+			serverCnn.Disconnect();
+		}
 	}
+
 }

@@ -18,8 +18,11 @@ public class EasyFlow : IEasyFlow
 
 	public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
-		// Self deploy. Deploying EasyFlow to the database
-		string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
+		if (parameters.CreateDbIfNotExists)
+			_deployer.CreateDB(sqlConnectionString, true);
+
+        // Self deploy. Deploying EasyFlow to the database
+        string easyFlowSqlSource = Path.Combine(AppContext.BaseDirectory, "EasyFlowSql");
 		EasyFlowDeployParameters selfDeployParams = new();
 		DeployProjectInternal("self", easyFlowSqlSource, sqlConnectionString, selfDeployParams);
 
