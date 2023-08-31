@@ -1,6 +1,4 @@
-﻿using EasyFlow.Adapter.MSSQL;
-
-namespace EasyFlow.Adapter.PostgreSQL;
+﻿namespace EasyFlow.Adapter.PostgreSQL;
 
 public static class Bootstrapper
 {
@@ -8,6 +6,6 @@ public static class Bootstrapper
 	{
 		container.AddSingleton<IEasyFlowDA, PostgreSqlDA>();
 		container.AddSingleton<IEasyFlowDeployer, PostgreSqlDeployer>();
-        container.AddSingleton<IEasyFlowPaths, PostgreSqlPaths>();
-    }
+		container.AddSingleton<IEasyFlowPaths, PostgreSqlPaths>();
+	}
 }

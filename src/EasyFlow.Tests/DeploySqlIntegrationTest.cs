@@ -1,38 +1,39 @@
-using System.Xml.Linq;
-
 namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 {
+	readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"..\..\..\..\TestProjects\TestProject_MSSQL");
+	private static string TestDbNamePrefix = "EasyFlow--";
+
+	private static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
+
 	public DeploySqlIntegrationTest(ITestOutputHelper output) : base(output)
 	{
 	}
 
-    public void Dispose()
-    {
+	public void Dispose()
+	{
 		DropTestingDatabases();
-    }
+	}
 
-    [Fact]
+	[Fact]
 	public void DeployProject_Full()
 	{
-		string path = Path.GetFullPath(@"..\..\..\..\TestDatabases\MainTestDB");
-        string dbName = GetRanomDbName();
-        string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+		string dbName = GetRanomDbName();
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
-        Container.InitializeEasyFlow(DBEngine.MSSQL);
+		Container.InitializeEasyFlow(DBEngine.MSSQL);
 
 		var deploy = Resolve<IEasyFlow>();
-		
-		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
 
 	[Fact]
 	public void DeployProject_Two_Deployments()
 	{
-		string path = Path.GetFullPath(@"..\..\..\..\TestDatabases\MainTestDB");
 		string dbName = GetRanomDbName();
-        string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 
@@ -40,19 +41,15 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 		Log.Information("=== deploy up to version 2 ===");
 		EasyFlowDeployParameters parameters = new() { MaxVersionToDeploy = 2 };
-		deploy.DeployProject(path, sqlConnectionString, parameters);
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, parameters);
 
 		Log.Information("=== deploy other ===");
-		deploy.DeployProject(path, sqlConnectionString, EasyFlowDeployParameters.Default);
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, EasyFlowDeployParameters.Default);
 	}
-
-	private static string TestDbNamePrefix = "EasyFlow--";
-
-    private static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
 	private static void DropTestingDatabases()
 	{
-        string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
 
 		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();
@@ -77,5 +74,4 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 			serverCnn.Disconnect();
 		}
 	}
-
 }

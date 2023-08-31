@@ -15,22 +15,22 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 		{
 			var cmd = _connection.CreateCommand();
 			string isolationStr = GetIsolationLevel(isolationLevel);
-            cmd.CommandText = $"begin transaction isolation level {isolationStr}";
+			cmd.CommandText = $"begin transaction isolation level {isolationStr}";
 			cmd.ExecuteNonQuery();
 		});
 	}
 
-    private static string GetIsolationLevel(TransactionIsolationLevel isolationLevel) =>
-        isolationLevel switch
-        {
-            TransactionIsolationLevel.Chaos => "read uncommitted",
-            TransactionIsolationLevel.ReadCommitted => "read committed",
-            TransactionIsolationLevel.RepeatableRead => "repeatable read",
-            TransactionIsolationLevel.Serializable => "serializable",
-            _ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
-        };
+	private static string GetIsolationLevel(TransactionIsolationLevel isolationLevel) =>
+		isolationLevel switch
+		{
+			TransactionIsolationLevel.Chaos => "read uncommitted",
+			TransactionIsolationLevel.ReadCommitted => "read committed",
+			TransactionIsolationLevel.RepeatableRead => "repeatable read",
+			TransactionIsolationLevel.Serializable => "serializable",
+			_ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
+		};
 
-    public void CommitTransaction()
+	public void CommitTransaction()
 	{
 		HandleException(() =>
 		{
