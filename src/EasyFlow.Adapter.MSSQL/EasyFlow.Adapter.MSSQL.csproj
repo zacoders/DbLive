@@ -19,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="EasySqlFlow_MSSQL\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="MSSQL\**" 
+             CopyToOutputDirectory="PreserveNewest" 
+             Link="EasySqlFlow\MSSQL\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   
 </Project>

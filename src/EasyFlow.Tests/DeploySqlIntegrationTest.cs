@@ -2,7 +2,7 @@ namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 {
-	readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"..\..\..\..\TestProjects\TestProject_MSSQL");
+	readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL");
 	private static string TestDbNamePrefix = "EasyFlow--";
 
 	private static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";

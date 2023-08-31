@@ -18,7 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="EasySqlFlow_PostgreSQL\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="PostgreSQL\**" 
+             CopyToOutputDirectory="PreserveNewest"
+             Link="EasySqlFlow\PostgreSQL\%(RecursiveDir)%(Filename)%(Extension)" 
+    />
   </ItemGroup>
   
 </Project>

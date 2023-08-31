@@ -3,5 +3,5 @@
 internal class PostgreSqlPaths : IEasyFlowPaths
 {
 	public string GetPathToEasyFlowSelfProject() =>
-		Path.Combine(AppContext.BaseDirectory, "EasySqlFlow_PostgreSQL");
+		Path.Combine(AppContext.BaseDirectory, @"EasySqlFlow\PostgreSQL");
 }

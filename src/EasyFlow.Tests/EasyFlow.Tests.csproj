@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
     <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
+    <ProjectReference Include="..\TestProjects\TestProject_MSSQL\TestProject_MSSQL.csproj" />
   </ItemGroup>
 
 </Project>

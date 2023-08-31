@@ -3,5 +3,5 @@
 internal class MsSqlPaths : IEasyFlowPaths
 {
 	public string GetPathToEasyFlowSelfProject() =>
-		Path.Combine(AppContext.BaseDirectory, "EasySqlFlow_MSSQL");
+		Path.Combine(AppContext.BaseDirectory, @"EasySqlFlow\MSSQL");
 }
