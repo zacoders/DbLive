@@ -16,11 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
   </ItemGroup>
-	
-  <ItemGroup>
-    <None Update="EasySqlFlow_PostgreSQL\Migrations\001.easyflow-init\migration.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="EasySqlFlow_PostgreSQL\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  
 </Project>
