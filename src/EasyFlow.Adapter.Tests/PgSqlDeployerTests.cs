@@ -9,6 +9,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	{
 		Container.InitializeEasyFlow(DBEngine.PostgreSql);
 		Deployer = Resolve<IEasyFlowDeployer>();
+		Deployer.CreateDB(_cnnString);
 	}
 
 	private IEasyFlowSqlConnection GetConnection()
