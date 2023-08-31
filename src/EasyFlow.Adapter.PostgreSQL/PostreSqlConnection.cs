@@ -11,16 +11,26 @@ internal class PostreSqlConnection : IEasyFlowSqlConnection
 
 	public void BeginTransaction(TransactionIsolationLevel isolationLevel)
 	{
-		//TODO: support isolation level
 		HandleException(() =>
 		{
 			var cmd = _connection.CreateCommand();
-			cmd.CommandText = "begin transaction";
+			string isolationStr = GetIsolationLevel(isolationLevel);
+            cmd.CommandText = $"begin transaction isolation level {isolationStr}";
 			cmd.ExecuteNonQuery();
 		});
 	}
 
-	public void CommitTransaction()
+    private static string GetIsolationLevel(TransactionIsolationLevel isolationLevel) =>
+        isolationLevel switch
+        {
+            TransactionIsolationLevel.Chaos => "read uncommitted",
+            TransactionIsolationLevel.ReadCommitted => "read committed",
+            TransactionIsolationLevel.RepeatableRead => "repeatable read",
+            TransactionIsolationLevel.Serializable => "serializable",
+            _ => throw new NotSupportedTransactionIsolationLevelException(isolationLevel)
+        };
+
+    public void CommitTransaction()
 	{
 		HandleException(() =>
 		{
