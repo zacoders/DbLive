@@ -3,15 +3,6 @@
 public interface IEasyFlowSqlConnection : IDisposable
 {
 	/// <exception cref="EasyFlowSqlException"/>
-	void BeginTransaction(TransactionIsolationLevel isolationLevel);
-
-	/// <exception cref="EasyFlowSqlException"/>
-	void CommitTransaction();
-
-	/// <exception cref="EasyFlowSqlException"/>
-	void RollbackTransaction();
-
-	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string sqlStatementt);
 
 	/// <exception cref="EasyFlowSqlException"/>

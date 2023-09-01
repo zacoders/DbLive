@@ -1,17 +1,19 @@
-﻿namespace EasyFlow.Adapter.MSSQL;
+﻿using System.Data.Common;
+
+namespace EasyFlow.Adapter.MSSQL;
 
 internal class MsSqlConnection : IEasyFlowSqlConnection
 {
-	private readonly ServerConnection _serverConnection;
+	private readonly SqlConnection _sqlConnection;
 
-	public MsSqlConnection(ServerConnection serverCnn)
+	public MsSqlConnection(SqlConnection sqlConnection)
 	{
-		_serverConnection = serverCnn;
+		_sqlConnection = sqlConnection;
 	}
 
-	public void BeginTransaction(TransactionIsolationLevel isolationLevel)
+	public DbTransaction BeginTransaction(TransactionIsolationLevel isolationLevel)
 	{
-		HandleException(() =>
+		return HandleException(() =>
 		{
 			var isolationLevelStr = GetMsSqlIsolationLevel(isolationLevel);
 			string sql = @$"
@@ -19,35 +21,42 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 				set transaction isolation level {isolationLevelStr};
 				begin transaction; 
 			";
-			_serverConnection.ExecuteNonQuery(sql);
+			//TODO: Provide transaction
+			return _sqlConnection.BeginTransaction();
 		});
 	}
 
 	public void CommitTransaction()
 	{
-		HandleException(() => _serverConnection.ExecuteNonQuery("commit transaction"));
+		HandleException(() => _sqlConnection.Execute("commit transaction"));
 	}
 
 	public void RollbackTransaction()
 	{
-		HandleException(() => _serverConnection.ExecuteNonQuery("rollback transaction"));
+		HandleException(() => _sqlConnection.Execute("rollback transaction"));
 	}
 
-	public void ExecuteNonQuery(string sqlStatementt)
+	public void ExecuteNonQuery(string sqlStatement)
 	{
-		HandleException(() => _serverConnection.ExecuteNonQuery(sqlStatementt));
+		ServerConnection serverConnection = new(_sqlConnection);
+		HandleException(() => serverConnection.ExecuteNonQuery(sqlStatement));
 	}
 
 	public void Close()
 	{
-		HandleException(_serverConnection.Disconnect);
+		HandleException(_sqlConnection.Close);
 	}
 
 	private static void HandleException(Action action)
 	{
+		HandleException(() => { action(); return 0; });
+	}
+
+	private static T HandleException<T>(Func<T> action)
+	{
 		try
 		{
-			action();
+			return action();
 		}
 		catch (Exception e)
 		{
@@ -86,7 +95,7 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		";
 
 		HandleException(() =>
-			_serverConnection.SqlConnectionObject.Query(query, new
+			_sqlConnection.Query(query, new
 			{
 				domain,
 				migrationVersion,
@@ -102,10 +111,10 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		try
 		{
 			// rolling all open transaction back
-			_serverConnection.ExecuteNonQuery("while @@trancount > 0 rollback transaction");
+			_sqlConnection.Execute("while @@trancount > 0 rollback transaction");
 		}
 		catch { }
-		try { _serverConnection.Cancel(); } catch { }
-		try { _serverConnection.Disconnect(); } catch { }
+		try { _sqlConnection.Close(); } catch { }
+		try { _sqlConnection.Dispose(); } catch { }
 	}
 }

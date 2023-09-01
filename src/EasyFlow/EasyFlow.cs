@@ -1,3 +1,5 @@
+using System.Transactions;
+
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
@@ -37,52 +39,61 @@ public class EasyFlow : IEasyFlow
 
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, parameters);
 
-		IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
+		ExecuteWithTransaction(
+			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
+			_projectSettings.TransactionIsolationLevel,
+			() =>
+			{
+				DeployMigrations(domain, migrationsToApply, sqlConnectionString);
 
-		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
-			cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
-
-		DeployMigrations(domain, migrationsToApply, cnn);
-
-		if (parameters.DeployCode)
-			DeployCode(domain, cnn, parameters);
-
-		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
-			cnn.CommitTransaction();
+				if (parameters.DeployCode)
+					DeployCode(domain, sqlConnectionString, parameters);
+			}
+		);		
 	}
 
-	private void DeployCode(string domain, IEasyFlowSqlConnection cnn, EasyFlowDeployParameters parameters)
+	private static void ExecuteWithTransaction(bool needTransaction, TransactionIsolationLevel isolationLevel, Action action)
+	{
+		if (!needTransaction)
+		{
+			action();
+			return;
+		}
+
+		using TransactionScope _transactionScope = TransactionScopeManager.Create();
+		action();
+		_transactionScope.Complete();
+	}
+
+	private void DeployCode(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		Logger.Information("DeployCode.");
 
-		//TODO: collect errors for each CodeItem, use thread safe collection. pass collection to the task.
-		//List<Errors!>
-		List<Task> tasks = new();
 		var codeItems = _project.GetCodeItems();
-		foreach (IEnumerable<CodeItem> codeItemsBatch in codeItems.Batch(parameters.NumberOfThreadsForCodeDeploy))
+		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
+
+		Parallel.ForEach(codeItems, parallelOptions, item =>
 		{
-			var task = Task.Run(() => DeployCodeBathc(domain, cnn, codeItemsBatch.ToList()));
-			tasks.Add(task);
-		}
-		Task.WhenAll(tasks).Wait();
+			try
+			{
+				Logger.Information("Deploy code file: {filePath}", item.FileUri.GetLastSegment());
+				string sql = File.ReadAllText(item.FileUri.LocalPath);
+				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
+				cnn.ExecuteNonQuery(sql);
+				cnn.Close();
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex, "Deploy code file error. File path: {filePath}", item.FileUri.LocalPath);
+			}
+		});
 	}
 
-	private void DeployCodeBathc(string domain, IEasyFlowSqlConnection cnn, List<CodeItem> codeItems)
-	{
-		foreach (var codeItem in codeItems)
-		{
-			Logger.Information("Deploy code file: {filePath}", codeItem.FileUri.GetLastSegment());
-			string sql = File.ReadAllText(codeItem.FileUri.LocalPath);
-			cnn.ExecuteNonQuery(sql);
-			//TODO: save execution result to the database?
-		}
-	}
-
-	private void DeployMigrations(string domain, IOrderedEnumerable<Migration> migrationsToApply, IEasyFlowSqlConnection cnn)
+	private void DeployMigrations(string domain, IOrderedEnumerable<Migration> migrationsToApply, string sqlConnectionString)
 	{
 		foreach (var migration in migrationsToApply)
 		{
-			DeployMigration(domain, migration, cnn);
+			DeployMigration(domain, migration, sqlConnectionString);
 		}
 	}
 
@@ -111,41 +122,47 @@ public class EasyFlow : IEasyFlow
 		return migrationsToApply;
 	}
 
-	private void DeployMigration(string domain, Migration migration, IEasyFlowSqlConnection cnn)
+	private void DeployMigration(string domain, Migration migration, string sqlConnectionString)
 	{
 		Logger.Information(migration.PathUri.GetLastSegment());
 		var tasks = _project.GetMigrationTasks(migration.PathUri.LocalPath);
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
-		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration)
-			cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
-
-		foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
-		{
-			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
-				cnn.BeginTransaction(_projectSettings.TransactionIsolationLevel);
-
-			Logger.Information("Migration {migrationType}", task.MigrationType);
-			if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
+		ExecuteWithTransaction(
+			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
+			_projectSettings.TransactionIsolationLevel,
+			() =>
 			{
-				string sql = File.ReadAllText(task.FileUri.LocalPath);
-				cnn.ExecuteNonQuery(sql);
+				foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
+				{
+					ExecuteWithTransaction(
+						_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
+						_projectSettings.TransactionIsolationLevel,
+						() =>
+						{
+							Logger.Information("Migration {migrationType}", task.MigrationType);
+							if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
+							{
+								string sql = File.ReadAllText(task.FileUri.LocalPath);
+								IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
+								cnn.ExecuteNonQuery(sql);
+								cnn.Close();
+							}
+							else
+							{
+								Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
+							}
+						}
+					);
+				}
+
+				DateTime migrationCompletedUtc = DateTime.UtcNow;
+
+				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
+				cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+				cnn.Close();
 			}
-			else
-			{
-				Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
-			}
-
-			if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task)
-				cnn.CommitTransaction();
-		}
-
-		DateTime migrationCompletedUtc = DateTime.UtcNow;
-
-		cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
-
-		if (_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration)
-			cnn.CommitTransaction();
+		);
 	}
 }

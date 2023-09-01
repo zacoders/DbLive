@@ -28,12 +28,6 @@ public class MsSqlDeployer : IEasyFlowDeployer
 	{
 		SqlConnection cnn = new(cnnString);
 		cnn.Open();
-
-		ServerConnection serverCnn = new(cnn)
-		{
-			StatementTimeout = (int)TimeSpan.FromDays(30).TotalSeconds
-		};
-
-		return new MsSqlConnection(serverCnn);
+		return new MsSqlConnection(cnn);
 	}
 }
