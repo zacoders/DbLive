@@ -17,11 +17,11 @@
     <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="PostgreSQL\**" 
-             CopyToOutputDirectory="PreserveNewest"
-             Link="EasySqlFlow\PostgreSQL\%(RecursiveDir)%(Filename)%(Extension)" 
-    />
-  </ItemGroup>
-  
+	<ItemGroup>
+		<None Include="PostgreSQL\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+
 </Project>

@@ -18,10 +18,11 @@
     <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="MSSQL\**" 
-             CopyToOutputDirectory="PreserveNewest" 
-             Link="EasySqlFlow\MSSQL\%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-  
+	<ItemGroup>
+		<None Include="MSSQL\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+	
 </Project>
