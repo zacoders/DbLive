@@ -6,3 +6,15 @@ IF %ERRORLEVEL% EQU 1 (
 ) ELSE (
     exit /b %ERRORLEVEL%
 )
+
+<Link>EasySqlFlow\MSSQL\%(RecursiveDir)%(Filename)%(Extension)</Link>
+			
+
+  <ItemGroup>
+    <Content Include="MSSQL\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+			<PublishState>EasySqlFlow</PublishState>
+			<TargetPath>Test1\MSSQL\</TargetPath>
+    </Content>
+  </ItemGroup>

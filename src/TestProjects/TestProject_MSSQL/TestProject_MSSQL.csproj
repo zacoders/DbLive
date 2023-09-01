@@ -6,8 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="TestProject_MSSQL\**" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+		
 </Project>
