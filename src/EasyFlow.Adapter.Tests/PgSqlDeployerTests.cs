@@ -1,3 +1,5 @@
+using System.Transactions;
+
 namespace EasyFlow.Adapter.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase
@@ -23,11 +25,11 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
-		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
+		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		
 		cnn.ExecuteNonQuery(sql);
 
-		cnn.CommitTransaction();
+		tran.Complete();
 	}
 
 	[Fact]
@@ -66,10 +68,9 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 	[Fact]
 	public void Complex_WithTransaction()
-	{
+	{		
+		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 		var cnn = GetConnection();
-
-		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 		cnn.ExecuteNonQuery(@"
 			drop sequence if exists public.s_test_id;
@@ -106,7 +107,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			drop table if exists Test
 		");
 
-		cnn.CommitTransaction();
+		tran.Complete();
 	}
 
 
@@ -126,17 +127,22 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			insert into TestTran1 ( id, name )
 			values ( 1, 'Test1' ), ( 2, 'Test2')
 		");
+		
+		
+		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		{
+			var cnn1 = GetConnection();
 
-		var cnn1 = GetConnection();
+			cnn1.ExecuteNonQuery(@"
+				update TestTran1
+				set name = 'new name' 
+			");
+
+			tran1.Dispose();
+		}
+
 		var cnn2 = GetConnection();
-
-		cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
-		cnn1.ExecuteNonQuery(@"
-			update TestTran1
-			set name = 'new name' 
-		");
-
+		
 		cnn2.ExecuteNonQuery(@"
 			do $$ begin
 
@@ -150,8 +156,6 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 			end $$;  
 		");
-
-		cnn1.CommitTransaction();
 
 		cnn.ExecuteNonQuery("drop table if exists TestTran1;");
 	}

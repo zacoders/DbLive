@@ -10,6 +10,8 @@ public class EasyFlow : IEasyFlow
 	private readonly IEasyFlowDeployer _deployer;
 	private readonly IEasyFlowProject _project;
 	private readonly IEasyFlowPaths _paths;
+	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
+
 	private EasyFlowSettings _projectSettings = new();
 
 	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer, IEasyFlowPaths paths)
@@ -52,7 +54,7 @@ public class EasyFlow : IEasyFlow
 		);		
 	}
 
-	private static void ExecuteWithTransaction(bool needTransaction, TransactionIsolationLevel isolationLevel, Action action)
+	private static void ExecuteWithTransaction(bool needTransaction, TranIsolationLevel isolationLevel, Action action)
 	{
 		if (!needTransaction)
 		{
@@ -60,7 +62,7 @@ public class EasyFlow : IEasyFlow
 			return;
 		}
 
-		using TransactionScope _transactionScope = TransactionScopeManager.Create();
+		using TransactionScope _transactionScope = TransactionScopeManager.Create(isolationLevel, _defaultTimeout);
 		action();
 		_transactionScope.Complete();
 	}

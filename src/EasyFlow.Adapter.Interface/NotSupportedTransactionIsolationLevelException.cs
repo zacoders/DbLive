@@ -3,9 +3,9 @@
 [Serializable]
 public class NotSupportedTransactionIsolationLevelException : Exception
 {
-	private TransactionIsolationLevel isolationLevel;
+	private TranIsolationLevel isolationLevel;
 
-	public NotSupportedTransactionIsolationLevelException(TransactionIsolationLevel isolationLevel)
+	public NotSupportedTransactionIsolationLevelException(TranIsolationLevel isolationLevel)
 		: base($"Unsupported transaction isolation level '{isolationLevel}'.")
 	{
 		this.isolationLevel = isolationLevel;

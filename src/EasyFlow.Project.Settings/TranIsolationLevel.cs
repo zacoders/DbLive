@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Project.Settings;
 
-public enum TransactionIsolationLevel
+public enum TranIsolationLevel
 {
 	Chaos,
 	ReadCommitted,

@@ -23,11 +23,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
-		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
+		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		
 		cnn.ExecuteNonQuery(sql);
 
-		cnn.CommitTransaction();
+		tran.Complete();
 	}
 
 	[Fact]
@@ -65,10 +65,10 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 	[Fact]
 	public void Complex_WithTransaction()
-	{
+	{		
+		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		
 		var cnn = GetConnection();
-
-		cnn.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 		cnn.ExecuteNonQuery(@"
 			drop table if exists dbo.Test
@@ -98,7 +98,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			drop table if exists dbo.Test
 		");
 
-		cnn.CommitTransaction();
+		tran.Complete();
 	}
 
 	[Fact]
@@ -118,15 +118,16 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			values ( 1, 'Test1' ), ( 2, 'Test2')
 		");
 
-		var cnn1 = GetConnection();
-		cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
-		cnn1.ExecuteNonQuery(@"
+		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		{
+			var cnn1 = GetConnection();
+			
+			cnn1.ExecuteNonQuery(@"
 				insert into dbo.TestTran1 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-		cnn1.ExecuteNonQuery(@"
+			cnn1.ExecuteNonQuery(@"
 				if ( select count(*) from dbo.TestTran1 ) != 3
 					raiserror('Three rows in the tables is expected!', 16, 1);
 			
@@ -134,13 +135,14 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 					raiserror('This row should exists.', 16, 1);
 			");
 
-		cnn1.RollbackTransaction();
+			tran1.Dispose();
+		}
 
-
-		var cnn2 = GetConnection();
-		cnn2.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
-		cnn2.ExecuteNonQuery(@"
+		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		{
+			var cnn2 = GetConnection();
+			
+			cnn2.ExecuteNonQuery(@"
 				if ( select count(*) from dbo.TestTran1 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -148,7 +150,8 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 					raiserror('This rows should not be available in this transaction.', 16, 1);
 			");
 
-		cnn2.CommitTransaction();
+			tran2.Complete();
+		}
 
 		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran1;");
 	}
@@ -173,8 +176,8 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 		try
 		{
+			using var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 			using var cnn1 = GetConnection();
-			cnn1.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
 
 			cnn1.ExecuteNonQuery(@"
 				insert into dbo.TestTran2 ( id, name )
@@ -188,12 +191,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		}
 		catch
 		{
-			// just ignoring syntax error exeption
+			// just ignoring syntax error exeption, expected transaction rollback
 		}
 
+		using var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 		var cnn2 = GetConnection();
-		cnn2.BeginTransaction(TransactionIsolationLevel.ReadCommitted);
-
+		
 		cnn2.ExecuteNonQuery(@"
 				if ( select count(*) from dbo.TestTran2 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
@@ -201,8 +204,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 				if exists ( select * from dbo.TestTran2 where name = 'Test3' )
 					raiserror('This rows should not be available in this transaction.', 16, 1);
 			");
-
-		cnn2.CommitTransaction();
+		tran2.Complete();
 
 		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
 	}

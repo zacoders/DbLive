@@ -1,6 +1,4 @@
-﻿using Dapper;
-
-namespace EasyFlow.Adapter.PostgreSQL;
+﻿namespace EasyFlow.Adapter.PostgreSQL;
 
 public class PostgreSqlDeployer : IEasyFlowDeployer
 {
@@ -31,6 +29,6 @@ public class PostgreSqlDeployer : IEasyFlowDeployer
 	{
 		var cnn = new NpgsqlConnection(connectionString);
 		cnn.Open();
-		return new PostreSqlConnection(cnn);
+		return new PostgreSqlConnection(cnn);
 	}
 }
