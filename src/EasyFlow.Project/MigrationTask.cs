@@ -3,7 +3,7 @@ namespace EasyFlow.Project;
 public record MigrationTask
 {
 	public required MigrationType MigrationType { get; set; }
-	public required Uri FileUri { get; set; }
+	public required string FilePath { get; set; }
 
 	public virtual bool Equals(MigrationTask? other)
 	{

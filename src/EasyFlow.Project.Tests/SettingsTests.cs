@@ -1,3 +1,5 @@
+using EasyFlow.Common;
+
 namespace EasyFlow.Project.Tests;
 
 public class SettingsTests
@@ -5,8 +7,8 @@ public class SettingsTests
 	[Fact]
 	public void GetMigrationType()
 	{
-		string projectPath = new Uri("c:/project1").LocalPath;
-		string settingsPath = Path.Combine(projectPath, "settings.json");
+		string projectPath = "c:/project1";
+		string settingsPath = projectPath.CombineWith("settings.json");
 
 		var mockSet = new MockSet();
 

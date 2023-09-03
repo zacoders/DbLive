@@ -95,8 +95,8 @@ public class EasyFlow : IEasyFlow
 		{
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				Logger.Information("Deploy code file: {filePath}", codeItem.FileUri.GetLastSegment());
-				string sql = File.ReadAllText(codeItem.FileUri.LocalPath);
+				Logger.Information("Deploy code file: {filePath}", codeItem.FilePath.GetLastSegment());
+				string sql = File.ReadAllText(codeItem.FilePath);
 				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 				cnn.ExecuteNonQuery(sql);
 				cnn.Close();
@@ -104,7 +104,7 @@ public class EasyFlow : IEasyFlow
 		}
 		catch (Exception ex)
 		{
-			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileUri.LocalPath);
+			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FilePath);
 		}
 	}
 
@@ -143,8 +143,8 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployMigration(string domain, Migration migration, string sqlConnectionString)
 	{
-		Logger.Information(migration.PathUri.GetLastSegment());
-		var tasks = _project.GetMigrationTasks(migration.PathUri.LocalPath);
+		Logger.Information(migration.Path.GetLastSegment());
+		var tasks = _project.GetMigrationTasks(migration.Path);
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
@@ -163,7 +163,7 @@ public class EasyFlow : IEasyFlow
 							Logger.Information("Migration {migrationType}", task.MigrationType);
 							if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
 							{
-								string sql = File.ReadAllText(task.FileUri.LocalPath);
+								string sql = File.ReadAllText(task.FilePath);
 								IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 								cnn.ExecuteNonQuery(sql);
 								cnn.Close();

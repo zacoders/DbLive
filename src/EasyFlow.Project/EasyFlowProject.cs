@@ -37,10 +37,9 @@ public class EasyFlowProject : IEasyFlowProject
 
 		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
-		foreach (string file in files)
+		foreach (string filePath in files)
 		{
-			var fileUri = new Uri(file);
-			string fileName = fileUri.GetLastSegment();
+			string fileName = filePath.GetLastSegment();
 			var fileParts = fileName.Split(".");
 
 			var migrationType = GetMigrationType(fileParts[0]);
@@ -48,7 +47,7 @@ public class EasyFlowProject : IEasyFlowProject
 			MigrationTask task = new()
 			{
 				MigrationType = migrationType,
-				FileUri = fileUri
+				FilePath = filePath
 			};
 
 			if (tasks.Contains(task))
@@ -87,9 +86,8 @@ public class EasyFlowProject : IEasyFlowProject
 			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
 			foreach (string filePath in files)
 			{
-				var fileUri = new Uri(filePath);
-				string fileName = fileUri.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FileUri = fileUri };
+				string fileName = filePath.GetLastSegment();
+				var codeItem = new CodeItem { Name = fileName, FilePath = filePath };
 				codeItems.Add(codeItem);
 			}
 		}
@@ -135,13 +133,12 @@ public class EasyFlowProject : IEasyFlowProject
 			throw new MigrationVersionParseException(folderName, migrationVersionStr);
 		}
 
-		var folderUri = folderPath.ToUri();
 		return new Migration
 		{
 			Version = version,
 			Name = splitFolder[1],
-			PathUri = folderUri,
-			Tasks = GetMigrationTasks(folderUri.LocalPath)
+			Path = folderPath,
+			Tasks = GetMigrationTasks(folderPath)
 		};
 	}
 }

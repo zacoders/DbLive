@@ -6,7 +6,7 @@ public class MigrationTaskExistsException : Exception
 	internal MigrationTask MigrationTask { get; private set; }
 
 	public MigrationTaskExistsException(MigrationTask migrationTask)
-		: base($"Migration task alredy exists, duplicate file name. File = '{migrationTask.FileUri.GetLastSegment()}'.")
+		: base($"Migration task alredy exists, duplicate file name. File = '{migrationTask.FilePath.GetLastSegment()}'.")
 	{
 		MigrationTask = migrationTask;
 	}
