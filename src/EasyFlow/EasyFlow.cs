@@ -1,3 +1,5 @@
+using Polly;
+using Polly.Retry;
 using System.Transactions;
 
 namespace EasyFlow;
@@ -13,6 +15,13 @@ public class EasyFlow : IEasyFlow
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	private EasyFlowSettings _projectSettings = new();
+
+	private readonly RetryPolicy _codeItemRetryPolicy =
+		Policy.Handle<Exception>()
+			  .WaitAndRetry(
+					10,
+					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
+			  );
 
 	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer, IEasyFlowPaths paths)
 	{
@@ -51,7 +60,7 @@ public class EasyFlow : IEasyFlow
 				if (parameters.DeployCode)
 					DeployCode(domain, sqlConnectionString, parameters);
 			}
-		);		
+		);
 	}
 
 	private static void ExecuteWithTransaction(bool needTransaction, TranIsolationLevel isolationLevel, Action action)
@@ -74,21 +83,30 @@ public class EasyFlow : IEasyFlow
 		var codeItems = _project.GetCodeItems();
 		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
 
-		Parallel.ForEach(codeItems, parallelOptions, item =>
+		Parallel.ForEach(codeItems, parallelOptions, codeItem =>
 		{
-			try
+			DeployCodeItem(sqlConnectionString, codeItem);
+		});
+	}
+
+	private void DeployCodeItem(string sqlConnectionString, CodeItem codeItem)
+	{
+		try
+		{
+			_codeItemRetryPolicy.Execute(context =>
 			{
-				Logger.Information("Deploy code file: {filePath}", item.FileUri.GetLastSegment());
-				string sql = File.ReadAllText(item.FileUri.LocalPath);
+				Logger.Information("Deploy code file: {filePath}", codeItem.FileUri.GetLastSegment());
+				string sql = File.ReadAllText(codeItem.FileUri.LocalPath);
 				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 				cnn.ExecuteNonQuery(sql);
 				cnn.Close();
-			}
-			catch (Exception ex)
-			{
-				Logger.Error(ex, "Deploy code file error. File path: {filePath}", item.FileUri.LocalPath);
-			}
-		});
+				context.
+			}, new Context());
+		}
+		catch (Exception ex)
+		{
+			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileUri.LocalPath);
+		}
 	}
 
 	private void DeployMigrations(string domain, IOrderedEnumerable<Migration> migrationsToApply, string sqlConnectionString)
