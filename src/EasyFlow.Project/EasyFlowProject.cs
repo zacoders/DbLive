@@ -21,7 +21,7 @@ public class EasyFlowProject : IEasyFlowProject
 		if (_fileSystem.FileExists(settingsPath))
 		{
 			string settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? new EasyFlowSettings();
+			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
 		}
 	}
 
@@ -35,10 +35,9 @@ public class EasyFlowProject : IEasyFlowProject
 		ThrowIfProjectWasNotLoaded();
 		HashSet<MigrationTask> tasks = new();
 
-		var allFiles = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
-		var testFiles = _fileSystem.EnumerateFiles(migrationFolder, _settings.TestFilePattern, true);
+		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
-		foreach (string file in allFiles.Except(testFiles))
+		foreach (string file in files)
 		{
 			var fileUri = new Uri(file);
 			string fileName = fileUri.GetLastSegment();
@@ -85,9 +84,8 @@ public class EasyFlowProject : IEasyFlowProject
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (Path.Exists(codePath))
 		{
-			var allFiles = _fileSystem.EnumerateFiles(codePath, "*.sql", true);
-			var testFiles = _fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, true);
-			foreach (string filePath in allFiles.Except(testFiles))
+			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
+			foreach (string filePath in files)
 			{
 				var fileUri = new Uri(filePath);
 				string fileName = fileUri.GetLastSegment();
@@ -102,15 +100,19 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		ThrowIfProjectWasNotLoaded();
 		HashSet<Migration> migrations = new();
-		string migrationsPath = Path.Combine(_projectPath, "Migrations");
-		foreach (string folderPath in _fileSystem.EnumerateDirectories(migrationsPath, "*.*", SearchOption.AllDirectories))
+		
+		string migrationsPath = _projectPath.CombineWith("Migrations");
+		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
+
+		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*.*", SearchOption.TopDirectoryOnly);
+
+		foreach (string folderPath in migrationDirectories)
 		{
-			Uri folderUri = new(folderPath);
-			string folderName = folderUri.GetLastSegment();
+			string folderName = folderPath.GetLastSegment();
 
 			if (folderName == "_Old") continue;
 
-			var migration = ReadMigration(folderUri);
+			var migration = ReadMigration(folderPath, folderName);
 
 			if (migrations.Contains(migration))
 			{
@@ -122,9 +124,8 @@ public class EasyFlowProject : IEasyFlowProject
 		return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
 	}
 
-	private Migration ReadMigration(Uri folderUri)
+	private Migration ReadMigration(string folderPath, string folderName)
 	{
-		string folderName = folderUri.GetLastSegment();
 		var splitFolder = folderName.Split(".");
 
 		string migrationVersionStr = splitFolder[0];
@@ -134,6 +135,7 @@ public class EasyFlowProject : IEasyFlowProject
 			throw new MigrationVersionParseException(folderName, migrationVersionStr);
 		}
 
+		var folderUri = folderPath.ToUri();
 		return new Migration
 		{
 			Version = version,

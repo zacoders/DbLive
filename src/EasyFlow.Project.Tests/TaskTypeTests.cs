@@ -9,7 +9,6 @@ public class TaskTypeTests
 			"migration",
 			"UNDO",
 			"data",
-			"testdata",
 			"Breaking"
 		};
 

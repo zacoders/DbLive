@@ -6,8 +6,12 @@ public class MigrationTasksTests
 	public void GetMigrationType()
 	{
 		MockSet mockSet = new();
+		
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+		sqlProject.Load(""); 
+		var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>())
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
@@ -15,9 +19,6 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
-
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
 
 		var migrationTasks = sqlProject.GetMigrationTasks("");
 
@@ -29,16 +30,17 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>())
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+		sqlProject.Load("");
+		var settings = sqlProject.GetSettings();
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>(), settings.TestFilePattern, true)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
 				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
-				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql"
+				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql" //Duplicate task name
 			});
-
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
 
 		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationTasks(""));
 	}

@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj" />
     <ProjectReference Include="..\EasyFlow.Adapter.PostgreSQL\EasyFlow.Adapter.PostgreSQL.csproj" />
+    <ProjectReference Include="..\EasyFlow.Common\EasyFlow.Common.csproj" />
     <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
   </ItemGroup>
 

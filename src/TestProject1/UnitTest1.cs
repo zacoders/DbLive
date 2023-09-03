@@ -22,4 +22,11 @@ public class UnitTest1
 
 		transactionScope.Complete();
 	}
+
+	[Fact]
+	public void EnumerateDirectoriesTest()
+	{
+		string path = @"D:\Data\Personal\EasySqlFlow\src\TestProjects\TestProject_MSSQL\Migrations";
+		var lst = Directory.EnumerateDirectories(path, "*.*", SearchOption.TopDirectoryOnly);
+	}
 }

@@ -7,7 +7,7 @@ public class MigrationsTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string>(), "*.*", SearchOption.AllDirectories)
+		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
@@ -33,7 +33,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string>(), "*.*", SearchOption.AllDirectories)
+		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.dup1",
@@ -51,7 +51,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string>(), "*.*", SearchOption.AllDirectories)
+		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\bad001version.bad-version-migration"
@@ -68,7 +68,10 @@ public class MigrationsTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string>(), "*.*", SearchOption.AllDirectories)
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+		sqlProject.Load("");
+
+		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
@@ -76,9 +79,6 @@ public class MigrationsTests
 				@"C:\MainTestDB\Migrations\004.test4",
 				@"C:\MainTestDB\Migrations\003.test3",
 			});
-
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 

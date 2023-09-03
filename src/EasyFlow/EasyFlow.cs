@@ -93,15 +93,14 @@ public class EasyFlow : IEasyFlow
 	{
 		try
 		{
-			_codeItemRetryPolicy.Execute(context =>
+			_codeItemRetryPolicy.Execute(() =>
 			{
 				Logger.Information("Deploy code file: {filePath}", codeItem.FileUri.GetLastSegment());
 				string sql = File.ReadAllText(codeItem.FileUri.LocalPath);
 				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 				cnn.ExecuteNonQuery(sql);
 				cnn.Close();
-				context.
-			}, new Context());
+			});
 		}
 		catch (Exception ex)
 		{
