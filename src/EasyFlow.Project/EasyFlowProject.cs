@@ -34,7 +34,11 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		ThrowIfProjectWasNotLoaded();
 		HashSet<MigrationTask> tasks = new();
-		foreach (string file in _fileSystem.EnumerateFiles(migrationFolder, "*.sql"))
+
+		var allFiles = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
+		var testFiles = _fileSystem.EnumerateFiles(migrationFolder, _settings.TestFilePattern, true);
+
+		foreach (string file in allFiles.Except(testFiles))
 		{
 			var fileUri = new Uri(file);
 			string fileName = fileUri.GetLastSegment();
@@ -55,6 +59,7 @@ public class EasyFlowProject : IEasyFlowProject
 
 			tasks.Add(task);
 		}
+
 		return tasks;
 	}
 
@@ -69,7 +74,6 @@ public class EasyFlowProject : IEasyFlowProject
 			"migration" => MigrationType.Migration,
 			"undo" => MigrationType.Undo,
 			"data" => MigrationType.Data,
-			"testdata" => MigrationType.TestData,
 			"breaking" => MigrationType.BreakingChange,
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
@@ -81,7 +85,9 @@ public class EasyFlowProject : IEasyFlowProject
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (Path.Exists(codePath))
 		{
-			foreach (string filePath in _fileSystem.EnumerateFiles(codePath, "*.sql", true))
+			var allFiles = _fileSystem.EnumerateFiles(codePath, "*.sql", true);
+			var testFiles = _fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, true);
+			foreach (string filePath in allFiles.Except(testFiles))
 			{
 				var fileUri = new Uri(filePath);
 				string fileName = fileUri.GetLastSegment();
