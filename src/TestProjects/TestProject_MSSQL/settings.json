@@ -14,5 +14,11 @@
 	    ReadCommitted,
 	    RepeatableRead,
 	    Serializable */
-  "TransactionIsolationLevel": "serializable"
+  "TransactionIsolationLevel": "serializable",
+
+  /* Search pattern for the testing files. 
+     Testing files can be executed in the end of deployment. */
+  "TestFilePattern": "*test.sql"
+
+  /* TODO: add deployment siquence. The ordered list of path can be provided to keep deployment in this order. */
 }
