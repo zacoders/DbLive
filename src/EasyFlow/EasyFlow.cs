@@ -1,6 +1,9 @@
+using EasyFlow.Project;
 using Polly;
 using Polly.Retry;
+using System.Data;
 using System.Transactions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace EasyFlow;
 
@@ -29,19 +32,21 @@ public class EasyFlow : IEasyFlow
 		_paths = paths;
 	}
 
-	public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	public void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters)
 	{
+		parameters.Check();
+
 		if (parameters.CreateDbIfNotExists)
 			_da.CreateDB(sqlConnectionString, true);
 
 		// Self deploy. Deploying EasyFlow to the database
-		DeployProjectInternal(true, _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
+		DeployProjectInternal(true, _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, DeployParameters.Default);
 
 		// Deploy actuall project
 		DeployProjectInternal(false, proejctPath, sqlConnectionString, parameters);
 	}
 
-	private void DeployProjectInternal(bool isSelfDeploy, string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void DeployProjectInternal(bool isSelfDeploy, string proejctPath, string sqlConnectionString, DeployParameters parameters)
 	{
 		_project.Load(proejctPath);
 		_projectSettings = _project.GetSettings();
@@ -61,15 +66,55 @@ public class EasyFlow : IEasyFlow
 			}
 		);
 
-		RunTests(isSelfDeploy, sqlConnectionString, parameters);
+		RunTests(sqlConnectionString, parameters);
 	}
 
-	private void RunTests(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void RunTests(string sqlConnectionString, DeployParameters parameters)
+	{		
+		if (!parameters.RunTests)
+		{
+			return;
+		}
+
+		Logger.Information("Running Tests.");
+
+		var tests = _project.GetTests();
+		
+		TestRunResult result = new();
+
+		//TODO: run tests in parallel, add parameter to specify number of threads. 
+		foreach (var test in tests)
+		{
+			bool isSuccess = RunTest(test, sqlConnectionString);
+			if (isSuccess) { result.PassedCount++; } else { result.FailedCount++; }
+		}
+
+		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.", 
+			result.PassedCount, result.FailedCount);
+	}
+
+	private bool RunTest(TestItem test, string sqlConnectionString)
 	{
-		throw new NotImplementedException();
+		try
+		{
+			//TODO: tests isolation level in parameters.
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, _defaultTimeout);
+
+			_da.ExecuteNonQuery(sqlConnectionString, test.Sql);
+
+			_transactionScope.Dispose(); //canceling transaction
+
+			Logger.Information("PASSED Test: {filePath}", test.Name);
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Logger.Error(ex, "FAILED Test: {filePath}", test.Name);
+			return false;
+		}
 	}
 
-	private void DeployBreakingChanges(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void DeployBreakingChanges(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
 		if (!parameters.DeployBreaking)
 		{
@@ -79,7 +124,7 @@ public class EasyFlow : IEasyFlow
 		throw new NotImplementedException();
 	}
 
-	private void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters, IOrderedEnumerable<Migration> migrationsToApply)
+	private void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters, IOrderedEnumerable<Migration> migrationsToApply)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -105,7 +150,7 @@ public class EasyFlow : IEasyFlow
 		_transactionScope.Complete();
 	}
 
-	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -140,7 +185,7 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();

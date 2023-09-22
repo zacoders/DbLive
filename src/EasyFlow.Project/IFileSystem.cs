@@ -8,4 +8,5 @@ public interface IFileSystem
 	IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subfolders);
 	string FileReadAllText(string path);
 	bool FileExists(string path);
+	bool PathExists(string path);
 }

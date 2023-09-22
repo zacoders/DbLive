@@ -1,11 +1,13 @@
 ﻿namespace EasyFlow;
 
-public record EasyFlowDeployParameters
+public record DeployParameters
 {
-	public static EasyFlowDeployParameters Default => new();
+	public static DeployParameters Default => new();
 
 	/// <summary>
-	/// The migration version to deploy. If version is specified code (SPs/Function) cannot be deployed.
+	/// The migration version to deploy. 
+	/// If version is specified, Code (SPs/Function) cannot be deployed. Tests cannot be run. 
+	/// Since there is no gurantee that Code and Tests are compatible with the deployed version.
 	/// NULL value -> latest version.
 	/// </summary>
 	public int? MaxVersionToDeploy { get; init; }

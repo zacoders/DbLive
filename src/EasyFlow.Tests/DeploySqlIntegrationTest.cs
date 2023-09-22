@@ -26,7 +26,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 		var deploy = Resolve<IEasyFlow>();
 
-		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, EasyFlowDeployParameters.Default);
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 
 	[Fact]
@@ -40,11 +40,11 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 		var deploy = Resolve<IEasyFlow>();
 
 		Log.Information("=== deploy up to version 2 ===");
-		EasyFlowDeployParameters parameters = new() { MaxVersionToDeploy = 2 };
+		DeployParameters parameters = new() { MaxVersionToDeploy = 2, DeployCode = false, RunTests = false };
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, parameters);
 
 		Log.Information("=== deploy other ===");
-		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, EasyFlowDeployParameters.Default);
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 
 	private static void DropTestingDatabases()

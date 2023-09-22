@@ -7,4 +7,5 @@ public interface IEasyFlowProject
 	HashSet<MigrationTask> GetMigrationTasks(string migrationFolder);
 	IEnumerable<Migration> GetMigrations();
 	IEnumerable<CodeItem> GetCodeItems();
+	IReadOnlyCollection<TestItem> GetTests();
 }

@@ -1,3 +1,4 @@
+
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject
@@ -140,5 +141,34 @@ public class EasyFlowProject : IEasyFlowProject
 			Path = folderPath,
 			Tasks = GetMigrationTasks(folderPath)
 		};
+	}
+
+	public IReadOnlyCollection<TestItem> GetTests()
+	{
+		ThrowIfProjectWasNotLoaded();
+		List<TestItem> tests = new();
+
+		string testsPath = _projectPath.CombineWith("Tests");
+
+		if (!_fileSystem.PathExists(testsPath))
+		{
+			return Array.Empty<TestItem>();
+		}
+
+		var testFiles = _fileSystem.EnumerateFiles(testsPath, "*.sql", subfolders: true);
+
+		foreach (string testFilePath in testFiles)
+		{
+			TestItem testItem = new()
+			{
+				Name = testFilePath.GetLastSegment(),
+				Path = testFilePath,
+				Sql = File.ReadAllText(testFilePath)
+			};
+
+			tests.Add(testItem);
+		}
+
+		return tests;
 	}
 }

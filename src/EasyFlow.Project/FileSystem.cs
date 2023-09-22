@@ -30,6 +30,7 @@ public class FileSystem : IFileSystem
 	}
 
 	public bool FileExists(string path) => File.Exists(path);
+	public bool PathExists(string path) => Path.Exists(path);
 
 	public string FileReadAllText(string path) => File.ReadAllText(path);
 }
