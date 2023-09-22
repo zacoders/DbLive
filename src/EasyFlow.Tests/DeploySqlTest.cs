@@ -24,14 +24,14 @@ public class DeploySqlTest
 		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>())
 			.Returns(true);
 
-		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>(), Arg.Any<string>())
+		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>())
 			.Returns(new[]
 			{
 				new MigrationDto { MigrationVersion = 1, MigrationName = "test1" },
 				new MigrationDto { MigrationVersion = 2, MigrationName = "sameversion-2" }
 			});
 
-		var migrations = deploy.GetMigrationsToApply("", "", EasyFlowDeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply(false, "", EasyFlowDeployParameters.Default).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 

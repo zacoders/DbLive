@@ -7,7 +7,22 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public IReadOnlyCollection<MigrationDto> GetMigrations(string domain, string cnnString)
+	public int GetEasyFlowVersion(string cnnString)
+	{
+		throw new NotImplementedException();
+	}
+
+	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void MigrationCompleted(string cnnString, int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationCompletedUtc)
 	{
 		throw new NotImplementedException();
 	}

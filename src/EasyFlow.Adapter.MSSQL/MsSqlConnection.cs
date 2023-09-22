@@ -37,38 +37,6 @@ internal class MsSqlConnection : IEasyFlowSqlConnection
 		}
 	}
 
-	public void MigrationCompleted(string domain, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
-	{
-		string query = @"
-			insert into easyflow.Migrations
-			(
-				Domain
-			  , MigrationVersion
-			  , MigrationName
-			  , MigrationStarted
-			  , MigrationCompleted
-			)
-			values (
-				@Domain
-			  , @MigrationVersion
-			  , @MigrationName
-			  , @MigrationStartedUtc
-			  , @MigrationCompletedUtc
-			)
-		";
-
-		HandleException(() =>
-			_sqlConnection.Query(query, new
-			{
-				domain,
-				migrationVersion,
-				migrationName,
-				migrationStartedUtc,
-				migrationCompletedUtc
-			})
-		);
-	}
-
 	public void Dispose()
 	{
 		try

@@ -11,3 +11,14 @@ create table easyflow.Migrations (
   , constraint PK_EasyFlow_Migrations primary key ( Domain, MigrationVersion, MigrationName )
 )
 go
+
+create table easyflow.Version (
+	Version int not null
+  , MigrationDatetime datetime2(7)
+  , OneRowLock as 1 
+  , constraint PK_EasyFlow_Version primary key ( OneRowLock )
+)
+go
+
+insert into easyflow.Version ( Version ) values ( 0 );
+go

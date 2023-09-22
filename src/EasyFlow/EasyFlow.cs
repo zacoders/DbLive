@@ -37,18 +37,18 @@ public class EasyFlow : IEasyFlow
 			_deployer.CreateDB(sqlConnectionString, true);
 
 		// Self deploy. Deploying EasyFlow to the database
-		DeployProjectInternal("easyflow", _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
+		DeployProjectInternal(true, _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
 
 		// Deploy actuall project
-		DeployProjectInternal("project", proejctPath, sqlConnectionString, parameters);
+		DeployProjectInternal(false, proejctPath, sqlConnectionString, parameters);
 	}
 
-	private void DeployProjectInternal(string domain, string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void DeployProjectInternal(bool isSelfDeploy, string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		_project.Load(proejctPath);
 		_projectSettings = _project.GetSettings();
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(domain, sqlConnectionString, parameters);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, sqlConnectionString, parameters);
 
 		ExecuteWithTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
@@ -57,11 +57,11 @@ public class EasyFlow : IEasyFlow
 			{
 				foreach (var migration in migrationsToApply)
 				{
-					DeployMigration(domain, migration, sqlConnectionString);
+					DeployMigration(isSelfDeploy, migration, sqlConnectionString);
 				}
 				
 				if (parameters.DeployCode)
-					DeployCode(domain, sqlConnectionString, parameters);
+					DeployCode(isSelfDeploy, sqlConnectionString, parameters);
 			}
 		);
 	}
@@ -79,7 +79,7 @@ public class EasyFlow : IEasyFlow
 		_transactionScope.Complete();
 	}
 
-	private void DeployCode(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		Logger.Information("DeployCode.");
 
@@ -111,35 +111,46 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	public IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		int appliedVersion = 0;
 		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
 
 		if (_da.EasyFlowInstalled(sqlConnectionString))
 		{
-			appliedMigrations = _da.GetMigrations(domain, sqlConnectionString);
-			appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
+			if (isSelfDeploy)
+			{
+				appliedVersion = _da.GetEasyFlowVersion(sqlConnectionString);
+			}
+			else
+			{
+				appliedMigrations = _da.GetMigrations(sqlConnectionString);
+				appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
+			}			
 		}
 
-		var migrationsToApply = _project.GetMigrations()
+		if (isSelfDeploy)
+		{
+			return _project.GetMigrations()
+				.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
+				.Where(m => m.Version > appliedVersion )
+				.OrderBy(m => m.Version)
+				.ThenBy(m => m.Name);
+		}
+
+		return _project.GetMigrations()
 			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-			.Where(m =>
-				   appliedVersion == 0
-				|| m.Version > appliedVersion
-				// additional check for the migrations with the same version but different name 
-				|| (m.Version == appliedVersion
-					 && !appliedMigrations.Any(am => am.MigrationVersion == appliedVersion && am.MigrationName == m.Name))
-			)
+			.Where(m => !appliedMigrations.Any(am => am.MigrationVersion == m.Version && am.MigrationName == m.Name))
 			.OrderBy(m => m.Version)
 			.ThenBy(m => m.Name);
-		return migrationsToApply;
 	}
 
-	private void DeployMigration(string domain, Migration migration, string sqlConnectionString)
+	private void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
 	{
 		Logger.Information(migration.Path.GetLastSegment());
 		var tasks = _project.GetMigrationTasks(migration.Path);
+		
+		if (tasks.Count == 0) return;
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
@@ -155,9 +166,14 @@ public class EasyFlow : IEasyFlow
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
 
-				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
-				cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
-				cnn.Close();
+				if (isSelfDeploy)
+				{
+					_da.SetEasyFlowVersion(sqlConnectionString, migration.Version, migrationCompletedUtc);
+				}
+				else
+				{
+					_da.MigrationCompleted(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+				}
 			}
 		);
 	}
