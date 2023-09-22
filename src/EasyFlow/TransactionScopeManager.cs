@@ -23,7 +23,7 @@ public static class TransactionScopeManager
 	//{
 	//	return new TransactionScope(TransactionScopeOption.Required, _defaultTransactionOptions, TransactionScopeAsyncFlowOption.Enabled);
 	//}
-	
+
 	public static TransactionScope Create(TranIsolationLevel isolationLevel, TimeSpan timeOut)
 	{
 		// TransactionManager.ImplicitDistributedTransactions = false;

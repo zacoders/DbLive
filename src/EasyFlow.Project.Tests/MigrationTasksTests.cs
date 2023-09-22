@@ -6,9 +6,9 @@ public class MigrationTasksTests
 	public void GetMigrationType()
 	{
 		MockSet mockSet = new();
-		
+
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load(""); 
+		sqlProject.Load("");
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)

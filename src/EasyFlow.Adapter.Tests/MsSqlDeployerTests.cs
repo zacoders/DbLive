@@ -18,7 +18,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		var sql = "select 1 as col";
 
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-		
+
 		_da.ExecuteNonQuery(_cnnString, sql);
 
 		tran.Complete();
@@ -56,9 +56,9 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 	[Fact]
 	public void Complex_WithTransaction()
-	{		
+	{
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-		
+
 		_da.ExecuteNonQuery(_cnnString, @"
 			drop table if exists dbo.Test
 		");
@@ -158,7 +158,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		try
 		{
 			using var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-			
+
 			_da.ExecuteNonQuery(_cnnString, @"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 3, 'Test3' )

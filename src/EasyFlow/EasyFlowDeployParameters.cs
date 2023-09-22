@@ -11,6 +11,14 @@ public record EasyFlowDeployParameters
 	public int? MaxVersionToDeploy { get; init; }
 
 	public bool DeployCode { get; init; } = true;
+
+	public bool DeployMigrations { get; set; } = true;
+
+	public bool RunTests { get; set; } = true;
+
+	public bool DeployBreaking { get; set; } = false;
+
 	public int NumberOfThreadsForCodeDeploy { get; init; } = 10;
+
 	public bool CreateDbIfNotExists { get; init; } = true;
 }

@@ -20,7 +20,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 		var sql = "select 1 as col";
 
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-		
+
 		_da.ExecuteNonQuery(_cnnString, sql);
 
 		tran.Complete();
@@ -59,9 +59,9 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 	[Fact]
 	public void Complex_WithTransaction()
-	{		
+	{
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-		
+
 		_da.ExecuteNonQuery(_cnnString, @"
 			drop sequence if exists public.s_test_id;
 			drop table if exists Test;
@@ -115,8 +115,8 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			insert into TestTran1 ( id, name )
 			values ( 1, 'Test1' ), ( 2, 'Test2')
 		");
-		
-		
+
+
 		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
 			_da.ExecuteNonQuery(_cnnString, @"
@@ -126,7 +126,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 			tran1.Dispose();
 		}
-				
+
 		_da.ExecuteNonQuery(_cnnString, @"
 			do $$ begin
 

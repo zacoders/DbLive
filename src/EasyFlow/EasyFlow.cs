@@ -53,15 +53,43 @@ public class EasyFlow : IEasyFlow
 			_projectSettings.TransactionIsolationLevel,
 			() =>
 			{
-				foreach (var migration in migrationsToApply)
-				{
-					DeployMigration(isSelfDeploy, migration, sqlConnectionString);
-				}
-				
-				if (parameters.DeployCode)
-					DeployCode(isSelfDeploy, sqlConnectionString, parameters);
+				DeployMigrations(isSelfDeploy, sqlConnectionString, parameters, migrationsToApply);
+
+				DeployCode(isSelfDeploy, sqlConnectionString, parameters);
+
+				DeployBreakingChanges(isSelfDeploy, sqlConnectionString, parameters);
 			}
 		);
+
+		RunTests(isSelfDeploy, sqlConnectionString, parameters);
+	}
+
+	private void RunTests(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	{
+		throw new NotImplementedException();
+	}
+
+	private void DeployBreakingChanges(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
+	{
+		if (!parameters.DeployBreaking)
+		{
+			return;
+		}
+
+		throw new NotImplementedException();
+	}
+
+	private void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters, IOrderedEnumerable<Migration> migrationsToApply)
+	{
+		if (!parameters.DeployMigrations)
+		{
+			return;
+		}
+
+		foreach (var migration in migrationsToApply)
+		{
+			DeployMigration(isSelfDeploy, migration, sqlConnectionString);
+		}
 	}
 
 	private static void ExecuteWithTransaction(bool needTransaction, TranIsolationLevel isolationLevel, Action action)
@@ -79,6 +107,11 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
+		if (!parameters.DeployCode)
+		{
+			return;
+		}
+
 		Logger.Information("DeployCode.");
 
 		var codeItems = _project.GetCodeItems();
@@ -122,14 +155,14 @@ public class EasyFlow : IEasyFlow
 			{
 				appliedMigrations = _da.GetMigrations(sqlConnectionString);
 				appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
-			}			
+			}
 		}
 
 		if (isSelfDeploy)
 		{
 			return _project.GetMigrations()
 				.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-				.Where(m => m.Version > appliedVersion )
+				.Where(m => m.Version > appliedVersion)
 				.OrderBy(m => m.Version)
 				.ThenBy(m => m.Name);
 		}
@@ -145,7 +178,7 @@ public class EasyFlow : IEasyFlow
 	{
 		Logger.Information(migration.Path.GetLastSegment());
 		var tasks = _project.GetMigrationTasks(migration.Path);
-		
+
 		if (tasks.Count == 0) return;
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;

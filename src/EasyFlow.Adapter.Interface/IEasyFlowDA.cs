@@ -3,9 +3,9 @@
 public interface IEasyFlowDA
 {
 	IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString);
-	
+
 	bool EasyFlowInstalled(string cnnString);
-	
+
 	int GetEasyFlowVersion(string cnnString);
 
 	void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime);

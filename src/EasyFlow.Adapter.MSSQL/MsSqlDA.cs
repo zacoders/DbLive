@@ -83,7 +83,7 @@ public class MsSqlDA : IEasyFlowDA
 	}
 
 	public void ExecuteNonQuery(string cnnString, string sqlStatement)
-	{		
+	{
 		try
 		{
 			using SqlConnection sqlConnection = new(cnnString);

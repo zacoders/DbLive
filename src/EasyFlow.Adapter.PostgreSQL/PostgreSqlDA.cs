@@ -49,7 +49,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		catch (Exception e)
 		{
 			throw new EasyFlowSqlException(e.Message, e);
-		}		
+		}
 	}
 
 	public int GetEasyFlowVersion(string cnnString)

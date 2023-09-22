@@ -98,7 +98,7 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		ThrowIfProjectWasNotLoaded();
 		HashSet<Migration> migrations = new();
-		
+
 		string migrationsPath = _projectPath.CombineWith("Migrations");
 		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
 
