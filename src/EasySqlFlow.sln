@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject_MSSQL", "TestPr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject1", "TestProject1\TestProject1.csproj", "{432DDF45-8516-4FB4-9ACF-5E8ACD75DBC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.Common", "EasyFlow.Common\EasyFlow.Common.csproj", "{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Common", "EasyFlow.Common\EasyFlow.Common.csproj", "{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

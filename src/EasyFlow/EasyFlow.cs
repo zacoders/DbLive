@@ -1,10 +1,3 @@
-using EasyFlow.Project;
-using Polly;
-using Polly.Retry;
-using System.Data;
-using System.Transactions;
-using static System.Net.Mime.MediaTypeNames;
-
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
@@ -70,7 +63,7 @@ public class EasyFlow : IEasyFlow
 	}
 
 	private void RunTests(string sqlConnectionString, DeployParameters parameters)
-	{		
+	{
 		if (!parameters.RunTests)
 		{
 			return;
@@ -79,7 +72,7 @@ public class EasyFlow : IEasyFlow
 		Logger.Information("Running Tests.");
 
 		var tests = _project.GetTests();
-		
+
 		TestRunResult result = new();
 
 		//TODO: run tests in parallel, add parameter to specify number of threads. 
@@ -89,7 +82,7 @@ public class EasyFlow : IEasyFlow
 			if (isSuccess) { result.PassedCount++; } else { result.FailedCount++; }
 		}
 
-		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.", 
+		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
 			result.PassedCount, result.FailedCount);
 	}
 

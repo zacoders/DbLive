@@ -1,6 +1,4 @@
-﻿using System.Transactions;
-
-namespace EasyFlow;
+﻿namespace EasyFlow;
 
 public static class TransactionScopeManager
 {

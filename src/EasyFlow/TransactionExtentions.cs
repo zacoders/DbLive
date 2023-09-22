@@ -1,6 +1,4 @@
-﻿using System.Transactions;
-
-namespace EasyFlow;
+﻿namespace EasyFlow;
 
 
 internal static class TransactionExtentions

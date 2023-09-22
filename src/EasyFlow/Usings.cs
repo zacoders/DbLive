@@ -6,5 +6,8 @@ global using EasyFlow.Project;
 global using EasyFlow.Project.Settings;
 global using Microsoft.Extensions.DependencyInjection;
 global using MoreLinq;
+global using Polly;
+global using Polly.Retry;
 global using Serilog;
-
+global using System.Data;
+global using System.Transactions;

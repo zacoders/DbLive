@@ -6,10 +6,10 @@ internal static class DeployParametersExtentions
 	{
 		if (parameters.MaxVersionToDeploy is not null)
 		{
-			if (parameters.DeployCode) 
-			{ 
+			if (parameters.DeployCode)
+			{
 				throw new BadDeployParametersException(
-					$"Code cannot be deployed if {nameof(parameters.MaxVersionToDeploy)} is set. There is no gurantee that Code is compatible with the deploying version."); 
+					$"Code cannot be deployed if {nameof(parameters.MaxVersionToDeploy)} is set. There is no gurantee that Code is compatible with the deploying version.");
 			}
 
 			if (parameters.RunTests)
