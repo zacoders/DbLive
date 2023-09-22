@@ -12,4 +12,9 @@ public interface IEasyFlowDA
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void MigrationCompleted(string cnnString, int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
+
+	void CreateDB(string cnnString, bool skipIfExists = true);
+
+	/// <exception cref="EasyFlowSqlException"/>
+	void ExecuteNonQuery(string cnnString, string sqlStatementt);
 }

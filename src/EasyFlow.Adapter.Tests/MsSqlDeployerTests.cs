@@ -3,29 +3,23 @@ namespace EasyFlow.Adapter.Tests;
 public class MsSqlDeployerTests : IntegrationTestsBase
 {
 	private readonly string _cnnString = "Data Source=.;Initial Catalog=EasyFlowTestDB;Integrated Security=True;";
-	private readonly IEasyFlowDeployer Deployer;
+	private readonly IEasyFlowDA _da;
 
 	public MsSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
-		Deployer = Resolve<IEasyFlowDeployer>();
-		Deployer.CreateDB(_cnnString, skipIfExists: true);
-	}
-
-	private IEasyFlowSqlConnection GetConnection()
-	{
-		return Deployer.OpenConnection(_cnnString);
+		_da = Resolve<IEasyFlowDA>();
+		_da.CreateDB(_cnnString, skipIfExists: true);
 	}
 
 	[Fact]
 	public void TransactionTest_Simple()
 	{
-		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 		
-		cnn.ExecuteNonQuery(sql);
+		_da.ExecuteNonQuery(_cnnString, sql);
 
 		tran.Complete();
 	}
@@ -33,25 +27,22 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	[Fact]
 	public void ExecuteNonQuery_Simple()
 	{
-		var cnn = GetConnection();
 		var sql = "select 1 as col";
 
-		cnn.ExecuteNonQuery(sql);
+		_da.ExecuteNonQuery(_cnnString, sql);
 	}
 
 	[Fact]
 	public void EasyFlowSqlException_Expected()
 	{
-		var cnn = GetConnection();
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<EasyFlowSqlException>(() => cnn.ExecuteNonQuery(sql));
+		Assert.Throws<EasyFlowSqlException>(() => _da.ExecuteNonQuery(_cnnString, sql));
 	}
 
 	[Fact]
 	public void ExecuteNonQuery_MultiStatementMsSql()
 	{
-		var cnn = GetConnection();
 		var sql = @"
 			select 1 as col
 			go
@@ -60,7 +51,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			select 3 as col
 		";
 
-		cnn.ExecuteNonQuery(sql);
+		_da.ExecuteNonQuery(_cnnString, sql);
 	}
 
 	[Fact]
@@ -68,13 +59,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	{		
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 		
-		var cnn = GetConnection();
-
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			drop table if exists dbo.Test
 		");
 
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			create table dbo.Test (
 				Id int identity
 			  , Name nvarchar(128) not null
@@ -83,18 +72,18 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			)
 		");
 
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			insert into dbo.Test ( Name )
 			values ( 'Test1' ), ( 'Test2')
 		");
 
 
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			select *
 			from dbo.Test
 		");
 
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			drop table if exists dbo.Test
 		");
 
@@ -104,9 +93,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	[Fact]
 	public void TransactionTest()
 	{
-		var cnn = GetConnection();
-
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			drop table if exists dbo.TestTran1;
 		
 			create table dbo.TestTran1 (
@@ -120,14 +107,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			var cnn1 = GetConnection();
-			
-			cnn1.ExecuteNonQuery(@"
+			_da.ExecuteNonQuery(_cnnString, @"
 				insert into dbo.TestTran1 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			cnn1.ExecuteNonQuery(@"
+			_da.ExecuteNonQuery(_cnnString, @"
 				if ( select count(*) from dbo.TestTran1 ) != 3
 					raiserror('Three rows in the tables is expected!', 16, 1);
 			
@@ -140,9 +125,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			var cnn2 = GetConnection();
-			
-			cnn2.ExecuteNonQuery(@"
+			_da.ExecuteNonQuery(_cnnString, @"
 				if ( select count(*) from dbo.TestTran1 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -153,16 +136,14 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			tran2.Complete();
 		}
 
-		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran1;");
+		_da.ExecuteNonQuery(_cnnString, "drop table if exists dbo.TestTran1;");
 	}
 
 
 	[Fact]
 	public void TransactionTest_RollbackOnException()
 	{
-		var cnn = GetConnection();
-
-		cnn.ExecuteNonQuery(@"
+		_da.ExecuteNonQuery(_cnnString, @"
 			drop table if exists dbo.TestTran2;
 		
 			create table dbo.TestTran2 (
@@ -177,14 +158,13 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 		try
 		{
 			using var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-			using var cnn1 = GetConnection();
-
-			cnn1.ExecuteNonQuery(@"
+			
+			_da.ExecuteNonQuery(_cnnString, @"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			cnn1.ExecuteNonQuery(@"
+			_da.ExecuteNonQuery(_cnnString, @"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 4, 'Test4' !! syntax error !! )
 			");
@@ -194,18 +174,18 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 			// just ignoring syntax error exeption, expected transaction rollback
 		}
 
-		using var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
-		var cnn2 = GetConnection();
-		
-		cnn2.ExecuteNonQuery(@"
+		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		{
+			_da.ExecuteNonQuery(_cnnString, @"
 				if ( select count(*) from dbo.TestTran2 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
 				if exists ( select * from dbo.TestTran2 where name = 'Test3' )
 					raiserror('This rows should not be available in this transaction.', 16, 1);
 			");
-		tran2.Complete();
+			tran2.Complete();
+		}
 
-		cnn.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
+		_da.ExecuteNonQuery(_cnnString, "drop table if exists dbo.TestTran2;");
 	}
 }

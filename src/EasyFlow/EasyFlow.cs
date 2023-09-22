@@ -9,7 +9,6 @@ public class EasyFlow : IEasyFlow
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
 
 	private readonly IEasyFlowDA _da;
-	private readonly IEasyFlowDeployer _deployer;
 	private readonly IEasyFlowProject _project;
 	private readonly IEasyFlowPaths _paths;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
@@ -23,18 +22,17 @@ public class EasyFlow : IEasyFlow
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
 
-	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowDeployer easyFlowDeployer, IEasyFlowPaths paths)
+	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
-		_deployer = easyFlowDeployer;
 		_paths = paths;
 	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		if (parameters.CreateDbIfNotExists)
-			_deployer.CreateDB(sqlConnectionString, true);
+			_da.CreateDB(sqlConnectionString, true);
 
 		// Self deploy. Deploying EasyFlow to the database
 		DeployProjectInternal(true, _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
@@ -100,9 +98,7 @@ public class EasyFlow : IEasyFlow
 			{
 				Logger.Information("Deploy code file: {filePath}", codeItem.FilePath.GetLastSegment());
 				string sql = File.ReadAllText(codeItem.FilePath);
-				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
-				cnn.ExecuteNonQuery(sql);
-				cnn.Close();
+				_da.ExecuteNonQuery(sqlConnectionString, sql);
 			});
 		}
 		catch (Exception ex)
@@ -189,9 +185,7 @@ public class EasyFlow : IEasyFlow
 				if (task.MigrationType.In(MigrationType.Migration, MigrationType.Data))
 				{
 					string sql = File.ReadAllText(task.FilePath);
-					IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
-					cnn.ExecuteNonQuery(sql);
-					cnn.Close();
+					_da.ExecuteNonQuery(sqlConnectionString, sql);
 					return;
 				}
 				Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
