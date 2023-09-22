@@ -2,6 +2,19 @@
 
 internal class TestRunResult
 {
-	public int PassedCount { get; set; }
-	public int FailedCount { get; set; }
+	private int passedCount;
+	private int failedCount;
+
+	public int PassedCount => passedCount; 
+	public int FailedCount => failedCount;
+
+	internal void IncremenFailed()
+	{
+		Interlocked.Increment(ref failedCount);
+	}
+
+	internal void IncremenPassed()
+	{
+		Interlocked.Increment(ref passedCount);
+	}
 }

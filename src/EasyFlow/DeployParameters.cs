@@ -21,6 +21,7 @@ public record DeployParameters
 	public bool DeployBreaking { get; set; } = false;
 
 	public int NumberOfThreadsForCodeDeploy { get; init; } = 10;
+	public int NumberOfThreadsForTestsRun { get; init; } = 10;
 
 	public bool CreateDbIfNotExists { get; init; } = true;
 }

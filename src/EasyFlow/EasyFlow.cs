@@ -53,7 +53,7 @@ public class EasyFlow : IEasyFlow
 			{
 				DeployMigrations(isSelfDeploy, sqlConnectionString, parameters, migrationsToApply);
 
-				DeployCode(isSelfDeploy, sqlConnectionString, parameters);
+				DeployCode(sqlConnectionString, parameters);
 
 				DeployBreakingChanges(isSelfDeploy, sqlConnectionString, parameters);
 			}
@@ -75,12 +75,13 @@ public class EasyFlow : IEasyFlow
 
 		TestRunResult result = new();
 
-		//TODO: run tests in parallel, add parameter to specify number of threads. 
-		foreach (var test in tests)
+		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForTestsRun };
+
+		Parallel.ForEach(tests, parallelOptions, test =>
 		{
 			bool isSuccess = RunTest(test, sqlConnectionString);
-			if (isSuccess) { result.PassedCount++; } else { result.FailedCount++; }
-		}
+			if (isSuccess) { result.IncremenPassed(); } else { result.IncremenFailed(); }
+		});
 
 		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
 			result.PassedCount, result.FailedCount);
@@ -143,14 +144,14 @@ public class EasyFlow : IEasyFlow
 		_transactionScope.Complete();
 	}
 
-	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
+	private void DeployCode(string sqlConnectionString, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
 			return;
 		}
 
-		Logger.Information("DeployCode.");
+		Logger.Information("Deploying Code.");
 
 		var codeItems = _project.GetCodeItems();
 		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
@@ -159,6 +160,8 @@ public class EasyFlow : IEasyFlow
 		{
 			DeployCodeItem(sqlConnectionString, codeItem);
 		});
+
+		Logger.Information("Code deploy completed.");
 	}
 
 	private void DeployCodeItem(string sqlConnectionString, CodeItem codeItem)
