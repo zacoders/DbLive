@@ -102,7 +102,7 @@ public class EasyFlow : IEasyFlow
 		}
 		catch (Exception ex)
 		{
-			Logger.Error(ex, "FAILED Test: {filePath}", test.Name);
+			Logger.Error(ex, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, ex.Message);
 			return false;
 		}
 	}

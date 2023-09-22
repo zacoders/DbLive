@@ -149,13 +149,15 @@ public class EasyFlowProject : IEasyFlowProject
 		List<TestItem> tests = new();
 
 		string testsPath = _projectPath.CombineWith("Tests");
+		string codePath = _projectPath.CombineWith("Code");
 
 		if (!_fileSystem.PathExists(testsPath))
 		{
 			return Array.Empty<TestItem>();
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, "*.sql", subfolders: true);
+		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePattern, subfolders: true)
+			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, subfolders: true));
 
 		foreach (string testFilePath in testFiles)
 		{
