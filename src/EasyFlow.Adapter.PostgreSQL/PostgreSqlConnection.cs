@@ -36,11 +36,6 @@ internal class PostgreSqlConnection : IEasyFlowSqlConnection
 		}
 	}
 
-	public void MigrationCompleted(string domain, int migrationVerion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
-	{
-		throw new NotImplementedException();
-	}
-
 	public void Dispose()
 	{
 		throw new NotImplementedException();
