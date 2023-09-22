@@ -37,7 +37,7 @@ public class EasyFlow : IEasyFlow
 			_deployer.CreateDB(sqlConnectionString, true);
 
 		// Self deploy. Deploying EasyFlow to the database
-		DeployProjectInternal("self", _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
+		DeployProjectInternal("easyflow", _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, EasyFlowDeployParameters.Default);
 
 		// Deploy actuall project
 		DeployProjectInternal("project", proejctPath, sqlConnectionString, parameters);
@@ -55,8 +55,11 @@ public class EasyFlow : IEasyFlow
 			_projectSettings.TransactionIsolationLevel,
 			() =>
 			{
-				DeployMigrations(domain, migrationsToApply, sqlConnectionString);
-
+				foreach (var migration in migrationsToApply)
+				{
+					DeployMigration(domain, migration, sqlConnectionString);
+				}
+				
 				if (parameters.DeployCode)
 					DeployCode(domain, sqlConnectionString, parameters);
 			}
@@ -108,14 +111,6 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	private void DeployMigrations(string domain, IOrderedEnumerable<Migration> migrationsToApply, string sqlConnectionString)
-	{
-		foreach (var migration in migrationsToApply)
-		{
-			DeployMigration(domain, migration, sqlConnectionString);
-		}
-	}
-
 	public IOrderedEnumerable<Migration> GetMigrationsToApply(string domain, string sqlConnectionString, EasyFlowDeployParameters parameters)
 	{
 		int appliedVersion = 0;
@@ -155,25 +150,7 @@ public class EasyFlow : IEasyFlow
 			{
 				foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
 				{
-					ExecuteWithTransaction(
-						_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
-						_projectSettings.TransactionIsolationLevel,
-						() =>
-						{
-							Logger.Information("Migration {migrationType}", task.MigrationType);
-							if (new[] { MigrationType.Migration, MigrationType.Data }.Contains(task.MigrationType))
-							{
-								string sql = File.ReadAllText(task.FilePath);
-								IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
-								cnn.ExecuteNonQuery(sql);
-								cnn.Close();
-							}
-							else
-							{
-								Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
-							}
-						}
-					);
+					DeployMigrationTask(sqlConnectionString, task);
 				}
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
@@ -181,6 +158,27 @@ public class EasyFlow : IEasyFlow
 				IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
 				cnn.MigrationCompleted(domain, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
 				cnn.Close();
+			}
+		);
+	}
+
+	private void DeployMigrationTask(string sqlConnectionString, MigrationTask task)
+	{
+		ExecuteWithTransaction(
+			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
+			_projectSettings.TransactionIsolationLevel,
+			() =>
+			{
+				Logger.Information("Migration {migrationType}", task.MigrationType);
+				if (task.MigrationType.In(MigrationType.Migration, MigrationType.Data))
+				{
+					string sql = File.ReadAllText(task.FilePath);
+					IEasyFlowSqlConnection cnn = _deployer.OpenConnection(sqlConnectionString);
+					cnn.ExecuteNonQuery(sql);
+					cnn.Close();
+					return;
+				}
+				Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
 			}
 		);
 	}
