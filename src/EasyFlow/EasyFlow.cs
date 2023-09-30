@@ -59,10 +59,10 @@ public class EasyFlow : IEasyFlow
 			}
 		);
 
-		RunTests(sqlConnectionString, parameters);
+		RunTests(sqlConnectionString, parameters, _projectSettings);
 	}
 
-	private void RunTests(string sqlConnectionString, DeployParameters parameters)
+	private void RunTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
 	{
 		if (!parameters.RunTests)
 		{
@@ -79,7 +79,7 @@ public class EasyFlow : IEasyFlow
 
 		Parallel.ForEach(tests, parallelOptions, test =>
 		{
-			bool isSuccess = RunTest(test, sqlConnectionString);
+			bool isSuccess = RunTest(test, sqlConnectionString, settings);
 			if (isSuccess) { result.IncremenPassed(); } else { result.IncremenFailed(); }
 		});
 
@@ -87,12 +87,11 @@ public class EasyFlow : IEasyFlow
 			result.PassedCount, result.FailedCount);
 	}
 
-	private bool RunTest(TestItem test, string sqlConnectionString)
+	private bool RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings)
 	{
 		try
 		{
-			//TODO: tests isolation level in parameters.
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, _defaultTimeout);
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
 			_da.ExecuteNonQuery(sqlConnectionString, test.Sql);
 
