@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
-    <PackageReference Include="PowerArgs" Version="4.0.2" />
+    <PackageReference Include="PowerArgs" Version="4.0.3" />
   </ItemGroup>
 
 </Project>
