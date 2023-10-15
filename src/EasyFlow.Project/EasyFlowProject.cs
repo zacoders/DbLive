@@ -138,7 +138,7 @@ public class EasyFlowProject : IEasyFlowProject
 		{
 			Version = version,
 			Name = splitFolder[1],
-			Path = folderPath,
+			FolderPath = folderPath,
 			Tasks = GetMigrationItems(folderPath)
 		};
 	}

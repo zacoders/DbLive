@@ -217,8 +217,8 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
 	{
-		Logger.Information(migration.Path.GetLastSegment());
-		var migrationItems = _project.GetMigrationItems(migration.Path);
+		Logger.Information(migration.FolderPath.GetLastSegment());
+		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
 
 		if (migrationItems.Count == 0) return;
 
