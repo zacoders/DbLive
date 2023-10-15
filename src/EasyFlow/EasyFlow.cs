@@ -8,6 +8,7 @@ public class EasyFlow : IEasyFlow
 	private readonly IEasyFlowProject _project;
 	private readonly IEasyFlowPaths _paths;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
+	private readonly IFileSystem _fileSystem;
 
 	private EasyFlowSettings _projectSettings = new();
 
@@ -18,11 +19,12 @@ public class EasyFlow : IEasyFlow
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
 
-	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths)
+	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths, IFileSystem fileSystem)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
 		_paths = paths;
+		_fileSystem = fileSystem;
 	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters)
@@ -93,7 +95,7 @@ public class EasyFlow : IEasyFlow
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
-			_da.ExecuteNonQuery(sqlConnectionString, test.Sql);
+			_da.ExecuteNonQuery(sqlConnectionString, test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction
 
@@ -169,14 +171,13 @@ public class EasyFlow : IEasyFlow
 		{
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				Logger.Information("Deploy code file: {filePath}", codeItem.FilePath.GetLastSegment());
-				string sql = File.ReadAllText(codeItem.FilePath);
-				_da.ExecuteNonQuery(sqlConnectionString, sql);
+				Logger.Information("Deploy code file: {filePath}", codeItem.FileContent.FilePath.GetLastSegment());
+				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileContent.Content);
 			});
 		}
 		catch (Exception ex)
 		{
-			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FilePath);
+			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileContent.FilePath);
 		}
 	}
 
@@ -217,9 +218,9 @@ public class EasyFlow : IEasyFlow
 	private void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
 	{
 		Logger.Information(migration.Path.GetLastSegment());
-		var tasks = _project.GetMigrationTasks(migration.Path);
+		var migrationItems = _project.GetMigrationItems(migration.Path);
 
-		if (tasks.Count == 0) return;
+		if (migrationItems.Count == 0) return;
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
@@ -228,9 +229,9 @@ public class EasyFlow : IEasyFlow
 			_projectSettings.TransactionIsolationLevel,
 			() =>
 			{
-				foreach (MigrationTask task in tasks.OrderBy(t => t.MigrationType))
+				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationType))
 				{
-					DeployMigrationTask(sqlConnectionString, task);
+					DeployMigrationTask(sqlConnectionString, migrationItem);
 				}
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
@@ -247,21 +248,20 @@ public class EasyFlow : IEasyFlow
 		);
 	}
 
-	private void DeployMigrationTask(string sqlConnectionString, MigrationTask task)
+	private void DeployMigrationTask(string sqlConnectionString, MigrationItem migrationItem)
 	{
 		ExecuteWithTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
 			_projectSettings.TransactionIsolationLevel,
 			() =>
 			{
-				Logger.Information("Migration {migrationType}", task.MigrationType);
-				if (task.MigrationType.In(MigrationType.Migration, MigrationType.Data))
+				Logger.Information("Migration {migrationType}", migrationItem.MigrationType);
+				if (migrationItem.MigrationType.In(MigrationType.Migration, MigrationType.Data))
 				{
-					string sql = File.ReadAllText(task.FilePath);
-					_da.ExecuteNonQuery(sqlConnectionString, sql);
+					_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
 					return;
 				}
-				Logger.Information("Migration {migrationType} skipped.", task.MigrationType);
+				Logger.Information("Migration {migrationType} skipped.", migrationItem.MigrationType);
 			}
 		);
 	}

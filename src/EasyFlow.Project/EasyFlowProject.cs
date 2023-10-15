@@ -21,8 +21,8 @@ public class EasyFlowProject : IEasyFlowProject
 		string settingsPath = Path.Combine(projectPath, "settings.json");
 		if (_fileSystem.FileExists(settingsPath))
 		{
-			string settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
+			var settingsJson = _fileSystem.ReadFileData(settingsPath);
+			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson.Content) ?? _settings;
 		}
 	}
 
@@ -31,10 +31,10 @@ public class EasyFlowProject : IEasyFlowProject
 		return _settings;
 	}
 
-	public HashSet<MigrationTask> GetMigrationTasks(string migrationFolder)
+	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		ThrowIfProjectWasNotLoaded();
-		HashSet<MigrationTask> tasks = new();
+		HashSet<MigrationItem> tasks = new();
 
 		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
@@ -45,10 +45,10 @@ public class EasyFlowProject : IEasyFlowProject
 
 			var migrationType = GetMigrationType(fileParts[0]);
 
-			MigrationTask task = new()
+			MigrationItem task = new()
 			{
 				MigrationType = migrationType,
-				FilePath = filePath
+				FileData = _fileSystem.ReadFileData(filePath)
 			};
 
 			if (tasks.Contains(task))
@@ -82,13 +82,13 @@ public class EasyFlowProject : IEasyFlowProject
 		ThrowIfProjectWasNotLoaded();
 		List<CodeItem> codeItems = new();
 		string codePath = Path.Combine(_projectPath, "Code");
-		if (Path.Exists(codePath))
+		if (_fileSystem.PathExists(codePath))
 		{
 			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FilePath = filePath };
+				var codeItem = new CodeItem { Name = fileName, FileContent = _fileSystem.ReadFileData(filePath) };
 				codeItems.Add(codeItem);
 			}
 		}
@@ -139,7 +139,7 @@ public class EasyFlowProject : IEasyFlowProject
 			Version = version,
 			Name = splitFolder[1],
 			Path = folderPath,
-			Tasks = GetMigrationTasks(folderPath)
+			Tasks = GetMigrationItems(folderPath)
 		};
 	}
 
@@ -165,7 +165,7 @@ public class EasyFlowProject : IEasyFlowProject
 			{
 				Name = testFilePath.GetLastSegment(),
 				Path = testFilePath,
-				Sql = File.ReadAllText(testFilePath)
+				FileData = _fileSystem.ReadFileData(testFilePath)
 			};
 
 			tests.Add(testItem);

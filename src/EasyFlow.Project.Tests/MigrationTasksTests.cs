@@ -20,7 +20,7 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
-		var migrationTasks = sqlProject.GetMigrationTasks("");
+		var migrationTasks = sqlProject.GetMigrationItems("");
 
 		Assert.Equal(4, migrationTasks.Count);
 	}
@@ -42,6 +42,9 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql" //Duplicate task name
 			});
 
-		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationTasks(""));
+		mockSet.FileSystem.ReadFileData(Arg.Any<string>())
+			.Returns(args => new FileData { Content = "test-content", FilePath = args.Arg<string>() });
+
+		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationItems(""));
 	}
 }

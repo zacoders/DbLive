@@ -3,10 +3,10 @@
 [Serializable]
 public class MigrationTaskExistsException : Exception
 {
-	internal MigrationTask MigrationTask { get; private set; }
+	internal MigrationItem MigrationTask { get; private set; }
 
-	public MigrationTaskExistsException(MigrationTask migrationTask)
-		: base($"Migration task alredy exists, duplicate file name. File = '{migrationTask.FilePath.GetLastSegment()}'.")
+	public MigrationTaskExistsException(MigrationItem migrationTask)
+		: base($"Migration task alredy exists, duplicate file name. File = '{migrationTask.FileData.FilePath.GetLastSegment()}'.")
 	{
 		MigrationTask = migrationTask;
 	}

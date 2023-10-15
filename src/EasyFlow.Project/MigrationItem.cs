@@ -1,11 +1,11 @@
 namespace EasyFlow.Project;
 
-public record MigrationTask
+public record MigrationItem
 {
 	public required MigrationType MigrationType { get; set; }
-	public required string FilePath { get; set; }
+	public required FileData FileData { get; set; }
 
-	public virtual bool Equals(MigrationTask? other)
+	public virtual bool Equals(MigrationItem? other)
 	{
 		if (other is null) return false;
 		return MigrationType == other.MigrationType;

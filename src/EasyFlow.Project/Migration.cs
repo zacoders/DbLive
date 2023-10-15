@@ -5,7 +5,7 @@ public record Migration
 	public required int Version { get; set; }
 	public required string Name { get; set; }
 	public required string Path { get; set; }
-	public required HashSet<MigrationTask> Tasks { get; set; }
+	public required HashSet<MigrationItem> Tasks { get; set; }
 
 	public virtual bool Equals(Migration? other)
 	{
