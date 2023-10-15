@@ -88,7 +88,7 @@ public class EasyFlowProject : IEasyFlowProject
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FileContent = _fileSystem.ReadFileData(filePath) };
+				var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath) };
 				codeItems.Add(codeItem);
 			}
 		}

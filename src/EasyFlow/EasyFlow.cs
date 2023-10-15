@@ -171,13 +171,13 @@ public class EasyFlow : IEasyFlow
 		{
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				Logger.Information("Deploy code file: {filePath}", codeItem.FileContent.FilePath.GetLastSegment());
-				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileContent.Content);
+				Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
 			});
 		}
 		catch (Exception ex)
 		{
-			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileContent.FilePath);
+			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
 		}
 	}
 
