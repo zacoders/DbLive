@@ -1,4 +1,6 @@
 ﻿
+using System.Data;
+
 namespace EasyFlow.Adapter.MSSQL;
 
 public class MsSqlDA : IEasyFlowDA
@@ -54,7 +56,7 @@ public class MsSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
-	public void MigrationCompleted(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MigrationApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
 	{
 		string query = @"
 			insert into easyflow.Migrations
@@ -118,5 +120,19 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
 
 		serverCnn.Disconnect();
+	}
+
+	public void CodeApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		using var cnn = new SqlConnection(cnnString);
+		cnn.Query("easyflow.SaveCodeState",
+			new
+			{
+				relativePath,
+				contentMD5Hash,
+				migrationStartedUtc,
+				migrationCompletedUtc
+			},
+			commandType: CommandType.StoredProcedure);
 	}
 }

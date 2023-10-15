@@ -21,8 +21,8 @@ public class EasyFlowProject : IEasyFlowProject
 		string settingsPath = Path.Combine(projectPath, "settings.json");
 		if (_fileSystem.FileExists(settingsPath))
 		{
-			var settingsJson = _fileSystem.ReadFileData(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson.Content) ?? _settings;
+			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
+			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
 		}
 	}
 
@@ -48,7 +48,7 @@ public class EasyFlowProject : IEasyFlowProject
 			MigrationItem task = new()
 			{
 				MigrationType = migrationType,
-				FileData = _fileSystem.ReadFileData(filePath)
+				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
 			};
 
 			if (tasks.Contains(task))
@@ -88,7 +88,7 @@ public class EasyFlowProject : IEasyFlowProject
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath) };
+				var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
 				codeItems.Add(codeItem);
 			}
 		}
@@ -165,7 +165,7 @@ public class EasyFlowProject : IEasyFlowProject
 			{
 				Name = testFilePath.GetLastSegment(),
 				Path = testFilePath,
-				FileData = _fileSystem.ReadFileData(testFilePath)
+				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
 			};
 
 			tests.Add(testItem);

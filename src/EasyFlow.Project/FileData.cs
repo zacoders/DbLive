@@ -15,4 +15,5 @@ public class FileData
 	public Guid MD5Hash { get; private set; }
 
 	public required string FilePath { get; init; }
+	public required string RelativePath { get; init; }
 }

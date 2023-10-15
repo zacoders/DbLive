@@ -1,3 +1,5 @@
+using EasyFlow.Common;
+
 namespace EasyFlow.Project.Tests;
 
 public class MigrationTasksTests
@@ -31,7 +33,7 @@ public class MigrationTasksTests
 		MockSet mockSet = new();
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		sqlProject.Load(@"C:\MainTestDB");
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>(), settings.TestFilePattern, true)
@@ -42,9 +44,18 @@ public class MigrationTasksTests
 				@"C:\MainTestDB\Migrations\003.test3\UNDO.sql" //Duplicate task name
 			});
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>())
-			.Returns(args => new FileData { Content = "test-content", FilePath = args.Arg<string>() });
+		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
+			.Returns(args => {
+				string path = (string)args[0];
+				string rootPath = (string)args[1];
+				return new FileData
+				{
+					Content = "test-content",
+					FilePath = path,
+					RelativePath = path.GetRelativePath(rootPath)
+				};
+			});
 
-		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationItems(""));
+		Assert.Throws<MigrationTaskExistsException>(() => sqlProject.GetMigrationItems(@"C:\MainTestDB\Migrations"));
 	}
 }

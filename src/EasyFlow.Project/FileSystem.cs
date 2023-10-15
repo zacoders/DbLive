@@ -32,12 +32,15 @@ public class FileSystem : IFileSystem
 	public bool FileExists(string path) => File.Exists(path);
 	public bool PathExists(string path) => Path.Exists(path);
 
-	public FileData ReadFileData(string path)
+	public string FileReadAllText(string path) => File.ReadAllText(path);
+
+	public FileData ReadFileData(string path, string rootPath)
 	{
 		return new FileData 
 		{
+			Content = File.ReadAllText(path),
 			FilePath = path,
-			Content = File.ReadAllText(path) 
+			RelativePath = path.GetRelativePath(rootPath)
 		};
 	}
 }

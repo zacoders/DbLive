@@ -11,7 +11,10 @@ public interface IEasyFlowDA
 	void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime);
 
 	/// <exception cref="EasyFlowSqlException"/>
-	void MigrationCompleted(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
+	void MigrationApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
+
+	/// <exception cref="EasyFlowSqlException"/>
+	void CodeApplied(string cnnString, string relativeCodePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
 
 	void CreateDB(string cnnString, bool skipIfExists = true);
 

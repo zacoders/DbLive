@@ -6,7 +6,8 @@ public interface IFileSystem
 	IEnumerable<string> EnumerateDirectories(string[] paths, string searchPattern, SearchOption searchOption);
 	IEnumerable<string> EnumerateFiles(string path, string searchPattern, bool subfolders = false);
 	IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subfolders);
-	FileData ReadFileData(string path);
+	FileData ReadFileData(string path, string rootPath);
+	string FileReadAllText(string path);
 	bool FileExists(string path);
 	bool PathExists(string path);
 }

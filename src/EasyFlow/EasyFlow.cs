@@ -1,3 +1,5 @@
+using EasyFlow.Project;
+
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
@@ -48,7 +50,7 @@ public class EasyFlow : IEasyFlow
 
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, sqlConnectionString, parameters);
 
-		ExecuteWithTransaction(
+		ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
 			_projectSettings.TransactionIsolationLevel,
 			() =>
@@ -132,7 +134,7 @@ public class EasyFlow : IEasyFlow
 		}
 	}
 
-	private static void ExecuteWithTransaction(bool needTransaction, TranIsolationLevel isolationLevel, Action action)
+	private static void ExecuteWithinTransaction(bool needTransaction, TranIsolationLevel isolationLevel, Action action)
 	{
 		if (!needTransaction)
 		{
@@ -172,7 +174,10 @@ public class EasyFlow : IEasyFlow
 			_codeItemRetryPolicy.Execute(() =>
 			{
 				Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+				DateTime migrationStartedUtc = DateTime.UtcNow;
 				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
+				DateTime migrationCompletedUtc = DateTime.UtcNow;
+				_da.CodeApplied(sqlConnectionString, codeItem.FileData.FilePath, codeItem.FileData.MD5Hash, migrationStartedUtc, migrationCompletedUtc);
 			});
 		}
 		catch (Exception ex)
@@ -224,7 +229,7 @@ public class EasyFlow : IEasyFlow
 
 		DateTime migrationStartedUtc = DateTime.UtcNow;
 
-		ExecuteWithTransaction(
+		ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
 			_projectSettings.TransactionIsolationLevel,
 			() =>
@@ -242,7 +247,7 @@ public class EasyFlow : IEasyFlow
 				}
 				else
 				{
-					_da.MigrationCompleted(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+					_da.MigrationApplied(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
 				}
 			}
 		);
@@ -250,7 +255,7 @@ public class EasyFlow : IEasyFlow
 
 	private void DeployMigrationTask(string sqlConnectionString, MigrationItem migrationItem)
 	{
-		ExecuteWithTransaction(
+		ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
 			_projectSettings.TransactionIsolationLevel,
 			() =>

@@ -14,17 +14,14 @@ public class SettingsTests
 
 		mockSet.FileSystem.FileExists(Arg.Is<string>(v => v == settingsPath)).Returns(true);
 
-		mockSet.FileSystem.ReadFileData(Arg.Is<string>(v => v == settingsPath))
+		mockSet.FileSystem.FileReadAllText(Arg.Is<string>(v => v == settingsPath))
 			.Returns(
-			new FileData
-			{
-				FilePath = settingsPath,
-				Content = """
+				"""
 					{
 						"TransactionWrapLevel": "None"
 					}
 				"""
-			});
+			);
 
 		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
 		sqlProject.Load(projectPath);
