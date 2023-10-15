@@ -57,7 +57,7 @@ public class EasyFlow : IEasyFlow
 			{
 				DeployMigrations(isSelfDeploy, sqlConnectionString, parameters, migrationsToApply);
 
-				DeployCode(sqlConnectionString, parameters);
+				DeployCode(isSelfDeploy, sqlConnectionString, parameters);
 
 				DeployBreakingChanges(isSelfDeploy, sqlConnectionString, parameters);
 			}
@@ -147,7 +147,7 @@ public class EasyFlow : IEasyFlow
 		_transactionScope.Complete();
 	}
 
-	private void DeployCode(string sqlConnectionString, DeployParameters parameters)
+	private void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -161,23 +161,41 @@ public class EasyFlow : IEasyFlow
 
 		Parallel.ForEach(codeItems, parallelOptions, codeItem =>
 		{
-			DeployCodeItem(sqlConnectionString, codeItem);
+			DeployCodeItem(isSelfDeploy, sqlConnectionString, codeItem);
 		});
 
 		Logger.Information("Code deploy completed.");
 	}
 
-	private void DeployCodeItem(string sqlConnectionString, CodeItem codeItem)
+	private void DeployCodeItem(bool isSelfDeploy, string sqlConnectionString, CodeItem codeItem)
 	{
+		//TODO: add unit tests for thsi code!
 		try
 		{
 			_codeItemRetryPolicy.Execute(() =>
 			{
 				Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+
+				bool isApplied = false;
+				if (!isSelfDeploy)
+				{
+					isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash);
+				}
+
+				if (isApplied)
+				{
+					//TODO: do we need to mark code item somehow? for example update mod time that it was chechedk for deploy?
+					return;
+				}
+
 				DateTime migrationStartedUtc = DateTime.UtcNow;
 				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
-				_da.CodeApplied(sqlConnectionString, codeItem.FileData.FilePath, codeItem.FileData.MD5Hash, migrationStartedUtc, migrationCompletedUtc);
+
+				if (!isSelfDeploy)
+				{
+					_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash, migrationStartedUtc, migrationCompletedUtc);
+				}
 			});
 		}
 		catch (Exception ex)
@@ -247,7 +265,7 @@ public class EasyFlow : IEasyFlow
 				}
 				else
 				{
-					_da.MigrationApplied(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
 				}
 			}
 		);

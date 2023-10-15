@@ -56,7 +56,7 @@ public class MsSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
-	public void MigrationApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
 	{
 		string query = @"
 			insert into easyflow.Migrations
@@ -122,7 +122,7 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void CodeApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
 	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query("easyflow.SaveCodeState",
@@ -134,5 +134,11 @@ public class MsSqlDA : IEasyFlowDA
 				migrationCompletedUtc
 			},
 			commandType: CommandType.StoredProcedure);
+	}
+
+	public bool IsCodeItemApplied(string cnnString, string relativePath, Guid contentMD5Hash)
+	{
+		using var cnn = new SqlConnection(cnnString);
+		return cnn.QueryFirst<bool>("easyflow.IsCodeItemApplied", new { relativePath, contentMD5Hash }, commandType: CommandType.StoredProcedure);
 	}
 }

@@ -30,6 +30,22 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 	}
 
 	[Fact]
+	public void DeployProject_Full_And_Repeat()
+	{
+		string dbName = GetRanomDbName();
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+
+		Container.InitializeEasyFlow(DBEngine.MSSQL);
+
+		var deploy = Resolve<IEasyFlow>();
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+		
+		//repeat, so code should be deployed again
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+	}
+
+	[Fact]
 	public void DeployProject_Two_Deployments()
 	{
 		string dbName = GetRanomDbName();

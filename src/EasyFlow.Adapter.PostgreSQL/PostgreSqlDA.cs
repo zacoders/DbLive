@@ -77,7 +77,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
-	public void MigrationApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
 	{
 		string query = @"
 			insert into easyflow.Migrations
@@ -121,7 +121,12 @@ public class PostgreSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
-	public void CodeApplied(string cnnString, string relativeCodePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkCodeAsApplied(string cnnString, string relativeCodePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	{
+		throw new NotImplementedException(); //TODO
+	}
+
+	public bool IsCodeItemApplied(string cnnString, string filePath, Guid mD5Hash)
 	{
 		throw new NotImplementedException(); //TODO
 	}
