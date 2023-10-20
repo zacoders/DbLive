@@ -8,6 +8,8 @@ internal class TestRunResult
 	public int PassedCount => passedCount; 
 	public int FailedCount => failedCount;
 
+	public int Total => passedCount + failedCount;
+
 	internal void IncremenFailed()
 	{
 		Interlocked.Increment(ref failedCount);

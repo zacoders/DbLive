@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using EasyFlow.Common;
+using System.Data;
 
 namespace EasyFlow.Adapter.MSSQL;
 
@@ -101,7 +102,8 @@ public class MsSqlDA : IEasyFlowDA
 		}
 		catch (Exception e)
 		{
-			throw new EasyFlowSqlException(e.Message, e);
+			var sqlException = e.Get<SqlException>();
+			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
 		}
 	}
 

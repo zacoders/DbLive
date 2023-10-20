@@ -9,11 +9,24 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 	public DeploySqlIntegrationTest(ITestOutputHelper output) : base(output)
 	{
-		DropTestingDatabases();
+		Container.InitializeEasyFlow(DBEngine.MSSQL);
 	}
 
 	public void Dispose()
 	{
+		DropTestingDatabases();
+	}
+
+	[Fact]
+	public void DeployProject_Full_PersistedDbName()
+	{
+		string dbName = "EasyFlow-PersistedTest";
+		DropTestingDatabases(new[] { dbName }, true);
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+
+		var deploy = Resolve<IEasyFlow>();
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 
 	[Fact]
@@ -21,8 +34,6 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 	{
 		string dbName = GetRanomDbName();
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
-
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
 
 		var deploy = Resolve<IEasyFlow>();
 
@@ -36,12 +47,10 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
-
 		var deploy = Resolve<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
-		
+
 		//repeat, so code should be deployed again
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
@@ -51,8 +60,6 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 	{
 		string dbName = GetRanomDbName();
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
-
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
 
 		var deploy = Resolve<IEasyFlow>();
 
@@ -81,8 +88,26 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 		reader.Close();
 		cnn.Close();
 
+		DropTestingDatabases(databases, false);
+	}
+
+	private void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
+	{
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+
+		SqlConnection cnn = new(sqlConnectionString);
+		cnn.Open();
+
 		foreach (var database in databases)
 		{
+			if (ifExists)
+			{
+				var cmd = cnn.CreateCommand();
+				cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
+				bool exists = cmd.ExecuteScalar() == null ? false : true;
+				if (!exists) continue;
+			}
+
 			ServerConnection serverCnn = new(cnn);
 			serverCnn.ExecuteNonQuery(new StringCollection {
 				$"alter database [{database}] set single_user with rollback immediate;",

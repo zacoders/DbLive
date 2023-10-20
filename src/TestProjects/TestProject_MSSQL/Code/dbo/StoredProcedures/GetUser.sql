@@ -1,5 +1,5 @@
 
-create or alter proc dbo.GetUser
+create or alter proc dbo.GetUser2
     @UserId int
 as 
     

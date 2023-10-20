@@ -1,4 +1,5 @@
-﻿
+﻿using EasyFlow.Common;
+
 namespace EasyFlow.Adapter.PostgreSQL;
 
 public class PostgreSqlDA : IEasyFlowDA
@@ -48,7 +49,8 @@ public class PostgreSqlDA : IEasyFlowDA
 		}
 		catch (Exception e)
 		{
-			throw new EasyFlowSqlException(e.Message, e);
+			var pgException = e.Get<PostgresException>();
+			throw new EasyFlowSqlException(pgException?.Message ?? e.Message, e);
 		}
 	}
 
