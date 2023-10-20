@@ -77,12 +77,12 @@ public class PostgreSqlDA : IEasyFlowDA
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
-	public bool IsCodeItemApplied(string cnnString, string filePath, Guid contentMD5Hash)
+	public bool IsCodeItemApplied(string cnnString, string filePath, int contentHash)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}
@@ -121,7 +121,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		});
 	}
 
-	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}

@@ -15,13 +15,13 @@ public interface IEasyFlowDA
 	void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs);
 
 	/// <exception cref="EasyFlowSqlException"/>
-	void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs);
+	void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs);
 	void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc);
 
 	void CreateDB(string cnnString, bool skipIfExists = true);
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string cnnString, string sqlStatementt);
-	bool IsCodeItemApplied(string cnnString, string filePath, Guid contentMD5Hash);
-	void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs);
+	bool IsCodeItemApplied(string cnnString, string filePath, int contentHash);
+	void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs);
 }

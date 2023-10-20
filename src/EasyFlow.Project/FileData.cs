@@ -7,12 +7,12 @@ public class FileData
 	public required string Content { 
 		get => _content; 
 		init {
-			MD5Hash = value.MD5HashCode();
+			MD5Hash = value.Crc32HashCode();
 			_content = value;
 		}
 	}
 
-	public Guid MD5Hash { get; private set; }
+	public int MD5Hash { get; private set; }
 
 	public required string FilePath { get; init; }
 	public required string RelativePath { get; init; }

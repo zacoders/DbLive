@@ -18,7 +18,7 @@ create table easyflow.migration_item (
   , name nvarchar(512) not null
   , item_type varchar(32) not null
   , status varchar(32) not null
-  , content_md5_hash uniqueidentifier not null
+  , content_hash int not null
   , created_utc datetime2(7) not null
   , applied_utc datetime2(7) null
   , execution_time_ms int null

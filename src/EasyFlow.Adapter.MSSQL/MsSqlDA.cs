@@ -127,14 +127,14 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime appliedUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
 	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query("easyflow.insert_code_state",
 			new
 			{
 				relative_path = relativePath,
-				content_md5_hash = contentMD5Hash,
+				content_hash = contentHash,
 				applied_utc = appliedUtc,
 				execution_time_ms = executionTimeMs
 			},
@@ -152,17 +152,17 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public bool IsCodeItemApplied(string cnnString, string relativePath, Guid contentMD5Hash)
+	public bool IsCodeItemApplied(string cnnString, string relativePath, int contentHash)
 	{
 		using var cnn = new SqlConnection(cnnString);
 		return cnn.QueryFirst<bool>(
 			"easyflow.is_code_item_applied", 
-			new { relative_path = relativePath, content_md5_hash = contentMD5Hash }, 
+			new { relative_path = relativePath, content_hash = contentHash }, 
 			commandType: CommandType.StoredProcedure
 		);
 	}
 
-	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
 	{
 		string query = @"
 			insert into easyflow.migration_item
@@ -170,7 +170,7 @@ public class MsSqlDA : IEasyFlowDA
 				version
 			  , name
 			  , item_type
-			  , content_md5_hash
+			  , content_hash
 			  , status
 			  , created_utc
 			  , applied_utc
@@ -180,7 +180,7 @@ public class MsSqlDA : IEasyFlowDA
 				@version
 			  , @name
 			  , @item_type
-			  , @content_md5_hash
+			  , @content_hash
 			  , @status
 			  , @created_utc
 			  , @applied_utc
@@ -194,7 +194,7 @@ public class MsSqlDA : IEasyFlowDA
 			version,
 			name,
 			item_type = migrationType,
-			content_md5_hash = contentMD5Hash,
+			content_hash = contentHash,
 			status,
 			created_utc = createdUtc,
 			applied_utc = appliedUtc,
