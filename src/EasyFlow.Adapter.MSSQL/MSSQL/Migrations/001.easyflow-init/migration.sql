@@ -1,19 +1,19 @@
 create schema easyflow;
 go
 
-create table easyflow.migrations (
+create table easyflow.migration (
 	version int not null
   , name nvarchar(512) not null
   , created_utc datetime2(7) not null
   , modified_utc datetime2(7) not null
   , execution_time_ms int not null
 
-  , constraint pk_easyflow_migrations primary key ( version, name )
+  , constraint pk_easyflow_migration primary key ( version, name )
 )
 go
 
 
-create table easyflow.migration_items (
+create table easyflow.migration_item (
 	version int not null
   , name nvarchar(512) not null
   , item_type varchar(32) not null
@@ -23,7 +23,7 @@ create table easyflow.migration_items (
   , applied_utc datetime2(7) null
   , execution_time_ms int null
 
-  , constraint pk_easyflow_migration_items primary key ( version, name, item_type )
+  , constraint pk_easyflow_migration_item primary key ( version, name, item_type )
 )
 go
 

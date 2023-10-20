@@ -70,7 +70,7 @@ public class PostgreSqlDA : IEasyFlowDA
 				 , MigrationName
 				 , MigrationStarted
 				 , MigrationCompleted
-			from easyflow.Migrations
+			from easyflow.Migration
 		";
 
 		using var cnn = new NpgsqlConnection(cnnString);
@@ -96,7 +96,7 @@ public class PostgreSqlDA : IEasyFlowDA
 	{
 		//todo: refactor tabe name and column names for postgres
 		string query = @"
-			insert into easyflow.Migrations
+			insert into easyflow.Migration
 			(
 				MigrationVersion
 			  , MigrationName

@@ -17,7 +17,7 @@ public class MsSqlDA : IEasyFlowDA
 				 , created_utc
 				 , modified_utc
 				 , execution_time_ms
-			from easyflow.migrations
+			from easyflow.migration
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -27,7 +27,7 @@ public class MsSqlDA : IEasyFlowDA
 	public bool EasyFlowInstalled(string cnnString)
 	{
 		const string query = @"
-			select iif(object_id('easyflow.migrations', 'U') is null, 0, 1)
+			select iif(object_id('easyflow.migration', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -61,7 +61,7 @@ public class MsSqlDA : IEasyFlowDA
 	{
 		//todo: there should be update too. in case breaking chnages or undo applied.
 		string query = @"
-			insert into easyflow.migrations
+			insert into easyflow.migration
 			(
 				version
 			  , name
@@ -165,7 +165,7 @@ public class MsSqlDA : IEasyFlowDA
 	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
 	{
 		string query = @"
-			insert into easyflow.migration_items
+			insert into easyflow.migration_item
 			(
 				version
 			  , name
