@@ -126,6 +126,11 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
+	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string errorMessage)
+	{
+		throw new NotImplementedException();
+	}
+
 	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime)
 	{
 		const string query = @"

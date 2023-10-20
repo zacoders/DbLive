@@ -1,5 +1,3 @@
-using EasyFlow.Project;
-
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow
@@ -93,22 +91,40 @@ public class EasyFlow : IEasyFlow
 
 	private bool RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings)
 	{
+		bool isSuccess = false;
+		string? errorMessage = null;
+		DateTime startedUtc = DateTime.UtcNow;
+		
 		try
-		{
+		{			
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
 			_da.ExecuteNonQuery(sqlConnectionString, test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction
 
+			isSuccess = true;
 			Logger.Information("PASSED Test: {filePath}", test.Name);
-			return true;
 		}
 		catch (Exception ex)
 		{
+			errorMessage = ex.Message;
 			Logger.Error(ex, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, ex.Message);
-			return false;
 		}
+
+		DateTime completedUtc = DateTime.UtcNow;
+
+		_da.SaveUnitTestResult(
+			sqlConnectionString,
+			test.FileData.RelativePath,
+			test.FileData.Crc32Hash,
+			startedUtc,
+			(int)(completedUtc - startedUtc).TotalMilliseconds,
+			isSuccess,
+			errorMessage
+		);
+
+		return isSuccess;
 	}
 
 	private void DeployBreakingChanges(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
@@ -178,7 +194,7 @@ public class EasyFlow : IEasyFlow
 			if (!isSelfDeploy)
 			{
 				//todo: just return item and hash, and show proper error. it cannot be applied, hash can be changed!
-				isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash);
+				isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash);
 			}
 
 			if (isApplied)
@@ -197,7 +213,7 @@ public class EasyFlow : IEasyFlow
 
 			if (!isSelfDeploy)
 			{
-				_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
+				_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
 			}
 		}
 		catch (Exception ex)
@@ -308,7 +324,7 @@ public class EasyFlow : IEasyFlow
 						migration.Version,
 						migration.Name,
 						migrationItem.MigrationType.ToString().ToLower(),
-						migrationItem.FileData.MD5Hash,
+						migrationItem.FileData.Crc32Hash,
 						status,
 						DateTime.UtcNow,
 						migrationAppliedUtc,

@@ -1,0 +1,1 @@
+-- nothing here! just test empty migration.
