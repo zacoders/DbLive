@@ -15,7 +15,8 @@ public interface IEasyFlowDA
 	void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
 
 	/// <exception cref="EasyFlowSqlException"/>
-	void MarkCodeAsApplied(string cnnString, string relativeCodePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
+	void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs);
+	void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc);
 
 	void CreateDB(string cnnString, bool skipIfExists = true);
 

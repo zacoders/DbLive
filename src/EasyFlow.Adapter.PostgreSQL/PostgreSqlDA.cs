@@ -130,4 +130,14 @@ public class PostgreSqlDA : IEasyFlowDA
 	{
 		throw new NotImplementedException(); //TODO
 	}
+
+	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
+	{
+		throw new NotImplementedException();
+	}
 }

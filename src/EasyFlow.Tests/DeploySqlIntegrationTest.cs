@@ -13,7 +13,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 	public void Dispose()
 	{
-		DropTestingDatabases();
+		//DropTestingDatabases();
 	}
 
 	[Fact]

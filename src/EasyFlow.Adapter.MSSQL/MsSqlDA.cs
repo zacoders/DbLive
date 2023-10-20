@@ -5,6 +5,11 @@ namespace EasyFlow.Adapter.MSSQL;
 
 public class MsSqlDA : IEasyFlowDA
 {
+	static MsSqlDA()
+	{
+		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
+	}
+
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
@@ -122,23 +127,39 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
 	{
 		using var cnn = new SqlConnection(cnnString);
-		cnn.Query("easyflow.SaveCodeState",
+		cnn.Query("easyflow.insert_code_state",
 			new
 			{
-				relativePath,
-				contentMD5Hash,
-				migrationStartedUtc,
-				migrationCompletedUtc
+				relative_path = relativePath,
+				content_md5_hash = contentMD5Hash,
+				created_utc = createdUtc,
+				execution_time_ms = executionTimeMs
 			},
-			commandType: CommandType.StoredProcedure);
+			commandType: CommandType.StoredProcedure
+		);
+	}
+
+	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
+	{
+		using var cnn = new SqlConnection(cnnString);
+		cnn.Query(
+			"easyflow.update_code_state",
+			new { relative_path = relativePath, verified_utc = verifiedUtc },
+			commandType: CommandType.StoredProcedure
+		);
 	}
 
 	public bool IsCodeItemApplied(string cnnString, string relativePath, Guid contentMD5Hash)
 	{
 		using var cnn = new SqlConnection(cnnString);
-		return cnn.QueryFirst<bool>("easyflow.IsCodeItemApplied", new { relativePath, contentMD5Hash }, commandType: CommandType.StoredProcedure);
+		return cnn.QueryFirst<bool>(
+			"easyflow.is_code_item_applied", 
+			new { relative_path = relativePath, content_md5_hash = contentMD5Hash }, 
+			commandType: CommandType.StoredProcedure
+		);
 	}
+
 }

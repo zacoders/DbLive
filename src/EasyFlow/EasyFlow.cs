@@ -171,36 +171,39 @@ public class EasyFlow : IEasyFlow
 	{
 		//TODO: add unit tests for thsi code!
 		try
-		{
+		{			
+			Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+
+			bool isApplied = false;
+			if (!isSelfDeploy)
+			{
+				//todo: just return item and hash, and show proper error. it cannot be applied, hash can be changed!
+				isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash);
+			}
+
+			if (isApplied)
+			{
+				_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, DateTime.UtcNow);
+				return;
+			}
+
+			DateTime migrationStartedUtc = DateTime.UtcNow;
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
-
-				bool isApplied = false;
-				if (!isSelfDeploy)
-				{
-					isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash);
-				}
-
-				if (isApplied)
-				{
-					//TODO: do we need to mark code item somehow? for example update mod time that it was chechedk for deploy?
-					return;
-				}
-
-				DateTime migrationStartedUtc = DateTime.UtcNow;
 				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
-				DateTime migrationCompletedUtc = DateTime.UtcNow;
-
-				if (!isSelfDeploy)
-				{
-					_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash, migrationStartedUtc, migrationCompletedUtc);
-				}
+				//todo: maybe count number of attempts to deploy the code item?
 			});
+			DateTime migrationCompletedUtc = DateTime.UtcNow;
+
+			if (!isSelfDeploy)
+			{
+				_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.MD5Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
+			}
 		}
 		catch (Exception ex)
 		{
 			Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
+			throw;
 		}
 	}
 
