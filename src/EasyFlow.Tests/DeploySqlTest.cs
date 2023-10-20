@@ -27,8 +27,8 @@ public class DeploySqlTest
 		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>())
 			.Returns(new[]
 			{
-				new MigrationDto { MigrationVersion = 1, MigrationName = "test1" },
-				new MigrationDto { MigrationVersion = 2, MigrationName = "sameversion-2" }
+				new MigrationDto { Version = 1, Name = "test1" },
+				new MigrationDto { Version = 2, Name = "sameversion-2" }
 			});
 
 		var migrations = deploy.GetMigrationsToApply(false, "", DeployParameters.Default).ToArray();

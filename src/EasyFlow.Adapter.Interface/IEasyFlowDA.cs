@@ -12,7 +12,7 @@ public interface IEasyFlowDA
 
 	//TODO: add hash of the migration. Can be needed in the future, just to check applied and existing file content.
 	/// <exception cref="EasyFlowSqlException"/>
-	void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc);
+	void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs);
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs);

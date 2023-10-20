@@ -13,11 +13,11 @@ public class MsSqlDA : IEasyFlowDA
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
-			select MigrationVersion
-				 , MigrationName
-				 , MigrationStarted
-				 , MigrationCompleted
-			from easyflow.Migrations
+			select version
+				 , name
+				 , created_utc
+				 , execution_time_ms
+			from easyflow.migrations
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -27,7 +27,7 @@ public class MsSqlDA : IEasyFlowDA
 	public bool EasyFlowInstalled(string cnnString)
 	{
 		const string query = @"
-			select iif(object_id('easyflow.Migrations', 'U') is null, 0, 1)
+			select iif(object_id('easyflow.migrations', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -37,8 +37,8 @@ public class MsSqlDA : IEasyFlowDA
 	public int GetEasyFlowVersion(string cnnString)
 	{
 		const string query = @"
-			select Version
-			from easyflow.Version
+			select version
+			from easyflow.version
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -48,44 +48,40 @@ public class MsSqlDA : IEasyFlowDA
 	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime)
 	{
 		const string query = @"
-			merge into easyflow.Version as t
-			using ( select 1 ) as s(c) on 1 = 1
-			when not matched then 
-				insert ( Version, MigrationDatetime ) values ( @Version, @MigrationDatetime )
-			when matched then update
-				set Version = @Version
-			      , MigrationDatetime = MigrationDatetime;
+			update easyflow.version
+			set version = @version
+			  , modified_utc = @modified_utc;
 		";
 
 		using var cnn = new SqlConnection(cnnString);
-		cnn.Query(query, new { version, migrationDatetime });
+		cnn.Query(query, new { version, modified_utc = migrationDatetime });
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
 	{
 		string query = @"
-			insert into easyflow.Migrations
+			insert into easyflow.migrations
 			(
-				MigrationVersion
-			  , MigrationName
-			  , MigrationStarted
-			  , MigrationCompleted
+				version
+			  , name
+			  , created_utc
+			  , execution_time_ms
 			)
 			values (
-				@MigrationVersion
-			  , @MigrationName
-			  , @MigrationStartedUtc
-			  , @MigrationCompletedUtc
+				@version
+			  , @name
+			  , @created_utc
+			  , @execution_time_ms
 			)
 		";
 
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query(query, new
 		{
-			migrationVersion,
-			migrationName,
-			migrationStartedUtc,
-			migrationCompletedUtc
+			version = migrationVersion,
+			name = migrationName,
+			created_utc = migrationCompletedUtc,
+			execution_time_ms = executionTimeMs
 		});
 	}
 

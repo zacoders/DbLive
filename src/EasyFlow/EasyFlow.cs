@@ -221,7 +221,7 @@ public class EasyFlow : IEasyFlow
 			else
 			{
 				appliedMigrations = _da.GetMigrations(sqlConnectionString);
-				appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.MigrationVersion);
+				appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.Version);
 			}
 		}
 
@@ -236,7 +236,7 @@ public class EasyFlow : IEasyFlow
 
 		return _project.GetMigrations()
 			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-			.Where(m => !appliedMigrations.Any(am => am.MigrationVersion == m.Version && am.MigrationName == m.Name))
+			.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name))
 			.OrderBy(m => m.Version)
 			.ThenBy(m => m.Name);
 	}
@@ -257,7 +257,7 @@ public class EasyFlow : IEasyFlow
 			{
 				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationType))
 				{
-					DeployMigrationTask(sqlConnectionString, migrationItem);
+					DeployMigrationItem(sqlConnectionString, migrationItem);
 				}
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
@@ -268,13 +268,14 @@ public class EasyFlow : IEasyFlow
 				}
 				else
 				{
-					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationStartedUtc, migrationCompletedUtc);
+					int durationMs = (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds;
+					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc, durationMs);
 				}
 			}
 		);
 	}
 
-	private void DeployMigrationTask(string sqlConnectionString, MigrationItem migrationItem)
+	private void DeployMigrationItem(string sqlConnectionString, MigrationItem migrationItem)
 	{
 		ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,

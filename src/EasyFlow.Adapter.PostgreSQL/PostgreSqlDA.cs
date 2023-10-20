@@ -77,8 +77,9 @@ public class PostgreSqlDA : IEasyFlowDA
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
 	{
+		//todo: refactor tabe name and column names for postgres
 		string query = @"
 			insert into easyflow.Migrations
 			(
@@ -100,8 +101,8 @@ public class PostgreSqlDA : IEasyFlowDA
 		{
 			migrationVersion,
 			migrationName,
-			migrationStartedUtc,
-			migrationCompletedUtc
+			migrationCompletedUtc,
+			executionTimeMs
 		});
 	}
 

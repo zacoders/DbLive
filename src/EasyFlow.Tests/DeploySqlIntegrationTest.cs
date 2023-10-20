@@ -9,11 +9,11 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 
 	public DeploySqlIntegrationTest(ITestOutputHelper output) : base(output)
 	{
+		DropTestingDatabases();
 	}
 
 	public void Dispose()
 	{
-		//DropTestingDatabases();
 	}
 
 	[Fact]
@@ -33,6 +33,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 	public void DeployProject_Full_And_Repeat()
 	{
 		string dbName = GetRanomDbName();
+
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
 
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
@@ -63,7 +64,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 
-	private static void DropTestingDatabases()
+	private void DropTestingDatabases()
 	{
 		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
 

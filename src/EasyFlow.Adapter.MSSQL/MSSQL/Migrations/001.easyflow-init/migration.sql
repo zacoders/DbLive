@@ -1,23 +1,38 @@
 create schema easyflow;
 go
 
-create table easyflow.Migrations (
-	MigrationVersion int not null
-  , MigrationName nvarchar(512) not null
-  , MigrationStarted datetime2(7) not null
-  , MigrationCompleted datetime2(7) null
+create table easyflow.migrations (
+	version int not null
+  , name nvarchar(512) not null
+  , created_utc datetime2(7) not null
+  , execution_time_ms int not null
 
-  , constraint PK_EasyFlow_Migrations primary key ( MigrationVersion, MigrationName )
+  , constraint pk_easyflow_migrations primary key ( version, name )
 )
 go
 
-create table easyflow.Version (
-	Version int not null
-  , MigrationDatetime datetime2(7)
-  , OneRowLock as 1 
-  , constraint PK_EasyFlow_Version primary key ( OneRowLock )
+
+create table easyflow.migration_items (
+	version int not null
+  , name nvarchar(512) not null
+  , item_type varchar(32) not null
+  , content_md5_hash uniqueidentifier not null
+  , created_utc datetime2(7) not null
+  , execution_time_ms int not null
+
+  , constraint pk_easyflow_migration_items primary key ( version, name, item_type )
 )
 go
 
-insert into easyflow.Version ( Version ) values ( 0 );
+
+create table easyflow.version (
+	version int not null
+  , created_utc datetime2(7) not null
+  , modified_utc datetime2(7) not null
+  , one_row_lock as 1 
+  , constraint pk_easyflow_version primary key ( one_row_lock )
+)
+go
+
+insert into easyflow.version ( version, created_utc, modified_utc ) values ( 0, sysutcdatetime(), sysutcdatetime() );
 go
