@@ -22,5 +22,6 @@ public interface IEasyFlowDA
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string cnnString, string sqlStatementt);
-	bool IsCodeItemApplied(string cnnString, string filePath, Guid mD5Hash);
+	bool IsCodeItemApplied(string cnnString, string filePath, Guid contentMD5Hash);
+	void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs);
 }

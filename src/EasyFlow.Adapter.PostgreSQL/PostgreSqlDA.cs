@@ -77,6 +77,21 @@ public class PostgreSqlDA : IEasyFlowDA
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
+	public bool IsCodeItemApplied(string cnnString, string filePath, Guid contentMD5Hash)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
+	{
+		throw new NotImplementedException();
+	}
+
 	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
 	{
 		//todo: refactor tabe name and column names for postgres
@@ -106,6 +121,11 @@ public class PostgreSqlDA : IEasyFlowDA
 		});
 	}
 
+	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	{
+		throw new NotImplementedException();
+	}
+
 	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime)
 	{
 		const string query = @"
@@ -122,23 +142,4 @@ public class PostgreSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativeCodePath, Guid contentMD5Hash, DateTime migrationStartedUtc, DateTime migrationCompletedUtc)
-	{
-		throw new NotImplementedException(); //TODO
-	}
-
-	public bool IsCodeItemApplied(string cnnString, string filePath, Guid mD5Hash)
-	{
-		throw new NotImplementedException(); //TODO
-	}
-
-	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
-	{
-		throw new NotImplementedException();
-	}
-
-	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
-	{
-		throw new NotImplementedException();
-	}
 }

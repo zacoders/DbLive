@@ -257,7 +257,7 @@ public class EasyFlow : IEasyFlow
 			{
 				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationType))
 				{
-					DeployMigrationItem(sqlConnectionString, migrationItem);
+					DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem);
 				}
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;
@@ -275,7 +275,7 @@ public class EasyFlow : IEasyFlow
 		);
 	}
 
-	private void DeployMigrationItem(string sqlConnectionString, MigrationItem migrationItem)
+	private void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
 		ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Task,
@@ -283,12 +283,40 @@ public class EasyFlow : IEasyFlow
 			() =>
 			{
 				Logger.Information("Migration {migrationType}", migrationItem.MigrationType);
+				
+				DateTime migrationStartedUtc = DateTime.UtcNow;
+
+				string status = "";
+				DateTime? migrationAppliedUtc = null;
+				int? executionTimeMs = null;
 				if (migrationItem.MigrationType.In(MigrationType.Migration, MigrationType.Data))
 				{
 					_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
-					return;
+					status = "applied";
+					migrationAppliedUtc = DateTime.UtcNow;
+					executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 				}
-				Logger.Information("Migration {migrationType} skipped.", migrationItem.MigrationType);
+				else
+				{
+					status = "skipped";
+				}
+
+				if (!isSelfDeploy)
+				{
+					_da.SaveMigrationItemState(
+						sqlConnectionString,
+						migration.Version,
+						migration.Name,
+						migrationItem.MigrationType.ToString().ToLower(),
+						migrationItem.FileData.MD5Hash,
+						status,
+						DateTime.UtcNow,
+						migrationAppliedUtc,
+						executionTimeMs						
+					);
+				}
+
+				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationType, status);
 			}
 		);
 	}

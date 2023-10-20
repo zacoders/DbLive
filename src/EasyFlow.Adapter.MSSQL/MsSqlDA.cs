@@ -1,5 +1,4 @@
-﻿
-using System.Data;
+﻿using System.Data;
 
 namespace EasyFlow.Adapter.MSSQL;
 
@@ -16,6 +15,7 @@ public class MsSqlDA : IEasyFlowDA
 			select version
 				 , name
 				 , created_utc
+				 , modified_utc
 				 , execution_time_ms
 			from easyflow.migrations
 		";
@@ -50,27 +50,30 @@ public class MsSqlDA : IEasyFlowDA
 		const string query = @"
 			update easyflow.version
 			set version = @version
-			  , modified_utc = @modified_utc;
+			  , applied_utc = @applied_utc;
 		";
 
 		using var cnn = new SqlConnection(cnnString);
-		cnn.Query(query, new { version, modified_utc = migrationDatetime });
+		cnn.Query(query, new { version, applied_utc = migrationDatetime });
 	}
 
 	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
 	{
+		//todo: there should be update too. in case breaking chnages or undo applied.
 		string query = @"
 			insert into easyflow.migrations
 			(
 				version
 			  , name
 			  , created_utc
+			  , modified_utc
 			  , execution_time_ms
 			)
 			values (
 				@version
 			  , @name
 			  , @created_utc
+			  , @modified_utc
 			  , @execution_time_ms
 			)
 		";
@@ -81,6 +84,7 @@ public class MsSqlDA : IEasyFlowDA
 			version = migrationVersion,
 			name = migrationName,
 			created_utc = migrationCompletedUtc,
+			modified_utc = migrationCompletedUtc,
 			execution_time_ms = executionTimeMs
 		});
 	}
@@ -123,7 +127,7 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime createdUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string cnnString, string relativePath, Guid contentMD5Hash, DateTime appliedUtc, int executionTimeMs)
 	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query("easyflow.insert_code_state",
@@ -131,7 +135,7 @@ public class MsSqlDA : IEasyFlowDA
 			{
 				relative_path = relativePath,
 				content_md5_hash = contentMD5Hash,
-				created_utc = createdUtc,
+				applied_utc = appliedUtc,
 				execution_time_ms = executionTimeMs
 			},
 			commandType: CommandType.StoredProcedure
@@ -158,4 +162,43 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
+	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, Guid contentMD5Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	{
+		string query = @"
+			insert into easyflow.migration_items
+			(
+				version
+			  , name
+			  , item_type
+			  , content_md5_hash
+			  , status
+			  , created_utc
+			  , applied_utc
+			  , execution_time_ms
+			)
+			values (
+				@version
+			  , @name
+			  , @item_type
+			  , @content_md5_hash
+			  , @status
+			  , @created_utc
+			  , @applied_utc
+			  , @execution_time_ms
+			)
+		";
+
+		using var cnn = new SqlConnection(cnnString);
+		cnn.Query(query, new
+		{
+			version,
+			name,
+			item_type = migrationType,
+			content_md5_hash = contentMD5Hash,
+			status,
+			created_utc = createdUtc,
+			applied_utc = appliedUtc,
+			execution_time_ms = executionTimeMs
+		});
+	}
 }
