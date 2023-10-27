@@ -45,7 +45,8 @@ public class MigrationTasksTests
 			});
 
 		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
-			.Returns(args => {
+			.Returns(args =>
+			{
 				string path = (string)args[0];
 				string rootPath = (string)args[1];
 				return new FileData

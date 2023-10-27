@@ -1,4 +1,3 @@
-
 namespace EasyFlow.Adapter.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase

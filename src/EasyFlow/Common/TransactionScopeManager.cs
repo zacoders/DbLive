@@ -1,4 +1,4 @@
-﻿namespace EasyFlow;
+﻿namespace EasyFlow.Common;
 
 public static class TransactionScopeManager
 {

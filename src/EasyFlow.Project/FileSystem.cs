@@ -36,7 +36,7 @@ public class FileSystem : IFileSystem
 
 	public FileData ReadFileData(string path, string rootPath)
 	{
-		return new FileData 
+		return new FileData
 		{
 			Content = File.ReadAllText(path),
 			FilePath = path,

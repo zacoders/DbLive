@@ -158,8 +158,8 @@ public class MsSqlDA : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(cnnString);
 		return cnn.QueryFirst<bool>(
-			"easyflow.is_code_item_applied", 
-			new { relative_path = relativePath, content_hash = contentHash }, 
+			"easyflow.is_code_item_applied",
+			new { relative_path = relativePath, content_hash = contentHash },
 			commandType: CommandType.StoredProcedure
 		);
 	}
@@ -208,8 +208,9 @@ public class MsSqlDA : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query(
-			"easyflow.save_unit_test_result", 
-			new {
+			"easyflow.save_unit_test_result",
+			new
+			{
 				relative_path = relativePath,
 				content_hash = crc32Hash,
 				run_utc = startedUtc,

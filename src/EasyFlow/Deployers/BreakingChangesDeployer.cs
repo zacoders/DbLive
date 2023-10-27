@@ -1,6 +1,6 @@
-namespace EasyFlow;
+namespace EasyFlow.Deployers;
 
-public class BreakingChangesDeployer 
+public class BreakingChangesDeployer
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
 

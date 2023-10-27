@@ -18,8 +18,8 @@ public class EasyFlow : IEasyFlow
 
 
 	public EasyFlow(
-		IEasyFlowProject easyFlowProject, 
-		IEasyFlowDA easyFlowDA, 
+		IEasyFlowProject easyFlowProject,
+		IEasyFlowDA easyFlowDA,
 		IEasyFlowPaths paths,
 		CodeDeployer codeDeployer,
 		BreakingChangesDeployer breakingChangesDeployer,

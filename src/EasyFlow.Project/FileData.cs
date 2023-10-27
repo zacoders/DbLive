@@ -4,9 +4,11 @@ public class FileData
 {
 	private string _content = "";
 
-	public required string Content { 
-		get => _content; 
-		init {
+	public required string Content
+	{
+		get => _content;
+		init
+		{
 			Crc32Hash = value.Crc32HashCode();
 			_content = value;
 		}

@@ -1,4 +1,4 @@
-namespace EasyFlow;
+namespace EasyFlow.Deployers;
 
 public class UnitTestsRunner
 {

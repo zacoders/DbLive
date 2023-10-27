@@ -1,6 +1,6 @@
-namespace EasyFlow;
+namespace EasyFlow.Deployers;
 
-public class MigrationsDeployer 
+public class MigrationsDeployer
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
 

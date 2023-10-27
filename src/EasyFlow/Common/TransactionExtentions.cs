@@ -1,4 +1,4 @@
-﻿namespace EasyFlow;
+﻿namespace EasyFlow.Common;
 
 using System.Transactions;
 
