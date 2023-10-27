@@ -11,7 +11,6 @@ public class MsSqlDA : IEasyFlowDA
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
 
-	//todo: remove cnnString from all methods, it should be initialized using different way, for example using dependency injection to the class. 
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
