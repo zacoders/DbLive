@@ -12,9 +12,9 @@ public class BreakingChangesDeployer
 	private readonly IEasyFlowProject _project;
 
 	public BreakingChangesDeployer(
-		IEasyFlowProject easyFlowProject, 
+		IEasyFlowProject easyFlowProject,
 		IEasyFlowDA easyFlowDA,
-		ITimeProvider timeProvider, 
+		ITimeProvider timeProvider,
 		MigrationItemDeployer migrationItemDeployer)
 	{
 		_project = easyFlowProject;

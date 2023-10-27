@@ -16,7 +16,7 @@ public class CodeDeployer
 			  );
 
 	public CodeDeployer(
-		IEasyFlowProject easyFlowProject, 
+		IEasyFlowProject easyFlowProject,
 		IEasyFlowDA easyFlowDA,
 		ITimeProvider timeProvider
 		)

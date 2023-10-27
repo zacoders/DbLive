@@ -13,8 +13,8 @@ public class MigrationsDeployer
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public MigrationsDeployer(
-		IEasyFlowProject easyFlowProject, 
-		IEasyFlowDA easyFlowDA, 
+		IEasyFlowProject easyFlowProject,
+		IEasyFlowDA easyFlowDA,
 		MigrationItemDeployer migrationItemDeployer,
 		ITimeProvider timeProvider
 		)
