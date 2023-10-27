@@ -14,7 +14,7 @@ public class MigrationItemDeployer
 		_da = easyFlowDA;
 	}
 
-	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem, MigrationItemType[] migrationItemTypesToApply) 
+	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem, MigrationItemType[] migrationItemTypesToApply)
 	{
 		Transactions.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
@@ -29,7 +29,7 @@ public class MigrationItemDeployer
 				string status = "";
 				DateTime? migrationAppliedUtc = null;
 				int? executionTimeMs = null;
-				
+
 				//todo: this method should be refactored or removed, due to this logic related to item type
 				if (migrationItem.MigrationType.In(migrationItemTypesToApply))
 				{

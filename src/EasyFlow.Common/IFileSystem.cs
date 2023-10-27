@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Project;
+﻿namespace EasyFlow.Common;
 
 public interface IFileSystem
 {

@@ -1,4 +1,3 @@
-
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject

@@ -1,4 +1,6 @@
-﻿namespace EasyFlow.Tests.Common;
+﻿using EasyFlow.Common;
+
+namespace EasyFlow.Tests.Common;
 
 public class MockSet
 {

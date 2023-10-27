@@ -33,7 +33,7 @@ public class BreakingChangesDeployer
 		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
-		
+
 		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
 
 		foreach (var migration in migrations)

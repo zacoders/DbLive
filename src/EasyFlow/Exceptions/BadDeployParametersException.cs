@@ -2,8 +2,8 @@
 
 public class BadDeployParametersException : Exception
 {
-    public BadDeployParametersException(string message)
-        : base(message)
-    {
-    }
+	public BadDeployParametersException(string message)
+		: base(message)
+	{
+	}
 }

@@ -21,6 +21,6 @@ public class DeploySqlIntegrationFullRepeatTest : DeploySqlIntegrationBaseTest, 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 
 		//repeat, so code should be deployed again
-		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);		
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 }

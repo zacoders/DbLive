@@ -186,7 +186,7 @@ public class MsSqlDA : IEasyFlowDA
 	}
 
 	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
-	{		
+	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query(
 			"easyflow.save_migration_item",
