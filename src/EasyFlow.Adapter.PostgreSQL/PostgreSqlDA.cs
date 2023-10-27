@@ -99,7 +99,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor tabe name and column names for postgres
 		string query = @"
@@ -123,8 +123,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		{
 			migrationVersion,
 			migrationName,
-			migrationCompletedUtc,
-			executionTimeMs
+			migrationCompletedUtc
 		});
 	}
 
@@ -133,7 +132,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string errorMessage)
+	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
 	{
 		throw new NotImplementedException();
 	}

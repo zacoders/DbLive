@@ -75,8 +75,6 @@ public class MigrationsDeployer
 
 		if (migrationItems.Count == 0) return;
 
-		DateTime migrationStartedUtc = DateTime.UtcNow;
-
 		Transactions.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
 			_projectSettings.TransactionIsolationLevel,
@@ -96,8 +94,7 @@ public class MigrationsDeployer
 				}
 				else
 				{
-					int durationMs = (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds;
-					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc, durationMs);
+					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc);
 				}
 			}
 		);

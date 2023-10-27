@@ -6,7 +6,6 @@ create table easyflow.migration (
   , name nvarchar(512) not null
   , created_utc datetime2(7) not null
   , modified_utc datetime2(7) not null
-  , execution_time_ms int not null
 
   , constraint pk_easyflow_migration primary key ( version, name )
 )

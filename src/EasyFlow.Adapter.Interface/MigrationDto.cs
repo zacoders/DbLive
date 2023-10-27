@@ -6,5 +6,4 @@ public class MigrationDto
 	public required string Name { get; set; }
 	public DateTime CreatedUtc { get; set; }
 	public DateTime ModifiedUtc { get; set; }
-	public int ExecutionTimeMs { get; set; }
 }

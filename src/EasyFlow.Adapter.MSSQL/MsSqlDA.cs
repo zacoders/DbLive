@@ -19,7 +19,6 @@ public class MsSqlDA : IEasyFlowDA
 				 , name
 				 , created_utc
 				 , modified_utc
-				 , execution_time_ms
 			from easyflow.migration
 		";
 
@@ -80,7 +79,7 @@ public class MsSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, applied_utc = migrationDatetime });
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc, int executionTimeMs)
+	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
 	{
 		//todo: there should be update too. in case breaking chnages or undo applied.
 		string query = @"
@@ -90,14 +89,12 @@ public class MsSqlDA : IEasyFlowDA
 			  , name
 			  , created_utc
 			  , modified_utc
-			  , execution_time_ms
 			)
 			values (
 				@version
 			  , @name
 			  , @created_utc
 			  , @modified_utc
-			  , @execution_time_ms
 			)
 		";
 
@@ -107,8 +104,7 @@ public class MsSqlDA : IEasyFlowDA
 			version = migrationVersion,
 			name = migrationName,
 			created_utc = migrationCompletedUtc,
-			modified_utc = migrationCompletedUtc,
-			execution_time_ms = executionTimeMs
+			modified_utc = migrationCompletedUtc
 		});
 	}
 
