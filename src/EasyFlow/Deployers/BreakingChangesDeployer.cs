@@ -1,3 +1,5 @@
+using EasyFlow.Exceptions;
+
 namespace EasyFlow.Deployers;
 
 public class BreakingChangesDeployer
@@ -27,8 +29,8 @@ public class BreakingChangesDeployer
 
 	private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
 	{
-		Dictionary<Tuple<int, string>, MigrationItemDto> breakingToApply = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString)
-			.ToDictionary(i => new Tuple<int, string>(i.Version, i.Name));
+		var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
+		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
 		
@@ -36,16 +38,24 @@ public class BreakingChangesDeployer
 
 		foreach (var migration in migrations)
 		{
-			if (!breakingToApply.Keys.Contains(new Tuple<int, string>(migration.Version, migration.Name))) continue;
+			var key = (migration.Version, migration.Name);
+			if (!breakingToApply.ContainsKey(key)) continue;
 
 			//todo: validate checksum of the breaking changes, throw error if check summ is different?
-			var breakingChnagesItems = _project.GetMigrationItems(migration.FolderPath)
-				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange);
+			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
+				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange)
+				.Single();
 
-			foreach(MigrationItem breaking in breakingChnagesItems)
+			if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)
 			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breaking, new[] { MigrationItemType.BreakingChange });
+				throw new FileContentChangedException(
+					breakingChnagesItem.FileData.RelativePath,
+					breakingChnagesItem.FileData.Crc32Hash,
+					breakingToApply[key].ContentHash
+				);
 			}
+
+			_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });			
 		}
 	}
 }

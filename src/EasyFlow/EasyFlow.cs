@@ -1,3 +1,5 @@
+using EasyFlow.Exceptions;
+
 namespace EasyFlow;
 
 public class EasyFlow : IEasyFlow

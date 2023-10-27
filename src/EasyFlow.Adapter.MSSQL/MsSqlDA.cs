@@ -8,6 +8,7 @@ public class MsSqlDA : IEasyFlowDA
 	static MsSqlDA()
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
+		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
 
 	//todo: remove cnnString from all methods, it should be initialized using different way, for example using dependency injection to the class. 
@@ -36,7 +37,7 @@ public class MsSqlDA : IEasyFlowDA
 				 , content_hash
 				 , created_utc
 				 , applied_utc
-				 , execution_time_ms 
+				 , execution_time_ms
 			from easyflow.migration_item
 			where status != 'applied'
 			  and item_type = 'breakingchange'
