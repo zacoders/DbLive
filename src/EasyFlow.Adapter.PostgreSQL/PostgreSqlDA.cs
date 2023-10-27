@@ -99,7 +99,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
+	public void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor tabe name and column names for postgres
 		string query = @"

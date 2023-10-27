@@ -32,4 +32,6 @@ public static class TransactionScopeManager
 		};
 		return new TransactionScope(TransactionScopeOption.Required, _options, TransactionScopeAsyncFlowOption.Enabled);
 	}
+
+	public static TransactionScope Create() => Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 }

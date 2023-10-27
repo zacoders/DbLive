@@ -79,23 +79,26 @@ public class MsSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, applied_utc = migrationDatetime });
 	}
 
-	public void MarkMigrationAsApplied(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
+	public void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationModificationUtc)
 	{
-		//todo: there should be update too. in case breaking chnages or undo applied.
 		string query = @"
-			insert into easyflow.migration
-			(
-				version
-			  , name
-			  , created_utc
-			  , modified_utc
-			)
-			values (
-				@version
-			  , @name
-			  , @created_utc
-			  , @modified_utc
-			)
+			merge into easyflow.migration as t
+			using ( select 1 ) s(c) on t.version = @version and t.name = @name
+			when matched then 
+				update set modified_utc = @modified_utc
+			when not matched then 
+				insert (
+					version
+				  , name
+				  , created_utc
+				  , modified_utc
+				)
+				values (
+					@version
+				  , @name
+				  , @created_utc
+				  , @modified_utc
+				);
 		";
 
 		using var cnn = new SqlConnection(cnnString);
@@ -103,8 +106,8 @@ public class MsSqlDA : IEasyFlowDA
 		{
 			version = migrationVersion,
 			name = migrationName,
-			created_utc = migrationCompletedUtc,
-			modified_utc = migrationCompletedUtc
+			created_utc = migrationModificationUtc,
+			modified_utc = migrationModificationUtc
 		});
 	}
 

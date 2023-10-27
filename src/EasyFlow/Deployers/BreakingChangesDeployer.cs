@@ -54,7 +54,11 @@ public class BreakingChangesDeployer
 				);
 			}
 
-			_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });			
+			using var tran = TransactionScopeManager.Create();
+			_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });
+			// todo: refactor, user time provider instead of DateTime.UtcNow
+			_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, DateTime.UtcNow);
+			tran.Complete();
 		}
 	}
 }

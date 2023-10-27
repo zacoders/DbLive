@@ -94,7 +94,7 @@ public class MigrationsDeployer
 				}
 				else
 				{
-					_da.MarkMigrationAsApplied(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc);
+					_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc);
 				}
 			}
 		);
