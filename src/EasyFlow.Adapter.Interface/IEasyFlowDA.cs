@@ -11,7 +11,6 @@ public interface IEasyFlowDA
 
 	void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime);
 
-	//TODO: add hash of the migration. Can be needed in the future, just to check applied and existing file content.
 	/// <exception cref="EasyFlowSqlException"/>
 	void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc);
 
