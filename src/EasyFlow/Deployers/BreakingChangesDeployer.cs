@@ -41,7 +41,6 @@ public class BreakingChangesDeployer
 			var key = (migration.Version, migration.Name);
 			if (!breakingToApply.ContainsKey(key)) continue;
 
-			//todo: validate checksum of the breaking changes, throw error if check summ is different?
 			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
 				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange)
 				.Single();
