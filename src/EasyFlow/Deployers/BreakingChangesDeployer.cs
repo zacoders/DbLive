@@ -38,12 +38,13 @@ public class BreakingChangesDeployer
 		{
 			if (!breakingToApply.Keys.Contains(new Tuple<int, string>(migration.Version, migration.Name))) continue;
 
+			//todo: validate checksum of the breaking changes, throw error if check summ is different?
 			var breakingChnagesItems = _project.GetMigrationItems(migration.FolderPath)
-				.Where(mi => mi.MigrationType == MigrationType.BreakingChange);
+				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange);
 
 			foreach(MigrationItem breaking in breakingChnagesItems)
 			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breaking);
+				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breaking, new[] { MigrationItemType.BreakingChange });
 			}
 		}
 	}

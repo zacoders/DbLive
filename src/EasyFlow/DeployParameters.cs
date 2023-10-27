@@ -4,6 +4,15 @@ public record DeployParameters
 {
 	public static DeployParameters Default => new();
 
+	public static DeployParameters Breaking => new()
+	{
+		CreateDbIfNotExists = false,
+		DeployBreaking = true,
+		DeployCode = false,
+		DeployMigrations = false,
+		RunTests = false
+	};
+
 	/// <summary>
 	/// The migration version to deploy. 
 	/// If version is specified, Code (SPs/Function) cannot be deployed. Tests cannot be run. 

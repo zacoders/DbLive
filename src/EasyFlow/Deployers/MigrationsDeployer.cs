@@ -85,7 +85,7 @@ public class MigrationsDeployer
 			{
 				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationType))
 				{
-					_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem);
+					_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem, new[] { MigrationItemType.Migration, MigrationItemType.Data });
 				}
 
 				DateTime migrationCompletedUtc = DateTime.UtcNow;

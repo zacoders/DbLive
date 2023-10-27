@@ -67,13 +67,13 @@ public class EasyFlowProject : IEasyFlowProject
 		if (_isLoaded == false) throw new ProjectWasNotLoadedException();
 	}
 
-	public static MigrationType GetMigrationType(string type) =>
+	public static MigrationItemType GetMigrationType(string type) =>
 		type.ToLower() switch
 		{
-			"migration" => MigrationType.Migration,
-			"undo" => MigrationType.Undo,
-			"data" => MigrationType.Data,
-			"breaking" => MigrationType.BreakingChange,
+			"migration" => MigrationItemType.Migration,
+			"undo" => MigrationItemType.Undo,
+			"data" => MigrationItemType.Data,
+			"breaking" => MigrationItemType.BreakingChange,
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
 

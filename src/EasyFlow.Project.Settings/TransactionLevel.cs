@@ -13,9 +13,9 @@ public enum TransactionWrapLevel
 	Migration,
 
 	/// <summary>
-	/// Migration task wrapped by transaction
+	/// Migration item wrapped by transaction
 	/// </summary>
-	Task,
+	MigrationItem,
 
 	/// <summary>
 	/// No transactions introduced by EasySqlFlow

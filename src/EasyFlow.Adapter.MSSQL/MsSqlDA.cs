@@ -186,43 +186,23 @@ public class MsSqlDA : IEasyFlowDA
 	}
 
 	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
-	{
-		string query = @"
-			insert into easyflow.migration_item
-			(
-				version
-			  , name
-			  , item_type
-			  , content_hash
-			  , status
-			  , created_utc
-			  , applied_utc
-			  , execution_time_ms
-			)
-			values (
-				@version
-			  , @name
-			  , @item_type
-			  , @content_hash
-			  , @status
-			  , @created_utc
-			  , @applied_utc
-			  , @execution_time_ms
-			)
-		";
-
+	{		
 		using var cnn = new SqlConnection(cnnString);
-		cnn.Query(query, new
-		{
-			version,
-			name,
-			item_type = migrationType,
-			content_hash = contentHash,
-			status,
-			created_utc = createdUtc,
-			applied_utc = appliedUtc,
-			execution_time_ms = executionTimeMs
-		});
+		cnn.Query(
+			"easyflow.save_migration_item",
+			new
+			{
+				version,
+				name,
+				item_type = migrationType,
+				content_hash = contentHash,
+				status,
+				created_utc = createdUtc,
+				applied_utc = appliedUtc,
+				execution_time_ms = executionTimeMs
+			},
+			commandType: CommandType.StoredProcedure
+		);
 	}
 
 	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)

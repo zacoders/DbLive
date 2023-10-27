@@ -18,7 +18,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 	}
 
 	[Fact]
-	public void DeployProject_Full_PersistedDbName()
+	public void DeployProject_PersistedDbName()
 	{
 		string dbName = "EasyFlow-PersistedTest";
 		DropTestingDatabases(new[] { dbName }, true);
@@ -27,6 +27,7 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 		var deploy = Resolve<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Breaking);
 	}
 
 	[Fact]
@@ -38,6 +39,19 @@ public class DeploySqlIntegrationTest : IntegrationTestsBase, IDisposable
 		var deploy = Resolve<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+	}
+
+	[Fact]
+	public void DeployProject_Full_Plus_Breaking()
+	{
+		string dbName = GetRanomDbName();
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+
+		var deploy = Resolve<IEasyFlow>();
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Breaking);
 	}
 
 	[Fact]

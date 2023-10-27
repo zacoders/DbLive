@@ -1,6 +1,6 @@
 namespace EasyFlow.Project;
 
-public enum MigrationType
+public enum MigrationItemType
 {
 	Migration,
 	Undo,
