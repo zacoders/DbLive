@@ -6,16 +6,23 @@ public class MigrationsDeployer
 
 	private readonly IEasyFlowDA _da;
 	private readonly MigrationItemDeployer _migrationItemDeployer;
+	private readonly ITimeProvider _timeProvider;
 	private readonly IEasyFlowProject _project;
 
 	private EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-	public MigrationsDeployer(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, MigrationItemDeployer migrationItemDeployer)
+	public MigrationsDeployer(
+		IEasyFlowProject easyFlowProject, 
+		IEasyFlowDA easyFlowDA, 
+		MigrationItemDeployer migrationItemDeployer,
+		ITimeProvider timeProvider
+		)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
 		_migrationItemDeployer = migrationItemDeployer;
+		_timeProvider = timeProvider;
 	}
 
 	public void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
@@ -86,7 +93,7 @@ public class MigrationsDeployer
 					_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem, new[] { MigrationItemType.Migration, MigrationItemType.Data });
 				}
 
-				DateTime migrationCompletedUtc = DateTime.UtcNow;
+				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
 				if (isSelfDeploy)
 				{

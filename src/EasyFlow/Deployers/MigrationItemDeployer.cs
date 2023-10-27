@@ -5,13 +5,14 @@ public class MigrationItemDeployer
 	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
 
 	private readonly IEasyFlowDA _da;
-
+	private readonly ITimeProvider _timeProvider;
 	private EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-	public MigrationItemDeployer(IEasyFlowDA easyFlowDA)
+	public MigrationItemDeployer(IEasyFlowDA easyFlowDA, ITimeProvider timeProvider)
 	{
 		_da = easyFlowDA;
+		_timeProvider = timeProvider;
 	}
 
 	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem, MigrationItemType[] migrationItemTypesToApply)
@@ -24,7 +25,7 @@ public class MigrationItemDeployer
 			{
 				Logger.Information("Migration {migrationType}", migrationItem.MigrationType);
 
-				DateTime migrationStartedUtc = DateTime.UtcNow;
+				DateTime migrationStartedUtc = _timeProvider.UtcNow();
 
 				string status = "";
 				DateTime? migrationAppliedUtc = null;
@@ -35,7 +36,7 @@ public class MigrationItemDeployer
 				{
 					_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
 					status = "applied";
-					migrationAppliedUtc = DateTime.UtcNow;
+					migrationAppliedUtc = _timeProvider.UtcNow();
 					executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 				}
 				else
@@ -52,7 +53,7 @@ public class MigrationItemDeployer
 						migrationItem.MigrationType.ToString().ToLower(),
 						migrationItem.FileData.Crc32Hash,
 						status,
-						DateTime.UtcNow,
+						_timeProvider.UtcNow(),
 						migrationAppliedUtc,
 						executionTimeMs
 					);

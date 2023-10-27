@@ -4,7 +4,7 @@ public static class Bootstrapper
 {
 	public static void InitializeFlowProject(this IServiceCollection container)
 	{
-		container.AddSingleton<IFileSystem, FileSystem>();
+		container.InitializeCommon();
 		container.AddSingleton<IEasyFlowProject, EasyFlowProject>();
 	}
 }

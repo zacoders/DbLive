@@ -5,13 +5,19 @@ public class UnitTestsRunner
 	private static readonly ILogger Logger = Log.ForContext(typeof(UnitTestsRunner));
 
 	private readonly IEasyFlowDA _da;
+	private readonly ITimeProvider _timeProvider;
 	private readonly IEasyFlowProject _project;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
 
-	public UnitTestsRunner(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA)
+	public UnitTestsRunner(
+		IEasyFlowProject easyFlowProject, 
+		IEasyFlowDA easyFlowDA,
+		ITimeProvider timeProvider
+		)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
+		_timeProvider = timeProvider;
 	}
 
 	public void RunTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
@@ -48,7 +54,7 @@ public class UnitTestsRunner
 	{
 		bool isSuccess = false;
 		string? errorMessage = null;
-		DateTime startedUtc = DateTime.UtcNow;
+		DateTime startedUtc = _timeProvider.UtcNow();
 
 		try
 		{
@@ -67,7 +73,7 @@ public class UnitTestsRunner
 			Logger.Error(ex, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, ex.Message);
 		}
 
-		DateTime completedUtc = DateTime.UtcNow;
+		DateTime completedUtc = _timeProvider.UtcNow();
 
 		_da.SaveUnitTestResult(
 			sqlConnectionString,

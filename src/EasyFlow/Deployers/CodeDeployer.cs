@@ -5,6 +5,7 @@ public class CodeDeployer
 	private static readonly ILogger Logger = Log.ForContext(typeof(CodeDeployer));
 
 	private readonly IEasyFlowDA _da;
+	private readonly ITimeProvider _timeProvider;
 	private readonly IEasyFlowProject _project;
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
@@ -14,10 +15,15 @@ public class CodeDeployer
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
 
-	public CodeDeployer(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA)
+	public CodeDeployer(
+		IEasyFlowProject easyFlowProject, 
+		IEasyFlowDA easyFlowDA,
+		ITimeProvider timeProvider
+		)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
+		_timeProvider = timeProvider;
 	}
 
 	public void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
@@ -72,17 +78,17 @@ public class CodeDeployer
 
 			if (isApplied)
 			{
-				_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, DateTime.UtcNow);
+				_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, _timeProvider.UtcNow());
 				return true;
 			}
 
-			DateTime migrationStartedUtc = DateTime.UtcNow;
+			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>
 			{
 				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
 				//todo: maybe count number of attempts to deploy the code item?
 			});
-			DateTime migrationCompletedUtc = DateTime.UtcNow;
+			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
 			if (!isSelfDeploy)
 			{
