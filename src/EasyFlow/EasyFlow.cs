@@ -1,5 +1,6 @@
 namespace EasyFlow;
 
+//todo: refactor EasyFlow class, it looks to large! split to parts: migrations, code, tests, etc...
 public class EasyFlow : IEasyFlow
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
@@ -8,7 +9,6 @@ public class EasyFlow : IEasyFlow
 	private readonly IEasyFlowProject _project;
 	private readonly IEasyFlowPaths _paths;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
-	private readonly IFileSystem _fileSystem;
 
 	private EasyFlowSettings _projectSettings = new();
 
@@ -19,12 +19,11 @@ public class EasyFlow : IEasyFlow
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
 
-	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths, IFileSystem fileSystem)
+	public EasyFlow(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
 		_paths = paths;
-		_fileSystem = fileSystem;
 	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters)
