@@ -5,16 +5,14 @@ public class BreakingChangesDeployer
 	private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
 
 	private readonly IEasyFlowDA _da;
+	private readonly MigrationItemDeployer _migrationItemDeployer;
 	private readonly IEasyFlowProject _project;
-	private readonly IEasyFlowPaths _paths;
-	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-
-	public BreakingChangesDeployer(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths)
+	public BreakingChangesDeployer(IEasyFlowProject easyFlowProject, IEasyFlowDA easyFlowDA, IEasyFlowPaths paths, MigrationItemDeployer migrationItemDeployer)
 	{
 		_project = easyFlowProject;
 		_da = easyFlowDA;
-		_paths = paths;
+		_migrationItemDeployer = migrationItemDeployer;
 	}
 
 	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
@@ -24,21 +22,29 @@ public class BreakingChangesDeployer
 			return;
 		}
 
-		var breakingToApply = GetBreakingChangesToApply(sqlConnectionString, parameters);
+		DeployBreakingMigration(sqlConnectionString, parameters);
+	}
 
-		foreach (var breakingMigration in breakingToApply)
+	private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
+	{
+		Dictionary<Tuple<int, string>, MigrationItemDto> breakingToApply = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString)
+			.ToDictionary(i => new Tuple<int, string>(i.Version, i.Name));
+
+		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
+		
+		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
+
+		foreach (var migration in migrations)
 		{
-			DeployBreakingMigration(breakingMigration, sqlConnectionString);
+			if (!breakingToApply.Keys.Contains(new Tuple<int, string>(migration.Version, migration.Name))) continue;
+
+			var breakingChnagesItems = _project.GetMigrationItems(migration.FolderPath)
+				.Where(mi => mi.MigrationType == MigrationType.BreakingChange);
+
+			foreach(MigrationItem breaking in breakingChnagesItems)
+			{
+				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breaking);
+			}
 		}
-	}
-
-	private void DeployBreakingMigration(object breakingMigration, string sqlConnectionString)
-	{
-		throw new NotImplementedException();
-	}
-
-	private IEnumerable<object> GetBreakingChangesToApply(string sqlConnectionString, DeployParameters parameters)
-	{
-		throw new NotImplementedException();
 	}
 }

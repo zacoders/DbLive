@@ -8,6 +8,7 @@ public static class Bootstrapper
 		container.AddSingleton<BreakingChangesDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
+		container.AddSingleton<MigrationItemDeployer>();
 		container.AddSingleton<UnitTestsRunner>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
 

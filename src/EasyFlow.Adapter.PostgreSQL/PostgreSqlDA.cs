@@ -79,6 +79,11 @@ public class PostgreSqlDA : IEasyFlowDA
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
+	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString)
+	{
+		throw new NotImplementedException();
+	}
+
 	public bool IsCodeItemApplied(string cnnString, string filePath, int contentHash)
 	{
 		throw new NotImplementedException();

@@ -10,6 +10,7 @@ public class MsSqlDA : IEasyFlowDA
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
 	}
 
+	//todo: remove cnnString from all methods, it should be initialized using different way, for example using dependency injection to the class. 
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
@@ -23,6 +24,26 @@ public class MsSqlDA : IEasyFlowDA
 
 		using var cnn = new SqlConnection(cnnString);
 		return cnn.Query<MigrationDto>(query).ToList();
+	}
+
+	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString)
+	{
+		const string query = @"
+			select version
+				 , name
+				 , item_type
+				 , status
+				 , content_hash
+				 , created_utc
+				 , applied_utc
+				 , execution_time_ms 
+			from easyflow.migration_item
+			where status != 'applied'
+			  and item_type = 'breakingchange'
+		";
+
+		using var cnn = new SqlConnection(cnnString);
+		return cnn.Query<MigrationItemDto>(query).ToList();
 	}
 
 	public bool EasyFlowInstalled(string cnnString)

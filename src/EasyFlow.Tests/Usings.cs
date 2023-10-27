@@ -1,4 +1,5 @@
 global using EasyFlow.Adapter.Interface;
+global using EasyFlow.Deployers;
 global using EasyFlow.Project;
 global using EasyFlow.Tests.Common;
 global using Microsoft.Data.SqlClient;

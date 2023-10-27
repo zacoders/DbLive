@@ -3,6 +3,7 @@
 public interface IEasyFlowDA
 {
 	IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString);
+	IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString);
 
 	bool EasyFlowInstalled(string cnnString);
 
