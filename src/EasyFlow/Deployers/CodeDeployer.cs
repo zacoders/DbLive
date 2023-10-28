@@ -61,7 +61,7 @@ public class CodeDeployer
 	/// <param name="isSelfDeploy"></param>
 	/// <param name="sqlConnectionString"></param>
 	/// <param name="codeItem"></param>
-	/// <returns>Returns fals if there was any error during deployment.</returns>
+	/// <returns>Returns false if there was any error during deployment.</returns>
 	private bool DeployCodeItem(bool isSelfDeploy, string sqlConnectionString, CodeItem codeItem)
 	{
 		//TODO: add unit tests for thsi code!
@@ -69,24 +69,30 @@ public class CodeDeployer
 		{
 			Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 
-			bool isApplied = false;
 			if (!isSelfDeploy)
 			{
-				//todo: just return item and hash, and show proper error. it cannot be applied, hash can be changed!
-				isApplied = _da.IsCodeItemApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash);
-			}
+				CodeItemDto? codeItemDto = _da.FindCodeItem(sqlConnectionString, codeItem.FileData.RelativePath);
 
-			if (isApplied)
-			{
-				_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-				return true;
+				if (codeItemDto != null)
+				{
+					if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
+					{
+						_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+						return true;
+					}
+
+					throw new FileContentChangedException(
+						codeItem.FileData.RelativePath,
+						codeItem.FileData.Crc32Hash,
+						codeItemDto.ContentHash
+					);
+				}
 			}
 
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>
 			{
 				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
-				//todo: maybe count number of attempts to deploy the code item?
 			});
 			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 

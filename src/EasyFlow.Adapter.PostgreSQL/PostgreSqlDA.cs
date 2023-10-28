@@ -84,7 +84,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public bool IsCodeItemApplied(string cnnString, string filePath, int contentHash)
+	public CodeItemDto? FindCodeItem(string cnnString, string relativePath)
 	{
 		throw new NotImplementedException();
 	}

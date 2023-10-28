@@ -3,6 +3,7 @@ global using EasyFlow.Adapter.MSSQL;
 global using EasyFlow.Adapter.PostgreSQL;
 global using EasyFlow.Common;
 global using EasyFlow.Deployers;
+global using EasyFlow.Exceptions;
 global using EasyFlow.Project;
 global using EasyFlow.Project.Settings;
 global using Microsoft.Extensions.DependencyInjection;

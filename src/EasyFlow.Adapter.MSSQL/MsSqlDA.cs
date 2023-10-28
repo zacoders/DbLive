@@ -158,12 +158,12 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public bool IsCodeItemApplied(string cnnString, string relativePath, int contentHash)
+	public CodeItemDto? FindCodeItem(string cnnString, string relativePath)
 	{
 		using var cnn = new SqlConnection(cnnString);
-		return cnn.QueryFirst<bool>(
-			"easyflow.is_code_item_applied",
-			new { relative_path = relativePath, content_hash = contentHash },
+		return cnn.QueryFirstOrDefault<CodeItemDto>(
+			"easyflow.get_code_item",
+			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
 	}

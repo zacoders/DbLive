@@ -22,7 +22,7 @@ public interface IEasyFlowDA
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string cnnString, string sqlStatementt);
-	bool IsCodeItemApplied(string cnnString, string relativePath, int crc32Hash);
+	CodeItemDto? FindCodeItem(string cnnString, string relativePath);
 	void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int crc32Hash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs);
 	void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage);
 }
