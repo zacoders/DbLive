@@ -80,34 +80,18 @@ public class MsSqlDA : IEasyFlowDA
 
 	public void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationModificationUtc)
 	{
-		string query = @"
-			merge into easyflow.migration as t
-			using ( select 1 ) s(c) on t.version = @version and t.name = @name
-			when matched then 
-				update set modified_utc = @modified_utc
-			when not matched then 
-				insert (
-					version
-				  , name
-				  , created_utc
-				  , modified_utc
-				)
-				values (
-					@version
-				  , @name
-				  , @created_utc
-				  , @modified_utc
-				);
-		";
-
 		using var cnn = new SqlConnection(cnnString);
-		cnn.Query(query, new
-		{
-			version = migrationVersion,
-			name = migrationName,
-			created_utc = migrationModificationUtc,
-			modified_utc = migrationModificationUtc
-		});
+		cnn.Query(
+			"easyflow.save_migration",
+			new
+			{
+				version = migrationVersion,
+				name = migrationName,
+				created_utc = migrationModificationUtc,
+				modified_utc = migrationModificationUtc
+			},
+			commandType: CommandType.StoredProcedure
+		);
 	}
 
 	public void ExecuteNonQuery(string cnnString, string sqlStatement)
