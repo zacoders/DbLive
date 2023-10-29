@@ -1,0 +1,82 @@
+namespace EasyFlow.Tests;
+
+public class CodeDeployerTest
+{
+	private static (CodeDeployer deploy, string cnnString, CodeItem codeItem, CodeItemDto? codeItemDto)
+		CommonArrange(bool codeItemDtoExists)
+	{
+		var mockSet = new MockSet();
+
+		string cnnString = "some cnn string";
+		string relativePath = "/path-to/some-code-item.sql";
+		string content = "select * from table";
+		int hashCode = Hasher.Crc32HashCode(content);
+		CodeItemDto codeItemDto = new()
+		{
+			ContentHash = hashCode,
+			AppliedUtc = new DateTime(2023, 1, 1),
+			ExecutionTimeMs = 5,
+			RelativePath = relativePath
+		};
+
+		mockSet.EasyFlowDA.FindCodeItem(cnnString, relativePath).Returns(codeItemDtoExists ? codeItemDto : null);
+		mockSet.EasyFlowDA.ExecuteNonQuery(cnnString, content);
+		mockSet.EasyFlowDA.MarkCodeAsApplied(cnnString, relativePath, hashCode, DateTime.UtcNow, 5);
+
+		CodeDeployer deploy = new(mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		CodeItem codeItem = new()
+		{
+			Name = "some-code-item",
+			FileData = new FileData
+			{
+				Content = content,
+				RelativePath = relativePath,
+				FilePath = "c:/data" + relativePath
+			}
+		};
+
+		return (deploy, cnnString, codeItem, codeItemDto);
+	}
+
+	[Fact]
+	public void DeployCodeItem_RedeployCodeItem_SelfDeploy_Success()
+	{
+		var arrange = CommonArrange(codeItemDtoExists: true);
+
+		var res = arrange.deploy.DeployCodeItem(true, arrange.cnnString, arrange.codeItem);
+
+		Assert.True(res);
+	}
+
+	[Fact]
+	public void DeployCodeItem_RedeployCodeItem_Success()
+	{
+		var arrange = CommonArrange(codeItemDtoExists: true);
+
+		var res = arrange.deploy.DeployCodeItem(false, arrange.cnnString, arrange.codeItem);
+
+		Assert.True(res);
+	}
+
+	[Fact]
+	public void DeployCodeItem_Success()
+	{
+		var arrange = CommonArrange(codeItemDtoExists: false);
+
+		var res = arrange.deploy.DeployCodeItem(false, arrange.cnnString, arrange.codeItem);
+
+		Assert.True(res);
+	}
+
+	[Fact]
+	public void DeployCodeItem_WrongHash()
+	{
+		var arrange = CommonArrange(codeItemDtoExists: true);
+
+		arrange.codeItemDto!.ContentHash = 99999999; // wrong hash.
+
+		var res = arrange.deploy.DeployCodeItem(false, arrange.cnnString, arrange.codeItem);
+
+		Assert.False(res);
+	}
+}

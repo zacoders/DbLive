@@ -62,9 +62,8 @@ public class CodeDeployer
 	/// <param name="sqlConnectionString"></param>
 	/// <param name="codeItem"></param>
 	/// <returns>Returns false if there was any error during deployment.</returns>
-	private bool DeployCodeItem(bool isSelfDeploy, string sqlConnectionString, CodeItem codeItem)
+	internal protected bool DeployCodeItem(bool isSelfDeploy, string sqlConnectionString, CodeItem codeItem)
 	{
-		//TODO: add unit tests for thsi code!
 		try
 		{
 			Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
