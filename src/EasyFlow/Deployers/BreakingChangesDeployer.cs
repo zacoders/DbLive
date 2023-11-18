@@ -1,71 +1,57 @@
-using EasyFlow.Exceptions;
-
 namespace EasyFlow.Deployers;
 
-public class BreakingChangesDeployer
+public class BreakingChangesDeployer(
+        IEasyFlowProject _project,
+        IEasyFlowDA _da,
+        ITimeProvider _timeProvider,
+        MigrationItemDeployer _migrationItemDeployer
+    )
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
+    private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
 
-	private readonly IEasyFlowDA _da;
-	private readonly ITimeProvider _timeProvider;
-	private readonly MigrationItemDeployer _migrationItemDeployer;
-	private readonly IEasyFlowProject _project;
+    public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
+    {
+        if (!parameters.DeployBreaking)
+        {
+            return;
+        }
 
-	public BreakingChangesDeployer(
-		IEasyFlowProject easyFlowProject,
-		IEasyFlowDA easyFlowDA,
-		ITimeProvider timeProvider,
-		MigrationItemDeployer migrationItemDeployer)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_timeProvider = timeProvider;
-		_migrationItemDeployer = migrationItemDeployer;
-	}
+        DeployBreakingMigration(sqlConnectionString, parameters);
+    }
 
-	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
-	{
-		if (!parameters.DeployBreaking)
-		{
-			return;
-		}
+    private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
+    {
+        var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
+        Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
 
-		DeployBreakingMigration(sqlConnectionString, parameters);
-	}
+        int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
 
-	private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
-	{
-		var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
-		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
+        var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
 
-		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
+        foreach (var migration in migrations)
+        {
+            var key = (migration.Version, migration.Name);
+            if (!breakingToApply.ContainsKey(key)) continue;
 
-		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
+            var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
+                .Where(mi => mi.MigrationType == MigrationItemType.BreakingChange)
+                .Single();
 
-		foreach (var migration in migrations)
-		{
-			var key = (migration.Version, migration.Name);
-			if (!breakingToApply.ContainsKey(key)) continue;
+            if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)
+            {
+                throw new FileContentChangedException(
+                    breakingChnagesItem.FileData.RelativePath,
+                    breakingChnagesItem.FileData.Crc32Hash,
+                    breakingToApply[key].ContentHash
+                );
+            }
 
-			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
-				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange)
-				.Single();
-
-			if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)
-			{
-				throw new FileContentChangedException(
-					breakingChnagesItem.FileData.RelativePath,
-					breakingChnagesItem.FileData.Crc32Hash,
-					breakingToApply[key].ContentHash
-				);
-			}
-
-			using var tran = TransactionScopeManager.Create();
-			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });
-				_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, _timeProvider.UtcNow());
-				tran.Complete();
-			}
-		}
-	}
+            using var tran = TransactionScopeManager.Create();
+            {
+                _migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });
+                _da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, _timeProvider.UtcNow());
+                tran.Complete();
+            }
+        }
+    }
 }

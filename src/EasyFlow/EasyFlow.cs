@@ -1,41 +1,20 @@
-using EasyFlow.Exceptions;
-
 namespace EasyFlow;
 
-public class EasyFlow : IEasyFlow
+public class EasyFlow (
+        IEasyFlowProject _project,
+		IEasyFlowDA _da,
+        IEasyFlowPaths _paths,
+        CodeDeployer _codeDeployer,
+        BreakingChangesDeployer _breakingChangesDeployer,
+        MigrationsDeployer _migrationsDeployer,
+        UnitTestsRunner _unitTestsRunner
+	): IEasyFlow
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
-
-	private readonly IEasyFlowDA _da;
-	private readonly IEasyFlowProject _project;
-	private readonly IEasyFlowPaths _paths;
-	private readonly CodeDeployer _codeDeployer;
-	private readonly BreakingChangesDeployer _breakingChangesDeployer;
-	private readonly MigrationsDeployer _migrationsDeployer;
-	private readonly UnitTestsRunner _unitTestsRunner;
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	private EasyFlowSettings _projectSettings = new();
-
-
-	public EasyFlow(
-		IEasyFlowProject easyFlowProject,
-		IEasyFlowDA easyFlowDA,
-		IEasyFlowPaths paths,
-		CodeDeployer codeDeployer,
-		BreakingChangesDeployer breakingChangesDeployer,
-		MigrationsDeployer migrationsDeployer,
-		UnitTestsRunner unitTestsRunner)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_paths = paths;
-		_codeDeployer = codeDeployer;
-		_breakingChangesDeployer = breakingChangesDeployer;
-		_migrationsDeployer = migrationsDeployer;
-		_unitTestsRunner = unitTestsRunner;
-	}
 
 	public void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters)
 	{

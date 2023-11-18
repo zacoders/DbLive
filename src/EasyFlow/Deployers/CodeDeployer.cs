@@ -1,12 +1,12 @@
 namespace EasyFlow.Deployers;
 
-public class CodeDeployer
+public class CodeDeployer (
+        IEasyFlowProject _project,
+		IEasyFlowDA _da,
+		ITimeProvider _timeProvider
+	)
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(CodeDeployer));
-
-	private readonly IEasyFlowDA _da;
-	private readonly ITimeProvider _timeProvider;
-	private readonly IEasyFlowProject _project;
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
 		Policy.Handle<Exception>()
@@ -14,17 +14,6 @@ public class CodeDeployer
 					10,
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
-
-	public CodeDeployer(
-		IEasyFlowProject easyFlowProject,
-		IEasyFlowDA easyFlowDA,
-		ITimeProvider timeProvider
-		)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_timeProvider = timeProvider;
-	}
 
 	public void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
