@@ -1,14 +1,14 @@
 namespace EasyFlow;
 
-public class EasyFlow (
-        IEasyFlowProject _project,
+public class EasyFlow(
+		IEasyFlowProject _project,
 		IEasyFlowDA _da,
-        IEasyFlowPaths _paths,
-        CodeDeployer _codeDeployer,
-        BreakingChangesDeployer _breakingChangesDeployer,
-        MigrationsDeployer _migrationsDeployer,
-        UnitTestsRunner _unitTestsRunner
-	): IEasyFlow
+		IEasyFlowPaths _paths,
+		CodeDeployer _codeDeployer,
+		BreakingChangesDeployer _breakingChangesDeployer,
+		MigrationsDeployer _migrationsDeployer,
+		UnitTestsRunner _unitTestsRunner
+	) : IEasyFlow
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
 

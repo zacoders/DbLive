@@ -1,6 +1,6 @@
 namespace EasyFlow.Deployers;
 
-public class MigrationsDeployer (
+public class MigrationsDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		MigrationItemDeployer _migrationItemDeployer,

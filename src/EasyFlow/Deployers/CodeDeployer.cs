@@ -1,7 +1,7 @@
 namespace EasyFlow.Deployers;
 
-public class CodeDeployer (
-        IEasyFlowProject _project,
+public class CodeDeployer(
+		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
 	)

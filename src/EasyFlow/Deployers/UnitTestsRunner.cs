@@ -1,80 +1,80 @@
 namespace EasyFlow.Deployers;
 
 public class UnitTestsRunner(
-        IEasyFlowProject _project,
-        IEasyFlowDA _da,
-        ITimeProvider _timeProvider
-    )
+		IEasyFlowProject _project,
+		IEasyFlowDA _da,
+		ITimeProvider _timeProvider
+	)
 {
-    private static readonly ILogger Logger = Log.ForContext(typeof(UnitTestsRunner));
+	private static readonly ILogger Logger = Log.ForContext(typeof(UnitTestsRunner));
 
-    private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
+	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
 
-    public void RunTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
-    {
-        if (!parameters.RunTests)
-        {
-            return;
-        }
+	public void RunTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
+	{
+		if (!parameters.RunTests)
+		{
+			return;
+		}
 
-        Logger.Information("Running Tests.");
+		Logger.Information("Running Tests.");
 
-        var tests = _project.GetTests();
+		var tests = _project.GetTests();
 
-        TestRunResult result = new();
+		TestRunResult result = new();
 
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForTestsRun };
+		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForTestsRun };
 
-        Parallel.ForEach(tests, parallelOptions, test =>
-        {
-            bool isSuccess = RunTest(test, sqlConnectionString, settings);
-            if (isSuccess) { result.IncremenPassed(); } else { result.IncremenFailed(); }
-        });
+		Parallel.ForEach(tests, parallelOptions, test =>
+		{
+			bool isSuccess = RunTest(test, sqlConnectionString, settings);
+			if (isSuccess) { result.IncremenPassed(); } else { result.IncremenFailed(); }
+		});
 
-        Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
-            result.PassedCount, result.FailedCount);
+		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
+			result.PassedCount, result.FailedCount);
 
-        if (result.FailedCount > 0)
-        {
-            throw new EasyFlowSqlException($"Unit test run failed. Failed test count {result.FailedCount} of {result.Total}.");
-        }
-    }
+		if (result.FailedCount > 0)
+		{
+			throw new EasyFlowSqlException($"Unit test run failed. Failed test count {result.FailedCount} of {result.Total}.");
+		}
+	}
 
-    private bool RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings)
-    {
-        bool isSuccess = false;
-        string? errorMessage = null;
-        DateTime startedUtc = _timeProvider.UtcNow();
+	private bool RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings)
+	{
+		bool isSuccess = false;
+		string? errorMessage = null;
+		DateTime startedUtc = _timeProvider.UtcNow();
 
-        try
-        {
-            using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
+		try
+		{
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
-            _da.ExecuteNonQuery(sqlConnectionString, test.FileData.Content);
+			_da.ExecuteNonQuery(sqlConnectionString, test.FileData.Content);
 
-            _transactionScope.Dispose(); //canceling transaction
+			_transactionScope.Dispose(); //canceling transaction
 
-            isSuccess = true;
-            Logger.Information("PASSED Test: {filePath}", test.Name);
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-            Logger.Error(ex, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, ex.Message);
-        }
+			isSuccess = true;
+			Logger.Information("PASSED Test: {filePath}", test.Name);
+		}
+		catch (Exception ex)
+		{
+			errorMessage = ex.Message;
+			Logger.Error(ex, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, ex.Message);
+		}
 
-        DateTime completedUtc = _timeProvider.UtcNow();
+		DateTime completedUtc = _timeProvider.UtcNow();
 
-        _da.SaveUnitTestResult(
-            sqlConnectionString,
-            test.FileData.RelativePath,
-            test.FileData.Crc32Hash,
-            startedUtc,
-            (int)(completedUtc - startedUtc).TotalMilliseconds,
-            isSuccess,
-            errorMessage
-        );
+		_da.SaveUnitTestResult(
+			sqlConnectionString,
+			test.FileData.RelativePath,
+			test.FileData.Crc32Hash,
+			startedUtc,
+			(int)(completedUtc - startedUtc).TotalMilliseconds,
+			isSuccess,
+			errorMessage
+		);
 
-        return isSuccess;
-    }
+		return isSuccess;
+	}
 }
