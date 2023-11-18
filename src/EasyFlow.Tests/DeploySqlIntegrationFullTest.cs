@@ -14,7 +14,7 @@ public class DeploySqlIntegrationFullTest : DeploySqlIntegrationBaseTest, IDispo
 	[Fact]
 	public void DeployProject_Full()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
 		var deploy = Resolve<IEasyFlow>();
 

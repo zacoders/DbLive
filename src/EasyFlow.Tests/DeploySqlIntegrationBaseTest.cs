@@ -19,7 +19,7 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 
 	private void DropTestingDatabases()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
 
 		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();
@@ -44,7 +44,7 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
 
 		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();

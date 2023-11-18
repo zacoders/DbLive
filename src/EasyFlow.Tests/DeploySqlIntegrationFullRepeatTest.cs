@@ -14,7 +14,7 @@ public class DeploySqlIntegrationFullRepeatTest : DeploySqlIntegrationBaseTest, 
 	[Fact]
 	public void DeployProject_Full_And_Repeat()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
 		var deploy = Resolve<IEasyFlow>();
 
