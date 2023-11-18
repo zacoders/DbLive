@@ -1,175 +1,169 @@
 namespace EasyFlow.Project;
 
-public class EasyFlowProject : IEasyFlowProject
+public class EasyFlowProject(IFileSystem _fileSystem)
+    : IEasyFlowProject
 {
-	private readonly IFileSystem _fileSystem;
+    private EasyFlowSettings _settings = new();
+    private string _projectPath = "";
+    private bool _isLoaded = false;
 
-	private EasyFlowSettings _settings = new();
-	private string _projectPath = "";
-	private bool _isLoaded = false;
+    public void Load(string projectPath)
+    {
+        _isLoaded = true;
+        _projectPath = projectPath;
+        string settingsPath = Path.Combine(projectPath, "settings.json");
+        if (_fileSystem.FileExists(settingsPath))
+        {
+            var settingsJson = _fileSystem.FileReadAllText(settingsPath);
+            _settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
+        }
+    }
 
-	public EasyFlowProject(IFileSystem fileSystem)
-	{
-		_fileSystem = fileSystem;
-	}
+    public EasyFlowSettings GetSettings()
+    {
+        return _settings;
+    }
 
-	public void Load(string projectPath)
-	{
-		_isLoaded = true;
-		_projectPath = projectPath;
-		string settingsPath = Path.Combine(projectPath, "settings.json");
-		if (_fileSystem.FileExists(settingsPath))
-		{
-			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
-		}
-	}
+    public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
+    {
+        ThrowIfProjectWasNotLoaded();
+        HashSet<MigrationItem> tasks = [];
 
-	public EasyFlowSettings GetSettings()
-	{
-		return _settings;
-	}
+        var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
-	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
-	{
-		ThrowIfProjectWasNotLoaded();
-		HashSet<MigrationItem> tasks = new();
+        foreach (string filePath in files)
+        {
+            string fileName = filePath.GetLastSegment();
+            var fileParts = fileName.Split(".");
 
-		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
+            var migrationType = GetMigrationType(fileParts[0]);
 
-		foreach (string filePath in files)
-		{
-			string fileName = filePath.GetLastSegment();
-			var fileParts = fileName.Split(".");
+            MigrationItem task = new()
+            {
+                MigrationType = migrationType,
+                FileData = _fileSystem.ReadFileData(filePath, _projectPath)
+            };
 
-			var migrationType = GetMigrationType(fileParts[0]);
+            if (tasks.Contains(task))
+            {
+                throw new MigrationTaskExistsException(task);
+            }
 
-			MigrationItem task = new()
-			{
-				MigrationType = migrationType,
-				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
-			};
+            tasks.Add(task);
+        }
 
-			if (tasks.Contains(task))
-			{
-				throw new MigrationTaskExistsException(task);
-			}
+        return tasks;
+    }
 
-			tasks.Add(task);
-		}
+    private void ThrowIfProjectWasNotLoaded()
+    {
+        if (_isLoaded == false) throw new ProjectWasNotLoadedException();
+    }
 
-		return tasks;
-	}
+    public static MigrationItemType GetMigrationType(string type) =>
+        type.ToLower() switch
+        {
+            "migration" => MigrationItemType.Migration,
+            "undo" => MigrationItemType.Undo,
+            "data" => MigrationItemType.Data,
+            "breaking" => MigrationItemType.BreakingChange,
+            _ => throw new UnknowMigrationTaskTypeException(type)
+        };
 
-	private void ThrowIfProjectWasNotLoaded()
-	{
-		if (_isLoaded == false) throw new ProjectWasNotLoadedException();
-	}
+    public IEnumerable<CodeItem> GetCodeItems()
+    {
+        ThrowIfProjectWasNotLoaded();
+        List<CodeItem> codeItems = [];
+        string codePath = Path.Combine(_projectPath, "Code");
+        if (_fileSystem.PathExists(codePath))
+        {
+            var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
+            foreach (string filePath in files)
+            {
+                string fileName = filePath.GetLastSegment();
+                var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+                codeItems.Add(codeItem);
+            }
+        }
+        return codeItems;
+    }
 
-	public static MigrationItemType GetMigrationType(string type) =>
-		type.ToLower() switch
-		{
-			"migration" => MigrationItemType.Migration,
-			"undo" => MigrationItemType.Undo,
-			"data" => MigrationItemType.Data,
-			"breaking" => MigrationItemType.BreakingChange,
-			_ => throw new UnknowMigrationTaskTypeException(type)
-		};
+    public IEnumerable<Migration> GetMigrations()
+    {
+        ThrowIfProjectWasNotLoaded();
+        HashSet<Migration> migrations = [];
 
-	public IEnumerable<CodeItem> GetCodeItems()
-	{
-		ThrowIfProjectWasNotLoaded();
-		List<CodeItem> codeItems = new();
-		string codePath = Path.Combine(_projectPath, "Code");
-		if (_fileSystem.PathExists(codePath))
-		{
-			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
-			foreach (string filePath in files)
-			{
-				string fileName = filePath.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
-				codeItems.Add(codeItem);
-			}
-		}
-		return codeItems;
-	}
+        string migrationsPath = _projectPath.CombineWith("Migrations");
+        string oldMigrationsPath = migrationsPath.CombineWith("_Old");
 
-	public IEnumerable<Migration> GetMigrations()
-	{
-		ThrowIfProjectWasNotLoaded();
-		HashSet<Migration> migrations = new();
+        var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*.*", SearchOption.TopDirectoryOnly);
 
-		string migrationsPath = _projectPath.CombineWith("Migrations");
-		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
+        foreach (string folderPath in migrationDirectories)
+        {
+            string folderName = folderPath.GetLastSegment();
 
-		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*.*", SearchOption.TopDirectoryOnly);
+            if (folderName == "_Old") continue;
 
-		foreach (string folderPath in migrationDirectories)
-		{
-			string folderName = folderPath.GetLastSegment();
+            var migration = ReadMigration(folderPath, folderName);
 
-			if (folderName == "_Old") continue;
+            if (migrations.Contains(migration))
+            {
+                throw new MigrationExistsException(migration);
+            }
 
-			var migration = ReadMigration(folderPath, folderName);
+            migrations.Add(migration);
+        }
+        return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
+    }
 
-			if (migrations.Contains(migration))
-			{
-				throw new MigrationExistsException(migration);
-			}
+    private Migration ReadMigration(string folderPath, string folderName)
+    {
+        var splitFolder = folderName.Split(".");
 
-			migrations.Add(migration);
-		}
-		return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
-	}
+        string migrationVersionStr = splitFolder[0];
 
-	private Migration ReadMigration(string folderPath, string folderName)
-	{
-		var splitFolder = folderName.Split(".");
+        if (!int.TryParse(migrationVersionStr, out var version))
+        {
+            throw new MigrationVersionParseException(folderName, migrationVersionStr);
+        }
 
-		string migrationVersionStr = splitFolder[0];
+        return new Migration
+        {
+            Version = version,
+            Name = splitFolder[1],
+            FolderPath = folderPath,
+            Tasks = GetMigrationItems(folderPath)
+        };
+    }
 
-		if (!int.TryParse(migrationVersionStr, out var version))
-		{
-			throw new MigrationVersionParseException(folderName, migrationVersionStr);
-		}
+    public IReadOnlyCollection<TestItem> GetTests()
+    {
+        ThrowIfProjectWasNotLoaded();
+        List<TestItem> tests = [];
 
-		return new Migration
-		{
-			Version = version,
-			Name = splitFolder[1],
-			FolderPath = folderPath,
-			Tasks = GetMigrationItems(folderPath)
-		};
-	}
+        string testsPath = _projectPath.CombineWith("Tests");
+        string codePath = _projectPath.CombineWith("Code");
 
-	public IReadOnlyCollection<TestItem> GetTests()
-	{
-		ThrowIfProjectWasNotLoaded();
-		List<TestItem> tests = new();
+        if (!_fileSystem.PathExists(testsPath))
+        {
+            return Array.Empty<TestItem>();
+        }
 
-		string testsPath = _projectPath.CombineWith("Tests");
-		string codePath = _projectPath.CombineWith("Code");
+        var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePattern, subfolders: true)
+            .Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, subfolders: true));
 
-		if (!_fileSystem.PathExists(testsPath))
-		{
-			return Array.Empty<TestItem>();
-		}
+        foreach (string testFilePath in testFiles)
+        {
+            TestItem testItem = new()
+            {
+                Name = testFilePath.GetLastSegment(),
+                Path = testFilePath,
+                FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
+            };
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePattern, subfolders: true)
-			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, subfolders: true));
+            tests.Add(testItem);
+        }
 
-		foreach (string testFilePath in testFiles)
-		{
-			TestItem testItem = new()
-			{
-				Name = testFilePath.GetLastSegment(),
-				Path = testFilePath,
-				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
-			};
-
-			tests.Add(testItem);
-		}
-
-		return tests;
-	}
+        return tests;
+    }
 }

@@ -11,7 +11,7 @@ public class DeploySqlTest
 		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		static Migration NewMigration(int version, string name) =>
-		 new() { Version = version, Name = name, FolderPath = "c:/", Tasks = new HashSet<MigrationItem>() };
+		 new() { Version = version, Name = name, FolderPath = "c:/", Tasks = [] };
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
