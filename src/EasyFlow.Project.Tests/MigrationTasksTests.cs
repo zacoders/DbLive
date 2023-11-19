@@ -27,6 +27,31 @@ public class MigrationTasksTests
 		Assert.Equal(4, migrationTasks.Count);
 	}
 
+
+	[Fact]
+	public void GetMigrationType_EmptySettingsTest()
+	{
+		MockSet mockSet = new();
+
+		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
+		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
+
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+		sqlProject.Load("");
+
+		sqlProject.GetMigrations();
+	}
+
+	[Fact]
+	public void GetMigrationType_ProjectWasNotLoadedException()
+	{
+		MockSet mockSet = new();
+
+		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+
+		Assert.Throws<ProjectWasNotLoadedException>(() => sqlProject.GetMigrations());
+	}
+
 	[Fact]
 	public void GetMigrationType_DuplicateTask()
 	{

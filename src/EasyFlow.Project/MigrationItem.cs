@@ -1,5 +1,6 @@
 namespace EasyFlow.Project;
 
+[ExcludeFromCodeCoverage]
 public record MigrationItem
 {
 	public required MigrationItemType MigrationType { get; set; }

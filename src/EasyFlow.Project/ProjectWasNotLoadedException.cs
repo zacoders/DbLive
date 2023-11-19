@@ -1,7 +1,9 @@
 ﻿namespace EasyFlow.Project;
 
+
+[ExcludeFromCodeCoverage]
 [Serializable]
-internal class ProjectWasNotLoadedException : Exception
+public class ProjectWasNotLoadedException : Exception
 {
 	public ProjectWasNotLoadedException()
 		: base("Project was not loaded.")
