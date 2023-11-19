@@ -19,9 +19,9 @@ public record DeployParameters
 	/// Since there is no gurantee that Code and Tests are compatible with the deployed version.
 	/// NULL value -> latest version.
 	/// </summary>
-	public int? MaxVersionToDeploy { get; init; }
+	public int? MaxVersionToDeploy { get; set; }
 
-	public bool DeployCode { get; init; } = true;
+	public bool DeployCode { get; set; } = true;
 
 	public bool DeployMigrations { get; set; } = true;
 
@@ -29,8 +29,8 @@ public record DeployParameters
 
 	public bool DeployBreaking { get; set; } = false;
 
-	public int NumberOfThreadsForCodeDeploy { get; init; } = 10;
-	public int NumberOfThreadsForTestsRun { get; init; } = 10;
+	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
+	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
-	public bool CreateDbIfNotExists { get; init; } = true;
+	public bool CreateDbIfNotExists { get; set; } = true;
 }
