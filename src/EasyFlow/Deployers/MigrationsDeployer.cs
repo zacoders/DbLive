@@ -27,42 +27,34 @@ public class MigrationsDeployer(
 		}
 	}
 
-	// todo: should be moved to sepate class? it should be private, but we need to unit test it.
-	public IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
+	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
 	{
-		int appliedVersion = 0;
-		IReadOnlyCollection<MigrationDto> appliedMigrations = Array.Empty<MigrationDto>();
+		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
 		if (_da.EasyFlowInstalled(sqlConnectionString))
 		{
 			if (isSelfDeploy)
 			{
-				appliedVersion = _da.GetEasyFlowVersion(sqlConnectionString);
+				int appliedVersion = _da.GetEasyFlowVersion(sqlConnectionString);
+				migrationsToApply = migrationsToApply
+					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
+					.Where(m => m.Version > appliedVersion);
 			}
 			else
 			{
-				appliedMigrations = _da.GetMigrations(sqlConnectionString);
-				appliedVersion = appliedMigrations.Count == 0 ? 0 : appliedMigrations.Max(m => m.Version);
+				var appliedMigrations = _da.GetMigrations(sqlConnectionString);
+				migrationsToApply = migrationsToApply
+					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
+					.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name));
 			}
 		}
 
-		if (isSelfDeploy)
-		{
-			return _project.GetMigrations()
-				.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-				.Where(m => m.Version > appliedVersion)
+		return migrationsToApply
 				.OrderBy(m => m.Version)
 				.ThenBy(m => m.Name);
-		}
-
-		return _project.GetMigrations()
-			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-			.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name))
-			.OrderBy(m => m.Version)
-			.ThenBy(m => m.Name);
 	}
 
-	private void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
+	internal protected void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
 	{
 		Logger.Information(migration.FolderPath.GetLastSegment());
 		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
