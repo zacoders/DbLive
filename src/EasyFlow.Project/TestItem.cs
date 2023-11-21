@@ -1,6 +1,6 @@
-﻿
-namespace EasyFlow.Project;
+﻿namespace EasyFlow.Project;
 
+[ExcludeFromCodeCoverage]
 public class TestItem
 {
 	public required string Name { get; set; }

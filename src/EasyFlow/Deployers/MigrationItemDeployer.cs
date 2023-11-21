@@ -1,19 +1,11 @@
 namespace EasyFlow.Deployers;
 
-public class MigrationItemDeployer
+public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
 
-	private readonly IEasyFlowDA _da;
-	private readonly ITimeProvider _timeProvider;
 	private EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
-
-	public MigrationItemDeployer(IEasyFlowDA easyFlowDA, ITimeProvider timeProvider)
-	{
-		_da = easyFlowDA;
-		_timeProvider = timeProvider;
-	}
 
 	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem, MigrationItemType[] migrationItemTypesToApply)
 	{

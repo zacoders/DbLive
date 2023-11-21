@@ -1,17 +1,11 @@
 namespace EasyFlow.Project;
 
-public class EasyFlowProject : IEasyFlowProject
+public class EasyFlowProject(IFileSystem _fileSystem)
+	: IEasyFlowProject
 {
-	private readonly IFileSystem _fileSystem;
-
 	private EasyFlowSettings _settings = new();
 	private string _projectPath = "";
 	private bool _isLoaded = false;
-
-	public EasyFlowProject(IFileSystem fileSystem)
-	{
-		_fileSystem = fileSystem;
-	}
 
 	public void Load(string projectPath)
 	{
@@ -33,7 +27,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		ThrowIfProjectWasNotLoaded();
-		HashSet<MigrationItem> tasks = new();
+		HashSet<MigrationItem> tasks = [];
 
 		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
@@ -79,7 +73,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public IEnumerable<CodeItem> GetCodeItems()
 	{
 		ThrowIfProjectWasNotLoaded();
-		List<CodeItem> codeItems = new();
+		List<CodeItem> codeItems = [];
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (_fileSystem.PathExists(codePath))
 		{
@@ -97,7 +91,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public IEnumerable<Migration> GetMigrations()
 	{
 		ThrowIfProjectWasNotLoaded();
-		HashSet<Migration> migrations = new();
+		HashSet<Migration> migrations = [];
 
 		string migrationsPath = _projectPath.CombineWith("Migrations");
 		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
@@ -145,7 +139,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
 		ThrowIfProjectWasNotLoaded();
-		List<TestItem> tests = new();
+		List<TestItem> tests = [];
 
 		string testsPath = _projectPath.CombineWith("Tests");
 		string codePath = _projectPath.CombineWith("Code");

@@ -19,14 +19,14 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 
 	private void DropTestingDatabases()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
 
 		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
 		var reader = cmd.ExecuteReader();
-		List<string> databases = new();
+		List<string> databases = [];
 		while (reader.Read())
 		{
 			databases.Add(reader.GetString(0));
@@ -44,7 +44,7 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
 
 		SqlConnection cnn = new(sqlConnectionString);
 		cnn.Open();

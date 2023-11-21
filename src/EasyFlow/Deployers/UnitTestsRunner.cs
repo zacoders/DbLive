@@ -1,24 +1,14 @@
 namespace EasyFlow.Deployers;
 
-public class UnitTestsRunner
+public class UnitTestsRunner(
+		IEasyFlowProject _project,
+		IEasyFlowDA _da,
+		ITimeProvider _timeProvider
+	)
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(UnitTestsRunner));
 
-	private readonly IEasyFlowDA _da;
-	private readonly ITimeProvider _timeProvider;
-	private readonly IEasyFlowProject _project;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
-
-	public UnitTestsRunner(
-		IEasyFlowProject easyFlowProject,
-		IEasyFlowDA easyFlowDA,
-		ITimeProvider timeProvider
-		)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_timeProvider = timeProvider;
-	}
 
 	public void RunTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
 	{

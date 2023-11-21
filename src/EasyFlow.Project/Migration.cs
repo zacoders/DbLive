@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Project;
 
+[ExcludeFromCodeCoverage]
 public record Migration
 {
 	public required int Version { get; set; }

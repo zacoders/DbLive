@@ -1,27 +1,13 @@
-using EasyFlow.Exceptions;
-
 namespace EasyFlow.Deployers;
 
-public class BreakingChangesDeployer
+public class BreakingChangesDeployer(
+		IEasyFlowProject _project,
+		IEasyFlowDA _da,
+		ITimeProvider _timeProvider,
+		MigrationItemDeployer _migrationItemDeployer
+	)
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
-
-	private readonly IEasyFlowDA _da;
-	private readonly ITimeProvider _timeProvider;
-	private readonly MigrationItemDeployer _migrationItemDeployer;
-	private readonly IEasyFlowProject _project;
-
-	public BreakingChangesDeployer(
-		IEasyFlowProject easyFlowProject,
-		IEasyFlowDA easyFlowDA,
-		ITimeProvider timeProvider,
-		MigrationItemDeployer migrationItemDeployer)
-	{
-		_project = easyFlowProject;
-		_da = easyFlowDA;
-		_timeProvider = timeProvider;
-		_migrationItemDeployer = migrationItemDeployer;
-	}
 
 	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
 	{

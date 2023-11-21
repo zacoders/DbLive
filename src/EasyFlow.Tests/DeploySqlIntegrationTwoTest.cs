@@ -14,7 +14,7 @@ public class DeploySqlIntegrationTwoTest : DeploySqlIntegrationBaseTest, IDispos
 	[Fact]
 	public void DeployProject_Two_Deployments()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
 		var deploy = Resolve<IEasyFlow>();
 

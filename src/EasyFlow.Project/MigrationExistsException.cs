@@ -1,5 +1,7 @@
 ﻿namespace EasyFlow.Project;
 
+
+[ExcludeFromCodeCoverage]
 [Serializable]
 public class MigrationExistsException : Exception
 {

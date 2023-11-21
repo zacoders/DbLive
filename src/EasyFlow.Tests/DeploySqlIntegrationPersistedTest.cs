@@ -9,7 +9,7 @@ public class DeploySqlIntegrationPersistedTest : DeploySqlIntegrationBaseTest
 	{
 		string dbName = "EasyFlow-PersistedTest";
 		DropTestingDatabases(dbName);
-		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;";
+		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;TrustServerCertificate=True;";
 
 		var deploy = Resolve<IEasyFlow>();
 
