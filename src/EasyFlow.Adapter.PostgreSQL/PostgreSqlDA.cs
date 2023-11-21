@@ -1,4 +1,5 @@
 ﻿using EasyFlow.Common;
+using System.Data;
 
 namespace EasyFlow.Adapter.PostgreSQL;
 
@@ -68,10 +69,10 @@ public class PostgreSqlDA : IEasyFlowDA
 	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
 	{
 		const string query = @"
-			select MigrationVersion
-				 , MigrationName
-				 , MigrationStarted
-				 , MigrationCompleted
+			select version
+				 , name
+				 , created_utc
+				 , modified_utc
 			from easyflow.Migration
 		";
 
@@ -81,12 +82,32 @@ public class PostgreSqlDA : IEasyFlowDA
 
 	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString)
 	{
-		throw new NotImplementedException();
+		const string query = @"
+			select version
+				 , name
+				 , item_type
+				 , status
+				 , content_hash
+				 , created_utc
+				 , applied_utc
+				 , execution_time_ms
+			from easyflow.migration_item
+			where status != 'applied'
+			  and item_type = 'breakingchange'
+		";
+
+		using var cnn = new NpgsqlConnection(cnnString);
+		return cnn.Query<MigrationItemDto>(query).ToList();
 	}
 
 	public CodeItemDto? FindCodeItem(string cnnString, string relativePath)
 	{
-		throw new NotImplementedException();
+		using var cnn = new NpgsqlConnection(cnnString);
+		return cnn.QueryFirstOrDefault<CodeItemDto>(
+			"easyflow.get_code_item",
+			new { relative_path = relativePath },
+			commandType: CommandType.StoredProcedure
+		);
 	}
 
 	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs)
