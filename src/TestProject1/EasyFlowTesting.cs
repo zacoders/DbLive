@@ -8,31 +8,14 @@ namespace TestProject1;
 
 public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 {
-	readonly string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
+	readonly static string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
 
-	private string SqlConnectionString => $"Data Source=.;Initial Catalog={_unitTestsDBName};Integrated Security=True;TrustServerCertificate=True;";
+	private static string SqlConnectionString => $"Data Source=.;Initial Catalog={_unitTestsDBName};Integrated Security=True;TrustServerCertificate=True;";
 
 	private static readonly EasyFlowPrepareTests TestsPrepare = new (DBEngine.MSSQL, _msSqlTestingProjectPath);
 
 	public EasyFlowTesting(ITestOutputHelper output) : base(output)
-	{
-		// preparing sql database for unit testing.
-
-		if (!DbExists(SqlConnectionString))
-		{
-			var deploy = GetService<IEasyFlow>();
-
-			DeployParameters deployParams  = new()
-			{
-				CreateDbIfNotExists = true,
-				DeployBreaking = true,
-				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = false /* we will run tests in Visual Studio UI */
-			};
-
-			deploy.DeployProject(_msSqlTestingProjectPath, SqlConnectionString, deployParams);
-		}
+	{		
 	}
 
 	public void Dispose()
@@ -42,11 +25,11 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 
 	[Theory]
 	[MemberData(nameof(GetListOfTests))]
-	public void RunTests(string testName, int testIndex)
+	public void DB(string test, int num)
 	{
-		Output.WriteLine($"Running unit test #{testIndex}: {testName}");
+		Output.WriteLine($"Running unit test #{num}: {test}");
 
-		var testItem = TestsPrepare.TestItems[testIndex];
+		var testItem = TestsPrepare.TestItems[num];
 
 		var testRunResult = TestsPrepare.Run(testItem, SqlConnectionString, new EasyFlowSettings());
 
@@ -58,6 +41,7 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 	public static IEnumerable<object[]> GetListOfTests()
 	{
 		//yield return new object[] { "", -1 };
+		TestsPrepare.PrepareUnitTestingDatabase(SqlConnectionString);
 
 		int indexer = 0;
 		foreach (var testItem in TestsPrepare.TestItems)
@@ -65,4 +49,5 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 			yield return new object[] { testItem.Name, indexer++ };
 		}
 	}
+
 }
