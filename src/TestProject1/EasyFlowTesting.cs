@@ -8,7 +8,7 @@ namespace TestProject1;
 
 public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 {
-	readonly string _unitTestsDBName = GetRanomDbName();
+	readonly string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
 
 	private string SqlConnectionString => $"Data Source=.;Initial Catalog={_unitTestsDBName};Integrated Security=True;TrustServerCertificate=True;";
 
@@ -18,16 +18,26 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 	{
 		// preparing sql database for unit testing.
 
-		var deploy = GetService<IEasyFlow>();
+		if (!DbExists(SqlConnectionString))
+		{
+			var deploy = GetService<IEasyFlow>();
 
-		deploy.DeployProject(_msSqlTestingProjectPath, SqlConnectionString, DeployParameters.Default);
+			DeployParameters deployParams  = new()
+			{
+				CreateDbIfNotExists = true,
+				DeployBreaking = true,
+				DeployCode = true,
+				DeployMigrations = true,
+				RunTests = false /* we will run tests in Visual Studio UI */
+			};
 
-		deploy.DeployProject(_msSqlTestingProjectPath, SqlConnectionString, DeployParameters.Breaking);
+			deploy.DeployProject(_msSqlTestingProjectPath, SqlConnectionString, deployParams);
+		}
 	}
 
 	public void Dispose()
 	{
-		DropTestingDatabases(_unitTestsDBName);
+		//DropTestingDatabase(_unitTestsDBName);
 	}
 
 	[Theory]
