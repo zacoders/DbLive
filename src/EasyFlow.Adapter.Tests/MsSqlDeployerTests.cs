@@ -8,7 +8,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 	public MsSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
-		_da = Resolve<IEasyFlowDA>();
+		_da = GetService<IEasyFlowDA>();
 		_da.CreateDB(_cnnString, skipIfExists: true);
 	}
 

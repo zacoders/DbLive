@@ -8,7 +8,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.PostgreSql);
-		_da = Resolve<IEasyFlowDA>();
+		_da = GetService<IEasyFlowDA>();
 		_da.CreateDB(_cnnString);
 	}
 

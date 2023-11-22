@@ -16,7 +16,7 @@ public class DeploySqlIntegrationFullBreakingTest : DeploySqlIntegrationBaseTest
 	{
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
-		var deploy = Resolve<IEasyFlow>();
+		var deploy = GetService<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 

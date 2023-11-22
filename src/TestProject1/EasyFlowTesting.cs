@@ -1,7 +1,7 @@
 using EasyFlow;
-using EasyFlow.Common;
 using EasyFlow.Project;
 using EasyFlow.Tests.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
@@ -9,10 +9,10 @@ namespace TestProject1;
 public class EasyFlowTesting : IntegrationTestsBase
 {
 	private static readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL");
+	private static IReadOnlyCollection<TestItem> ListOfTests { get; set; } = new List<TestItem>();
 
 	public EasyFlowTesting(ITestOutputHelper output) : base(output)
 	{
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
 	}
 
 	[Theory]
@@ -27,13 +27,28 @@ public class EasyFlowTesting : IntegrationTestsBase
 
 	public static IEnumerable<object[]> GetListOfTests()
 	{
-		EasyFlowProject p = new(new FileSystem());
-		p.Load(_msSqlTestingProjectPath);
-
+		//yield return new object[] { 0, "" };
+		var testPrepare = new PrepareTests(DBEngine.MSSQL, _msSqlTestingProjectPath);
 		int indexer = 0;
-		foreach (var testItem in p.GetTests())
+		foreach (var testItem in testPrepare.TestItems)
 		{
 			yield return new object[] { indexer++, testItem.Name };
 		}
+	}
+}
+
+public class PrepareTests
+{
+	private IServiceCollection Container { get; }
+	public IReadOnlyCollection<TestItem> TestItems { get; }
+
+	public PrepareTests(DBEngine dBEngine, string projectPath)
+	{
+		Container = new ServiceCollection();
+		Container.InitializeEasyFlow(dBEngine);
+		var serviceProvider = Container.BuildServiceProvider();
+		var project = serviceProvider.GetService<IEasyFlowProject>()!;
+		project.Load(projectPath);
+		TestItems = project.GetTests();
 	}
 }
