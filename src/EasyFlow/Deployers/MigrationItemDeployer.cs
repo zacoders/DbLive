@@ -15,7 +15,7 @@ public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 			_defaultTimeout, //todo: separate timeout for single migration
 			() =>
 			{
-				Logger.Information("Migration {migrationType}", migrationItem.MigrationType);
+				Logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
 
 				DateTime migrationStartedUtc = _timeProvider.UtcNow();
 
@@ -24,7 +24,7 @@ public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 				int? executionTimeMs = null;
 
 				//todo: this method should be refactored or removed, due to this logic related to item type
-				if (migrationItem.MigrationType.In(migrationItemTypesToApply))
+				if (migrationItem.MigrationItemType.In(migrationItemTypesToApply))
 				{
 					_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
 					status = "applied";
@@ -38,20 +38,23 @@ public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 
 				if (!isSelfDeploy)
 				{
-					_da.SaveMigrationItemState(
-						sqlConnectionString,
-						migration.Version,
-						migration.Name,
-						migrationItem.MigrationType.ToString().ToLower(),
-						migrationItem.FileData.Crc32Hash,
-						status,
-						_timeProvider.UtcNow(),
-						migrationAppliedUtc,
-						executionTimeMs
-					);
+					MigrationItemDto dto = new()
+					{
+						Version = migration.Version,
+						Name = migration.Name,
+						ItemType = migrationItem.MigrationItemType.ToString().ToLower(),
+						ContentHash = migrationItem.FileData.Crc32Hash,
+						Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
+						Status = status,
+						CreatedUtc = _timeProvider.UtcNow(),
+						AppliedUtc = migrationAppliedUtc,
+						ExecutionTimeMs = executionTimeMs
+					};
+
+					_da.SaveMigrationItemState(sqlConnectionString, dto);
 				}
 
-				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationType, status);
+				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
 			}
 		);
 	}

@@ -33,6 +33,7 @@ public class MsSqlDA : IEasyFlowDA
 				 , item_type
 				 , status
 				 , content_hash
+				 , content
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
@@ -168,21 +169,22 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	public void SaveMigrationItemState(string cnnString, MigrationItemDto item)
 	{
 		using var cnn = new SqlConnection(cnnString);
 		cnn.Query(
 			"easyflow.save_migration_item",
 			new
 			{
-				version,
-				name,
-				item_type = migrationType,
-				content_hash = contentHash,
-				status,
-				created_utc = createdUtc,
-				applied_utc = appliedUtc,
-				execution_time_ms = executionTimeMs
+				version = item.Version,
+				name = item.Name,
+				item_type = item.ItemType,
+				content_hash = item.ContentHash,
+				content = item.Content,
+				status = item.Status,
+				created_utc = item.CreatedUtc,
+				applied_utc = item.AppliedUtc,
+				execution_time_ms = item.ExecutionTimeMs
 			},
 			commandType: CommandType.StoredProcedure
 		);

@@ -34,7 +34,7 @@ public class BreakingChangesDeployer(
 			if (!breakingToApply.ContainsKey(key)) continue;
 
 			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
-				.Where(mi => mi.MigrationType == MigrationItemType.BreakingChange)
+				.Where(mi => mi.MigrationItemType == MigrationItemType.BreakingChange)
 				.Single();
 
 			if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)

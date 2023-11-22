@@ -88,6 +88,7 @@ public class PostgreSqlDA : IEasyFlowDA
 				 , item_type
 				 , status
 				 , content_hash
+				 , content
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
@@ -148,7 +149,7 @@ public class PostgreSqlDA : IEasyFlowDA
 		});
 	}
 
-	public void SaveMigrationItemState(string cnnString, int version, string name, string migrationType, int contentHash, string status, DateTime createdUtc, DateTime? appliedUtc, int? executionTimeMs)
+	public void SaveMigrationItemState(string cnnString, MigrationItemDto item)
 	{
 		throw new NotImplementedException();
 	}

@@ -40,7 +40,7 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 			MigrationItem task = new()
 			{
-				MigrationType = migrationType,
+				MigrationItemType = migrationType,
 				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
 			};
 
