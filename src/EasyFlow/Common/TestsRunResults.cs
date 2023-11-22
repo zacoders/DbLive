@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Common;
 
-internal class TestRunResult
+internal class TestsRunResults
 {
 	private int passedCount;
 	private int failedCount;

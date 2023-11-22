@@ -7,7 +7,7 @@ public class EasyFlow(
 		CodeDeployer _codeDeployer,
 		BreakingChangesDeployer _breakingChangesDeployer,
 		MigrationsDeployer _migrationsDeployer,
-		UnitTestsRunner _unitTestsRunner
+		IUnitTestsRunner _unitTestsRunner
 	) : IEasyFlow
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
@@ -49,6 +49,6 @@ public class EasyFlow(
 			}
 		);
 
-		_unitTestsRunner.RunTests(sqlConnectionString, parameters, _projectSettings);
+		_unitTestsRunner.RunAllTests(sqlConnectionString, parameters, _projectSettings);
 	}
 }

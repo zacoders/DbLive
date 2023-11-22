@@ -2,7 +2,7 @@ namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 {
-	protected readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL");
+	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static string TestDbNamePrefix = "EasyFlow--";
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
@@ -11,11 +11,6 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 	}
-
-	//public void Dispose()
-	//{
-	//	//DropTestingDatabases();
-	//}
 
 	private void DropTestingDatabases()
 	{

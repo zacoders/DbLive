@@ -10,7 +10,7 @@ public static class Bootstrapper
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
 		container.AddSingleton<MigrationItemDeployer>();
-		container.AddSingleton<UnitTestsRunner>();
+		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
 
 		switch (dbEngine)
