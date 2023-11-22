@@ -67,7 +67,7 @@ public class MigrationsDeployer(
 			_defaultTimeout, //toto: separate timeout for all migrations
 			() =>
 			{
-				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationType))
+				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationItemType))
 				{
 					_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem, new[] { MigrationItemType.Migration, MigrationItemType.Data });
 				}

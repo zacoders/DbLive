@@ -18,12 +18,19 @@ create table easyflow.migration_item (
   , item_type varchar(32) not null
   , status varchar(32) not null
   , content_hash int not null
+  , content nvarchar(max) null
   , created_utc datetime2(7) not null
   , applied_utc datetime2(7) null
   , execution_time_ms int null
 
   , constraint pk_easyflow_migration_item primary key ( version, name, item_type )
 )
+go
+
+exec sys.sp_tableoption
+	@TableNamePattern = 'easyflow.migration_item'
+  , @OptionName = 'large value types out of row'
+  , @OptionValue = '1'
 go
 
 

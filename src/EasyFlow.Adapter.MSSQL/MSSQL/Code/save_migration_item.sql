@@ -5,6 +5,7 @@ create or alter proc easyflow.save_migration_item
   , @item_type varchar(32)
   , @status varchar(32)
   , @content_hash int
+  , @content nvarchar(max)
   , @created_utc datetime2(7)
   , @applied_utc datetime2(7)
   , @execution_time_ms int
@@ -17,6 +18,7 @@ as
 	when matched then update 
 		set status = @status
 		  , content_hash = @content_hash
+		  , content = @content
 		  , applied_utc = @applied_utc
 		  , execution_time_ms = @execution_time_ms
 	when not matched then 
@@ -26,6 +28,7 @@ as
 		  , item_type
 		  , status
 		  , content_hash
+		  , content
 		  , created_utc
 		  , applied_utc
 		  , execution_time_ms
@@ -36,6 +39,7 @@ as
 		  , @item_type
 		  , @status
 		  , @content_hash
+		  , @content
 		  , @created_utc
 		  , @applied_utc
 		  , @execution_time_ms
