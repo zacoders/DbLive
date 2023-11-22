@@ -52,7 +52,7 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 
 		Output.WriteLine(testRunResult.Output);
 
-		Assert.True(testRunResult.IsSuccess);
+		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
 	}
 
 	public static IEnumerable<object[]> GetListOfTests()
