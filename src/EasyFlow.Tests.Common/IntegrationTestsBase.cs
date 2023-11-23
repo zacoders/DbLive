@@ -2,15 +2,26 @@
 
 public abstract class IntegrationTestsBase : TestBase
 {
+	protected IServiceCollection Container { get; }
+	private IServiceProvider? serviceProvider;
+
 	protected IntegrationTestsBase(ITestOutputHelper output) : base(output)
 	{
+		Container = new ServiceCollection();
 	}
 
-	protected IServiceCollection Container { get; } = new ServiceCollection();
-
-	protected TService Resolve<TService>()
+	/// <summary>
+	/// Returns ServiceProvider. Builds if needed or returns existing.
+	/// </summary>
+	/// <returns></returns>
+	protected IServiceProvider GetServiceProvider()
 	{
-		IServiceProvider serviceProvider = Container.BuildServiceProvider();
-		return serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+		serviceProvider ??= Container.BuildServiceProvider();
+		return serviceProvider;
+	}
+
+	protected TService GetService<TService>()
+	{
+		return GetServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 }

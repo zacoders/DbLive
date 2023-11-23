@@ -16,7 +16,7 @@ public class DeploySqlIntegrationTwoTest : DeploySqlIntegrationBaseTest, IDispos
 	{
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
-		var deploy = Resolve<IEasyFlow>();
+		var deploy = GetService<IEasyFlow>();
 
 		Log.Information("=== deploy up to version 2 ===");
 		DeployParameters parameters = new() { MaxVersionToDeploy = 2, DeployCode = false, RunTests = false };

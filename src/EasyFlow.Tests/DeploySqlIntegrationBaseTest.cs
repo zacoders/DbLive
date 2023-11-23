@@ -2,8 +2,10 @@ namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 {
-	protected readonly string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL");
+	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static string TestDbNamePrefix = "EasyFlow--";
+
+	string masterDbConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
@@ -12,16 +14,9 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 	}
 
-	//public void Dispose()
-	//{
-	//	//DropTestingDatabases();
-	//}
-
 	private void DropTestingDatabases()
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
-
-		SqlConnection cnn = new(sqlConnectionString);
+		using SqlConnection cnn = new(masterDbConnectionString);
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
@@ -42,20 +37,21 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 		DropTestingDatabases(databases, true);
 	}
 
-	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
+	protected void DropTestingDatabase(string database, bool ifExists = true)
 	{
-		string sqlConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
+		DropTestingDatabases(new[] { database }, ifExists);
+	}
 
-		SqlConnection cnn = new(sqlConnectionString);
+	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
+	{		
+		using SqlConnection cnn = new(masterDbConnectionString);
 		cnn.Open();
 
 		foreach (var database in databases)
 		{
 			if (ifExists)
 			{
-				var cmd = cnn.CreateCommand();
-				cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
-				bool exists = cmd.ExecuteScalar() == null ? false : true;
+				bool exists = DbExists(database);
 				if (!exists) continue;
 			}
 
@@ -74,5 +70,15 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 				if (e.Get<SqlException>()?.Number == 5011) return;
 			}
 		}
+	}
+
+	protected bool DbExists(string database)
+	{
+		using SqlConnection cnn = new(masterDbConnectionString);
+		cnn.Open();
+		var cmd = cnn.CreateCommand();
+		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
+		bool exists = cmd.ExecuteScalar() == null ? false : true;
+		return exists;
 	}
 }

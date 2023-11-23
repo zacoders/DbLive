@@ -11,7 +11,7 @@ public class DeploySqlIntegrationPersistedTest : DeploySqlIntegrationBaseTest
 		DropTestingDatabases(dbName);
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;TrustServerCertificate=True;";
 
-		var deploy = Resolve<IEasyFlow>();
+		var deploy = GetService<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Breaking);

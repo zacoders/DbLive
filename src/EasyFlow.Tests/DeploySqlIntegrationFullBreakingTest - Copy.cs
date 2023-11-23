@@ -1,10 +1,10 @@
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationFullBreakingTest : DeploySqlIntegrationBaseTest, IDisposable
+public class DeploySqlIntegrationFullMultiRedeployTest : DeploySqlIntegrationBaseTest, IDisposable
 {
 	string _dbName = GetRanomDbName();
 
-	public DeploySqlIntegrationFullBreakingTest(ITestOutputHelper output) : base(output) { }
+	public DeploySqlIntegrationFullMultiRedeployTest(ITestOutputHelper output) : base(output) { }
 
 	public void Dispose()
 	{
@@ -17,6 +17,12 @@ public class DeploySqlIntegrationFullBreakingTest : DeploySqlIntegrationBaseTest
 		string sqlConnectionString = $"Data Source=.;Initial Catalog={_dbName};Integrated Security=True;TrustServerCertificate=True;";
 
 		var deploy = GetService<IEasyFlow>();
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
+
+		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Breaking);
+
+		// Redeploy again
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 

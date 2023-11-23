@@ -22,6 +22,9 @@ public class BreakingChangesDeployer(
 	private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
 	{
 		var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
+
+		if (dbItems.Count == 0) return;
+
 		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
