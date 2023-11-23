@@ -1,5 +1,6 @@
 
 -- note: we can try to drop the type and warn instead of error in case type is used by some SP/FN
+-- note: drop in multi threads, but considering priority.
 
 -- drop order:
 --  * sps should be dropped first
