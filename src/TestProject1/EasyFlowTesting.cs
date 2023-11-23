@@ -12,10 +12,10 @@ public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
 
 	private static string SqlConnectionString => $"Data Source=.;Initial Catalog={_unitTestsDBName};Integrated Security=True;TrustServerCertificate=True;";
 
-	private static readonly EasyFlowPrepareTests TestsPrepare = new (DBEngine.MSSQL, _msSqlTestingProjectPath);
+	private static readonly EasyFlowPrepareTests TestsPrepare = new(DBEngine.MSSQL, _msSqlTestingProjectPath);
 
 	public EasyFlowTesting(ITestOutputHelper output) : base(output)
-	{		
+	{
 	}
 
 	public void Dispose()

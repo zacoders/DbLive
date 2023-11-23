@@ -43,7 +43,7 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 	}
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
-	{		
+	{
 		using SqlConnection cnn = new(masterDbConnectionString);
 		cnn.Open();
 
