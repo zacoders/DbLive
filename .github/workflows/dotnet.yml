@@ -48,7 +48,7 @@ jobs:
     
     env:
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
-      SqlServer: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=StrongPass123;
+      SqlServer: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=StrongPass123;TrustServerCertificate=True;Encrypt=True;
 
     steps:
 
