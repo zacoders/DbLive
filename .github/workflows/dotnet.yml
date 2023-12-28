@@ -14,15 +14,23 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      SOLUTION_PATH: '../../src/EasySqlFlow.sln'
+
     steps:
+
     - uses: actions/checkout@v3
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ${{ env.SOLUTION_PATH }} 
+
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore
+
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --verbosity normal
