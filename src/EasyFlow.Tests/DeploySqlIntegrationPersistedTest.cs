@@ -1,6 +1,6 @@
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationPersistedTest(ITestOutputHelper output) : DeploySqlIntegrationBaseTest(output)
+public class DeploySqlIntegrationPersistedTest(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
 {
 	string _dbName = "EasyFlow-PersistedTest";
 

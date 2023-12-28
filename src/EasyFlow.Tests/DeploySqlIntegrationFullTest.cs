@@ -1,7 +1,7 @@
 namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationFullTest(ITestOutputHelper output) 
-	: DeploySqlIntegrationBaseTest(output), IDisposable
+	: SqlServerIntegrationBaseTest(output), IDisposable
 {
 	string _dbName = GetRanomDbName();
 

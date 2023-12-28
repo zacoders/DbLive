@@ -1,13 +1,20 @@
+using EasyFlow.Tests.Config;
+
 namespace EasyFlow.Adapter.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase
 {
-	private readonly string _cnnString = "Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=123123;";
+	private readonly string _cnnString;
 	private readonly IEasyFlowDA _da;
 
 	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.PostgreSql);
+
+
+		var config = GetService<TestConfig>();
+		_cnnString = config.GetPostgreSqlConnectionString();
+
 		_da = GetService<IEasyFlowDA>();
 		_da.CreateDB(_cnnString);
 	}

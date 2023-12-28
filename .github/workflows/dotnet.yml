@@ -48,7 +48,8 @@ jobs:
     
     env:
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
-      SqlServer: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
+      ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
+      ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=EasyFlowTestDB;User ID=postgres;password=Strong_Pass123;
 
     steps:
 

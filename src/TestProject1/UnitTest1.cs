@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class TranTests(ITestOutputHelper output) : DeploySqlIntegrationBaseTest(output)
+public class TranTests(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
 {
 	[Fact]
 	public void Test1()

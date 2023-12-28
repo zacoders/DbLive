@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace TestProject1;
 
 public class EasyFlowTesting(ITestOutputHelper output) 
-	: DeploySqlIntegrationBaseTest(output), IDisposable
+	: SqlServerIntegrationBaseTest(output), IDisposable
 {
 	readonly static string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
 

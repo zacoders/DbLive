@@ -20,14 +20,25 @@ public class TestConfig
 
 		if (setting == null)
 		{
-			throw new Exception($"Setting {settingName} was not found.");
+			throw new Exception($"Setting '{settingName}' was not found.");
 		}
 
 		return setting;
 	}
 
-	public string GetSqlServerConnectionString()
+	private string GetConnectionString(string settingName)
 	{
-		return GetSetting("SqlServer");
+		var cnnString = config.GetConnectionString(settingName);
+
+		if (cnnString == null)
+		{
+			throw new Exception($"Connection string '{settingName}' was not found.");
+		}
+
+		return cnnString;
 	}
+
+	public string GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
+
+	public string GetPostgreSqlConnectionString() => GetConnectionString("POSTGRESQL");
 }

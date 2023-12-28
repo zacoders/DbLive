@@ -2,7 +2,7 @@ using EasyFlow.Tests.Config;
 
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
+public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 {
 	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static string TestDbNamePrefix = "EasyFlow--";
@@ -17,14 +17,14 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 		cnnBuilder.InitialCatalog = dbName;
 		return cnnBuilder.ConnectionString;
 	}
-	static DeploySqlIntegrationBaseTest()
+	static SqlServerIntegrationBaseTest()
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
 		var config = GetService<TestConfig>();
 		masterDbConnectionString = config.GetSqlServerConnectionString();
 	}
 
-	public DeploySqlIntegrationBaseTest(ITestOutputHelper output) : base(output)
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
 	{		
 	}
 
