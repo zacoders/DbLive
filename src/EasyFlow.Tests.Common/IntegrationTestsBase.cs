@@ -4,8 +4,7 @@ namespace EasyFlow.Tests.Common;
 public abstract class IntegrationTestsBase : TestBase
 {
 	protected static readonly IServiceCollection Container;
-	private IServiceProvider? serviceProvider;
-
+	
 	static IntegrationTestsBase()
 	{
 		Container = new ServiceCollection();
