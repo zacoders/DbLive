@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SOLUTION_PATH: '../../src/EasySqlFlow.sln'
+      SOLUTION_PATH: 'src/EasySqlFlow.sln'
 
     steps:
 
