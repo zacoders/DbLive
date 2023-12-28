@@ -1,2 +1,8 @@
 Code items are deployed after migrations.
-Make sure that there is 'if exists' check for each object, since it can be already created on the previous deployments.
+
+Organize folders in the way you like. It can be groupped by schemas and object types.
+
+Code items files can be executed multiple times, make sure it will not fail on the second run.
+
+Use 'if exists' check for each object
+or use 'create or alter' approach.

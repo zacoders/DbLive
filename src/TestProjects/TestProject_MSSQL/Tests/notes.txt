@@ -1,0 +1,5 @@
+Unit tests can be run after the deployment.
+
+Organize folders in the way you like. 
+
+name of the test files should end with 'test.sql'.
