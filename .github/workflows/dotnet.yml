@@ -16,14 +16,27 @@ jobs:
 
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
-          SA_PASSWORD: StrongPass123
+          SA_PASSWORD: Strong_Pass123
           ACCEPT_EULA: 'Y'
-        options: --health-cmd "sqlcmd -Usa -PStrongPass123 -Q \"SELECT 1\""
+          #MSSQL_PID: Express
         ports:
-          - 1433:1433
+          - '1433:1433'
+        options: --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P ${SA_PASSWORD} -Q 'SELECT 1' || exit 1"  --health-interval 10s --health-timeout 5s --health-retries 5
 
+
+      # sql-server:
+      #   # Docker Hub image
+      #   image: mcr.microsoft.com/mssql/server:2022-latest
+      #   env:
+      #     ACCEPT_EULA: Y
+      #     SA_PASSWORD: 'Pr1sm4_Pr1sm4'
+      #   # Maps tcp port 1433 on service container to the host
+      #   ports:
+      #     - '1433:1433'
+      #   options: --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P ${SA_PASSWORD} -Q 'SELECT 1' || exit 1"  --health-interval 10s --health-timeout 5s --health-retries 5
+    
     # services:
     #   sql-server:
     #     image: mcr.microsoft.com/mssql/server
@@ -35,7 +48,7 @@ jobs:
     
     env:
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
-      SqlServer: Server=localhost;Initial Catalog=master;User Id=sa;Password=StrongPass123;
+      SqlServer: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=StrongPass123;
 
     steps:
 
