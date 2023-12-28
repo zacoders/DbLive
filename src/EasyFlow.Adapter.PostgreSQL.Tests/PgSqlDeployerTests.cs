@@ -11,7 +11,6 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	{
 		Container.InitializeEasyFlow(DBEngine.PostgreSql);
 
-
 		var config = GetService<TestConfig>();
 		_cnnString = config.GetPostgreSqlConnectionString();
 
