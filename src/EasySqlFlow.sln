@@ -37,6 +37,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.PostgreSQL.Tests", "EasyFlow.Adapter.PostgreSQL.Tests\EasyFlow.Adapter.PostgreSQL.Tests.csproj", "{78D763D8-3FE3-4283-961E-8124154745BE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DBC8694E-701B-4E4E-A99C-CE85134BC45A}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+		prepare-env.cmd = prepare-env.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
