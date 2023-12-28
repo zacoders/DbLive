@@ -5,6 +5,7 @@
     <DockerTargetOS>Linux</DockerTargetOS>
     <DockerPublishLocally>False</DockerPublishLocally>
     <ProjectGuid>68e5881a-09c9-40cc-8b49-c779049506ee</ProjectGuid>
+    <DockerComposeProjectName>easy-sql-low-test-env</DockerComposeProjectName>
   </PropertyGroup>
   <ItemGroup>
     <None Include="docker-compose.override.yml">
@@ -12,5 +13,6 @@
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
+    <None Include="readme.txt" />
   </ItemGroup>
 </Project>
