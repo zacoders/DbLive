@@ -9,8 +9,8 @@ public class TestConfig
 	public TestConfig()
 	{
 		config = new ConfigurationBuilder()
-		   .AddEnvironmentVariables() // environment vars go first
 		   .AddJsonFile("appsettings.json", true, true)
+		   .AddEnvironmentVariables() // environment ovveride appsettings.json config.
 		   .Build();
 	}
 
