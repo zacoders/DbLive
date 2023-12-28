@@ -1,14 +1,18 @@
+using EasyFlow.Tests.Config;
+
 namespace EasyFlow.Adapter.Tests;
 
 public class MsSqlDeployerTests : IntegrationTestsBase
 {
-	private readonly string _cnnString = "Data Source=.;Initial Catalog=EasyFlowTestDB;Integrated Security=True;TrustServerCertificate=True;";
 	private readonly IEasyFlowDA _da;
+	private readonly string _cnnString;
 
 	public MsSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
+		var config = GetService<TestConfig>();
 		_da = GetService<IEasyFlowDA>();
+		_cnnString = config.GetSqlServerConnectionString();
 		_da.CreateDB(_cnnString, skipIfExists: true);
 	}
 

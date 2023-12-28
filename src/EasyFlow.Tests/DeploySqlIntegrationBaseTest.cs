@@ -1,3 +1,5 @@
+using EasyFlow.Tests.Config;
+
 namespace EasyFlow.Tests;
 
 public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
@@ -5,13 +7,25 @@ public class DeploySqlIntegrationBaseTest : IntegrationTestsBase
 	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static string TestDbNamePrefix = "EasyFlow--";
 
-	string masterDbConnectionString = $"Data Source=.;Initial Catalog=master;Integrated Security=True;TrustServerCertificate=True;";
+	protected static readonly string masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
-	public DeploySqlIntegrationBaseTest(ITestOutputHelper output) : base(output)
+	protected static string GetDbConnectionString(string dbName) 
+	{
+		var cnnBuilder = new SqlConnectionStringBuilder(masterDbConnectionString);
+		cnnBuilder.InitialCatalog = dbName;
+		return cnnBuilder.ConnectionString;
+	}
+	static DeploySqlIntegrationBaseTest()
 	{
 		Container.InitializeEasyFlow(DBEngine.MSSQL);
+		var config = GetService<TestConfig>();
+		masterDbConnectionString = config.GetSqlServerConnectionString();
+	}
+
+	public DeploySqlIntegrationBaseTest(ITestOutputHelper output) : base(output)
+	{		
 	}
 
 	private void DropTestingDatabases()

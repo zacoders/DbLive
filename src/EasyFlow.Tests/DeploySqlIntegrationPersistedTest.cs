@@ -1,16 +1,16 @@
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationPersistedTest : DeploySqlIntegrationBaseTest
+public class DeploySqlIntegrationPersistedTest(ITestOutputHelper output) : DeploySqlIntegrationBaseTest(output)
 {
-	public DeploySqlIntegrationPersistedTest(ITestOutputHelper output) : base(output) { }
+	string _dbName = "EasyFlow-PersistedTest";
 
 	[Fact]
 	public void DeployProject_PersistedDbName()
 	{
-		string dbName = "EasyFlow-PersistedTest";
-		DropTestingDatabases(dbName);
-		string sqlConnectionString = $"Data Source=.;Initial Catalog={dbName};Integrated Security=True;TrustServerCertificate=True;";
+		var sqlConnectionString = GetDbConnectionString(_dbName);
 
+		DropTestingDatabases(_dbName);
+		
 		var deploy = GetService<IEasyFlow>();
 
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);

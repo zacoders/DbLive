@@ -18,7 +18,7 @@ jobs:
       mssql:
         image: mcr.microsoft.com/mssql/server
         env:
-          SA_PASSWORD: MyTestPassword
+          SA_PASSWORD: StrongPass123
           ACCEPT_EULA: 'Y'
         ports:
           - 1433:1433
@@ -34,6 +34,7 @@ jobs:
     
     env:
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
+      SqlServer: Server=localhost;Initial Catalog=master;User Id=sa;Password=StrongPass123;
 
     steps:
 
