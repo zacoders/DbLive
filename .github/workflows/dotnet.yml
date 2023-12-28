@@ -13,7 +13,16 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+        
+    services:
+      sql-server:
+        image: mcr.microsoft.com/mssql/server
+        env:
+          SA_PASSWORD: SAPass123
+          ACCEPT_EULA: Y
+          MSSQL_PID: Express
+        options: --health-cmd "sqlcmd -Usa -SAPass123 -Q \"SELECT 1\""
+    
     env:
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
 
