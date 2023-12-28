@@ -20,6 +20,7 @@ jobs:
         env:
           SA_PASSWORD: StrongPass123
           ACCEPT_EULA: 'Y'
+        options: --health-cmd "sqlcmd -Usa -PStrongPass123 -Q \"SELECT 1\""
         ports:
           - 1433:1433
 
