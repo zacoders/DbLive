@@ -1,0 +1,29 @@
+name: GitVersion
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  gitversion:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Install GitVersion
+      run: dotnet tool install -g GitVersion.Tool
+  
+    - name: Run GitVersion
+      run: dotnet gitversion /config GitVersion.yml /output buildserver
+      id: gitversion
+
+    - name: Show GitVersion output
+      run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
