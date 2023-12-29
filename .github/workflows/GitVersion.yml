@@ -1,5 +1,14 @@
-mode: ContinuousDeployment
-branches: {}
-ignore:
-  sha: []
-merge-message-formats: {}
+mode: Mainline
+commit-message-incrementing: MergeMessageOnly
+branches:
+  main:
+    regex: ^main$
+    tag: ''
+  feature:
+    regex: ^feature/
+    tag: useBranchName
+    increment: Minor
+  hotfix:
+    regex: ^hotfix/
+    tag: useBranchName
+    increment: Patch
