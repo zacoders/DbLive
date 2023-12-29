@@ -16,6 +16,10 @@ public record Migration
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Version, Name);
+		//return HashCode.Combine(Version, Name); -- is not available in .net standard 2.0
+		int hash = 17;
+		hash = hash * 23 + Version.GetHashCode();
+		hash = hash * 23 + (Name != null ? Name.GetHashCode() : 0);
+		return hash;
 	}
 }

@@ -9,7 +9,7 @@ public class FileSystem : IFileSystem
 	{
 		return paths.SelectMany(path =>
 		{
-			if (Path.Exists(path))
+			if (Directory.Exists(path))
 				return Directory.EnumerateDirectories(path, searchPattern, searchOption);
 			return Enumerable.Empty<string>();
 		});
@@ -30,7 +30,7 @@ public class FileSystem : IFileSystem
 	}
 
 	public bool FileExists(string path) => File.Exists(path);
-	public bool PathExists(string path) => Path.Exists(path);
+	public bool PathExists(string path) => Directory.Exists(path);
 
 	public string FileReadAllText(string path) => File.ReadAllText(path);
 

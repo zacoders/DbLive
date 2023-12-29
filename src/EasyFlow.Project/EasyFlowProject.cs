@@ -34,7 +34,7 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 		foreach (string filePath in files)
 		{
 			string fileName = filePath.GetLastSegment();
-			var fileParts = fileName.Split(".");
+			var fileParts = fileName.Split('.');
 
 			var migrationType = GetMigrationType(fileParts[0]);
 
@@ -118,7 +118,7 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 	private Migration ReadMigration(string folderPath, string folderName)
 	{
-		var splitFolder = folderName.Split(".");
+		var splitFolder = folderName.Split('.');
 
 		string migrationVersionStr = splitFolder[0];
 
