@@ -64,6 +64,11 @@ jobs:
         useConfigFile: true
         configFilePath: .github/workflows/gitvertion-config.yml
         updateAssemblyInfo: true
+      
+    - name: Update NuGet package version
+      run: |
+        echo "Updating version to $GITVERSION_SEMVER in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
     
     - name: Semver
       run: echo $GITVERSION_SEMVER
