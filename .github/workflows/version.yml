@@ -36,9 +36,11 @@ jobs:
 
     - name: Update NuGet package version
       run: |
-        version=${{ steps.gitversion.outputs.GitVersion_SemVer }}
-        echo "Updating version to $version in project files"
-        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$version<\/Version>/g"
+        echo "Updating version to $VERSION in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g"
+      shell: bash
+      env:
+        VERSION: ${{ steps.gitversion.outputs.GitVersion_SemVer }}
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
