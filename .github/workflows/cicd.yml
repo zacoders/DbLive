@@ -67,5 +67,5 @@ jobs:
       run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
 
     - name: Publish the package to GPR
-      run: dotnet nuget push bin/Release/*.nupkg
+      run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
       
