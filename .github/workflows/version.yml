@@ -25,28 +25,41 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Install GitVersion
-      run: dotnet tool install -g GitVersion.Tool
+      uses: gittools/actions/gitversion/setup@v0
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: true
+        configFilePath: VersionConfig.yml
+        updateAssemblyInfo: true
     
-    - name: Run GitVersion
-      id: gitversion
-      run: dotnet gitversion /config GitVersion.yml /output buildserver
+    - name: Semver
+      run: echo $GITVERSION_SEMVER
 
-    - name: Show GitVersion output
-      run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
+    # - name: Install GitVersion
+    #   run: dotnet tool install -g GitVersion.Tool
+    
+    # - name: Run GitVersion
+    #   id: gitversion
+    #   run: dotnet gitversion /config GitVersion.yml /output buildserver
 
-    - name: Show GitVersion_SemVer
-      run: 'echo "GitVersion_SemVert: ${{ steps.gitversion.outputs.GitVersion_SemVer }}"'
+    # - name: Show GitVersion output
+    #   run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
 
-    - name: Update NuGet package version
-      run: |
-        echo "Updating version to $VERSION in project files"
-        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g"
-      shell: bash
-      env:
-        VERSION: ${{ steps.gitversion.outputs.GitVersion_SemVer }}
+    # - name: Show GitVersion_SemVer
+    #   run: 'echo "GitVersion_SemVert: ${{ steps.gitversion.outputs.GitVersion_SemVer }}"'
+
+    # - name: Update NuGet package version
+    #   run: |
+    #     echo "Updating version to $VERSION in project files"
+    #     find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g"
+    #   shell: bash
+    #   env:
+    #     VERSION: ${{ steps.gitversion.outputs.GitVersion_SemVer }}
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
-    # - name: Test
-    #   run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
+    - name: Test
+      run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
