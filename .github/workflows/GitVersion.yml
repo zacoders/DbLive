@@ -1,10 +1,5 @@
-assembly-versioning-scheme: MajorMinorPatch
-mode: Mainline
-branches:
-  feature:
-    tag: feature/{BranchName}
-  hotfix:
-    tag: bugfix/{BranchName}
+mode: ContinuousDeployment
+branches: {}
 ignore:
   sha: []
 merge-message-formats: {}
