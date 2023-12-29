@@ -36,5 +36,10 @@ jobs:
       run: |
         echo "Updating version to $GITVERSION_SEMVER in project files"
         find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
-      
-run-name: $GITVERSION_SEMVER   
+
+    
+    - name: Create git tag $GITVERSION_SEMVER
+      run: git tag $GITVERSION_SEMVER
+
+    - name: Push git tag $GITVERSION_SEMVER
+      run: git push origin $GITVERSION_SEMVER
