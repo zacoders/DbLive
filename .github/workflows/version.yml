@@ -33,7 +33,7 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0
       with:
         useConfigFile: true
-        configFilePath: gitvertion-config.yml
+        configFilePath: .github/workflows/gitvertion-config.yml
         updateAssemblyInfo: true
     
     - name: Semver
