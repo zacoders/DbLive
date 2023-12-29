@@ -57,7 +57,7 @@ jobs:
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Debug #debug required to run unit tests
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --verbosity normal
