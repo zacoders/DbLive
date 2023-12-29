@@ -2,12 +2,16 @@ name: GitVersion
 
 on:
   push:
-    branches:
-      - '*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   gitversion:
     runs-on: ubuntu-latest
+
+    env:
+      SOLUTION_PATH: 'src/EasySqlFlow.sln'
 
     steps:
     - name: Checkout code
@@ -22,10 +26,22 @@ jobs:
 
     - name: Install GitVersion
       run: dotnet tool install -g GitVersion.Tool
-  
+    
     - name: Run GitVersion
-      run: dotnet gitversion /config GitVersion.yml /output buildserver
       id: gitversion
+      run: gitversion /output buildserver
 
     - name: Show GitVersion output
       run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
+
+    - name: Update NuGet package version
+      run: |
+        version=$(echo "${{ steps.gitversion.outputs.stdout }}" | grep "AssemblySemVer:" | awk '{print $2}')
+        echo "Updating version to $version in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$version<\/Version>/g"
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }} 
+
+    - name: Test
+      run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
