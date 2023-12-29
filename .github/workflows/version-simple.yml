@@ -43,3 +43,5 @@ jobs:
 
     - name: Push git tag $GITVERSION_SEMVER
       run: git push origin $GITVERSION_SEMVER
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
