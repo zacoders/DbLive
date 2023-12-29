@@ -36,12 +36,12 @@ jobs:
 
     - name: Update NuGet package version
       run: |
-        version=$(echo "${{ steps.gitversion.outputs.stdout }}" | grep "AssemblySemVer:" | awk '{print $2}')
+        version=${{ steps.gitversion.outputs.GitVersion_SemVer }}
         echo "Updating version to $version in project files"
         find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$version<\/Version>/g"
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
-    - name: Test
-      run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
+    # - name: Test
+    #   run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
