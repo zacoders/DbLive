@@ -92,12 +92,10 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
     
-    - name: Create git tag $GITVERSION_SEMVER
+    - name: Create git tag
       if: github.ref == 'refs/heads/main'
       run: git tag $GITVERSION_SEMVER
 
-    - name: Push git tag $GITVERSION_SEMVER
+    - name: Push git tag
       if: github.ref == 'refs/heads/main'
       run: git push origin $GITVERSION_SEMVER
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
