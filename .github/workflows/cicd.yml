@@ -57,11 +57,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
-    - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Debug #debug required to run unit tests
+    # - name: Build
+    #   run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Debug #debug required to run unit tests
 
     - name: Test
-      run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --verbosity normal
+      run: dotnet test ${{ env.SOLUTION_PATH }}  --verbosity normal #--no-build
 
     - name: Create the package
       run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
