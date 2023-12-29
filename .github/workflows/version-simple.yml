@@ -1,5 +1,4 @@
 name: GitVersion (Simple)
-run-name: $GITVERSION_SEMVER
 
 on:
   push:
@@ -37,5 +36,5 @@ jobs:
       run: |
         echo "Updating version to $GITVERSION_SEMVER in project files"
         find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
-    
       
+run-name: $GITVERSION_SEMVER   
