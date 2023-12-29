@@ -38,6 +38,7 @@ jobs:
           --health-retries 5
     
     env:
+      NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
       ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
       ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
@@ -50,12 +51,20 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+        source-url: https://nuget.pkg.github.com/zatuliveter/index.json
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --verbosity normal
+
+    - name: Create the package
+      run: dotnet pack ${{ env.SOLUTION_PATH }} --configuration Release
+
+    - name: Publish the package to GPR
+      run: dotnet nuget push bin/Release/*.nupkg
+      
