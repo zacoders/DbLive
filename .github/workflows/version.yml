@@ -8,10 +8,38 @@ on:
 
 jobs:
   gitversion:
+
     runs-on: ubuntu-latest
 
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: Strong_Pass123
+          ACCEPT_EULA: 'Y'
+          #MSSQL_PID: Express
+        ports:
+          - 1433:1433
+        options: --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P ${SA_PASSWORD} -Q 'SELECT 1' || exit 1"  --health-interval 10s --health-timeout 5s --health-retries 5
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: Strong_Pass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     env:
+      NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
+      NUGET_PROJECT_PATH: 'src/EasyFlow/EasyFlow.csproj'
+      ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
+      ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
 
     steps:
     - name: Checkout code
@@ -23,6 +51,7 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+        source-url: https://nuget.pkg.github.com/zatuliveter/index.json
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0
@@ -39,29 +68,17 @@ jobs:
     - name: Semver
       run: echo $GITVERSION_SEMVER
 
-    # - name: Install GitVersion
-    #   run: dotnet tool install -g GitVersion.Tool
-    
-    # - name: Run GitVersion
-    #   id: gitversion
-    #   run: dotnet gitversion /config GitVersion.yml /output buildserver
-
-    # - name: Show GitVersion output
-    #   run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
-
-    # - name: Show GitVersion_SemVer
-    #   run: 'echo "GitVersion_SemVert: ${{ steps.gitversion.outputs.GitVersion_SemVer }}"'
-
-    # - name: Update NuGet package version
-    #   run: |
-    #     echo "Updating version to $VERSION in project files"
-    #     find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g"
-    #   shell: bash
-    #   env:
-    #     VERSION: ${{ steps.gitversion.outputs.GitVersion_SemVer }}
-
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
+
+    - name: Create the package
+      if: github.ref == 'refs/heads/main'
+      run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
+
+    - name: Publish the package
+      if: github.ref == 'refs/heads/main'
+      run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
+      
