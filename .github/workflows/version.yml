@@ -34,6 +34,9 @@ jobs:
     - name: Show GitVersion output
       run: 'echo "GitVersion Output: ${{ steps.gitversion.outputs.stdout }}"'
 
+    - name: Show GitVersion_SemVer
+      run: 'echo "GitVersion_SemVert: ${{ steps.gitversion.outputs.GitVersion_SemVer }}"'
+
     - name: Update NuGet package version
       run: |
         echo "Updating version to $VERSION in project files"
