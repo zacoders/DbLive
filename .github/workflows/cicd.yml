@@ -63,8 +63,10 @@ jobs:
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
 
-    - name: Create the package
-      run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
+    # - name: Create the package
+    #   run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
+    - name: Create the package v2
+      run: nuget pack ${{ env.NUGET_PROJECT_PATH }} -IncludeReferencedProjects
 
     - name: Publish the package to GPR
       run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
