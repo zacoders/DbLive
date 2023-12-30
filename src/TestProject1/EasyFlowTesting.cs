@@ -1,7 +1,9 @@
 using EasyFlow;
+using EasyFlow.Adapter.MSSQL;
 using EasyFlow.Common;
 using EasyFlow.Tests;
 using EasyFlow.VSTests;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
@@ -13,7 +15,18 @@ public class EasyFlowTesting(ITestOutputHelper output)
 
 	readonly static string _sqlConnectionString = GetDbConnectionString(_unitTestsDBName);
 
-	private static readonly EasyFlowPrepareTests TestsPrepare = new(DBEngine.MSSQL, _msSqlTestingProjectPath);
+	private static readonly IEasyFlowPrepareTests TestsPrepare;
+
+	static EasyFlowTesting()
+	{
+		Container.InitializeMSSQL();
+		Container.InitializeEasyFlow();
+		var serviceProvider = Container.BuildServiceProvider();
+		TestsPrepare = serviceProvider.GetService<IEasyFlowPrepareTests>()!;
+		TestsPrepare.Load(_msSqlTestingProjectPath);
+
+		TestsPrepare.PrepareUnitTestingDatabase(_sqlConnectionString);
+	}
 
 	public void Dispose()
 	{
@@ -38,7 +51,6 @@ public class EasyFlowTesting(ITestOutputHelper output)
 	public static IEnumerable<object[]> GetListOfTests()
 	{
 		//yield return new object[] { "", -1 };
-		TestsPrepare.PrepareUnitTestingDatabase(_sqlConnectionString);
 
 		int indexer = 0;
 		foreach (var testItem in TestsPrepare.TestItems)

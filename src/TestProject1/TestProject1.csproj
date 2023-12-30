@@ -13,17 +13,18 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="System.Data.SqlClient" />
     <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.runner.visualstudio" >
+    <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector" >
+    <PackageReference Include="coverlet.collector">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj" />
     <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
     <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
     <ProjectReference Include="..\EasyFlow.Tests\EasyFlow.Tests.csproj" />

@@ -1,34 +1,26 @@
 ﻿namespace EasyFlow.VSTests;
 
-public class EasyFlowPrepareTests
+public class EasyFlowPrepareTests(
+	IEasyFlow _easyFlow, 
+	IEasyFlowProject _easyFlowProject, 
+	IUnitTestsRunner _unitTestsRunner
+) : IEasyFlowPrepareTests
 {
 	private static IServiceCollection Container = new ServiceCollection();
-	private readonly string _projectPath;
-
-	private IUnitTestsRunner UnitTestsRunner { get; init; }
-	private IEasyFlow EasyFlow { get; set; }
-
-	public TestItem[] TestItems { get; private set; } = [];
-
-	public EasyFlowPrepareTests(string projectPath)
-	{
-		_projectPath = projectPath;
-
-		Container.InitializeEasyFlow();
+	private string? _projectPath;
 		
-		var serviceProvider = Container.BuildServiceProvider();
-
-		UnitTestsRunner = serviceProvider.GetService<IUnitTestsRunner>()!;
-		EasyFlow = serviceProvider.GetService<IEasyFlow>()!;
-
-		var project = serviceProvider.GetService<IEasyFlowProject>()!;
-		project.Load(projectPath);
-		TestItems = [.. project.GetTests()];
-	}
+	public TestItem[] TestItems { get; private set; } = [];
 
 	public TestRunResult Run(TestItem testItem, string sqlConnectionString, EasyFlowSettings settings)
 	{
-		return UnitTestsRunner.RunTest(testItem, sqlConnectionString, settings);
+		return _unitTestsRunner.RunTest(testItem, sqlConnectionString, settings);
+	}
+
+	public void Load(string projectPath)
+	{
+		_projectPath = projectPath;
+		_easyFlowProject.Load(projectPath);
+		TestItems = [.. _easyFlowProject.GetTests()];
 	}
 
 	public void PrepareUnitTestingDatabase(string sqlConnectionString)
@@ -48,7 +40,10 @@ public class EasyFlowPrepareTests
 			RunTests = false /* we will run tests in Visual Studio UI */
 		};
 
-		EasyFlow.DeployProject(_projectPath, sqlConnectionString, deployParams);
+		_easyFlow.DeployProject(
+			_projectPath ?? throw new Exception("Please call 'Load()' first."), 
+			sqlConnectionString, 
+			deployParams
+		);
 	}
-
 }

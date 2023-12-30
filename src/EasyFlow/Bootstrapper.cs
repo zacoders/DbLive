@@ -1,4 +1,6 @@
-﻿namespace EasyFlow;
+﻿using EasyFlow.VSTests;
+
+namespace EasyFlow;
 
 public static class Bootstrapper
 {
@@ -12,5 +14,6 @@ public static class Bootstrapper
 		container.AddSingleton<MigrationItemDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
+		container.AddSingleton<IEasyFlowPrepareTests, EasyFlowPrepareTests>();
 	}
 }
