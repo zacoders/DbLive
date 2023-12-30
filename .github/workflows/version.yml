@@ -67,7 +67,7 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0
       with:
         useConfigFile: true
-        configFilePath: .github/workflows/GitVersion.yml
+        configFilePath: .github/GitVersion.yml
         updateAssemblyInfo: true
       
     - name: Update NuGet package version
