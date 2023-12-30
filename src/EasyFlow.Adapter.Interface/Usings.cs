@@ -1,2 +1,2 @@
-global using EasyFlow.Project.Settings;
+global using EasyFlow.Common;
 
