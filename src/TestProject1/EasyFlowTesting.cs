@@ -65,6 +65,8 @@ public class EasyFlowTesting : IDisposable
 
 		var testItem = TestsList[num];
 
+		output.WriteLine($"Path: {testItem.FileData.RelativePath}");
+
 		var testRunResult = _unitTestsRunner.RunTest(testItem, _sqlConnectionString, new EasyFlowSettings());
 
 		output.WriteLine(testRunResult.Output);

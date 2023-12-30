@@ -157,7 +157,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 			TestItem testItem = new()
 			{
 				Name = testFilePath.GetLastSegment(),
-				Path = testFilePath,
 				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
 			};
 

@@ -7,7 +7,7 @@ public class EasyFlowTestingMSSQLFixture : EasyFlowTestingMSSQL
 {
 	readonly static string _unitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
 	readonly static string _dbConnectionString = new TestConfig().GetSqlServerConnectionString(_unitTestsDBName);
-	internal static string _projectPath = Path.GetFullPath(@"TestProject_MSSQL");
+	internal readonly static string _projectPath = Path.GetFullPath(@"TestProject_MSSQL");
 
 	public EasyFlowTestingMSSQLFixture() 
 		: base(_projectPath, _dbConnectionString)
