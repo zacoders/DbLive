@@ -11,7 +11,7 @@ namespace TestProject1;
 public class EasyFlowTesting : IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
-	private readonly TestItem[] TestsList;
+	private readonly Dictionary<string, TestItem> TestsList;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly IEasyFlowDA _easyFlowDa;
 	private readonly string _projectPath;
@@ -59,13 +59,14 @@ public class EasyFlowTesting : IDisposable
 		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
-	public void RunTest(ITestOutputHelper output, string test, int num)
+	public void RunTest(ITestOutputHelper output, string relativePath)
 	{
-		output.WriteLine($"Running unit test #{num}: {test}");
+		output.WriteLine($"Running unit test {relativePath}");
+		output.WriteLine("");
 
-		var testItem = TestsList[num];
+		var testItem = TestsList[relativePath];
 
-		output.WriteLine($"Path: {testItem.FileData.RelativePath}");
+		output.WriteLine($"{testItem.FileData.Content}");
 
 		var testRunResult = _unitTestsRunner.RunTest(testItem, _sqlConnectionString, new EasyFlowSettings());
 
@@ -82,17 +83,17 @@ public class EasyFlowTesting : IDisposable
 	{
 		//yield return new object[] { "", -1 };
 
-		int indexer = 0;
 		foreach (var testItem in GetTests(projectPath))
 		{
-			yield return new object[] { testItem.Name, indexer++ };
+			yield return new object[] { testItem.Key };
 		}
 	}
 
-	private static TestItem[] GetTests(string projectPath)
+	private static Dictionary<string, TestItem>  GetTests(string projectPath)
 	{
 		var project = new EasyFlowProject(new FileSystem());
 		project.Load(projectPath);
-		return [.. project.GetTests()];
+
+		return project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
 	}
 }

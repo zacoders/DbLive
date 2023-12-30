@@ -20,7 +20,7 @@ public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _mssql, ITestOutput
 {
 	[Theory]
 	[MemberData(nameof(GetListOfTests))]
-	public void DB(string test, int num) => _mssql.RunTest(_output, test, num);
+	public void Sql(string test) => _mssql.RunTest(_output, test);
 
 	public static IEnumerable<object[]> GetListOfTests() => EasyFlowTesting.GetListOfTestsBase(EasyFlowTestingMSSQLFixture._projectPath);
 }
