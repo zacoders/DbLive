@@ -8,26 +8,23 @@ public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static string TestDbNamePrefix = "EasyFlow--";
 
-	protected static readonly string masterDbConnectionString;
+	protected readonly string masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
-	protected static string GetDbConnectionString(string dbName) 
+	protected string GetDbConnectionString(string dbName) 
 	{
 		var cnnBuilder = new SqlConnectionStringBuilder(masterDbConnectionString);
 		cnnBuilder.InitialCatalog = dbName;
 		return cnnBuilder.ConnectionString;
 	}
-	static SqlServerIntegrationBaseTest()
+	
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeMSSQL();
 		Container.InitializeEasyFlow();
 		var config = GetService<TestConfig>();
 		masterDbConnectionString = config.GetSqlServerConnectionString();
-	}
-
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
-	{		
 	}
 
 	private void DropTestingDatabases()
