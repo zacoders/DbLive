@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Common\EasyFlow.Common.csproj" />
-    <ProjectReference Include="..\EasyFlow.Project.Settings\EasyFlow.Project.Settings.csproj" />
   </ItemGroup>
 	
 </Project>
