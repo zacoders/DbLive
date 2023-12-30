@@ -175,4 +175,8 @@ public class PostgreSqlDA : IEasyFlowDA
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
+	public void DropDB(string cnnString, bool skipIfNotExists = true)
+	{
+		throw new NotImplementedException();
+	}
 }

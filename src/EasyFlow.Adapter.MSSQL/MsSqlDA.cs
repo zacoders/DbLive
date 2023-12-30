@@ -134,6 +134,38 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
+	public void DropDB(string cnnString, bool skipIfNotExists = true)
+	{
+		SqlConnectionStringBuilder builder = new(cnnString);
+		string databaseToDrop = builder.InitialCatalog;
+		builder.InitialCatalog = "master";
+
+		SqlConnection cnn = new(builder.ConnectionString);
+		cnn.Open();
+
+		var cmd = cnn.CreateCommand();
+		cmd.CommandText = "select 1 from sys.databases where name = @name";
+		cmd.Parameters.AddWithValue("name", databaseToDrop);
+		bool dbExists = (int?)cmd.ExecuteScalar() == 1;
+
+		if (!dbExists)
+		{
+			if (skipIfNotExists)
+			{
+				return;
+			}
+			else
+			{
+				throw new Exception($"Database '{databaseToDrop}' does not exists.");
+			}
+		}
+
+		ServerConnection serverCnn = new(cnn);
+		serverCnn.ExecuteNonQuery($"drop database [{databaseToDrop}];");
+
+		serverCnn.Disconnect();
+	}
+
 	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
 	{
 		using var cnn = new SqlConnection(cnnString);

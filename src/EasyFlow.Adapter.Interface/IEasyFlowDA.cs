@@ -20,6 +20,8 @@ public interface IEasyFlowDA
 
 	void CreateDB(string cnnString, bool skipIfExists = true);
 
+	void DropDB(string cnnString, bool skipIfNotExists = true);
+
 	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string cnnString, string sqlStatementt);
 	CodeItemDto? FindCodeItem(string cnnString, string relativePath);

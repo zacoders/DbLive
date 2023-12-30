@@ -1,36 +1,49 @@
 using EasyFlow;
-using EasyFlow.Adapter.MSSQL;
+using EasyFlow.Adapter.Interface;
 using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class EasyFlowTesting
+public class EasyFlowTesting : IDisposable
 {
-	protected readonly IServiceCollection Container;
-
+	private readonly ServiceProvider _serviceProvider;
 	private readonly TestItem[] TestsList;
 	private readonly IUnitTestsRunner _unitTestsRunner;
+	private readonly IEasyFlowDA _easyFlowDa;
+	private readonly string _projectPath;
 	private readonly string _sqlConnectionString;
 
 	public ITestOutputHelper Output { get; }
 
-	public EasyFlowTesting(string _msSqlTestingProjectPath, string dbConnectionString, ITestOutputHelper output)
+	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString, ITestOutputHelper output)
 	{
-		var project = new EasyFlowProject(new FileSystem());
-		project.Load(_msSqlTestingProjectPath);
-		TestsList = [.. project.GetTests()];
+		_projectPath = projectPath;
+		_sqlConnectionString = sqlConnectionString;
+		Output = output;
 
-		Container = new ServiceCollection();
-		Container.InitializeMSSQL();
-		Container.InitializeEasyFlow();
+		container.InitializeEasyFlow();
+		_serviceProvider = container.BuildServiceProvider();
 
-		var easyFlow = GetService<IEasyFlow>();
+		TestsList = GetTests(projectPath);
+
 		_unitTestsRunner = GetService<IUnitTestsRunner>();
+		_easyFlowDa = GetService<IEasyFlowDA>();
+
+		PrepareTestingDatabase();
+	}
+
+	public void Dispose()
+	{
+		//_easyFlowDa.DropDB(_sqlConnectionString);
+	}
+
+	protected void PrepareTestingDatabase()
+	{
+		var easyFlow = GetService<IEasyFlow>();
 
 		DeployParameters deployParams = new()
 		{
@@ -41,15 +54,12 @@ public class EasyFlowTesting
 			RunTests = false /* we will run tests in Visual Studio UI */
 		};
 
-		_sqlConnectionString = dbConnectionString;
-
-		easyFlow.DeployProject(_msSqlTestingProjectPath, _sqlConnectionString, deployParams);
-		Output = output;
+		easyFlow.DeployProject(_projectPath, _sqlConnectionString, deployParams);
 	}
 
-	protected TService GetService<TService>()
+	private TService GetService<TService>()
 	{
-		return Container.BuildServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
 	public void RunTest(string test, int num)
@@ -73,13 +83,17 @@ public class EasyFlowTesting
 	{
 		//yield return new object[] { "", -1 };
 
-		var project = new EasyFlowProject(new FileSystem());
-		project.Load(projectPath);
-
 		int indexer = 0;
-		foreach (var testItem in project.GetTests())
+		foreach (var testItem in GetTests(projectPath))
 		{
 			yield return new object[] { testItem.Name, indexer++ };
 		}
+	}
+
+	private static TestItem[] GetTests(string projectPath)
+	{
+		var project = new EasyFlowProject(new FileSystem());
+		project.Load(projectPath);
+		return [.. project.GetTests()];
 	}
 }
