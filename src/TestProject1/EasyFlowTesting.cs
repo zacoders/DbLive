@@ -12,15 +12,15 @@ public class EasyFlowTesting : SqlServerIntegrationBaseTest, IDisposable
 {
 	readonly static string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
 
-	private static TestItem[] TestsList;
-	private IUnitTestsRunner _unitTestsRunner;
-	private string _sqlConnectionString;
+	private static readonly TestItem[] TestsList;
+	private readonly IUnitTestsRunner _unitTestsRunner;
+	private readonly string _sqlConnectionString;
 
 	static EasyFlowTesting()
 	{
 		var project = new EasyFlowProject(new FileSystem());
 		project.Load(_msSqlTestingProjectPath);
-		TestsList = project.GetTests().ToArray();
+		TestsList = [.. project.GetTests()];
 	}
 
 	public EasyFlowTesting(ITestOutputHelper output)
