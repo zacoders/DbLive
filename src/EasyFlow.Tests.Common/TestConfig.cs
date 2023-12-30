@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace EasyFlow.Tests.Config;
+namespace EasyFlow.Tests.Common;
 
 public class TestConfig
 {

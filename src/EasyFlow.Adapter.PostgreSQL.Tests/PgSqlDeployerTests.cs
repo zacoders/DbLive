@@ -1,6 +1,4 @@
-using EasyFlow.Tests.Config;
-
-namespace EasyFlow.Adapter.Tests;
+namespace EasyFlow.Adapter.PostgreSQL.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase
 {

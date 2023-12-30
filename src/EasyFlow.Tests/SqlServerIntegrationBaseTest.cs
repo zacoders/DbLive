@@ -1,5 +1,3 @@
-using EasyFlow.Tests.Config;
-
 namespace EasyFlow.Tests;
 
 public class SqlServerIntegrationBaseTest : IntegrationTestsBase

@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Project.Settings;
+﻿namespace EasyFlow.Common;
 
 public enum TransactionWrapLevel
 {

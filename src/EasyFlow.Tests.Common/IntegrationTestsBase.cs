@@ -1,5 +1,4 @@
-﻿using EasyFlow.Tests.Config;
-namespace EasyFlow.Tests.Common;
+﻿namespace EasyFlow.Tests.Common;
 
 public abstract class IntegrationTestsBase : TestBase
 {
