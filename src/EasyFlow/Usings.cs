@@ -1,6 +1,4 @@
 global using EasyFlow.Adapter.Interface;
-global using EasyFlow.Adapter.MSSQL;
-global using EasyFlow.Adapter.PostgreSQL;
 global using EasyFlow.Common;
 global using EasyFlow.Deployers;
 global using EasyFlow.Exceptions;

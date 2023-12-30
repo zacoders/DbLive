@@ -7,7 +7,9 @@ public class MsSqlDeployerTests : IntegrationTestsBase
 
 	public MsSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
+		Container.InitializeMSSQL();
+		Container.InitializeEasyFlow();
+
 		var config = GetService<TestConfig>();
 		_da = GetService<IEasyFlowDA>();
 		_cnnString = config.GetSqlServerConnectionString();

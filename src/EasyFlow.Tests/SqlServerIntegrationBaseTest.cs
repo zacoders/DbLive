@@ -1,3 +1,6 @@
+using Microsoft.SqlServer.Management.Common;
+using EasyFlow.Adapter.MSSQL;
+
 namespace EasyFlow.Tests;
 
 public class SqlServerIntegrationBaseTest : IntegrationTestsBase
@@ -17,7 +20,8 @@ public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 	}
 	static SqlServerIntegrationBaseTest()
 	{
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
+		Container.InitializeMSSQL();
+		Container.InitializeEasyFlow();
 		var config = GetService<TestConfig>();
 		masterDbConnectionString = config.GetSqlServerConnectionString();
 	}

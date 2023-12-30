@@ -7,7 +7,8 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
-		Container.InitializeEasyFlow(DBEngine.PostgreSql);
+		Container.InitializePostgreSQL();
+		Container.InitializeEasyFlow();
 
 		var config = GetService<TestConfig>();
 		_cnnString = config.GetPostgreSqlConnectionString();

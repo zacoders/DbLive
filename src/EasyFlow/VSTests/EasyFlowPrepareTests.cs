@@ -10,11 +10,12 @@ public class EasyFlowPrepareTests
 
 	public TestItem[] TestItems { get; private set; } = [];
 
-	public EasyFlowPrepareTests(DBEngine dBEngine, string projectPath)
+	public EasyFlowPrepareTests(string projectPath)
 	{
 		_projectPath = projectPath;
 
-		Container.InitializeEasyFlow(dBEngine);
+		Container.InitializeEasyFlow();
+		
 		var serviceProvider = Container.BuildServiceProvider();
 
 		UnitTestsRunner = serviceProvider.GetService<IUnitTestsRunner>()!;
@@ -23,7 +24,6 @@ public class EasyFlowPrepareTests
 		var project = serviceProvider.GetService<IEasyFlowProject>()!;
 		project.Load(projectPath);
 		TestItems = [.. project.GetTests()];
-
 	}
 
 	public TestRunResult Run(TestItem testItem, string sqlConnectionString, EasyFlowSettings settings)
