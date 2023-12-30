@@ -3,29 +3,29 @@ using EasyFlow.Adapter.MSSQL;
 using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;
-using EasyFlow.Tests;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class EasyFlowTesting : SqlServerIntegrationBaseTest, IDisposable
+public class EasyFlowTesting
 {
-	readonly static string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
+	protected readonly IServiceCollection Container;
 
-	private static readonly TestItem[] TestsList;
+	private readonly TestItem[] TestsList;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly string _sqlConnectionString;
 
-	static EasyFlowTesting()
+	public ITestOutputHelper Output { get; }
+
+	public EasyFlowTesting(string _msSqlTestingProjectPath, string dbConnectionString, ITestOutputHelper output)
 	{
 		var project = new EasyFlowProject(new FileSystem());
 		project.Load(_msSqlTestingProjectPath);
 		TestsList = [.. project.GetTests()];
-	}
 
-	public EasyFlowTesting(ITestOutputHelper output)
-		: base(output)
-	{
+		Container = new ServiceCollection();
 		Container.InitializeMSSQL();
 		Container.InitializeEasyFlow();
 
@@ -41,19 +41,18 @@ public class EasyFlowTesting : SqlServerIntegrationBaseTest, IDisposable
 			RunTests = false /* we will run tests in Visual Studio UI */
 		};
 
-		_sqlConnectionString = GetDbConnectionString(_unitTestsDBName);
+		_sqlConnectionString = dbConnectionString;
 
 		easyFlow.DeployProject(_msSqlTestingProjectPath, _sqlConnectionString, deployParams);
+		Output = output;
 	}
 
-	public void Dispose()
+	protected TService GetService<TService>()
 	{
-		//DropTestingDatabase(_unitTestsDBName);
+		return Container.BuildServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
-	[Theory]
-	[MemberData(nameof(GetListOfTests))]
-	public void DB(string test, int num)
+	public void RunTest(string test, int num)
 	{
 		Output.WriteLine($"Running unit test #{num}: {test}");
 
@@ -67,15 +66,18 @@ public class EasyFlowTesting : SqlServerIntegrationBaseTest, IDisposable
 	}
 
 	/// <summary>
-	/// Returns list of tests. Must be static member since it is used in the [MemberData] attribute.
+	/// Returns list of tests. Static method since it is used in the [MemberData] attribute.
 	/// </summary>
 	/// <returns></returns>
-	public static IEnumerable<object[]> GetListOfTests()
+	public static IEnumerable<object[]> GetListOfTestsBase(string projectPath)
 	{
 		//yield return new object[] { "", -1 };
 
+		var project = new EasyFlowProject(new FileSystem());
+		project.Load(projectPath);
+
 		int indexer = 0;
-		foreach (var testItem in TestsList)
+		foreach (var testItem in project.GetTests())
 		{
 			yield return new object[] { testItem.Name, indexer++ };
 		}

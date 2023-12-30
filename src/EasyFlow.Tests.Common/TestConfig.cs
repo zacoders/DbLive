@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace EasyFlow.Tests.Common;
 
@@ -39,6 +40,13 @@ public class TestConfig
 	}
 
 	public string GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
+	
+	public string GetSqlServerConnectionString(string dbName)
+	{
+		var cnnBuilder = new SqlConnectionStringBuilder(GetSqlServerConnectionString());
+		cnnBuilder.InitialCatalog = dbName;
+		return cnnBuilder.ConnectionString;
+	}
 
 	public string GetPostgreSqlConnectionString() => GetConnectionString("POSTGRESQL");
 }
