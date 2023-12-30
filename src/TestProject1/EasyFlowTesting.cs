@@ -1,5 +1,5 @@
 using EasyFlow;
-using EasyFlow.Project.Settings;
+using EasyFlow.Common;
 using EasyFlow.Tests;
 using EasyFlow.VSTests;
 using Xunit.Abstractions;
