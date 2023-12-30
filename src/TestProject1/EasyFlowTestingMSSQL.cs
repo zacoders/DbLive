@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestProject1;
 
-public class EasyFlowTestingMSSQL : EasyFlowTesting
+public abstract class EasyFlowTestingMSSQL : EasyFlowTesting
 {
 	public EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
 		: base(CreateContainer(), projectPath, dbConnectionString)

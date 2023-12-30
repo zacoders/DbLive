@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class EasyFlowTesting : IDisposable
+public abstract class EasyFlowTesting : IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
 	private readonly Dictionary<string, TestItem> TestsList;
@@ -59,6 +59,11 @@ public class EasyFlowTesting : IDisposable
 		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
+	/// <summary>
+	/// Runs Sql test.
+	/// </summary>
+	/// <param name="output">xUnit <see cref="ITestOutputHelper"/></param>
+	/// <param name="relativePath">Relative path to the sql test.</param>
 	public void RunTest(ITestOutputHelper output, string relativePath)
 	{
 		output.WriteLine($"Running unit test {relativePath}");
@@ -78,11 +83,11 @@ public class EasyFlowTesting : IDisposable
 	/// <summary>
 	/// Returns list of tests. Static method since it is used in the [MemberData] attribute.
 	/// </summary>
-	/// <returns></returns>
+	/// <returns>
+	/// An IEnumerable of object arrays, where each array contains a single element representing a test key which is relative path to the sql test (string).
+	/// </returns>
 	public static IEnumerable<object[]> GetListOfTestsBase(string projectPath)
 	{
-		//yield return new object[] { "", -1 };
-
 		foreach (var testItem in GetTests(projectPath))
 		{
 			yield return new object[] { testItem.Key };
