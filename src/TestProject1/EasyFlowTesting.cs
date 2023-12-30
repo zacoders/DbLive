@@ -17,14 +17,11 @@ public class EasyFlowTesting : IDisposable
 	private readonly string _projectPath;
 	private readonly string _sqlConnectionString;
 
-	public ITestOutputHelper Output { get; }
-
-	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString, ITestOutputHelper output)
+	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString)
 	{
 		_projectPath = projectPath;
 		_sqlConnectionString = sqlConnectionString;
-		Output = output;
-
+		
 		container.InitializeEasyFlow();
 		_serviceProvider = container.BuildServiceProvider();
 
@@ -38,7 +35,7 @@ public class EasyFlowTesting : IDisposable
 
 	public void Dispose()
 	{
-		//_easyFlowDa.DropDB(_sqlConnectionString);
+		_easyFlowDa.DropDB(_sqlConnectionString);
 	}
 
 	protected void PrepareTestingDatabase()
@@ -62,15 +59,15 @@ public class EasyFlowTesting : IDisposable
 		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
-	public void RunTest(string test, int num)
+	public void RunTest(ITestOutputHelper output, string test, int num)
 	{
-		Output.WriteLine($"Running unit test #{num}: {test}");
+		output.WriteLine($"Running unit test #{num}: {test}");
 
 		var testItem = TestsList[num];
 
 		var testRunResult = _unitTestsRunner.RunTest(testItem, _sqlConnectionString, new EasyFlowSettings());
 
-		Output.WriteLine(testRunResult.Output);
+		output.WriteLine(testRunResult.Output);
 
 		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
 	}

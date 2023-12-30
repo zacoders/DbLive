@@ -1,4 +1,5 @@
 ﻿using EasyFlow.Common;
+using System.Collections.Specialized;
 using System.Data;
 
 namespace EasyFlow.Adapter.MSSQL;
@@ -159,9 +160,12 @@ public class MsSqlDA : IEasyFlowDA
 				throw new Exception($"Database '{databaseToDrop}' does not exists.");
 			}
 		}
-
+		
 		ServerConnection serverCnn = new(cnn);
-		serverCnn.ExecuteNonQuery($"drop database [{databaseToDrop}];");
+		serverCnn.ExecuteNonQuery(new StringCollection {
+			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
+			$"drop database [{databaseToDrop}];"
+		});
 
 		serverCnn.Disconnect();
 	}

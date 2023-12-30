@@ -3,20 +3,24 @@ using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class EasyFlowTestingDemo : EasyFlowTestingMSSQL
+public class EasyFlowTestingMSSQLFixture : EasyFlowTestingMSSQL
 {
 	readonly static string _unitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
-	readonly static string _projectPath = Path.GetFullPath(@"TestProject_MSSQL");
 	readonly static string _dbConnectionString = new TestConfig().GetSqlServerConnectionString(_unitTestsDBName);
+	internal static string _projectPath = Path.GetFullPath(@"TestProject_MSSQL");
 
-	public EasyFlowTestingDemo(ITestOutputHelper output)
-		: base(_projectPath, _dbConnectionString, output)
-	{		
+	public EasyFlowTestingMSSQLFixture() 
+		: base(_projectPath, _dbConnectionString)
+	{
 	}
+}
 
+public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _mssql, ITestOutputHelper _output) 
+	: IClassFixture<EasyFlowTestingMSSQLFixture>
+{
 	[Theory]
 	[MemberData(nameof(GetListOfTests))]
-	public void DB(string test, int num) => RunTest(test, num);
+	public void DB(string test, int num) => _mssql.RunTest(_output, test, num);
 
-	public static IEnumerable<object[]> GetListOfTests() => EasyFlowTesting.GetListOfTestsBase(_projectPath);
+	public static IEnumerable<object[]> GetListOfTests() => EasyFlowTesting.GetListOfTestsBase(EasyFlowTestingMSSQLFixture._projectPath);
 }
