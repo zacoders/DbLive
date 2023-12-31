@@ -7,7 +7,7 @@ public class BreakingChangesDeployer(
 		MigrationItemDeployer _migrationItemDeployer
 	)
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
+	//private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
 
 	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
 	{
@@ -51,7 +51,7 @@ public class BreakingChangesDeployer(
 
 			using var tran = TransactionScopeManager.Create();
 			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, new[] { MigrationItemType.BreakingChange });
+				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, [MigrationItemType.BreakingChange]);
 				_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, _timeProvider.UtcNow());
 				tran.Complete();
 			}

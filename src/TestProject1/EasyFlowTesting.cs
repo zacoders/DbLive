@@ -34,7 +34,11 @@ public abstract class EasyFlowTesting : IEnumerable<object[]>, IDisposable
 		PrepareTestingDatabase();
 	}
 
-	public void Dispose() => _easyFlowDa.DropDB(_sqlConnectionString);
+	public void Dispose()
+	{
+		_easyFlowDa.DropDB(_sqlConnectionString);
+		GC.SuppressFinalize(this);
+	}
 
 	protected void PrepareTestingDatabase()
 	{

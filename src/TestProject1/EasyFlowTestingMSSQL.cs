@@ -3,13 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TestProject1;
 
-public abstract class EasyFlowTestingMSSQL : EasyFlowTesting
+public abstract class EasyFlowTestingMSSQL(string projectPath, string dbConnectionString) 
+	: EasyFlowTesting(CreateContainer(), projectPath, dbConnectionString)
 {
-	public EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
-		: base(CreateContainer(), projectPath, dbConnectionString)
-	{
-	}
-
 	private static ServiceCollection CreateContainer()
 	{
 		// TODO: I think we can create factory or class what will create and initialize contaner for specifig sql engine.

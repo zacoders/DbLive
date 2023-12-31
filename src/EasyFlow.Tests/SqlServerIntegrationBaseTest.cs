@@ -1,24 +1,26 @@
-using Microsoft.SqlServer.Management.Common;
 using EasyFlow.Adapter.MSSQL;
+using Microsoft.SqlServer.Management.Common;
 
 namespace EasyFlow.Tests;
 
 public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 {
 	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
-	private static string TestDbNamePrefix = "EasyFlow--";
+	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
 	protected readonly string masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
-	protected string GetDbConnectionString(string dbName) 
+	protected string GetDbConnectionString(string dbName)
 	{
-		var cnnBuilder = new SqlConnectionStringBuilder(masterDbConnectionString);
-		cnnBuilder.InitialCatalog = dbName;
+		SqlConnectionStringBuilder cnnBuilder = new(masterDbConnectionString)
+		{
+			InitialCatalog = dbName
+		};
 		return cnnBuilder.ConnectionString;
 	}
-	
+
 	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeMSSQL();
@@ -91,7 +93,7 @@ public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
-		bool exists = cmd.ExecuteScalar() == null ? false : true;
+		bool exists = cmd.ExecuteScalar() != null;
 		return exists;
 	}
 }

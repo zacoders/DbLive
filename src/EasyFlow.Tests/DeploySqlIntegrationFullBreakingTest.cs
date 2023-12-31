@@ -3,11 +3,12 @@ namespace EasyFlow.Tests;
 public class DeploySqlIntegrationFullBreakingTest(ITestOutputHelper output) 
 	: SqlServerIntegrationBaseTest(output), IDisposable
 {
-	string _dbName = GetRanomDbName();
+	readonly string _dbName = GetRanomDbName();
 
 	public void Dispose()
 	{
 		DropTestingDatabases(_dbName);
+		GC.SuppressFinalize(this);
 	}
 
 	[Fact]

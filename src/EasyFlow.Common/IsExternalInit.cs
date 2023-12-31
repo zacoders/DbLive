@@ -20,11 +20,11 @@ namespace System.Runtime.CompilerServices
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public class RequiredMemberAttribute : Attribute { }
 
+
+#pragma warning disable CS9113 // Parameter is unread.
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	public class CompilerFeatureRequiredAttribute : Attribute
-	{
-		public CompilerFeatureRequiredAttribute(string name) { }
-	}
+	public class CompilerFeatureRequiredAttribute(string name) : Attribute { }
+#pragma warning restore CS9113 // Parameter is unread.
 }
 
 namespace System.Diagnostics.CodeAnalysis
