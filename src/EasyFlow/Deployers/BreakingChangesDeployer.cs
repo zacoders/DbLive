@@ -16,10 +16,10 @@ public class BreakingChangesDeployer(
 			return;
 		}
 
-		DeployBreakingMigration(sqlConnectionString, parameters);
+		DeployBreakingMigration(sqlConnectionString /*, parameters*/);
 	}
 
-	private void DeployBreakingMigration(string sqlConnectionString, DeployParameters parameters)
+	private void DeployBreakingMigration(string sqlConnectionString /*, DeployParameters parameters*/)
 	{
 		var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
 
@@ -49,9 +49,10 @@ public class BreakingChangesDeployer(
 				);
 			}
 
+			// TODO: transaction should be configurable?
 			using var tran = TransactionScopeManager.Create();
 			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem, [MigrationItemType.BreakingChange]);
+				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem);
 				_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, _timeProvider.UtcNow());
 				tran.Complete();
 			}

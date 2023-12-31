@@ -17,14 +17,13 @@ public class MigrationTasksTests
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
-				@"C:\MainTestDB\Migrations\003.test3\data.sql",
 				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
 		var migrationTasks = sqlProject.GetMigrationItems("");
 
-		Assert.Equal(4, migrationTasks.Count);
+		Assert.Equal(3, migrationTasks.Count);
 	}
 
 

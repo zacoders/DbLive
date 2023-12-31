@@ -9,7 +9,7 @@ public class MigrationsDeployer(
 {
 	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
 
-	private EasyFlowSettings _projectSettings = new();
+	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
@@ -69,7 +69,14 @@ public class MigrationsDeployer(
 			{
 				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationItemType))
 				{
-					_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem, new[] { MigrationItemType.Migration, MigrationItemType.Data });
+					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
+					{
+						_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem);
+					}
+					else
+					{
+						_migrationItemDeployer.MarkAsSkipped(sqlConnectionString, isSelfDeploy, migration, migrationItem);
+					}
 				}
 
 				DateTime migrationCompletedUtc = _timeProvider.UtcNow();

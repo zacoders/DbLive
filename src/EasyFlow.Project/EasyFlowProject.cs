@@ -65,7 +65,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 		{
 			"migration" => MigrationItemType.Migration,
 			"undo" => MigrationItemType.Undo,
-			"data" => MigrationItemType.Data,
 			"breaking" => MigrationItemType.BreakingChange,
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
