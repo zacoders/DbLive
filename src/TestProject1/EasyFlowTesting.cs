@@ -4,24 +4,25 @@ using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public abstract class EasyFlowTesting : IDisposable
+public abstract class EasyFlowTesting : IEnumerable<object[]>, IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
-	private readonly Dictionary<string, TestItem> TestsList;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly IEasyFlowDA _easyFlowDa;
 	private readonly string _projectPath;
 	private readonly string _sqlConnectionString;
+	private readonly Dictionary<string, TestItem> TestsList;
 
 	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString)
 	{
 		_projectPath = projectPath;
 		_sqlConnectionString = sqlConnectionString;
-		
+
 		container.InitializeEasyFlow();
 		_serviceProvider = container.BuildServiceProvider();
 
@@ -33,10 +34,7 @@ public abstract class EasyFlowTesting : IDisposable
 		PrepareTestingDatabase();
 	}
 
-	public void Dispose()
-	{
-		_easyFlowDa.DropDB(_sqlConnectionString);
-	}
+	public void Dispose() => _easyFlowDa.DropDB(_sqlConnectionString);
 
 	protected void PrepareTestingDatabase()
 	{
@@ -81,20 +79,22 @@ public abstract class EasyFlowTesting : IDisposable
 	}
 
 	/// <summary>
-	/// Returns list of tests. Static method since it is used in the [MemberData] attribute.
+	/// Returns list of tests.
 	/// </summary>
 	/// <returns>
 	/// An IEnumerable of object arrays, where each array contains a single element representing a test key which is relative path to the sql test (string).
 	/// </returns>
-	public static IEnumerable<object[]> GetListOfTestsBase(string projectPath)
+	public IEnumerator<object[]> GetEnumerator()
 	{
-		foreach (var testItem in GetTests(projectPath))
+		foreach (var testItem in TestsList)
 		{
 			yield return new object[] { testItem.Key };
 		}
 	}
 
-	private static Dictionary<string, TestItem>  GetTests(string projectPath)
+	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+	private static Dictionary<string, TestItem> GetTests(string projectPath)
 	{
 		var project = new EasyFlowProject(new FileSystem());
 		project.Load(projectPath);
