@@ -10,7 +10,7 @@ public class EasyFlow(
 		IUnitTestsRunner _unitTestsRunner
 	) : IEasyFlow
 {
-	//private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
+	//private static readonly ILogger Logger = _logger.ForContext(typeof(EasyFlow));
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 

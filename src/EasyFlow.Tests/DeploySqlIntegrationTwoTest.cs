@@ -17,11 +17,11 @@ public class DeploySqlIntegrationTwoTest(ITestOutputHelper output)
 
 		var deploy = GetService<IEasyFlow>();
 
-		Log.Information("=== deploy up to version 2 ===");
+		Output.WriteLine("=== deploy up to version 2 ===");
 		DeployParameters parameters = new() { MaxVersionToDeploy = 2, DeployCode = false, RunTests = false };
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, parameters);
 
-		Log.Information("=== deploy other ===");
+		Output.WriteLine("=== deploy other ===");
 		deploy.DeployProject(_msSqlTestingProjectPath, sqlConnectionString, DeployParameters.Default);
 	}
 }

@@ -1,12 +1,13 @@
 namespace EasyFlow.Deployers;
 
 public class UnitTestsRunner(
+		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
 	) : IUnitTestsRunner
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(UnitTestsRunner));
+	private readonly ILogger Logger = _logger.ForContext(typeof(UnitTestsRunner));
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
 

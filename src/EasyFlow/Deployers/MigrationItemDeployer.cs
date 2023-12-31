@@ -1,8 +1,8 @@
 namespace EasyFlow.Deployers;
 
-public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
+public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
+	private readonly ILogger Logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
 	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);

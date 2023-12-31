@@ -23,7 +23,7 @@ public class CodeDeployerTest
 		mockSet.EasyFlowDA.ExecuteNonQuery(cnnString, content);
 		mockSet.EasyFlowDA.MarkCodeAsApplied(cnnString, relativePath, hashCode, DateTime.UtcNow, 5);
 
-		CodeDeployer deploy = new(mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		CodeDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
 		CodeItem codeItem = new()
 		{
 			Name = "some-code-item",

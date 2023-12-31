@@ -1,13 +1,14 @@
 namespace EasyFlow.Deployers;
 
 public class BreakingChangesDeployer(
+		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
 		MigrationItemDeployer _migrationItemDeployer
 	)
 {
-	//private static readonly ILogger Logger = Log.ForContext(typeof(BreakingChangesDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
 	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
 	{
@@ -15,6 +16,8 @@ public class BreakingChangesDeployer(
 		{
 			return;
 		}
+
+		_logger.Information("Deploying breaking changes.");
 
 		DeployBreakingMigration(sqlConnectionString /*, parameters*/);
 	}

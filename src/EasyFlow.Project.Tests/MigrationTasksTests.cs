@@ -26,7 +26,6 @@ public class MigrationTasksTests
 		Assert.Equal(3, migrationTasks.Count);
 	}
 
-
 	[Fact]
 	public void GetMigrationType_EmptySettingsTest()
 	{

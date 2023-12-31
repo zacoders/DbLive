@@ -1,12 +1,13 @@
 namespace EasyFlow.Deployers;
 
 public class CodeDeployer(
+		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
 	)
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(CodeDeployer));
+	private readonly ILogger Logger = _logger.ForContext(typeof(CodeDeployer));
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
 		Policy.Handle<Exception>()
@@ -55,7 +56,7 @@ public class CodeDeployer(
 	{
 		try
 		{
-			Logger.Information("Deploy code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+			Logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 
 			if (!isSelfDeploy)
 			{
@@ -66,6 +67,7 @@ public class CodeDeployer(
 					if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
 					{
 						_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+						Logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 						return true;
 					}
 

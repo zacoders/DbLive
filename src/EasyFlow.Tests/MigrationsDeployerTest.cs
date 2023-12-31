@@ -10,8 +10,8 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -49,8 +49,8 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -86,8 +86,8 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -111,8 +111,8 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -146,8 +146,8 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]

@@ -1,13 +1,25 @@
 ﻿namespace EasyFlow.Tests.Common;
 
-public abstract class IntegrationTestsBase : TestBase
+public abstract class IntegrationTestsBase
 {
-	protected readonly IServiceCollection Container;
 	private ServiceProvider? _serviceProvider;
+	protected readonly IServiceCollection Container;
+	protected ITestOutputHelper Output { get; }
 
-	protected IntegrationTestsBase(ITestOutputHelper output) : base(output)
+	protected IntegrationTestsBase(ITestOutputHelper output)
 	{
+		Output = output;
+
 		Container = new ServiceCollection();
+
+		var logger = new LoggerConfiguration()
+			// add the xunit test output sink to the serilog logger
+			// https://github.com/trbenning/serilog-sinks-xunit#serilog-sinks-xunit
+			.WriteTo.TestOutput(output)
+			.CreateLogger();
+
+		Container.AddSingleton<ILogger>(logger);
+
 		Container.AddSingleton<TestConfig>();
 	}
 

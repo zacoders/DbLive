@@ -1,11 +1,18 @@
 ﻿using EasyFlow;
 using EasyFlow.Adapter.MSSQL;
 using Microsoft.Extensions.DependencyInjection;
-
+using Serilog;
 
 var container = new ServiceCollection();
 container.InitializeEasyFlow();
 container.InitializeMSSQL();
+
+var logger = new LoggerConfiguration()
+	.WriteTo.Console()
+	.CreateLogger();
+
+container.AddSingleton<ILogger>(logger);
+
 
 var serviceProvider = container.BuildServiceProvider();
 

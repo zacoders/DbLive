@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.Sinks.Console" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj" />
     <ProjectReference Include="..\..\src\EasyFlow\EasyFlow.csproj" />
   </ItemGroup>
