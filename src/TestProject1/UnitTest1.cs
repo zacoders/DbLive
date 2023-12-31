@@ -9,8 +9,8 @@ public class TranTests(ITestOutputHelper output) : SqlServerIntegrationBaseTest(
 {
 	[Fact]
 	public void Test1()
-	{		
-		using TransactionScope transactionScope = new TransactionScope();
+	{
+		using TransactionScope transactionScope = new();
 
 		SqlConnection cnn1 = new(masterDbConnectionString);
 		cnn1.Open();

@@ -4,12 +4,11 @@ using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public abstract class EasyFlowTesting : IEnumerable<object[]>, IDisposable
+public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
@@ -27,6 +26,10 @@ public abstract class EasyFlowTesting : IEnumerable<object[]>, IDisposable
 		_serviceProvider = container.BuildServiceProvider();
 
 		TestsList = GetTests(projectPath);
+		foreach (var testItem in TestsList)
+		{
+			Add(testItem.Key); // adding tests to TheoryData base class.
+		}
 
 		_unitTestsRunner = GetService<IUnitTestsRunner>();
 		_easyFlowDa = GetService<IEasyFlowDA>();
@@ -81,22 +84,6 @@ public abstract class EasyFlowTesting : IEnumerable<object[]>, IDisposable
 
 		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
 	}
-
-	/// <summary>
-	/// Returns list of tests.
-	/// </summary>
-	/// <returns>
-	/// An IEnumerable of object arrays, where each array contains a single element representing a test key which is relative path to the sql test (string).
-	/// </returns>
-	public IEnumerator<object[]> GetEnumerator()
-	{
-		foreach (var testItem in TestsList)
-		{
-			yield return new object[] { testItem.Key };
-		}
-	}
-
-	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 	private static Dictionary<string, TestItem> GetTests(string projectPath)
 	{
