@@ -10,7 +10,7 @@ public class BreakingChangesDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
-	public void DeployBreakingChanges(string sqlConnectionString, DeployParameters parameters)
+	public void DeployBreakingChanges(DeployParameters parameters)
 	{
 		if (!parameters.DeployBreaking)
 		{
@@ -19,12 +19,12 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		DeployBreakingMigration(sqlConnectionString /*, parameters*/);
+		DeployBreakingMigration(/*, parameters*/);
 	}
 
-	private void DeployBreakingMigration(string sqlConnectionString /*, DeployParameters parameters*/)
+	private void DeployBreakingMigration(/*, DeployParameters parameters*/)
 	{
-		var dbItems = _da.GetNonAppliedBreakingMigrationItems(sqlConnectionString);
+		var dbItems = _da.GetNonAppliedBreakingMigrationItems();
 
 		if (dbItems.Count == 0) return;
 
@@ -55,8 +55,8 @@ public class BreakingChangesDeployer(
 			// TODO: transaction should be configurable?
 			using var tran = TransactionScopeManager.Create();
 			{
-				_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, false, migration, breakingChnagesItem);
-				_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, _timeProvider.UtcNow());
+				_migrationItemDeployer.DeployMigrationItem(false, migration, breakingChnagesItem);
+				_da.SaveMigration(migration.Version, migration.Name, _timeProvider.UtcNow());
 				tran.Complete();
 			}
 		}

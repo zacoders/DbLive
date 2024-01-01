@@ -16,7 +16,7 @@ public class CodeDeployer(
 					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
 			  );
 
-	public void DeployCode(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
+	public void DeployCode(bool isSelfDeploy, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -31,7 +31,7 @@ public class CodeDeployer(
 		int failedCodeItemsCount = 0;
 		Parallel.ForEach(codeItems, parallelOptions, codeItem =>
 		{
-			if (!DeployCodeItem(isSelfDeploy, sqlConnectionString, codeItem))
+			if (!DeployCodeItem(isSelfDeploy, codeItem))
 			{
 				Interlocked.Increment(ref failedCodeItemsCount);
 			}
@@ -49,10 +49,9 @@ public class CodeDeployer(
 	/// Deploys code item.
 	/// </summary>
 	/// <param name="isSelfDeploy"></param>
-	/// <param name="sqlConnectionString"></param>
 	/// <param name="codeItem"></param>
 	/// <returns>Returns false if there was any error during deployment.</returns>
-	internal protected bool DeployCodeItem(bool isSelfDeploy, string sqlConnectionString, CodeItem codeItem)
+	internal protected bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
 	{
 		try
 		{
@@ -60,13 +59,13 @@ public class CodeDeployer(
 
 			if (!isSelfDeploy)
 			{
-				CodeItemDto? codeItemDto = _da.FindCodeItem(sqlConnectionString, codeItem.FileData.RelativePath);
+				CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
 
 				if (codeItemDto != null)
 				{
 					if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
 					{
-						_da.MarkCodeAsVerified(sqlConnectionString, codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+						_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
 						Logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 						return true;
 					}
@@ -82,13 +81,13 @@ public class CodeDeployer(
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				_da.ExecuteNonQuery(sqlConnectionString, codeItem.FileData.Content);
+				_da.ExecuteNonQuery(codeItem.FileData.Content);
 			});
 			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
 			if (!isSelfDeploy)
 			{
-				_da.MarkCodeAsApplied(sqlConnectionString, codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
+				_da.MarkCodeAsApplied(codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
 			}
 
 			return true;

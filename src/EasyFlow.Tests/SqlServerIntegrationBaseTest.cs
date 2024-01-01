@@ -1,16 +1,21 @@
-using EasyFlow.Adapter.MSSQL;
 using Microsoft.SqlServer.Management.Common;
 
 namespace EasyFlow.Tests;
 
-public class SqlServerIntegrationBaseTest : IntegrationTestsBase
+public class SqlServerIntegrationBaseTest : IDisposable
 {
-	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
+	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
 	protected readonly string masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
+
+	protected readonly string _testingDbName;
+
+	protected readonly IEasyFlow EasyFlow;
+
+	public ITestOutputHelper Output { get; }
 
 	protected string GetDbConnectionString(string dbName)
 	{
@@ -21,12 +26,26 @@ public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 		return cnnBuilder.ConnectionString;
 	}
 
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string? dbName = null) //: base(output)
 	{
-		Container.InitializeMSSQL();
-		Container.InitializeEasyFlow();
-		var config = GetService<TestConfig>();
+		var config = new TestConfig();
+
 		masterDbConnectionString = config.GetSqlServerConnectionString();
+		Output = output;
+		_testingDbName = dbName ?? GetRanomDbName();
+
+		EasyFlow = new EasyFlowBuilder()
+			.AddXUnitLogger(output)
+			.AddTestingMsSqlConnection()
+			.SqlServer()
+			.DbConnection(GetDbConnectionString(_testingDbName))
+			.Project(_msSqlTestingProjectPath)
+			.CreateDeployer();
+	}
+
+	public void Dispose()
+	{
+		DropTestingDatabases(_testingDbName);
 	}
 
 	private void DropTestingDatabases()

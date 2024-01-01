@@ -7,30 +7,29 @@ using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
+public abstract class EasyFlowTesting2 : TheoryData<string>, IDisposable
 {
+	private readonly Dictionary<string, TestItem> TestsList;
+	
 	private readonly IUnitTestsRunner _unitTestsRunner;
-	private readonly IEasyFlow _easyFlow;
 	private readonly IEasyFlowDA _easyFlowDa;
-	private readonly IEasyFlowProject _project;
-	private Dictionary<string, TestItem>? TestsList;
+	private readonly IEasyFlow _easyFlow;
+	private readonly EasyFlowProject _project;
 
-	public EasyFlowTesting(
+	public EasyFlowTesting2(
+		IUnitTestsRunner unitTestsRunner,
+		IEasyFlowDA easyFlowDa,
 		IEasyFlow easyFlow,
-		IEasyFlowDA easyFlowDa, 
-		IEasyFlowProject project,
-		IUnitTestsRunner unitTestsRunner
-		)
+		EasyFlowProject project
+	)
 	{
+		_unitTestsRunner = unitTestsRunner;
+		_project = project;
 		_easyFlow = easyFlow;
 		_easyFlowDa = easyFlowDa;
-		_project = project;
-		_unitTestsRunner = unitTestsRunner;
-	}
 
-	public void Init()
-	{
 		TestsList = _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
+
 		foreach (var testItem in TestsList)
 		{
 			Add(testItem.Key); // adding tests to TheoryData base class.
@@ -46,7 +45,7 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 	}
 
 	protected void PrepareTestingDatabase()
-	{
+	{		
 		DeployParameters deployParams = new()
 		{
 			CreateDbIfNotExists = true,

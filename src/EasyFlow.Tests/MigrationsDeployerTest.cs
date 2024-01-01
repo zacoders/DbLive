@@ -22,9 +22,9 @@ public class MigrationsDeployerTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>()).Returns(true);
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
 
-		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>())
+		mockSet.EasyFlowDA.GetMigrations()
 			.Returns(new[]
 			{
 				new MigrationDto { Version = 1, Name = "test1" },
@@ -32,7 +32,7 @@ public class MigrationsDeployerTest
 			});
 
 
-		var migrations = deploy.GetMigrationsToApply(false, "", DeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply(false, DeployParameters.Default).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 
@@ -61,9 +61,9 @@ public class MigrationsDeployerTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>()).Returns(true);
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
 
-		mockSet.EasyFlowDA.GetMigrations(Arg.Any<string>())
+		mockSet.EasyFlowDA.GetMigrations()
 			.Returns(new[]
 			{
 				new MigrationDto { Version = 1, Name = "test1" },
@@ -73,7 +73,7 @@ public class MigrationsDeployerTest
 		var deployParams = DeployParameters.Default;
 		deployParams.MaxVersionToDeploy = 2;
 
-		var migrations = deploy.GetMigrationsToApply(false, "", deployParams).ToArray();
+		var migrations = deploy.GetMigrationsToApply(false, deployParams).ToArray();
 
 		Assert.Single(migrations);
 
@@ -98,10 +98,10 @@ public class MigrationsDeployerTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>()).Returns(false);
-		mockSet.EasyFlowDA.GetEasyFlowVersion(Arg.Any<string>()).Returns(1);
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(false);
+		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
 
-		var migrations = deploy.GetMigrationsToApply(true, "", DeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
 
 		Assert.Equal(4, migrations.Length);
 	}
@@ -123,10 +123,10 @@ public class MigrationsDeployerTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>()).Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion(Arg.Any<string>()).Returns(1);
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
 
-		var migrations = deploy.GetMigrationsToApply(true, "", DeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
 
 		Assert.Equal(3, migrations.Length);
 
@@ -158,13 +158,13 @@ public class MigrationsDeployerTest
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled(Arg.Any<string>()).Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion(Arg.Any<string>()).Returns(1);
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 		deployParams.MaxVersionToDeploy = 2;
 
-		var migrations = deploy.GetMigrationsToApply(true, "", deployParams).ToArray();
+		var migrations = deploy.GetMigrationsToApply(true, deployParams).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 

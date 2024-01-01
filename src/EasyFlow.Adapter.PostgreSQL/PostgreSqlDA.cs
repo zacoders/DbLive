@@ -3,14 +3,13 @@ using System.Data;
 
 namespace EasyFlow.Adapter.PostgreSQL;
 
-public class PostgreSqlDA : IEasyFlowDA
+public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 {
-	public void CreateDB(string cnnString, bool skipIfExists = true)
+	public void CreateDB(bool skipIfExists = true)
 	{
-		NpgsqlConnectionStringBuilder cnnBuilder = new(cnnString);
+		NpgsqlConnectionStringBuilder cnnBuilder = new(_cnn.ConnectionString);
 
-		string? databaseToCreate = cnnBuilder.Database;
-		if (databaseToCreate == null) throw new ArgumentException("Database must be specified in connection string.");
+		string? databaseToCreate = cnnBuilder.Database ?? throw new ArgumentException("Database must be specified in connection string.");
 
 		cnnBuilder.Database = "postgres";
 
@@ -28,21 +27,21 @@ public class PostgreSqlDA : IEasyFlowDA
 		cnn.Close();
 	}
 
-	public bool EasyFlowInstalled(string cnnString)
+	public bool EasyFlowInstalled()
 	{
 		const string query = @"
 			select exists ( select * from pg_tables where schemaname = 'easyflow' and tablename = 'Migrations'
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public void ExecuteNonQuery(string cnnString, string sqlStatementt)
+	public void ExecuteNonQuery(string sqlStatementt)
 	{
 		try
 		{
-			using var cnn = new NpgsqlConnection(cnnString);
+			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 			cnn.Open();
 			var cmd = cnn.CreateCommand();
 			cmd.CommandText = sqlStatementt;
@@ -55,18 +54,18 @@ public class PostgreSqlDA : IEasyFlowDA
 		}
 	}
 
-	public int GetEasyFlowVersion(string cnnString)
+	public int GetEasyFlowVersion()
 	{
 		const string query = @"
 			select Version
 			from easyflow.Version
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
+	public IReadOnlyCollection<MigrationDto> GetMigrations()
 	{
 		const string query = @"
 			select version
@@ -76,11 +75,11 @@ public class PostgreSqlDA : IEasyFlowDA
 			from easyflow.Migration
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
-	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString)
+	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
 	{
 		const string query = @"
 			select version
@@ -97,13 +96,13 @@ public class PostgreSqlDA : IEasyFlowDA
 			  and item_type = 'breakingchange'
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationItemDto>(query).ToList();
 	}
 
-	public CodeItemDto? FindCodeItem(string cnnString, string relativePath)
+	public CodeItemDto? FindCodeItem(string relativePath)
 	{
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
 			"easyflow.get_code_item",
 			new { relative_path = relativePath },
@@ -111,17 +110,17 @@ public class PostgreSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
+	public void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
+	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor tabe name and column names for postgres
 		string query = @"
@@ -140,7 +139,7 @@ public class PostgreSqlDA : IEasyFlowDA
 			)
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		cnn.Query(query, new
 		{
 			migrationVersion,
@@ -149,17 +148,17 @@ public class PostgreSqlDA : IEasyFlowDA
 		});
 	}
 
-	public void SaveMigrationItemState(string cnnString, MigrationItemDto item)
+	public void SaveMigrationItemState(MigrationItemDto item)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
 	{
 		throw new NotImplementedException();
 	}
 
-	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime)
+	public void SetEasyFlowVersion(int version, DateTime migrationDatetime)
 	{
 		const string query = @"
 			merge into easyflow.Version as t
@@ -171,11 +170,11 @@ public class PostgreSqlDA : IEasyFlowDA
 			      , MigrationDatetime = MigrationDatetime;
 		";
 
-		using var cnn = new NpgsqlConnection(cnnString);
+		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		cnn.Query(query, new { version, migrationDatetime });
 	}
 
-	public void DropDB(string cnnString, bool skipIfNotExists = true)
+	public void DropDB(bool skipIfNotExists = true)
 	{
 		throw new NotImplementedException();
 	}

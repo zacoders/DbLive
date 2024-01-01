@@ -7,7 +7,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
+	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
 		Transactions.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
@@ -23,7 +23,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 				DateTime? migrationAppliedUtc = null;
 				int? executionTimeMs = null;
 
-				_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
+				_da.ExecuteNonQuery(migrationItem.FileData.Content);
 				status = "applied";
 				migrationAppliedUtc = _timeProvider.UtcNow();
 				executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
@@ -43,7 +43,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 						ExecutionTimeMs = executionTimeMs
 					};
 
-					_da.SaveMigrationItemState(sqlConnectionString, dto);
+					_da.SaveMigrationItemState(dto);
 				}
 
 				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
@@ -51,7 +51,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 		);
 	}
 
-	public void MarkAsSkipped(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
+	public void MarkAsSkipped(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
 		Logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
 
@@ -71,7 +71,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 				ExecutionTimeMs = null
 			};
 
-			_da.SaveMigrationItemState(sqlConnectionString, dto);
+			_da.SaveMigrationItemState(dto);
 		}
 
 		Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);

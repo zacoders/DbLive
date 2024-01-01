@@ -1,3 +1,4 @@
+using EasyFlow.Common;
 using EasyFlow.Tests.Common;
 using Xunit.Abstractions;
 
@@ -9,9 +10,9 @@ public class EasyFlowTestingMSSQLFixture : EasyFlowTestingMSSQL
 	readonly static string _dbConnectionString = new TestConfig().GetSqlServerConnectionString(_unitTestsDBName);
 	internal readonly static string _projectPath = Path.GetFullPath(@"TestProject_MSSQL");
 
-	public EasyFlowTestingMSSQLFixture()
-		: base(_projectPath, _dbConnectionString)
+	public EasyFlowTestingMSSQLFixture() : base(_projectPath, _dbConnectionString)
 	{
+		
 	}
 }
 

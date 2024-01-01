@@ -11,16 +11,7 @@ public abstract class IntegrationTestsBase
 		Output = output;
 
 		Container = new ServiceCollection();
-
-		var logger = new LoggerConfiguration()
-			// add the xunit test output sink to the serilog logger
-			// https://github.com/trbenning/serilog-sinks-xunit#serilog-sinks-xunit
-			.WriteTo.TestOutput(output)
-			.CreateLogger();
-
-		Container.AddSingleton<ILogger>(logger);
-
-		Container.AddSingleton<TestConfig>();
+		Container.AddXUnitLogger(output);
 	}
 
 	/// <summary>
@@ -35,6 +26,6 @@ public abstract class IntegrationTestsBase
 
 	protected TService GetService<TService>()
 	{
-		return Container.BuildServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+		return GetServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 }

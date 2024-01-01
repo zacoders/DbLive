@@ -13,7 +13,7 @@ public class MigrationsDeployer(
 	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-	public void DeployMigrations(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
+	public void DeployMigrations(bool isSelfDeploy, DeployParameters parameters)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -22,30 +22,30 @@ public class MigrationsDeployer(
 
 		_logger.Information("Deploying migrations.");
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, sqlConnectionString, parameters);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, parameters);
 
 		foreach (var migration in migrationsToApply)
 		{
-			DeployMigration(isSelfDeploy, migration, sqlConnectionString);
+			DeployMigration(isSelfDeploy, migration);
 		}
 	}
 
-	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, string sqlConnectionString, DeployParameters parameters)
+	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, DeployParameters parameters)
 	{
 		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
-		if (_da.EasyFlowInstalled(sqlConnectionString))
+		if (_da.EasyFlowInstalled())
 		{
 			if (isSelfDeploy)
 			{
-				int appliedVersion = _da.GetEasyFlowVersion(sqlConnectionString);
+				int appliedVersion = _da.GetEasyFlowVersion();
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 					.Where(m => m.Version > appliedVersion);
 			}
 			else
 			{
-				var appliedMigrations = _da.GetMigrations(sqlConnectionString);
+				var appliedMigrations = _da.GetMigrations();
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 					.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name));
@@ -57,7 +57,7 @@ public class MigrationsDeployer(
 				.ThenBy(m => m.Name);
 	}
 
-	internal protected void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
+	internal protected void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
 		_logger.Information("Applying migration: {path}", migration.FolderPath.GetLastSegment());
 		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
@@ -74,11 +74,11 @@ public class MigrationsDeployer(
 				{
 					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
 					{
-						_migrationItemDeployer.DeployMigrationItem(sqlConnectionString, isSelfDeploy, migration, migrationItem);
+						_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration, migrationItem);
 					}
 					else
 					{
-						_migrationItemDeployer.MarkAsSkipped(sqlConnectionString, isSelfDeploy, migration, migrationItem);
+						_migrationItemDeployer.MarkAsSkipped(isSelfDeploy, migration, migrationItem);
 					}
 				}
 
@@ -86,11 +86,11 @@ public class MigrationsDeployer(
 
 				if (isSelfDeploy)
 				{
-					_da.SetEasyFlowVersion(sqlConnectionString, migration.Version, migrationCompletedUtc);
+					_da.SetEasyFlowVersion(migration.Version, migrationCompletedUtc);
 				}
 				else
 				{
-					_da.SaveMigration(sqlConnectionString, migration.Version, migration.Name, migrationCompletedUtc);
+					_da.SaveMigration(migration.Version, migration.Name, migrationCompletedUtc);
 				}
 			}
 		);

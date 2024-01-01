@@ -1,5 +1,3 @@
-using EasyFlow.Common;
-
 namespace EasyFlow.Project.Tests;
 
 public class SettingsTests
@@ -23,8 +21,9 @@ public class SettingsTests
 				"""
 			);
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load(projectPath);
+		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		var settings = sqlProject.GetSettings();
 

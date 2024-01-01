@@ -11,7 +11,7 @@ public class UnitTestsRunner(
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
 
-	public void RunAllTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings)
+	public void RunAllTests(DeployParameters parameters, EasyFlowSettings settings)
 	{
 		if (!parameters.RunTests)
 		{
@@ -28,7 +28,7 @@ public class UnitTestsRunner(
 
 		Parallel.ForEach(tests, parallelOptions, test =>
 		{
-			var testResult = RunTest(test, sqlConnectionString, settings);
+			var testResult = RunTest(test, settings);
 
 			if (testResult.IsSuccess)
 			{
@@ -41,7 +41,7 @@ public class UnitTestsRunner(
 				Logger.Error(testResult.Exception, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
-			SaveTestResult(test, testResult, sqlConnectionString);
+			SaveTestResult(test, testResult);
 		});
 
 		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
@@ -53,10 +53,9 @@ public class UnitTestsRunner(
 		}
 	}
 
-	private void SaveTestResult(TestItem test, TestRunResult result, string sqlConnectionString)
+	private void SaveTestResult(TestItem test, TestRunResult result)
 	{
 		_da.SaveUnitTestResult(
-			sqlConnectionString,
 			test.FileData.RelativePath,
 			test.FileData.Crc32Hash,
 			result.StartedUtc,
@@ -66,18 +65,20 @@ public class UnitTestsRunner(
 		);
 	}
 
-	public TestRunResult RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings)
+	public TestRunResult RunTest(TestItem test, EasyFlowSettings settings)
 	{
-		TestRunResult result = new();
+		TestRunResult result = new()
+		{
+			IsSuccess = false,
+			ErrorMessage = null,
+			StartedUtc = _timeProvider.UtcNow()
+		};
 
-		result.IsSuccess = false;
-		result.ErrorMessage = null;
-		result.StartedUtc = _timeProvider.UtcNow();
 		try
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
-			_da.ExecuteNonQuery(sqlConnectionString, test.FileData.Content);
+			_da.ExecuteNonQuery(test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction
 

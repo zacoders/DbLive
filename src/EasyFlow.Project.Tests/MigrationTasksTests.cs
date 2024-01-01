@@ -9,8 +9,8 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
@@ -34,8 +34,7 @@ public class MigrationTasksTests
 		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
 		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		sqlProject.GetMigrations();
 	}
@@ -45,7 +44,7 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		Assert.Throws<ProjectWasNotLoadedException>(() => sqlProject.GetMigrations());
 	}
@@ -55,8 +54,10 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load(@"C:\MainTestDB");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
+
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>(), settings.TestFilePattern, true)

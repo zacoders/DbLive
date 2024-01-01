@@ -4,7 +4,7 @@ using System.Data;
 
 namespace EasyFlow.Adapter.MSSQL;
 
-public class MsSqlDA : IEasyFlowDA
+public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 {
 	static MsSqlDA()
 	{
@@ -12,7 +12,7 @@ public class MsSqlDA : IEasyFlowDA
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
 
-	public IReadOnlyCollection<MigrationDto> GetMigrations(string cnnString)
+	public IReadOnlyCollection<MigrationDto> GetMigrations()
 	{
 		const string query = @"
 			select version
@@ -22,11 +22,11 @@ public class MsSqlDA : IEasyFlowDA
 			from easyflow.migration
 		";
 
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
-	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems(string cnnString)
+	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
 	{
 		const string query = @"
 			select version
@@ -43,32 +43,32 @@ public class MsSqlDA : IEasyFlowDA
 			  and item_type = 'breakingchange'
 		";
 
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationItemDto>(query).ToList();
 	}
 
-	public bool EasyFlowInstalled(string cnnString)
+	public bool EasyFlowInstalled()
 	{
 		const string query = @"
 			select iif(object_id('easyflow.migration', 'U') is null, 0, 1)
 		";
 
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public int GetEasyFlowVersion(string cnnString)
+	public int GetEasyFlowVersion()
 	{
 		const string query = @"
 			select version
 			from easyflow.version
 		";
 
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public void SetEasyFlowVersion(string cnnString, int version, DateTime migrationDatetime)
+	public void SetEasyFlowVersion(int version, DateTime migrationDatetime)
 	{
 		const string query = @"
 			update easyflow.version
@@ -76,13 +76,13 @@ public class MsSqlDA : IEasyFlowDA
 			  , applied_utc = @applied_utc;
 		";
 
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(query, new { version, applied_utc = migrationDatetime });
 	}
 
-	public void SaveMigration(string cnnString, int migrationVersion, string migrationName, DateTime migrationModificationUtc)
+	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationModificationUtc)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.save_migration",
 			new
@@ -96,11 +96,11 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void ExecuteNonQuery(string cnnString, string sqlStatement)
+	public void ExecuteNonQuery(string sqlStatement)
 	{
 		try
 		{
-			using SqlConnection sqlConnection = new(cnnString);
+			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
 			sqlConnection.Open();
 			ServerConnection serverConnection = new(sqlConnection);
 			serverConnection.ExecuteNonQuery(sqlStatement);
@@ -113,9 +113,9 @@ public class MsSqlDA : IEasyFlowDA
 		}
 	}
 
-	public void CreateDB(string cnnString, bool skipIfExists = true)
+	public void CreateDB(bool skipIfExists = true)
 	{
-		SqlConnectionStringBuilder builder = new(cnnString);
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
 		string databaseToCreate = builder.InitialCatalog;
 		builder.InitialCatalog = "master";
 
@@ -135,9 +135,9 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void DropDB(string cnnString, bool skipIfNotExists = true)
+	public void DropDB(bool skipIfNotExists = true)
 	{
-		SqlConnectionStringBuilder builder = new(cnnString);
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
 		string databaseToDrop = builder.InitialCatalog;
 		builder.InitialCatalog = "master";
 
@@ -160,7 +160,7 @@ public class MsSqlDA : IEasyFlowDA
 				throw new Exception($"Database '{databaseToDrop}' does not exists.");
 			}
 		}
-		
+
 		ServerConnection serverCnn = new(cnn);
 		serverCnn.ExecuteNonQuery(new StringCollection {
 			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
@@ -170,9 +170,9 @@ public class MsSqlDA : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string cnnString, string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query("easyflow.insert_code_state",
 			new
 			{
@@ -185,9 +185,9 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void MarkCodeAsVerified(string cnnString, string relativePath, DateTime verifiedUtc)
+	public void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
@@ -195,9 +195,9 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public CodeItemDto? FindCodeItem(string cnnString, string relativePath)
+	public CodeItemDto? FindCodeItem(string relativePath)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
 			"easyflow.get_code_item",
 			new { relative_path = relativePath },
@@ -205,9 +205,9 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void SaveMigrationItemState(string cnnString, MigrationItemDto item)
+	public void SaveMigrationItemState(MigrationItemDto item)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.save_migration_item",
 			new
@@ -226,9 +226,9 @@ public class MsSqlDA : IEasyFlowDA
 		);
 	}
 
-	public void SaveUnitTestResult(string cnnString, string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
 	{
-		using var cnn = new SqlConnection(cnnString);
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.save_unit_test_result",
 			new

@@ -1,17 +1,18 @@
 namespace EasyFlow.Project;
 
-public class EasyFlowProject(IFileSystem _fileSystem)
-	: IEasyFlowProject
+public class EasyFlowProject : IEasyFlowProject
 {
-	private EasyFlowSettings _settings = new();
-	private string _projectPath = "";
-	private bool _isLoaded = false;
+	private readonly EasyFlowSettings _settings = new();
+	private readonly string _projectPath;
+	private readonly IFileSystem _fileSystem;
 
-	public void Load(string projectPath)
+
+	public EasyFlowProject(IEasyFlowProjectPath projectPath, IFileSystem fileSystem)
 	{
-		_isLoaded = true;
-		_projectPath = projectPath;
-		string settingsPath = Path.Combine(projectPath, "settings.json");
+		_projectPath = projectPath.ProjectPath;
+		_fileSystem = fileSystem;
+
+		string settingsPath = Path.Combine(_projectPath, "settings.json");
 		if (_fileSystem.FileExists(settingsPath))
 		{
 			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
@@ -26,7 +27,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
-		ThrowIfProjectWasNotLoaded();
 		HashSet<MigrationItem> tasks = [];
 
 		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
@@ -55,11 +55,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 		return tasks;
 	}
 
-	private void ThrowIfProjectWasNotLoaded()
-	{
-		if (_isLoaded == false) throw new ProjectWasNotLoadedException();
-	}
-
 	public static MigrationItemType GetMigrationType(string type) =>
 		type.ToLower() switch
 		{
@@ -71,7 +66,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 	public IEnumerable<CodeItem> GetCodeItems()
 	{
-		ThrowIfProjectWasNotLoaded();
 		List<CodeItem> codeItems = [];
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (_fileSystem.PathExists(codePath))
@@ -89,7 +83,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 	public IEnumerable<Migration> GetMigrations()
 	{
-		ThrowIfProjectWasNotLoaded();
 		HashSet<Migration> migrations = [];
 
 		string migrationsPath = _projectPath.CombineWith("Migrations");
@@ -137,7 +130,6 @@ public class EasyFlowProject(IFileSystem _fileSystem)
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		ThrowIfProjectWasNotLoaded();
 		List<TestItem> tests = [];
 
 		string testsPath = _projectPath.CombineWith("Tests");

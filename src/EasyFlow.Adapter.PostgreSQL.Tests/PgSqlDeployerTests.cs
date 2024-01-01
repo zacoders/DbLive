@@ -2,19 +2,17 @@ namespace EasyFlow.Adapter.PostgreSQL.Tests;
 
 public class PgSqlDeployerTests : IntegrationTestsBase
 {
-	private readonly string _cnnString;
 	private readonly IEasyFlowDA _da;
 
 	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
 	{
 		Container.InitializePostgreSQL();
 		Container.InitializeEasyFlow();
-
-		var config = GetService<TestConfig>();
-		_cnnString = config.GetPostgreSqlConnectionString();
+		Container.AddTestingPostgreSQLConnection();
 
 		_da = GetService<IEasyFlowDA>();
-		_da.CreateDB(_cnnString);
+
+		_da.CreateDB();
 	}
 
 
@@ -25,7 +23,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(_cnnString, sql);
+		_da.ExecuteNonQuery(sql);
 
 		tran.Complete();
 	}
@@ -35,7 +33,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	{
 		var sql = "select 1 as col";
 
-		_da.ExecuteNonQuery(_cnnString, sql);
+		_da.ExecuteNonQuery(sql);
 	}
 
 	[Fact]
@@ -43,7 +41,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	{
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<EasyFlowSqlException>(() => _da.ExecuteNonQuery(_cnnString, sql));
+		Assert.Throws<EasyFlowSqlException>(() => _da.ExecuteNonQuery(sql));
 	}
 
 	[Fact]
@@ -57,7 +55,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			select 3 as col;
 		";
 
-		_da.ExecuteNonQuery(_cnnString, sql);
+		_da.ExecuteNonQuery(sql);
 	}
 
 
@@ -66,12 +64,12 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	{
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			drop sequence if exists public.s_test_id;
 			drop table if exists Test;
 		");
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			create sequence if not exists public.s_test_id
 			  increment 1
 			  minvalue 1000
@@ -86,18 +84,18 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			);
 		");
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			insert into Test ( Name )
 			values ( 'Test1' ), ( 'Test2')
 		");
 
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			select *
 			from Test
 		");
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			drop table if exists Test
 		");
 
@@ -108,7 +106,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 	[Fact]
 	public void TransactionTest()
 	{
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			drop table if exists TestTran1;
 		
 			create table TestTran1 (
@@ -123,7 +121,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 
 		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			_da.ExecuteNonQuery(_cnnString, @"
+			_da.ExecuteNonQuery(@"
 				update TestTran1
 				set name = 'new name' 
 			");
@@ -131,7 +129,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			tran1.Dispose();
 		}
 
-		_da.ExecuteNonQuery(_cnnString, @"
+		_da.ExecuteNonQuery(@"
 			do $$ begin
 
 				if ( select count(*) from TestTran1 ) != 2 then
@@ -145,6 +143,6 @@ public class PgSqlDeployerTests : IntegrationTestsBase
 			end $$;  
 		");
 
-		_da.ExecuteNonQuery(_cnnString, "drop table if exists TestTran1;");
+		_da.ExecuteNonQuery("drop table if exists TestTran1;");
 	}
 }
