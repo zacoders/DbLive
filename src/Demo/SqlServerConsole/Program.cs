@@ -1,8 +1,11 @@
 ﻿using EasyFlow;
-using SqlServerConsole;
+using EasyFlow.Common;
 
 
-var sqlDeploy = Deploy.DeployToSqlServer();
+var sqlDeploy = new EasyFlowBuilder()
+	.LogToConsole()
+	.SqlServer()
+	.CreateDeployer();
 
 sqlDeploy.DeployProject(
 	projectPath: Path.GetFullPath(typeof(Program).Assembly.GetName().Name!),
