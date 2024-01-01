@@ -2,5 +2,5 @@
 
 public interface IEasyFlow
 {
-	void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters);
+	void DeployProject(string projectPath, string sqlConnectionString, DeployParameters parameters);
 }

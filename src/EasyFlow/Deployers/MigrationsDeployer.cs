@@ -8,7 +8,7 @@ public class MigrationsDeployer(
 		ITimeProvider _timeProvider
 	)
 {
-	private readonly ILogger Logger = _logger.ForContext(typeof(MigrationsDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 
 	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
@@ -19,6 +19,8 @@ public class MigrationsDeployer(
 		{
 			return;
 		}
+
+		_logger.Information("Deploying migrations.");
 
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, sqlConnectionString, parameters);
 
@@ -57,7 +59,7 @@ public class MigrationsDeployer(
 
 	internal protected void DeployMigration(bool isSelfDeploy, Migration migration, string sqlConnectionString)
 	{
-		Logger.Information(migration.FolderPath.GetLastSegment());
+		_logger.Information("Applying migration: {path}", migration.FolderPath.GetLastSegment());
 		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
 
 		if (migrationItems.Count == 0) return;

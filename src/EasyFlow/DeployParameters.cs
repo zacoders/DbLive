@@ -2,7 +2,14 @@
 
 public record DeployParameters
 {
-	public static DeployParameters Default => new();
+	public static DeployParameters Default => new()
+	{
+		CreateDbIfNotExists = true,
+		DeployBreaking = false,
+		DeployCode = true,
+		DeployMigrations = true,
+		RunTests = true
+	};
 
 	public static DeployParameters Breaking => new()
 	{
@@ -11,6 +18,15 @@ public record DeployParameters
 		DeployCode = false,
 		DeployMigrations = false,
 		RunTests = false
+	};
+
+	public static DeployParameters BreakingAndTests => new()
+	{
+		CreateDbIfNotExists = false,
+		DeployBreaking = true,
+		DeployCode = false,
+		DeployMigrations = false,
+		RunTests = true
 	};
 
 	/// <summary>
