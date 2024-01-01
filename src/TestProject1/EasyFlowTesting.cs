@@ -13,6 +13,7 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly IEasyFlowDA _easyFlowDa;
+	private readonly IEasyFlowProject _project;
 	private readonly string _projectPath;
 	private readonly string _sqlConnectionString;
 	private readonly Dictionary<string, TestItem> TestsList;
@@ -25,14 +26,15 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 		container.InitializeEasyFlow();
 		_serviceProvider = container.BuildServiceProvider();
 
-		TestsList = GetTests(projectPath);
+		_unitTestsRunner = GetService<IUnitTestsRunner>();
+		_easyFlowDa = GetService<IEasyFlowDA>();
+		_project = GetService<IEasyFlowProject>();
+
+		TestsList = GetTests();
 		foreach (var testItem in TestsList)
 		{
 			Add(testItem.Key); // adding tests to TheoryData base class.
 		}
-
-		_unitTestsRunner = GetService<IUnitTestsRunner>();
-		_easyFlowDa = GetService<IEasyFlowDA>();
 
 		PrepareTestingDatabase();
 	}
@@ -85,11 +87,9 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
 	}
 
-	private static Dictionary<string, TestItem> GetTests(string projectPath)
+	private Dictionary<string, TestItem> GetTests()
 	{
-		var project = new EasyFlowProject(new FileSystem());
-		project.Load(projectPath);
-
-		return project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
+		_project.Load(_projectPath);
+		return _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
 	}
 }
