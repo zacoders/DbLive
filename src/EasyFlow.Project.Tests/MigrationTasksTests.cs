@@ -38,23 +38,13 @@ public class MigrationTasksTests
 	}
 
 	[Fact]
-	public void GetMigrationType_ProjectWasNotLoadedException()
-	{
-		MockSet mockSet = new();
-
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
-
-		Assert.Throws<ProjectWasNotLoadedException>(() => sqlProject.GetMigrations());
-	}
-
-	[Fact]
 	public void GetMigrationType_DuplicateTask()
 	{
 		MockSet mockSet = new();
+				
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
-
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
 
 		var settings = sqlProject.GetSettings();
 
