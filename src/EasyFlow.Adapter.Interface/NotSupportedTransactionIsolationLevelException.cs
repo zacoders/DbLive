@@ -1,6 +1,4 @@
-﻿using EasyFlow.Common;
-
-namespace EasyFlow.Adapter.Interface;
+﻿namespace EasyFlow.Adapter.Interface;
 
 [Serializable]
 public class NotSupportedTransactionIsolationLevelException : Exception

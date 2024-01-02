@@ -1,5 +1,3 @@
-using EasyFlow.Common;
-
 namespace EasyFlow.Project.Tests;
 
 public class MigrationTasksTests
@@ -55,7 +53,7 @@ public class MigrationTasksTests
 		MockSet mockSet = new();
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
-		
+
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
 
 		var settings = sqlProject.GetSettings();

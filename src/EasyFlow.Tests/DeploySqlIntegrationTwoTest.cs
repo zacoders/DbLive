@@ -1,8 +1,8 @@
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationTwoTest(ITestOutputHelper output) 
+public class DeploySqlIntegrationTwoTest(ITestOutputHelper output)
 	: SqlServerIntegrationBaseTest(output), IDisposable
-{	
+{
 	[Fact]
 	public void DeployProject_Two_Deployments()
 	{

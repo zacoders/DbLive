@@ -18,6 +18,6 @@ public static class StringExtentions
 		// Calculate the relative path using Uri
 		Uri rootUri = new Uri(rootPath + Path.DirectorySeparatorChar);
 		Uri fullUri = new Uri(fullPath);
-		return Uri.UnescapeDataString(rootUri.MakeRelativeUri(fullUri).ToString());	
+		return Uri.UnescapeDataString(rootUri.MakeRelativeUri(fullUri).ToString());
 	}
 }

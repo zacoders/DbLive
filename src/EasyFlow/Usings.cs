@@ -8,5 +8,4 @@ global using MoreLinq;
 global using Polly;
 global using Polly.Retry;
 global using Serilog;
-global using System.Data;
 global using System.Transactions;

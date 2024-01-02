@@ -1,4 +1,3 @@
-using EasyFlow.Common;
 using EasyFlow.Tests.Common;
 using Xunit.Abstractions;
 
@@ -12,7 +11,7 @@ public class EasyFlowTestingMSSQLFixture : EasyFlowTestingMSSQL
 
 	public EasyFlowTestingMSSQLFixture() : base(_projectPath, _dbConnectionString)
 	{
-		
+
 	}
 }
 

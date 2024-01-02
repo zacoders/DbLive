@@ -40,7 +40,7 @@ public class TestConfig
 	}
 
 	public string GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
-	
+
 	public string GetSqlServerConnectionString(string dbName)
 	{
 		var cnnBuilder = new SqlConnectionStringBuilder(GetSqlServerConnectionString());

@@ -1,6 +1,6 @@
 namespace EasyFlow.Tests;
 
-public class DeploySqlIntegrationFullBreakingTest(ITestOutputHelper output) 
+public class DeploySqlIntegrationFullBreakingTest(ITestOutputHelper output)
 	: SqlServerIntegrationBaseTest(output), IDisposable
 {
 	[Fact]
