@@ -4,13 +4,17 @@ public static class EasyFlowBuilderExtentions
 {
 	public static EasyFlowBuilder LogToConsole(this EasyFlowBuilder builder)
 	{
+		builder.Container.LogToConsole();
+		return builder;
+	}
+
+	public static void LogToConsole(this IServiceCollection serviceCollection)
+	{
 		var logger = new LoggerConfiguration()
 			.WriteTo.Console()
 			.CreateLogger();
 
-		builder.Container.AddSingleton<ILogger>(logger);
-
-		return builder;
+		serviceCollection.AddSingleton<ILogger>(logger);
 	}
 
 	public static EasyFlowBuilder SetDbConnection(this EasyFlowBuilder builder, string sqlDbConnectionString)

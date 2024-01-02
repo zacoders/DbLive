@@ -1,17 +1,17 @@
 ﻿using EasyFlow.Adapter.MSSQL;
-using Microsoft.Extensions.DependencyInjection;
+using EasyFlow.Common;
 
 namespace TestProject1;
 
 public abstract class EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
 	: EasyFlowTesting(CreateContainer(), projectPath, dbConnectionString)
 {
-	private static ServiceCollection CreateContainer()
+	private static EasyFlowBuilder CreateContainer()
 	{
-		// TODO: I think we can create factory or class what will create and initialize contaner for specifig sql engine.
-		//		 It can be used everywhere where a new container needed.
-		var container = new ServiceCollection();
-		container.InitializeMSSQL();
-		return container;
+		var builder = new EasyFlowBuilder();
+
+		builder.SqlServer();
+
+		return builder;
 	}
 }

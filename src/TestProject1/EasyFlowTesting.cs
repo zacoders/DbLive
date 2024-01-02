@@ -16,11 +16,14 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 	private readonly IEasyFlowProject _project;
 	private readonly Dictionary<string, TestItem> TestsList;
 
-	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString)
+	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder, string projectPath, string sqlConnectionString)
 	{
+		var container = easyFlowBuilder.Container;
+
 		container.InitializeEasyFlow();
 		container.SetDbConnection(sqlConnectionString);
 		container.SetProjectPath(projectPath);
+		container.LogToConsole();
 
 		_serviceProvider = container.BuildServiceProvider();
 

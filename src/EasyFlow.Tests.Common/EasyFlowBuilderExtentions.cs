@@ -6,11 +6,11 @@ public static class EasyFlowBuilderExtentions
 {
 	public static EasyFlowBuilder LogToXUnitOutput(this EasyFlowBuilder builder, ITestOutputHelper output)
 	{
-		builder.Container.AddXUnitLogger(output);
+		builder.Container.LogToXUnitOutput(output);
 		return builder;
 	}
 
-	public static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)
+	public static void LogToXUnitOutput(this IServiceCollection serviceCollection, ITestOutputHelper output)
 	{
 		var logger = new LoggerConfiguration()
 			// add the xunit test output sink to the serilog logger
