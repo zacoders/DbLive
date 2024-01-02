@@ -4,7 +4,7 @@ namespace EasyFlow.Tests.Common;
 
 public static class EasyFlowBuilderExtentions
 {
-	public static EasyFlowBuilder AddXUnitLogger(this EasyFlowBuilder builder, ITestOutputHelper output)
+	public static EasyFlowBuilder LogToXUnitOutput(this EasyFlowBuilder builder, ITestOutputHelper output)
 	{
 		builder.Container.AddXUnitLogger(output);
 		return builder;

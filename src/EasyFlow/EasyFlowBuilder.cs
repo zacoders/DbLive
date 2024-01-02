@@ -13,18 +13,28 @@ public static class EasyFlowBuilderExtentions
 		return builder;
 	}
 
-	public static EasyFlowBuilder DbConnection(this EasyFlowBuilder builder, string sqlDbConnectionString)
+	public static EasyFlowBuilder SetDbConnection(this EasyFlowBuilder builder, string sqlDbConnectionString)
 	{
-		var cnn = new EasyFlowDbConnection(sqlDbConnectionString);
-		builder.Container.AddSingleton<IEasyFlowDbConnection>(cnn);
+		builder.Container.SetDbConnection(sqlDbConnectionString);
 		return builder;
 	}
 
-	public static EasyFlowBuilder Project(this EasyFlowBuilder builder, string projectPath)
+	public static void SetDbConnection(this IServiceCollection serviceCollection, string sqlDbConnectionString)
 	{
-		var cnn = new EasyFlowProjectPath(projectPath);		
-		builder.Container.AddSingleton<IEasyFlowProjectPath>(cnn);
+		var cnn = new EasyFlowDbConnection(sqlDbConnectionString);
+		serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+	}
+
+	public static EasyFlowBuilder SetProjectPath(this EasyFlowBuilder builder, string projectPath)
+	{
+		builder.Container.SetProjectPath(projectPath);
 		return builder;
+	}
+
+	public static void SetProjectPath(this IServiceCollection serviceCollection, string projectPath)
+	{
+		var path = new EasyFlowProjectPath(projectPath);
+		serviceCollection.AddSingleton<IEasyFlowProjectPath>(path);
 	}
 
 	public static IEasyFlow CreateDeployer(this EasyFlowBuilder builder)

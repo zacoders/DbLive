@@ -35,11 +35,11 @@ public class SqlServerIntegrationBaseTest : IDisposable
 		_testingDbName = dbName ?? GetRanomDbName();
 
 		EasyFlow = new EasyFlowBuilder()
-			.AddXUnitLogger(output)
+			.LogToXUnitOutput(output)
 			.AddTestingMsSqlConnection()
 			.SqlServer()
-			.DbConnection(GetDbConnectionString(_testingDbName))
-			.Project(_msSqlTestingProjectPath)
+			.SetDbConnection(GetDbConnectionString(_testingDbName))
+			.SetProjectPath(_msSqlTestingProjectPath)
 			.CreateDeployer();
 	}
 

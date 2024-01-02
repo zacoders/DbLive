@@ -6,8 +6,8 @@ string projectPath = Path.GetFullPath(typeof(Program).Assembly.GetName().Name!);
 
 var sqlDeploy = new EasyFlowBuilder()
 	.SqlServer()
-	.DbConnection(connectionString)
-	.Project(projectPath)
+	.SetDbConnection(connectionString)
+	.SetProjectPath(projectPath)
 	.LogToConsole()
 	.CreateDeployer();
 

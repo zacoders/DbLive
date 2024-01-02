@@ -3,34 +3,32 @@ using EasyFlow.Adapter.Interface;
 using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
 public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 {
+	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
-	private readonly IEasyFlow _easyFlow;
 	private readonly IEasyFlowDA _easyFlowDa;
 	private readonly IEasyFlowProject _project;
-	private Dictionary<string, TestItem>? TestsList;
+	private readonly Dictionary<string, TestItem> TestsList;
 
-	public EasyFlowTesting(
-		IEasyFlow easyFlow,
-		IEasyFlowDA easyFlowDa, 
-		IEasyFlowProject project,
-		IUnitTestsRunner unitTestsRunner
-		)
-	{
-		_easyFlow = easyFlow;
-		_easyFlowDa = easyFlowDa;
-		_project = project;
-		_unitTestsRunner = unitTestsRunner;
-	}
+	public EasyFlowTesting(IServiceCollection container, string projectPath, string sqlConnectionString)
+	{		
+		container.InitializeEasyFlow();
+		container.SetDbConnection(sqlConnectionString);
+		container.SetProjectPath(projectPath);
 
-	public void Init()
-	{
-		TestsList = _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
+		_serviceProvider = container.BuildServiceProvider();
+
+		_unitTestsRunner = GetService<IUnitTestsRunner>();
+		_easyFlowDa = GetService<IEasyFlowDA>();
+		_project = GetService<IEasyFlowProject>();
+
+		TestsList = GetTests();
 		foreach (var testItem in TestsList)
 		{
 			Add(testItem.Key); // adding tests to TheoryData base class.
@@ -47,6 +45,8 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 
 	protected void PrepareTestingDatabase()
 	{
+		var easyFlow = GetService<IEasyFlow>();
+
 		DeployParameters deployParams = new()
 		{
 			CreateDbIfNotExists = true,
@@ -56,7 +56,12 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 			RunTests = false /* we will run tests in Visual Studio UI */
 		};
 
-		_easyFlow.Deploy(deployParams);
+		easyFlow.Deploy(deployParams);
+	}
+
+	private TService GetService<TService>()
+	{
+		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 
 	/// <summary>
@@ -78,5 +83,10 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 		output.WriteLine(testRunResult.Output);
 
 		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
+	}
+
+	private Dictionary<string, TestItem> GetTests()
+	{
+		return _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
 	}
 }
