@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EasyFlow.MSSQL" Version="0.4.3-PullRequest0023.46" />
+    <PackageReference Include="EasyFlow.MSSQL" Version="0.4.3-PullRequest0023.49" />
   </ItemGroup>
 
 </Project>

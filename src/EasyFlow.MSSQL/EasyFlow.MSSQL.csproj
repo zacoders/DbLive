@@ -15,18 +15,12 @@
     <PackageReference Include="Dapper" />
   </ItemGroup>
 
-  
   <ItemGroup>
-    <None Include="SQL\**" Pack="true">
-      <Visible>false</Visible>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
+    <None Include="EasyFlow.MSSQL\**" Pack="True" PackagePath="contentFiles\" Visible="false">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-      <PackagePath>contentFiles\any\any\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension);</PackagePath>
     </None>
   </ItemGroup>
-
   
 	<ItemGroup>
 	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
