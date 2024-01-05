@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="EasyFlow.MSSQL\**" Pack="True" PackagePath="contentFiles\" Visible="false">
+    <None Include="EasyFlow.MSSQL\**" Pack="True" PackagePath="contentFiles\contentFiles\" Visible="false">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
