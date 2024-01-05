@@ -14,13 +14,13 @@
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="Dapper" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Content Include="MSSQL\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-      <PackagePath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <PackagePath>lib\netstandard2.0\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
     </Content>
   </ItemGroup>
 
