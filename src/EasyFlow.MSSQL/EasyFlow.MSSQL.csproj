@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <None Include="SQL\**" Pack="true" Visible="false" >
+      <Link>*.txt</Link>
       <Visible>false</Visible>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
