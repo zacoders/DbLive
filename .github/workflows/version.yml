@@ -1,15 +1,11 @@
 name: GitVersion
 
-# on:
-#   push:
-#     branches: [ "main" ]
-#   pull_request:
-#     branches: [ "main" ]
-
 on:
   push:
-    tags:
-    - 'xxxxxxxxx-disable-for-now*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    
 
 jobs:
   gitversion:
@@ -42,7 +38,6 @@ jobs:
     env:
       NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
-      NUGET_PROJECT_PATH: 'src/EasyFlow/EasyFlow.csproj'
       ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
       ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
 
@@ -84,14 +79,18 @@ jobs:
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
 
-    - name: Create the package
-      if: github.ref == 'refs/heads/main'
-      run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
+    - name: Create EasyFlow package
+      run: dotnet pack 'src/EasyFlow/EasyFlow.csproj' --no-restore --configuration Release
 
-    - name: Publish the package
-      if: github.ref == 'refs/heads/main'
-      run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
-    
+    # - name: Publish EasyFlow package
+    #   run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
+   
+    - name: Create EasyFlow.MSSQL package
+      run: dotnet pack 'src/EasyFlow.Adapter.MSSQL/EasyFlow.csproj' --no-restore --configuration Release
+
+    - name: Publish packages
+      run: dotnet nuget push **/bin/Release/*.nupkg
+      
     - name: Create git tag
       if: github.ref == 'refs/heads/main'
       run: git tag $GITVERSION_SEMVER
