@@ -14,14 +14,14 @@
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="Dapper" />
   </ItemGroup>
-
-	<ItemGroup>
-		<None Include="MSSQL\**">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  
+  <ItemGroup>
+    <None Include="MSSQL\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
-	</ItemGroup>
+      <PackagePath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+    </None>
+  </ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />

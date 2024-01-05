@@ -18,7 +18,7 @@
 		<None Include="PostgreSQL\**">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+      <PackagePath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
 		</None>
 	</ItemGroup>
 
