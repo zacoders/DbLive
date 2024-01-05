@@ -17,7 +17,8 @@
 
   
   <ItemGroup>
-    <None Include="SQL\**" Pack="true" Visible="false" >
+    <None Include="SQL\**" Pack="true">
+      <Visible>false</Visible>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
