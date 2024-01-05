@@ -41,7 +41,7 @@ public class MigrationTasksTests
 	public void GetMigrationType_DuplicateTask()
 	{
 		MockSet mockSet = new();
-				
+
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);

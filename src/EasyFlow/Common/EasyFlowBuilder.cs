@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace EasyFlow.Common;
+﻿namespace EasyFlow.Common;
 
 public class EasyFlowBuilder
 {

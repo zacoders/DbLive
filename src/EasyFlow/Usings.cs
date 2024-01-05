@@ -7,6 +7,6 @@ global using MoreLinq;
 global using Polly;
 global using Polly.Retry;
 global using Serilog;
-global using System.Transactions;
 global using System.Diagnostics.CodeAnalysis;
+global using System.Transactions;
 
