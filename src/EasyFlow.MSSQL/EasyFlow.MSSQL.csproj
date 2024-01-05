@@ -16,9 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="SQL\**" Pack="True" PackagePath="contentFiles\any\any\$(AssemblyName)" Visible="false">
+    <None Include="SQL\**" PackagePath="contentFiles\any\any\$(AssemblyName)" >
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
     </None>
   </ItemGroup>
   
