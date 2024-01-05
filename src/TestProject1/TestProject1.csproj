@@ -24,8 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj" />
-    <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
+    <ProjectReference Include="..\EasyFlow.Adapter.MSSQL\EasyFlow.MSSQL.csproj" />
     <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
     <ProjectReference Include="..\EasyFlow.Tests\EasyFlow.Tests.csproj" />
     <ProjectReference Include="..\TestProjects\TestProject_MSSQL\TestProject_MSSQL.csproj" />

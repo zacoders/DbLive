@@ -1,4 +1,4 @@
-name: GitVersion
+name: CICD
 
 on:
   push:
@@ -85,15 +85,9 @@ jobs:
     - name: Create EasyFlow.MSSQL package
       run: dotnet pack 'src/EasyFlow.Adapter.MSSQL/EasyFlow.Adapter.MSSQL.csproj' --no-restore --configuration Release
 
-    - name: Create EasyFlow.Common package
-      run: dotnet pack 'src/EasyFlow.Common/EasyFlow.Common.csproj' --no-restore --configuration Release
-
     - name: Publish packages
       run: dotnet nuget push **/bin/Release/*.nupkg
      
-    # - name: Publish EasyFlow package
-    #   run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
-    
     - name: Create git tag
       if: github.ref == 'refs/heads/main'
       run: git tag $GITVERSION_SEMVER

@@ -9,17 +9,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{DD98917C-0
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests", "EasyFlow.Tests\EasyFlow.Tests.csproj", "{75B26220-82D6-4A7B-B30D-2BB13712A836}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL", "EasyFlow.Adapter.MSSQL\EasyFlow.Adapter.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.MSSQL", "EasyFlow.Adapter.MSSQL\EasyFlow.MSSQL.csproj", "{6490DFAA-F5A3-43CA-8A2C-7B752642B5B7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Console", "EasyFlow.Console\EasyFlow.Console.csproj", "{3C2AADD3-CA5A-4701-AC1F-7424139C3907}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Project", "EasyFlow.Project\EasyFlow.Project.csproj", "{E2046CB8-824E-4CFE-8F24-2D8251A02C62}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Project.Tests", "EasyFlow.Project.Tests\EasyFlow.Project.Tests.csproj", "{B0BDF4EE-47C9-4034-876E-3B23DE870C79}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.PostgreSQL", "EasyFlow.Adapter.PostgreSQL\EasyFlow.Adapter.PostgreSQL.csproj", "{9A082A43-807C-4328-AE6E-70683CC7D45E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.Interface", "EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj", "{BB23AF8A-E703-44BB-BAFF-11019CED34B9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.PostgreSQL", "EasyFlow.Adapter.PostgreSQL\EasyFlow.PostgreSQL.csproj", "{9A082A43-807C-4328-AE6E-70683CC7D45E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Tests.Common", "EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj", "{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}"
 EndProject
@@ -28,8 +24,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject_MSSQL", "TestProjects\TestProject_MSSQL\TestProject_MSSQL.csproj", "{88D043EE-D372-4109-961F-F9E5762B808E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject1", "TestProject1\TestProject1.csproj", "{432DDF45-8516-4FB4-9ACF-5E8ACD75DBC0}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Common", "EasyFlow.Common\EasyFlow.Common.csproj", "{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.Adapter.MSSQL.Tests", "EasyFlow.Adapter.MSSQL.Tests\EasyFlow.Adapter.MSSQL.Tests.csproj", "{6BEB82F8-952C-4E99-9623-427BAECA28C5}"
 EndProject
@@ -67,10 +61,6 @@ Global
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3C2AADD3-CA5A-4701-AC1F-7424139C3907}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E2046CB8-824E-4CFE-8F24-2D8251A02C62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E2046CB8-824E-4CFE-8F24-2D8251A02C62}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E2046CB8-824E-4CFE-8F24-2D8251A02C62}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E2046CB8-824E-4CFE-8F24-2D8251A02C62}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B0BDF4EE-47C9-4034-876E-3B23DE870C79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B0BDF4EE-47C9-4034-876E-3B23DE870C79}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0BDF4EE-47C9-4034-876E-3B23DE870C79}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -79,10 +69,6 @@ Global
 		{9A082A43-807C-4328-AE6E-70683CC7D45E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A082A43-807C-4328-AE6E-70683CC7D45E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A082A43-807C-4328-AE6E-70683CC7D45E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BB23AF8A-E703-44BB-BAFF-11019CED34B9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B2BCC52-31DB-4456-9F7D-EBAEC4B09709}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -95,10 +81,6 @@ Global
 		{432DDF45-8516-4FB4-9ACF-5E8ACD75DBC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{432DDF45-8516-4FB4-9ACF-5E8ACD75DBC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{432DDF45-8516-4FB4-9ACF-5E8ACD75DBC0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B8460EA-02F2-4400-B276-F1CA4E8F4A8B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6BEB82F8-952C-4E99-9623-427BAECA28C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6BEB82F8-952C-4E99-9623-427BAECA28C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BEB82F8-952C-4E99-9623-427BAECA28C5}.Release|Any CPU.ActiveCfg = Release|Any CPU

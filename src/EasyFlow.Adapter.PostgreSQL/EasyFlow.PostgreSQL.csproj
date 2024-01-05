@@ -9,8 +9,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Crc32.NET" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Npgsql" />
   </ItemGroup>
+
+	<ItemGroup>
+		<None Include="PostgreSQL\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
+	</ItemGroup>
 
 </Project>

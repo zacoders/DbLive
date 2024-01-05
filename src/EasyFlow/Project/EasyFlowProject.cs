@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject

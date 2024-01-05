@@ -17,8 +17,6 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
-    <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
     <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
   </ItemGroup>
 

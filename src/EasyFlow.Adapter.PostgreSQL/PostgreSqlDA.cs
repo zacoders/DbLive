@@ -1,4 +1,5 @@
-﻿using EasyFlow.Common;
+﻿using EasyFlow.Adapter.Interface;
+using EasyFlow.Common;
 using System.Data;
 
 namespace EasyFlow.Adapter.PostgreSQL;

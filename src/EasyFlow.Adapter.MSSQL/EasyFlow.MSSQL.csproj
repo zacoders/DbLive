@@ -15,16 +15,15 @@
     <PackageReference Include="Dapper" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
-    <ProjectReference Include="..\EasyFlow.Common\EasyFlow.Common.csproj" />
-  </ItemGroup>
-
 	<ItemGroup>
 		<None Include="MSSQL\**">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
 	</ItemGroup>
 	
 </Project>

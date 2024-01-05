@@ -12,15 +12,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="morelinq" />
+    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Polly" />
     <PackageReference Include="Serilog" />
     <PackageReference Include="Serilog.Sinks.Console" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.Adapter.Interface\EasyFlow.Adapter.Interface.csproj" />
-    <ProjectReference Include="..\EasyFlow.Common\EasyFlow.Common.csproj" />
-    <ProjectReference Include="..\EasyFlow.Project\EasyFlow.Project.csproj" />
+    <PackageReference Include="Crc32.NET" />
   </ItemGroup>
 
 </Project>
