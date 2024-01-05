@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EasyFlow.Adapter.MSSQL\EasyFlow.MSSQL.csproj" />
+    <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
     <ProjectReference Include="..\..\EasyFlow\EasyFlow.csproj" />
   </ItemGroup>
 

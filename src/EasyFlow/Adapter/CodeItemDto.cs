@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Adapter.Interface;
+﻿namespace EasyFlow.Adapter;
 
 public class CodeItemDto
 {

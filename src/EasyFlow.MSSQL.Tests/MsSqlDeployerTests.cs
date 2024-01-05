@@ -1,4 +1,6 @@
-namespace EasyFlow.Adapter.MSSQL.Tests;
+using EasyFlow.Adapter;
+
+namespace EasyFlow.MSSQL.Tests;
 
 public class MsSqlDeployerTests : IntegrationTestsBase
 {

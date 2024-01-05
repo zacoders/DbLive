@@ -1,6 +1,8 @@
-﻿namespace EasyFlow.Adapter.PostgreSQL;
+﻿using EasyFlow.Adapter;
 
-internal class PostgreSqlPaths : IEasyFlowPaths
+namespace EasyFlow.MSSQL;
+
+internal class MsSqlPaths : IEasyFlowPaths
 {
 	public string GetPathToEasyFlowSelfProject() =>
 		Path.Combine(

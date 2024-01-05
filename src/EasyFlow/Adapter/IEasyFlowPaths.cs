@@ -1,5 +1,4 @@
-﻿
-namespace EasyFlow.Adapter.Interface;
+﻿namespace EasyFlow.Adapter;
 
 public interface IEasyFlowPaths
 {

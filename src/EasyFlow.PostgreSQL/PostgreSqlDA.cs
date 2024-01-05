@@ -1,8 +1,8 @@
-﻿using EasyFlow.Adapter.Interface;
+﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
 using System.Data;
 
-namespace EasyFlow.Adapter.PostgreSQL;
+namespace EasyFlow.PostgreSQL;
 
 public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 {

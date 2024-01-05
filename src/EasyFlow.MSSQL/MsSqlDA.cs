@@ -1,8 +1,9 @@
-﻿using EasyFlow.Common;
+﻿using EasyFlow.Adapter;
+using EasyFlow.Common;
 using System.Collections.Specialized;
 using System.Data;
 
-namespace EasyFlow.Adapter.MSSQL;
+namespace EasyFlow.MSSQL;
 
 public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 {

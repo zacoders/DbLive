@@ -1,6 +1,6 @@
 ﻿using EasyFlow.Common;
 
-namespace EasyFlow.Adapter.MSSQL;
+namespace EasyFlow.MSSQL;
 
 public static class EasyFlowBuilderExtentions
 {

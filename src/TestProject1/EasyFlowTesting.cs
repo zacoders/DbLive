@@ -1,5 +1,5 @@
 using EasyFlow;
-using EasyFlow.Adapter.Interface;
+using EasyFlow.Adapter;
 using EasyFlow.Common;
 using EasyFlow.Deployers;
 using EasyFlow.Project;

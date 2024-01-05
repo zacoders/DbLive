@@ -1,4 +1,3 @@
-global using EasyFlow.Adapter.Interface;
 global using EasyFlow.Common;
 global using EasyFlow.Deployers;
 global using EasyFlow.Exceptions;

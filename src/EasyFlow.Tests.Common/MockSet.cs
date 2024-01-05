@@ -1,4 +1,5 @@
-﻿using EasyFlow.Common;
+﻿using EasyFlow.Adapter;
+using EasyFlow.Common;
 
 namespace EasyFlow.Tests.Common;
 

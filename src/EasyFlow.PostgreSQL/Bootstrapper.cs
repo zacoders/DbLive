@@ -1,4 +1,6 @@
-﻿namespace EasyFlow.Adapter.PostgreSQL;
+﻿using EasyFlow.Adapter;
+
+namespace EasyFlow.PostgreSQL;
 
 public static class Bootstrapper
 {

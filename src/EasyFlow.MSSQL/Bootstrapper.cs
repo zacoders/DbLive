@@ -1,4 +1,6 @@
-﻿namespace EasyFlow.Adapter.MSSQL;
+﻿using EasyFlow.Adapter;
+
+namespace EasyFlow.MSSQL;
 
 public static class Bootstrapper
 {

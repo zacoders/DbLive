@@ -1,4 +1,4 @@
-﻿using EasyFlow.Adapter.MSSQL;
+﻿using EasyFlow.MSSQL;
 using EasyFlow.Common;
 
 namespace TestProject1;

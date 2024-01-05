@@ -1,5 +1,5 @@
 ﻿using EasyFlow;
-using EasyFlow.Adapter.MSSQL;
+using EasyFlow.MSSQL;
 using EasyFlow.Common;
 
 string connectionString = "Server=.;Database=Test1;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=True;";
