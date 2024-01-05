@@ -15,15 +15,18 @@
     <PackageReference Include="Dapper" />
   </ItemGroup>
 
+  
   <ItemGroup>
-    <Content Include="MSSQL\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Include="SQL\**" Pack="true" Visible="false" >
       <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-      <PackagePath>lib\netstandard2.0\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-    </Content>
+      <PackagePath>contentFiles\any\any\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension);content\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension);</PackagePath>
+    </None>
   </ItemGroup>
 
+  
 	<ItemGroup>
 	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
 	</ItemGroup>
