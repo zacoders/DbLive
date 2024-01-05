@@ -83,7 +83,7 @@ jobs:
       run: dotnet pack 'src/EasyFlow/EasyFlow.csproj' --no-restore --configuration Release
 
     - name: Create EasyFlow.MSSQL package
-      run: dotnet pack 'src/EasyFlow.Adapter.MSSQL/EasyFlow.Adapter.MSSQL.csproj' --no-restore --configuration Release
+      run: dotnet pack 'src/EasyFlow.MSSQL/EasyFlow.MSSQL.csproj' --no-restore --configuration Release
 
     - name: Publish packages
       run: dotnet nuget push **/bin/Release/*.nupkg
