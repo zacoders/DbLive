@@ -2,27 +2,16 @@
 
 public static class Bootstrapper
 {
-	public static void InitializeEasyFlow(this IServiceCollection container, DBEngine dbEngine)
+	public static void InitializeEasyFlow(this IServiceCollection container)
 	{
-		container.InitializeCommon();
-		container.InitializeFlowProject();
+		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
+		container.AddSingleton<IFileSystem, FileSystem>();
+		container.AddSingleton<IEasyFlowProject, EasyFlowProject>();
 		container.AddSingleton<BreakingChangesDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
 		container.AddSingleton<MigrationItemDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
-
-		switch (dbEngine)
-		{
-			case DBEngine.MSSQL:
-				container.InitializeMSSQL();
-				break;
-			case DBEngine.PostgreSql:
-				container.InitializePostgreSQL();
-				break;
-			default:
-				throw new NotImplementedException($"Unsupported DBEngine '{dbEngine}' provided.");
-		}
 	}
 }

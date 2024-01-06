@@ -1,38 +1,58 @@
+using EasyFlow.Adapter;
+
 namespace EasyFlow;
 
 public class EasyFlow(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
-		IEasyFlowPaths _paths,
 		CodeDeployer _codeDeployer,
+		IEasyFlowPaths _paths,
 		BreakingChangesDeployer _breakingChangesDeployer,
 		MigrationsDeployer _migrationsDeployer,
-		IUnitTestsRunner _unitTestsRunner
+		IUnitTestsRunner _unitTestsRunner,
+		EasyFlowBuilder _builder,
+		ILogger logger
 	) : IEasyFlow
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(EasyFlow));
+	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	private EasyFlowSettings _projectSettings = new();
 
-	public void DeployProject(string proejctPath, string sqlConnectionString, DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
+		_logger.Information("Starting deployment.");
+
 		parameters.Check();
 
 		if (parameters.CreateDbIfNotExists)
-			_da.CreateDB(sqlConnectionString, true);
+			_da.CreateDB(true);
 
 		// Self deploy. Deploying EasyFlow to the database
-		DeployProjectInternal(true, _paths.GetPathToEasyFlowSelfProject(), sqlConnectionString, DeployParameters.Default);
+		SelfDeployProjectInternal();
 
 		// Deploy actuall project
-		DeployProjectInternal(false, proejctPath, sqlConnectionString, parameters);
+		DeployProjectInternal(false, parameters);
 	}
 
-	private void DeployProjectInternal(bool isSelfDeploy, string proejctPath, string sqlConnectionString, DeployParameters parameters)
+	private void SelfDeployProjectInternal()
 	{
-		_project.Load(proejctPath);
+		_logger.Information("Starting self deploy.");
+
+		var selfDeployer = (EasyFlow)_builder.ClonBuilder()
+			.SetProjectPath(_paths.GetPathToEasyFlowSelfProject())
+			.CreateDeployer();
+
+		selfDeployer.DeployProjectInternal(true, DeployParameters.Default);
+
+		_logger.Information("Self deploy completed.");
+	}
+
+	private void DeployProjectInternal(bool isSelfDeploy, DeployParameters parameters)
+	{
+		_logger.Information("Starting project deploy.");
+
 		_projectSettings = _project.GetSettings();
 
 		Transactions.ExecuteWithinTransaction(
@@ -41,14 +61,16 @@ public class EasyFlow(
 			_defaultTimeout,
 			() =>
 			{
-				_migrationsDeployer.DeployMigrations(isSelfDeploy, sqlConnectionString, parameters);
+				_migrationsDeployer.DeployMigrations(isSelfDeploy, parameters);
 
-				_codeDeployer.DeployCode(isSelfDeploy, sqlConnectionString, parameters);
+				_codeDeployer.DeployCode(isSelfDeploy, parameters);
 
-				_breakingChangesDeployer.DeployBreakingChanges(sqlConnectionString, parameters);
+				_breakingChangesDeployer.DeployBreakingChanges(parameters);
 			}
 		);
 
-		_unitTestsRunner.RunAllTests(sqlConnectionString, parameters, _projectSettings);
+		_unitTestsRunner.RunAllTests(parameters, _projectSettings);
+
+		_logger.Information("Project deploy completed.");
 	}
 }

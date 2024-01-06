@@ -1,31 +1,52 @@
-using EasyFlow.Tests.Config;
+using EasyFlow.MSSQL;
+using Microsoft.SqlServer.Management.Common;
 
 namespace EasyFlow.Tests;
 
-public class SqlServerIntegrationBaseTest : IntegrationTestsBase
+public class SqlServerIntegrationBaseTest : IDisposable
 {
-	protected readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
-	private static string TestDbNamePrefix = "EasyFlow--";
+	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
+	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
-	protected static readonly string masterDbConnectionString;
+	protected readonly string masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
-	protected static string GetDbConnectionString(string dbName) 
+	protected readonly string _testingDbName;
+
+	protected readonly IEasyFlow EasyFlow;
+
+	public ITestOutputHelper Output { get; }
+
+	protected string GetDbConnectionString(string dbName)
 	{
-		var cnnBuilder = new SqlConnectionStringBuilder(masterDbConnectionString);
-		cnnBuilder.InitialCatalog = dbName;
+		SqlConnectionStringBuilder cnnBuilder = new(masterDbConnectionString)
+		{
+			InitialCatalog = dbName
+		};
 		return cnnBuilder.ConnectionString;
 	}
-	static SqlServerIntegrationBaseTest()
+
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string? dbName = null) //: base(output)
 	{
-		Container.InitializeEasyFlow(DBEngine.MSSQL);
-		var config = GetService<TestConfig>();
+		var config = new TestConfig();
+
 		masterDbConnectionString = config.GetSqlServerConnectionString();
+		Output = output;
+		_testingDbName = dbName ?? GetRanomDbName();
+
+		EasyFlow = new EasyFlowBuilder()
+			.LogToXUnitOutput(output)
+			.AddTestingMsSqlConnection()
+			.SqlServer()
+			.SetDbConnection(GetDbConnectionString(_testingDbName))
+			.SetProjectPath(_msSqlTestingProjectPath)
+			.CreateDeployer();
 	}
 
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output) : base(output)
-	{		
+	public void Dispose()
+	{
+		DropTestingDatabases(_testingDbName);
 	}
 
 	private void DropTestingDatabases()
@@ -92,7 +113,7 @@ public class SqlServerIntegrationBaseTest : IntegrationTestsBase
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
-		bool exists = cmd.ExecuteScalar() == null ? false : true;
+		bool exists = cmd.ExecuteScalar() != null;
 		return exists;
 	}
 }

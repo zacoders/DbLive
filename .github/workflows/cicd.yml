@@ -1,20 +1,16 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: CICD
 
-# on:
-#   push:
-#     branches: [ "main" ]
-#   pull_request:
-#     branches: [ "main" ]
 on:
   push:
-    tags:
-    - 'xxxxxxxxx-disable-for-now*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    
 
 jobs:
-  build:
+  compile:
+    
+    name: Build > Test > Publish
 
     runs-on: ubuntu-latest
 
@@ -44,13 +40,14 @@ jobs:
     env:
       NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
       SOLUTION_PATH: 'src/EasySqlFlow.sln'
-      NUGET_PROJECT_PATH: 'src/EasyFlow/EasyFlow.csproj'
       ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
       ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
 
     steps:
-
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 #required for GitVersion
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
@@ -58,18 +55,45 @@ jobs:
         dotnet-version: 8.0.x
         source-url: https://nuget.pkg.github.com/zatuliveter/index.json
 
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: true
+        configFilePath: .github/GitVersion.yml
+        updateAssemblyInfo: true
+      
+    - name: Update NuGet package version
+      run: |
+        echo "Updating version to $GITVERSION_SEMVER in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
+    
+    - name: Semver
+      run: echo $GITVERSION_SEMVER
+
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
-
-    # - name: Build
-    #   run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Debug #debug required to run unit tests
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --verbosity normal #--no-build
 
-    - name: Create the package
-      run: dotnet pack ${{ env.NUGET_PROJECT_PATH }} --no-restore --configuration Release
+    - name: Create EasyFlow package
+      run: dotnet pack 'src/EasyFlow/EasyFlow.csproj' --no-restore --configuration Release
 
-    - name: Publish the package to GPR
-      run: dotnet nuget push src/EasyFlow/bin/Release/*.nupkg
-      
+    - name: Create EasyFlow.MSSQL package
+      run: dotnet pack 'src/EasyFlow.MSSQL/EasyFlow.MSSQL.csproj' --no-restore --configuration Release
+
+    - name: Publish packages
+      run: dotnet nuget push **/bin/Release/*.nupkg
+     
+    - name: Create git tag
+      if: github.ref == 'refs/heads/main'
+      run: git tag $GITVERSION_SEMVER
+
+    - name: Push git tag
+      if: github.ref == 'refs/heads/main'
+      run: git push origin $GITVERSION_SEMVER

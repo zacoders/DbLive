@@ -1,5 +1,3 @@
-using EasyFlow.Common;
-
 namespace EasyFlow.Project.Tests;
 
 public class MigrationTasksTests
@@ -9,24 +7,22 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
 			.Returns(new[]
 			{
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
-				@"C:\MainTestDB\Migrations\003.test3\data.sql",
 				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
 			});
 
 		var migrationTasks = sqlProject.GetMigrationItems("");
 
-		Assert.Equal(4, migrationTasks.Count);
+		Assert.Equal(3, migrationTasks.Count);
 	}
-
 
 	[Fact]
 	public void GetMigrationType_EmptySettingsTest()
@@ -36,20 +32,9 @@ public class MigrationTasksTests
 		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
 		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		sqlProject.GetMigrations();
-	}
-
-	[Fact]
-	public void GetMigrationType_ProjectWasNotLoadedException()
-	{
-		MockSet mockSet = new();
-
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-
-		Assert.Throws<ProjectWasNotLoadedException>(() => sqlProject.GetMigrations());
 	}
 
 	[Fact]
@@ -57,8 +42,10 @@ public class MigrationTasksTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load(@"C:\MainTestDB");
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\MainTestDB");
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
 		var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<string>(), settings.TestFilePattern, true)

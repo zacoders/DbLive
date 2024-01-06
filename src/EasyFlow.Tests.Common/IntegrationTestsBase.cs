@@ -1,32 +1,31 @@
-﻿using EasyFlow.Tests.Config;
-namespace EasyFlow.Tests.Common;
+﻿namespace EasyFlow.Tests.Common;
 
-public abstract class IntegrationTestsBase : TestBase
+public abstract class IntegrationTestsBase
 {
-	protected static readonly IServiceCollection Container;
-	
-	static IntegrationTestsBase()
+	private ServiceProvider? _serviceProvider;
+	protected readonly IServiceCollection Container;
+	protected ITestOutputHelper Output { get; }
+
+	protected IntegrationTestsBase(ITestOutputHelper output)
 	{
+		Output = output;
+
 		Container = new ServiceCollection();
-		Container.AddSingleton<TestConfig>();
+		Container.LogToXUnitOutput(output);
 	}
 
-	protected IntegrationTestsBase(ITestOutputHelper output) : base(output)
-	{		
-	}
-
-	///// <summary>
-	///// Returns ServiceProvider. Builds if needed or returns existing.
-	///// </summary>
-	///// <returns></returns>
-	//protected IServiceProvider GetServiceProvider()
-	//{
-	//	serviceProvider ??= Container.BuildServiceProvider();
-	//	return serviceProvider;
-	//}
-
-	protected static TService GetService<TService>()
+	/// <summary>
+	/// Returns ServiceProvider. Builds if needed or returns existing.
+	/// </summary>
+	/// <returns></returns>
+	protected IServiceProvider GetServiceProvider()
 	{
-		return Container.BuildServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+		_serviceProvider ??= Container.BuildServiceProvider();
+		return _serviceProvider;
+	}
+
+	protected TService GetService<TService>()
+	{
+		return GetServiceProvider().GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 }
