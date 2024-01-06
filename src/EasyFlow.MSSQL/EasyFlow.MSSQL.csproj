@@ -19,6 +19,7 @@
   <ItemGroup>
     <None Include="SQL\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
     </None>
   </ItemGroup>
@@ -29,6 +30,7 @@
       <PackagePath>src\$(AssemblyName)</PackagePath>
     </None>
     <None Include="build\project.targets" Pack="true">
+      <!-- .targets file must be named {AssemblyName}.targets, so we rename it here using $(AssemblyName) variable. -->
       <PackagePath>build\$(AssemblyName)%(Extension)</PackagePath>
     </None>
   </ItemGroup>
