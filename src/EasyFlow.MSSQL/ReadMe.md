@@ -9,4 +9,8 @@ What we actually need is just to copy static content to the output folder during
 * `%(RecursiveDir)%(Filename)%(Extension)` — used to preserve folders structure.
 * `.csproj` there is a step to copy SQL content to output build folder, this needed for development only, and will not affect NuGet contents.
 
+## Links
+
+* [Copy NuGet Content Files to Output Directory on Build](https://blog.tonysneed.com/2021/12/04/copy-nuget-content-files-to-output-directory-on-build/)
+* [Prevent duplicating files in NuGet content and contentFiles folders](https://stackoverflow.com/a/47469709/1151431)
 
