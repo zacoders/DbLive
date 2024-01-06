@@ -26,7 +26,7 @@
   <!-- For nuget -->
   <ItemGroup>
     <None Include="SQL\**" Pack="true">
-      <PackagePath>src\sql</PackagePath>
+      <PackagePath>src\$(AssemblyName)</PackagePath>
     </None>
     <None Include="build\project.targets" Pack="true">
       <PackagePath>build\$(AssemblyName)%(Extension)</PackagePath>
