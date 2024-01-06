@@ -1,13 +1,15 @@
+using EasyFlow.Adapter;
+
 namespace EasyFlow.Deployers;
 
-public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
+public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
 {
-	private static readonly ILogger Logger = Log.ForContext(typeof(MigrationsDeployer));
+	private readonly ILogger Logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	private EasyFlowSettings _projectSettings = new();
+	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
-	public void DeployMigrationItem(string sqlConnectionString, bool isSelfDeploy, Migration migration, MigrationItem migrationItem, MigrationItemType[] migrationItemTypesToApply)
+	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
 		Transactions.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
@@ -23,18 +25,10 @@ public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 				DateTime? migrationAppliedUtc = null;
 				int? executionTimeMs = null;
 
-				//todo: this method should be refactored or removed, due to this logic related to item type
-				if (migrationItem.MigrationItemType.In(migrationItemTypesToApply))
-				{
-					_da.ExecuteNonQuery(sqlConnectionString, migrationItem.FileData.Content);
-					status = "applied";
-					migrationAppliedUtc = _timeProvider.UtcNow();
-					executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
-				}
-				else
-				{
-					status = "skipped";
-				}
+				_da.ExecuteNonQuery(migrationItem.FileData.Content);
+				status = "applied";
+				migrationAppliedUtc = _timeProvider.UtcNow();
+				executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 
 				if (!isSelfDeploy)
 				{
@@ -51,11 +45,37 @@ public class MigrationItemDeployer(IEasyFlowDA _da, ITimeProvider _timeProvider)
 						ExecutionTimeMs = executionTimeMs
 					};
 
-					_da.SaveMigrationItemState(sqlConnectionString, dto);
+					_da.SaveMigrationItemState(dto);
 				}
 
 				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
 			}
 		);
+	}
+
+	public void MarkAsSkipped(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
+	{
+		Logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
+
+		string status = "skipped";
+		if (!isSelfDeploy)
+		{
+			MigrationItemDto dto = new()
+			{
+				Version = migration.Version,
+				Name = migration.Name,
+				ItemType = migrationItem.MigrationItemType.ToString().ToLower(),
+				ContentHash = migrationItem.FileData.Crc32Hash,
+				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
+				Status = status,
+				CreatedUtc = _timeProvider.UtcNow(),
+				AppliedUtc = null,
+				ExecutionTimeMs = null
+			};
+
+			_da.SaveMigrationItemState(dto);
+		}
+
+		Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
 	}
 }

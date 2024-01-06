@@ -1,13 +1,17 @@
 ﻿namespace EasyFlow.Tests.Common;
 
-public abstract class IntegrationTestsBase : TestBase
+public abstract class IntegrationTestsBase
 {
-	protected IServiceCollection Container { get; }
-	private IServiceProvider? serviceProvider;
+	private ServiceProvider? _serviceProvider;
+	protected readonly IServiceCollection Container;
+	protected ITestOutputHelper Output { get; }
 
-	protected IntegrationTestsBase(ITestOutputHelper output) : base(output)
+	protected IntegrationTestsBase(ITestOutputHelper output)
 	{
+		Output = output;
+
 		Container = new ServiceCollection();
+		Container.LogToXUnitOutput(output);
 	}
 
 	/// <summary>
@@ -16,8 +20,8 @@ public abstract class IntegrationTestsBase : TestBase
 	/// <returns></returns>
 	protected IServiceProvider GetServiceProvider()
 	{
-		serviceProvider ??= Container.BuildServiceProvider();
-		return serviceProvider;
+		_serviceProvider ??= Container.BuildServiceProvider();
+		return _serviceProvider;
 	}
 
 	protected TService GetService<TService>()

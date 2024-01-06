@@ -1,53 +1,95 @@
 using EasyFlow;
-using EasyFlow.Project.Settings;
-using EasyFlow.Tests;
-using EasyFlow.VSTests;
+using EasyFlow.Adapter;
+using EasyFlow.Common;
+using EasyFlow.Deployers;
+using EasyFlow.Project;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class EasyFlowTesting : DeploySqlIntegrationBaseTest, IDisposable
+public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 {
-	readonly static string _unitTestsDBName = "EasyFlow-UnitTests-" + nameof(EasyFlowTesting);
+	private readonly ServiceProvider _serviceProvider;
+	private readonly IUnitTestsRunner _unitTestsRunner;
+	private readonly IEasyFlowDA _easyFlowDa;
+	private readonly IEasyFlowProject _project;
+	private readonly Dictionary<string, TestItem> TestsList;
 
-	private static string SqlConnectionString => $"Data Source=.;Initial Catalog={_unitTestsDBName};Integrated Security=True;TrustServerCertificate=True;";
-
-	private static readonly EasyFlowPrepareTests TestsPrepare = new(DBEngine.MSSQL, _msSqlTestingProjectPath);
-
-	public EasyFlowTesting(ITestOutputHelper output) : base(output)
+	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder, string projectPath, string sqlConnectionString)
 	{
+		var container = easyFlowBuilder.Container;
+
+		container.InitializeEasyFlow();
+		container.SetDbConnection(sqlConnectionString);
+		container.SetProjectPath(projectPath);
+		container.LogToConsole();
+
+		_serviceProvider = container.BuildServiceProvider();
+
+		_unitTestsRunner = GetService<IUnitTestsRunner>();
+		_easyFlowDa = GetService<IEasyFlowDA>();
+		_project = GetService<IEasyFlowProject>();
+
+		TestsList = GetTests();
+		foreach (var testItem in TestsList)
+		{
+			Add(testItem.Key); // adding tests to TheoryData base class.
+		}
+
+		PrepareTestingDatabase();
 	}
 
 	public void Dispose()
 	{
-		//DropTestingDatabase(_unitTestsDBName);
+		_easyFlowDa.DropDB();
+		GC.SuppressFinalize(this);
 	}
 
-	[Theory]
-	[MemberData(nameof(GetListOfTests))]
-	public void DB(string test, int num)
+	protected void PrepareTestingDatabase()
 	{
-		Output.WriteLine($"Running unit test #{num}: {test}");
+		var easyFlow = GetService<IEasyFlow>();
 
-		var testItem = TestsPrepare.TestItems[num];
+		DeployParameters deployParams = new()
+		{
+			CreateDbIfNotExists = true,
+			DeployBreaking = true,
+			DeployCode = true,
+			DeployMigrations = true,
+			RunTests = false /* we will run tests in Visual Studio UI */
+		};
 
-		var testRunResult = TestsPrepare.Run(testItem, SqlConnectionString, new EasyFlowSettings());
+		easyFlow.Deploy(deployParams);
+	}
 
-		Output.WriteLine(testRunResult.Output);
+	private TService GetService<TService>()
+	{
+		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+	}
+
+	/// <summary>
+	/// Runs Sql test.
+	/// </summary>
+	/// <param name="output">xUnit <see cref="ITestOutputHelper"/></param>
+	/// <param name="relativePath">Relative path to the sql test.</param>
+	public void RunTest(ITestOutputHelper output, string relativePath)
+	{
+		output.WriteLine($"Running unit test {relativePath}");
+		output.WriteLine("");
+
+		var testItem = TestsList[relativePath];
+
+		output.WriteLine($"{testItem.FileData.Content}");
+
+		var testRunResult = _unitTestsRunner.RunTest(testItem, new EasyFlowSettings());
+
+		output.WriteLine(testRunResult.Output);
 
 		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
 	}
 
-	public static IEnumerable<object[]> GetListOfTests()
+	private Dictionary<string, TestItem> GetTests()
 	{
-		//yield return new object[] { "", -1 };
-		TestsPrepare.PrepareUnitTestingDatabase(SqlConnectionString);
-
-		int indexer = 0;
-		foreach (var testItem in TestsPrepare.TestItems)
-		{
-			yield return new object[] { testItem.Name, indexer++ };
-		}
+		return _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
 	}
-
 }

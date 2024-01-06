@@ -1,0 +1,49 @@
+name: GitVersion (Simple Check)
+
+# on:
+#   push:
+#     branches: [ "main", "develop" ]
+#   pull_request:
+#     branches: [ "main", "develop" ]
+on:
+  push:
+    tags:
+    - 'xxxxxxxxx-disable-for-now*'
+    
+jobs:
+  gitversion:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 #required for GitVersion
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: true
+        configFilePath: .github/GitVersion.yml
+        updateAssemblyInfo: true
+      
+    - name: Semver
+      run: echo $GITVERSION_SEMVER
+     
+    - name: Update NuGet package version
+      run: |
+        echo "Updating version to $GITVERSION_SEMVER in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
+
+    
+    - name: Create git tag
+      run: git tag $GITVERSION_SEMVER
+
+    - name: Push git tag
+      run: git push origin $GITVERSION_SEMVER

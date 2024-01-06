@@ -1,9 +1,14 @@
-﻿
-namespace EasyFlow.Deployers
+﻿namespace EasyFlow.Deployers;
+
+public interface IUnitTestsRunner
 {
-	public interface IUnitTestsRunner
-	{
-		void RunAllTests(string sqlConnectionString, DeployParameters parameters, EasyFlowSettings settings);
-		TestRunResult RunTest(TestItem test, string sqlConnectionString, EasyFlowSettings settings);
-	}
+	void RunAllTests(DeployParameters parameters, EasyFlowSettings settings);
+
+	/// <summary>
+	/// Runs Sql test.
+	/// </summary>
+	/// <param name="test"></param>
+	/// <param name="settings"></param>
+	/// <returns></returns>
+	TestRunResult RunTest(TestItem test, EasyFlowSettings settings);
 }

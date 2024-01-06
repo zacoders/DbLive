@@ -16,8 +16,7 @@ public class MigrationsTests
 				@"C:\MainTestDB\Migrations\003.test3",
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 
@@ -40,8 +39,7 @@ public class MigrationsTests
 				@"C:\MainTestDB\Migrations\001.dup1"
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		Assert.Throws<MigrationExistsException>(sqlProject.GetMigrations);
 	}
@@ -57,8 +55,7 @@ public class MigrationsTests
 				@"C:\MainTestDB\Migrations\bad001version.bad-version-migration"
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
 	}
@@ -68,8 +65,7 @@ public class MigrationsTests
 	{
 		var mockSet = new MockSet();
 
-		var sqlProject = new EasyFlowProject(mockSet.FileSystem);
-		sqlProject.Load("");
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
 			.Returns(new[]

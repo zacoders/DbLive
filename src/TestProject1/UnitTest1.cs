@@ -1,22 +1,22 @@
+using EasyFlow.Tests;
 using System.Data.SqlClient;
 using System.Transactions;
+using Xunit.Abstractions;
 
 namespace TestProject1;
 
-public class UnitTest1
+public class TranTests(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
 {
-	string cnnString = "Data Source=.;Initial Catalog=master;Integrated Security=True;";
-
 	[Fact]
 	public void Test1()
 	{
-		using TransactionScope transactionScope = new TransactionScope();
+		using TransactionScope transactionScope = new();
 
-		SqlConnection cnn1 = new(cnnString);
+		SqlConnection cnn1 = new(masterDbConnectionString);
 		cnn1.Open();
 		cnn1.Close();
 
-		SqlConnection cnn2 = new(cnnString);
+		SqlConnection cnn2 = new(masterDbConnectionString);
 		cnn2.Open();
 		cnn2.Close();
 

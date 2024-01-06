@@ -8,7 +8,6 @@ public class TaskTypeTests
 		var testingValues = new[] {
 			"migration",
 			"UNDO",
-			"data",
 			"Breaking"
 		};
 
