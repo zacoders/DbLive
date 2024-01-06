@@ -25,15 +25,14 @@
 
   <!-- For nuget -->
   <ItemGroup>
-    <Content Include="SQL\**" Pack="true">
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <PackagePath>tools</PackagePath>
-    </Content>
-    <None Include="build\**" Pack="true">
-      <PackagePath>\</PackagePath>
+    <None Include="SQL\**" Pack="true">
+      <PackagePath>src\sql</PackagePath>
+    </None>
+    <None Include="build\project.targets" Pack="true">
+      <PackagePath>build\$(AssemblyName)%(Extension)</PackagePath>
     </None>
   </ItemGroup>
-  
+    
 	<ItemGroup>
 	  <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
 	</ItemGroup>
