@@ -1,14 +1,14 @@
+# Development 
 
----------
 To start local environment for testing purposes do the following:  
-  * Right click on "docker-compose" project
-  * "Compose Up"
+  * Open command line
+  * go to `src` folder
+  * run: `docker-compose up -d`   
 
 It will starte mssql, postgres contaners which will be used for testing.
 
-
----------
 To stop local environment:  
-  * Right click on "docker-compose" project
-  * "Compose Up"
+  * Open command line
+  * go to `src` folder
+  * run: `docker-compose down`   
 
