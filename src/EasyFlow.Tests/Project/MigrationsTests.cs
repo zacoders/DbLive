@@ -10,19 +10,18 @@ public class MigrationsTests
 		var mockSet = new MockSet();
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
-			.Returns(new[]
-			{
+			.Returns([
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
 				@"C:\MainTestDB\Migrations\_Old\002.test2",
 				@"C:\MainTestDB\Migrations\004.test4",
 				@"C:\MainTestDB\Migrations\003.test3",
-			});
+			]);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 
-		Assert.Equal(4, migrations.Count());
+		Assert.Equal(4, migrations.Length);
 		Assert.Equal(1, migrations[0].Version);
 		Assert.Equal(2, migrations[1].Version);
 		Assert.Equal(3, migrations[2].Version);
@@ -35,11 +34,10 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
-			.Returns(new[]
-			{
+			.Returns([
 				@"C:\MainTestDB\Migrations\_Old\001.dup1",
 				@"C:\MainTestDB\Migrations\001.dup1"
-			});
+			]);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
@@ -52,10 +50,9 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
-			.Returns(new[]
-			{
+			.Returns([
 				@"C:\MainTestDB\Migrations\bad001version.bad-version-migration"
-			});
+			]);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
@@ -70,17 +67,16 @@ public class MigrationsTests
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*.*", SearchOption.TopDirectoryOnly)
-			.Returns(new[]
-			{
+			.Returns([
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
 				@"C:\MainTestDB\Migrations\_Old\002.test2",
 				@"C:\MainTestDB\Migrations\004.test4",
 				@"C:\MainTestDB\Migrations\003.test3",
-			});
+			]);
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 
-		Assert.Equal(4, migrations.Count());
+		Assert.Equal(4, migrations.Length);
 		Assert.Equal(1, migrations[0].Version);
 		Assert.Equal(2, migrations[1].Version);
 		Assert.Equal(3, migrations[2].Version);

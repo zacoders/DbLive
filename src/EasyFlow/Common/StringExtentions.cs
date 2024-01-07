@@ -6,8 +6,19 @@ public static class StringExtentions
 
 	public static string GetLastSegment(this string path)
 	{
+		return GetSegmentFromTheEnd(path, 1);
+	}
+
+	/// <summary>
+	/// Gets path segment, counting from the end.
+	/// </summary>
+	/// <param name="path"></param>
+	/// <param name="segmentNumger">Segment numger counted from the end.</param>
+	/// <returns>Segment</returns>
+	public static string GetSegmentFromTheEnd(this string path, int segmentNumger)
+	{
 		Uri folderUri = new(path);
-		return folderUri.Segments[folderUri.Segments.Length - 1];
+		return folderUri.Segments[folderUri.Segments.Length - segmentNumger];
 	}
 
 	//public static string GetRelativePath(this string fullPath, string rootPath)
