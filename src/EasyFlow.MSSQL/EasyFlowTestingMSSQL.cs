@@ -1,9 +1,9 @@
 ﻿using EasyFlow.Common;
-using EasyFlow.MSSQL;
+using EasyFlow.Testing;
 
-namespace TestProject1;
+namespace EasyFlow.MSSQL;
 
-public abstract class EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
+public class EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
 	: EasyFlowTesting(CreateContainer(), projectPath, dbConnectionString)
 {
 	private static EasyFlowBuilder CreateContainer()

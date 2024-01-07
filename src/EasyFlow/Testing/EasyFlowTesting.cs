@@ -1,20 +1,15 @@
-using EasyFlow;
 using EasyFlow.Adapter;
-using EasyFlow.Common;
-using EasyFlow.Deployers;
-using EasyFlow.Project;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit.Abstractions;
+using System.Collections.ObjectModel;
 
-namespace TestProject1;
+namespace EasyFlow.Testing;
 
-public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
+public class EasyFlowTesting : IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly IEasyFlowDA _easyFlowDa;
 	private readonly IEasyFlowProject _project;
-	private readonly Dictionary<string, TestItem> TestsList;
+	public readonly ReadOnlyDictionary<string, TestItem> TestsList;
 
 	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder, string projectPath, string sqlConnectionString)
 	{
@@ -32,10 +27,6 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 		_project = GetService<IEasyFlowProject>();
 
 		TestsList = GetTests();
-		foreach (var testItem in TestsList)
-		{
-			Add(testItem.Key); // adding tests to TheoryData base class.
-		}
 
 		PrepareTestingDatabase();
 	}
@@ -70,26 +61,28 @@ public abstract class EasyFlowTesting : TheoryData<string>, IDisposable
 	/// <summary>
 	/// Runs Sql test.
 	/// </summary>
-	/// <param name="output">xUnit <see cref="ITestOutputHelper"/></param>
+	/// <param name="output"><see cref="ITestOutput"/></param>
 	/// <param name="relativePath">Relative path to the sql test.</param>
-	public void RunTest(ITestOutputHelper output, string relativePath)
+	public TestRunResult RunTest(Action<string> writeLine, string relativePath)
 	{
-		output.WriteLine($"Running unit test {relativePath}");
-		output.WriteLine("");
+		writeLine($"Running unit test {relativePath}");
+		writeLine("");
 
 		var testItem = TestsList[relativePath];
 
-		output.WriteLine($"{testItem.FileData.Content}");
+		writeLine($"{testItem.FileData.Content}");
 
 		var testRunResult = _unitTestsRunner.RunTest(testItem, new EasyFlowSettings());
 
-		output.WriteLine(testRunResult.Output);
+		writeLine(testRunResult.Output);
 
-		Assert.True(testRunResult.IsSuccess, testRunResult.ErrorMessage);
+		return testRunResult;
 	}
 
-	private Dictionary<string, TestItem> GetTests()
+	private ReadOnlyDictionary<string, TestItem> GetTests()
 	{
-		return _project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i);
+		return new ReadOnlyDictionary<string, TestItem>(
+			_project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
+		);
 	}
 }
