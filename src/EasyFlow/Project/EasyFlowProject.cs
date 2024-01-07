@@ -1,5 +1,6 @@
 using EasyFlow.Project.Exceptions;
 using Newtonsoft.Json;
+using System.Collections.ObjectModel;
 
 namespace EasyFlow.Project;
 
@@ -33,13 +34,13 @@ public class EasyFlowProject : IEasyFlowProject
 		return _settings;
 	}
 
-	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
+	public ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
-		HashSet<MigrationItem> tasks = [];
+		List<MigrationItem> tasks = [];
 
 		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
 
-		foreach (string filePath in files)
+		foreach (string filePath in files.OrderBy(path => path))
 		{
 			string fileName = filePath.GetLastSegment();
 			var fileParts = fileName.Split('.');
@@ -52,15 +53,10 @@ public class EasyFlowProject : IEasyFlowProject
 				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
 			};
 
-			if (tasks.Contains(task))
-			{
-				throw new MigrationTaskExistsException(task);
-			}
-
 			tasks.Add(task);
 		}
 
-		return tasks;
+		return tasks.AsReadOnly();
 	}
 
 	public static MigrationItemType GetMigrationType(string type) =>
@@ -135,7 +131,7 @@ public class EasyFlowProject : IEasyFlowProject
 			Version = version,
 			Name = splitFolder[1],
 			FolderPath = folderPath,
-			Tasks = GetMigrationItems(folderPath)
+			Items = GetMigrationItems(folderPath)
 		};
 	}
 

@@ -5,7 +5,7 @@ namespace EasyFlow.Tests.Deployers;
 public class MigrationsDeployerTest
 {
     static Migration NewMigration(int version, string name) =>
-        new() { Version = version, Name = name, FolderPath = "c:/", Tasks = [] };
+        new() { Version = version, Name = name, FolderPath = "c:/", Items = new List<MigrationItem>().AsReadOnly() };
 
     [Fact]
     public void GetMigrationsToApply()
