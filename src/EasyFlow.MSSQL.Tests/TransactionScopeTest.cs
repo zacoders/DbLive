@@ -1,6 +1,7 @@
+using Microsoft.Data.SqlClient;
 using System.Transactions;
 
-namespace EasyFlow.Tests;
+namespace EasyFlow.MSSQL.Tests;
 
 public class TransactionScopeTest(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
 {

@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests;
+namespace EasyFlow.MSSQL.Tests;
 
 public class DeploySqlIntegrationFullRepeatTest(ITestOutputHelper output)
 	: SqlServerIntegrationBaseTest(output), IDisposable

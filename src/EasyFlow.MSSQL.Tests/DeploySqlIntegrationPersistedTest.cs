@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests;
+namespace EasyFlow.MSSQL.Tests;
 
 public class DeploySqlIntegrationPersistedTest(ITestOutputHelper output)
 	: SqlServerIntegrationBaseTest(output, dbName: "EasyFlow-PersistedTest")
