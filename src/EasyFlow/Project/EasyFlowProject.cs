@@ -38,7 +38,7 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		List<MigrationItem> tasks = [];
 
-		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
+		var files = _fileSystem.EnumerateFiles(migrationFolder, ["*.sql"], _settings.TestFilePatterns, true);
 
 		foreach (string filePath in files.OrderBy(path => path))
 		{
@@ -77,7 +77,7 @@ public class EasyFlowProject : IEasyFlowProject
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (_fileSystem.PathExists(codePath))
 		{
-			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
+			var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
@@ -147,8 +147,8 @@ public class EasyFlowProject : IEasyFlowProject
 			return Array.Empty<TestItem>();
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePattern, subfolders: true)
-			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, subfolders: true));
+		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePatterns, subfolders: true)
+			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePatterns, subfolders: true));
 
 		foreach (string testFilePath in testFiles)
 		{

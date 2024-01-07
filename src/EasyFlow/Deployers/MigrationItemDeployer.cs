@@ -17,7 +17,11 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 			_defaultTimeout, //todo: separate timeout for single migration
 			() =>
 			{
-				Logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
+				Logger.Information(
+					"Migration {migrationType}, {relativePath}.", 
+					migrationItem.MigrationItemType,
+					migrationItem.FileData.RelativePath
+				);
 
 				DateTime migrationStartedUtc = _timeProvider.UtcNow();
 

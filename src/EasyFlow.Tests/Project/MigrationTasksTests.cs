@@ -1,5 +1,3 @@
-using EasyFlow.Project.Exceptions;
-
 namespace EasyFlow.Tests.Project;
 
 public class MigrationTasksTests
@@ -13,13 +11,13 @@ public class MigrationTasksTests
 
 		var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
-			.Returns(new[]
-			{
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
+			.Returns(
+			[
 				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
 				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
 				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
-			});
+			]);
 
 		var migrationTasks = sqlProject.GetMigrationItems("");
 
@@ -35,7 +33,7 @@ public class MigrationTasksTests
 
 		var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
 			.Returns([
 				@"C:\MainTestDB\Migrations\002.test\m.sql",
 				@"C:\MainTestDB\Migrations\002.test\u.sql",
@@ -66,7 +64,7 @@ public class MigrationTasksTests
 				RelativePath = ""
 			});
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
 			.Returns([
 				@"C:\DB\Migrations\002.test\m.first.sql",
 				@"C:\DB\Migrations\002.test\m.second.sql",
@@ -81,7 +79,7 @@ public class MigrationTasksTests
 		var migrationTasks = sqlProject.GetMigrationItems("");
 
 		Assert.Equal(8, migrationTasks.Count);
-		
+
 		// checking order, they will be deploed in this order.
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.01.sql", migrationTasks[0].FileData.FilePath);
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.02.sql", migrationTasks[1].FileData.FilePath);
