@@ -67,8 +67,11 @@ public class EasyFlowProject : IEasyFlowProject
 		type.ToLower() switch
 		{
 			"migration" => MigrationItemType.Migration,
+			"m" => MigrationItemType.Migration,
 			"undo" => MigrationItemType.Undo,
+			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.BreakingChange,
+			"b" => MigrationItemType.BreakingChange,
 			_ => throw new UnknowMigrationTaskTypeException(type)
 		};
 

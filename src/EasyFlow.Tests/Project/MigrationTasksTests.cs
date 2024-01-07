@@ -27,6 +27,27 @@ public class MigrationTasksTests
 	}
 
 	[Fact]
+	public void GetMigrationType_SimpleApproach()
+	{
+		MockSet mockSet = new();
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
+		var settings = sqlProject.GetSettings();
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", settings.TestFilePattern, true)
+			.Returns([
+				@"C:\MainTestDB\Migrations\002.test\m.sql",
+				@"C:\MainTestDB\Migrations\002.test\u.sql",
+				@"C:\MainTestDB\Migrations\002.test\b.sql"
+			]);
+
+		var migrationTasks = sqlProject.GetMigrationItems("");
+
+		Assert.Equal(3, migrationTasks.Count);
+	}
+
+	[Fact]
 	public void GetMigrationType_EmptySettingsTest()
 	{
 		MockSet mockSet = new();
