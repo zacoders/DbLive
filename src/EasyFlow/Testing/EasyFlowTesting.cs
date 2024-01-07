@@ -3,12 +3,11 @@ using System.Collections.ObjectModel;
 
 namespace EasyFlow.Testing;
 
-public class EasyFlowTesting : IDisposable
+public  class EasyFlowTesting : IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
 	private readonly IEasyFlowDA _easyFlowDa;
-	private readonly IEasyFlowProject _project;
 	public readonly ReadOnlyDictionary<string, TestItem> TestsList;
 
 	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder, string projectPath, string sqlConnectionString)
@@ -24,9 +23,12 @@ public class EasyFlowTesting : IDisposable
 
 		_unitTestsRunner = GetService<IUnitTestsRunner>();
 		_easyFlowDa = GetService<IEasyFlowDA>();
-		_project = GetService<IEasyFlowProject>();
+		
+		var project = GetService<IEasyFlowProject>();
 
-		TestsList = GetTests();
+		TestsList = new ReadOnlyDictionary<string, TestItem>(
+			project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
+		);
 
 		PrepareTestingDatabase();
 	}
@@ -77,12 +79,5 @@ public class EasyFlowTesting : IDisposable
 		writeLine(testRunResult.Output);
 
 		return testRunResult;
-	}
-
-	private ReadOnlyDictionary<string, TestItem> GetTests()
-	{
-		return new ReadOnlyDictionary<string, TestItem>(
-			_project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
-		);
 	}
 }

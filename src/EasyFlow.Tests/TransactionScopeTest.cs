@@ -1,11 +1,8 @@
-using EasyFlow.Tests;
-using System.Data.SqlClient;
 using System.Transactions;
-using Xunit.Abstractions;
 
-namespace TestProject1;
+namespace EasyFlow.Tests;
 
-public class TranTests(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
+public class TransactionScopeTest(ITestOutputHelper output) : SqlServerIntegrationBaseTest(output)
 {
 	[Fact]
 	public void Test1()
