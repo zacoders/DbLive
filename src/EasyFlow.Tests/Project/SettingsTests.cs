@@ -1,4 +1,4 @@
-namespace EasyFlow.Project.Tests;
+namespace EasyFlow.Tests.Project;
 
 public class SettingsTests
 {

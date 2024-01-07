@@ -1,4 +1,6 @@
-namespace EasyFlow.Project.Tests;
+using EasyFlow.Project.Exceptions;
+
+namespace EasyFlow.Tests.Project;
 
 public class MigrationsTests
 {

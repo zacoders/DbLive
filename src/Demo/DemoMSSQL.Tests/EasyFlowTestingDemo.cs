@@ -3,13 +3,13 @@ using EasyFlow.MSSQL;
 using EasyFlow.Tests.Common;
 using Xunit.Abstractions;
 
-namespace TestProject1;
+namespace DemoMSSQL.Tests;
 
 public class EasyFlowTestingMSSQLFixture : TheoryData<string>
 {
 	readonly static string UnitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
 	readonly static string DBConnectionString = new TestConfig().GetSqlServerConnectionString(UnitTestsDBName);
-	readonly static string ProjectPath = Path.GetFullPath(@"TestProject_MSSQL");
+	readonly static string ProjectPath = Path.GetFullPath(@"DemoMSSQL");
 
 	readonly EasyFlowTestingMSSQL testingMSSQL = new(ProjectPath, DBConnectionString);
 

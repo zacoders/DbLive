@@ -1,4 +1,3 @@
-using EasyFlow.MSSQL;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
 using System.Collections.Specialized;
@@ -7,7 +6,7 @@ namespace EasyFlow.MSSQL.Tests;
 
 public class SqlServerIntegrationBaseTest : IDisposable
 {
-	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"TestProject_MSSQL"); //TODO: hardcoded mssql project?
+	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
 	protected readonly string masterDbConnectionString;
