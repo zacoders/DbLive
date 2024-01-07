@@ -2,7 +2,7 @@ using EasyFlow.Project.Exceptions;
 
 namespace EasyFlow.Tests.Project;
 
-public class MigrationTasksTests
+public class MigrationItemTests
 {
 	[Fact]
 	public void GetMigrationType()
@@ -21,9 +21,9 @@ public class MigrationTasksTests
 				@"C:\DB\Migrations\003.test3\breaking.sql"
 			]);
 
-		var migrationTasks = sqlProject.GetMigrationItems("");
+		var migrationItems = sqlProject.GetMigrationItems("");
 
-		Assert.Equal(3, migrationTasks.Count);
+		Assert.Equal(3, migrationItems.Count);
 	}
 
 	[Fact]
@@ -42,9 +42,9 @@ public class MigrationTasksTests
 				@"C:\DB\Migrations\002.test\b.sql"
 			]);
 
-		var migrationTasks = sqlProject.GetMigrationItems("");
+		var migrationItems = sqlProject.GetMigrationItems("");
 
-		Assert.Equal(3, migrationTasks.Count);
+		Assert.Equal(3, migrationItems.Count);
 	}
 
 
@@ -78,15 +78,15 @@ public class MigrationTasksTests
 				@"C:\DB\Migrations\002.test\b.03.sql"
 			]);
 
-		var migrationTasks = sqlProject.GetMigrationItems("");
+		var migrationItems = sqlProject.GetMigrationItems("");
 
-		Assert.Equal(8, migrationTasks.Count);
+		Assert.Equal(8, migrationItems.Count);
 
 		// checking order, they will be deploed in this order.
-		Assert.Equal(@"C:\DB\Migrations\002.test\b.01.sql", migrationTasks[0].FileData.FilePath);
-		Assert.Equal(@"C:\DB\Migrations\002.test\b.02.sql", migrationTasks[1].FileData.FilePath);
-		Assert.Equal(@"C:\DB\Migrations\002.test\b.03.sql", migrationTasks[2].FileData.FilePath);
-		Assert.Equal(@"C:\DB\Migrations\002.test\undo.one.sql", migrationTasks[7].FileData.FilePath);
+		Assert.Equal(@"C:\DB\Migrations\002.test\b.01.sql", migrationItems[0].FileData.FilePath);
+		Assert.Equal(@"C:\DB\Migrations\002.test\b.02.sql", migrationItems[1].FileData.FilePath);
+		Assert.Equal(@"C:\DB\Migrations\002.test\b.03.sql", migrationItems[2].FileData.FilePath);
+		Assert.Equal(@"C:\DB\Migrations\002.test\undo.one.sql", migrationItems[7].FileData.FilePath);
 	}
 
 
