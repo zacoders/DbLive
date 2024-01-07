@@ -5,10 +5,10 @@
 [Serializable]
 public class UnknowMigrationItemTypeException : Exception
 {
-    public static string AllowedItemTypes = string.Join(", ", Enum.GetValues(typeof(MigrationItemType)));
+	public static string AllowedItemTypes = string.Join(", ", Enum.GetValues(typeof(MigrationItemType)));
 
-    public UnknowMigrationItemTypeException(string unknownItemType)
-        : base($"Unknown migration item type '{unknownItemType}'. Allowed values: {AllowedItemTypes}")
-    {
-    }
+	public UnknowMigrationItemTypeException(string unknownItemType)
+		: base($"Unknown migration item type '{unknownItemType}'. Allowed values: {AllowedItemTypes}")
+	{
+	}
 }

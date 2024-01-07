@@ -6,7 +6,7 @@ public class EasyFlowSettings
 
 	public TranIsolationLevel TransactionIsolationLevel { get; set; } = TranIsolationLevel.Serializable;
 
-	public List<string> TestFilePatterns { get; set; } = [ "test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql" ];
+	public List<string> TestFilePatterns { get; set; } = ["test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql"];
 
 	public TranIsolationLevel TestsTransactionIsolationLevel { get; set; } = TranIsolationLevel.Serializable;
 }

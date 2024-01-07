@@ -18,7 +18,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 			() =>
 			{
 				Logger.Information(
-					"Migration {migrationType}, {relativePath}.", 
+					"Migration {migrationType}, {relativePath}.",
 					migrationItem.MigrationItemType,
 					migrationItem.FileData.RelativePath
 				);

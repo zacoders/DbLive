@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace EasyFlow.Common;
+﻿namespace EasyFlow.Common;
 
 public class FileSystem : IFileSystem
 {
@@ -42,7 +40,7 @@ public class FileSystem : IFileSystem
 	public bool FileExists(string path) => File.Exists(path);
 
 	public bool PathExists(string path) => Directory.Exists(path);
-	
+
 	public bool IsDirectoryEmpty(string path)
 	{
 		return !Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Any();
