@@ -1,3 +1,4 @@
+using EasyFlow.Project.Exceptions;
 using Newtonsoft.Json;
 
 namespace EasyFlow.Project;
@@ -8,11 +9,16 @@ public class EasyFlowProject : IEasyFlowProject
 	private readonly string _projectPath;
 	private readonly IFileSystem _fileSystem;
 
-
 	public EasyFlowProject(IEasyFlowProjectPath projectPath, IFileSystem fileSystem)
 	{
 		_projectPath = projectPath.ProjectPath;
 		_fileSystem = fileSystem;
+
+		if (!fileSystem.PathExists(projectPath.ProjectPath) 
+			 && fileSystem.IsDirectoryEmpty(projectPath.ProjectPath))
+		{
+			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
+		}
 
 		string settingsPath = Path.Combine(_projectPath, "settings.json");
 		if (_fileSystem.FileExists(settingsPath))

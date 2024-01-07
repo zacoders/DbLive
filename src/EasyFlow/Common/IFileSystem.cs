@@ -10,4 +10,5 @@ public interface IFileSystem
 	string FileReadAllText(string path);
 	bool FileExists(string path);
 	bool PathExists(string path);
+	bool IsDirectoryEmpty(string path);
 }
