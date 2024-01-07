@@ -38,7 +38,7 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		List<MigrationItem> tasks = [];
 
-		var files = _fileSystem.EnumerateFiles(migrationFolder, ["*.sql"], _settings.TestFilePatterns, true);
+		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
 
 		foreach (string filePath in files.OrderBy(path => path))
 		{
@@ -68,7 +68,7 @@ public class EasyFlowProject : IEasyFlowProject
 			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.BreakingChange,
 			"b" => MigrationItemType.BreakingChange,
-			_ => throw new UnknowMigrationTaskTypeException(type)
+			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 
 	public IEnumerable<CodeItem> GetCodeItems()

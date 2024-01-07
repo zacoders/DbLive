@@ -1,3 +1,5 @@
+using EasyFlow.Project.Exceptions;
+
 namespace EasyFlow.Tests.Project;
 
 public class MigrationTasksTests
@@ -11,12 +13,12 @@ public class MigrationTasksTests
 
 		var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns(
 			[
-				@"C:\MainTestDB\Migrations\003.test3\migration.sql",
-				@"C:\MainTestDB\Migrations\003.test3\undo.sql",
-				@"C:\MainTestDB\Migrations\003.test3\breaking.sql"
+				@"C:\DB\Migrations\003.test3\migration.sql",
+				@"C:\DB\Migrations\003.test3\undo.sql",
+				@"C:\DB\Migrations\003.test3\breaking.sql"
 			]);
 
 		var migrationTasks = sqlProject.GetMigrationItems("");
@@ -33,11 +35,11 @@ public class MigrationTasksTests
 
 		var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns([
-				@"C:\MainTestDB\Migrations\002.test\m.sql",
-				@"C:\MainTestDB\Migrations\002.test\u.sql",
-				@"C:\MainTestDB\Migrations\002.test\b.sql"
+				@"C:\DB\Migrations\002.test\m.sql",
+				@"C:\DB\Migrations\002.test\u.sql",
+				@"C:\DB\Migrations\002.test\b.sql"
 			]);
 
 		var migrationTasks = sqlProject.GetMigrationItems("");
@@ -64,7 +66,7 @@ public class MigrationTasksTests
 				RelativePath = ""
 			});
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), settings.TestFilePatterns, true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns([
 				@"C:\DB\Migrations\002.test\m.first.sql",
 				@"C:\DB\Migrations\002.test\m.second.sql",
@@ -85,6 +87,26 @@ public class MigrationTasksTests
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.02.sql", migrationTasks[1].FileData.FilePath);
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.03.sql", migrationTasks[2].FileData.FilePath);
 		Assert.Equal(@"C:\DB\Migrations\002.test\undo.one.sql", migrationTasks[7].FileData.FilePath);
+	}
+
+
+	[Fact]
+	public void GetMigrationItems_UnknownItemType()
+	{
+		MockSet mockSet = new();
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
+		var settings = sqlProject.GetSettings();
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+			.Returns(
+			[
+				@"C:\DB\Migrations\003.test3\some-unknown-type.sql",
+				@"C:\DB\Migrations\003.test3\undo.sql",
+				@"C:\DB\Migrations\003.test3\breaking.sql"
+			]);
+		Assert.Throws<UnknowMigrationItemTypeException>(() => sqlProject.GetMigrationItems(""));
 	}
 
 	[Fact]
