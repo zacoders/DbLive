@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace EasyFlow.Testing;
 
-public  class EasyFlowTesting : IDisposable
+public class EasyFlowTesting : IDisposable
 {
 	private readonly ServiceProvider _serviceProvider;
 	private readonly IUnitTestsRunner _unitTestsRunner;
@@ -23,7 +23,7 @@ public  class EasyFlowTesting : IDisposable
 
 		_unitTestsRunner = GetService<IUnitTestsRunner>();
 		_easyFlowDa = GetService<IEasyFlowDA>();
-		
+
 		var project = GetService<IEasyFlowProject>();
 
 		TestsList = new ReadOnlyDictionary<string, TestItem>(

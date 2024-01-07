@@ -1,5 +1,6 @@
 using EasyFlow.Project.Exceptions;
 using Newtonsoft.Json;
+using System.Collections.ObjectModel;
 
 namespace EasyFlow.Project;
 
@@ -14,7 +15,7 @@ public class EasyFlowProject : IEasyFlowProject
 		_projectPath = projectPath.ProjectPath;
 		_fileSystem = fileSystem;
 
-		if (!fileSystem.PathExists(projectPath.ProjectPath) 
+		if (!fileSystem.PathExists(projectPath.ProjectPath)
 			 && fileSystem.IsDirectoryEmpty(projectPath.ProjectPath))
 		{
 			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
@@ -33,13 +34,13 @@ public class EasyFlowProject : IEasyFlowProject
 		return _settings;
 	}
 
-	public HashSet<MigrationItem> GetMigrationItems(string migrationFolder)
+	public ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
-		HashSet<MigrationItem> tasks = [];
+		List<MigrationItem> tasks = [];
 
-		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", _settings.TestFilePattern, true);
+		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
 
-		foreach (string filePath in files)
+		foreach (string filePath in files.OrderBy(path => path))
 		{
 			string fileName = filePath.GetLastSegment();
 			var fileParts = fileName.Split('.');
@@ -52,24 +53,22 @@ public class EasyFlowProject : IEasyFlowProject
 				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
 			};
 
-			if (tasks.Contains(task))
-			{
-				throw new MigrationTaskExistsException(task);
-			}
-
 			tasks.Add(task);
 		}
 
-		return tasks;
+		return tasks.AsReadOnly();
 	}
 
 	public static MigrationItemType GetMigrationType(string type) =>
 		type.ToLower() switch
 		{
 			"migration" => MigrationItemType.Migration,
+			"m" => MigrationItemType.Migration,
 			"undo" => MigrationItemType.Undo,
+			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.BreakingChange,
-			_ => throw new UnknowMigrationTaskTypeException(type)
+			"b" => MigrationItemType.BreakingChange,
+			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 
 	public IEnumerable<CodeItem> GetCodeItems()
@@ -78,7 +77,7 @@ public class EasyFlowProject : IEasyFlowProject
 		string codePath = Path.Combine(_projectPath, "Code");
 		if (_fileSystem.PathExists(codePath))
 		{
-			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", _settings.TestFilePattern, true);
+			var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
@@ -132,7 +131,7 @@ public class EasyFlowProject : IEasyFlowProject
 			Version = version,
 			Name = splitFolder[1],
 			FolderPath = folderPath,
-			Tasks = GetMigrationItems(folderPath)
+			Items = GetMigrationItems(folderPath)
 		};
 	}
 
@@ -148,8 +147,8 @@ public class EasyFlowProject : IEasyFlowProject
 			return Array.Empty<TestItem>();
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePattern, subfolders: true)
-			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePattern, subfolders: true));
+		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePatterns, subfolders: true)
+			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePatterns, subfolders: true));
 
 		foreach (string testFilePath in testFiles)
 		{

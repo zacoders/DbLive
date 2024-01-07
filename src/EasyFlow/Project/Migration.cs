@@ -1,4 +1,6 @@
-﻿namespace EasyFlow.Project;
+﻿using System.Collections.ObjectModel;
+
+namespace EasyFlow.Project;
 
 [ExcludeFromCodeCoverage]
 public record Migration
@@ -6,7 +8,7 @@ public record Migration
 	public required int Version { get; set; }
 	public required string Name { get; set; }
 	public required string FolderPath { get; set; }
-	public required HashSet<MigrationItem> Tasks { get; set; }
+	public required ReadOnlyCollection<MigrationItem> Items { get; set; }
 
 	public virtual bool Equals(Migration? other)
 	{

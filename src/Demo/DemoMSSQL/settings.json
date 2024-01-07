@@ -18,7 +18,7 @@
 
   /* Search pattern for the testing files. 
      Testing files can be executed in the end of deployment. */
-  "TestFilePattern": "*test.sql"
+  "TestFilePatterns": [ "test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql" ]
 
   /* TODO: add deployment siquence. The ordered list of path can be provided to keep deployment in this order. */
 }

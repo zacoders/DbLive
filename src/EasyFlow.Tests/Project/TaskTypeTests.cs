@@ -22,6 +22,6 @@ public class TaskTypeTests
 	[Fact]
 	public void GetMigrationType_Unknow()
 	{
-		Assert.Throws<UnknowMigrationTaskTypeException>(() => EasyFlowProject.GetMigrationType("test-unknown"));
+		Assert.Throws<UnknowMigrationItemTypeException>(() => EasyFlowProject.GetMigrationType("test-unknown"));
 	}
 }
