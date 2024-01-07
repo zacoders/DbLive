@@ -1,3 +1,5 @@
+# This docker-compose file preparing database sql server images where unit tests will be run.
+
 version: '3'
 
 services:
