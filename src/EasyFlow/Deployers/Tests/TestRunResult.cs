@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deployers;
+﻿namespace EasyFlow.Deployers.Tests;
 
 public class TestRunResult
 {

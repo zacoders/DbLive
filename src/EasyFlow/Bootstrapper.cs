@@ -1,4 +1,7 @@
-﻿namespace EasyFlow;
+﻿using EasyFlow.Deployers.Migrations;
+using EasyFlow.Deployers.Tests;
+
+namespace EasyFlow;
 
 public static class Bootstrapper
 {

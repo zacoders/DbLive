@@ -1,6 +1,6 @@
 using EasyFlow.Adapter;
 
-namespace EasyFlow.Deployers;
+namespace EasyFlow.Deployers.Tests;
 
 public class UnitTestsRunner(
 		ILogger _logger,
