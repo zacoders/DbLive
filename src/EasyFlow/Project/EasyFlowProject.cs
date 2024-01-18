@@ -163,4 +163,27 @@ public class EasyFlowProject : IEasyFlowProject
 
 		return tests;
 	}
+
+	/// <inheritdoc/>
+	public ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder)
+	{
+		Dictionary<string, GenericItem> items = [];
+		//todo: convert projectFolder enum to actual folder. (how?, should not be hardcoded, folder names can be defined in settings)
+		// but for now maybe use hardcoded values?...
+
+		string codePath = Path.Combine(_projectPath, projectFolder.ToString());
+		if (_fileSystem.PathExists(codePath))
+		{
+			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", true);
+			foreach (string filePath in files)
+			{
+				string fileName = filePath.GetLastSegment();
+				var item = new GenericItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+				items.Add(filePath, item);
+			}
+		}
+
+		// sorting the items by full path which is in the key of the dictionary.
+		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
+	}
 }
