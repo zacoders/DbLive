@@ -11,7 +11,7 @@ public class TestConfig
 	{
 		config = new ConfigurationBuilder()
 		   .AddJsonFile("appsettings.json", true, true)
-		   .AddEnvironmentVariables() // environment ovveride appsettings.json config.
+		   .AddEnvironmentVariables() // environment ovveride appsettings.json config. this used in github actions to ovverride connection strings.
 		   .Build();
 	}
 
