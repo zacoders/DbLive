@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
 
-public class EasyFlowTestingMSSQLFixture : TheoryData<string>
+public class EasyFlowTestingMSSQLFixture : TheoryData<string>, IDisposable
 {
 	readonly static string UnitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
 	readonly static string DBConnectionString = new TestConfig().GetSqlServerConnectionString(UnitTestsDBName);
@@ -20,6 +20,8 @@ public class EasyFlowTestingMSSQLFixture : TheoryData<string>
 			Add(testItem.Key); // adding tests to TheoryData base class.
 		}
 	}
+
+	public void Dispose() => testingMSSQL?.Dispose();
 
 	public void RunTest(ITestOutputHelper output, string relativePath)
 	{
