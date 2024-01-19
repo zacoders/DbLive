@@ -9,4 +9,7 @@ public class EasyFlowSettings
 	public List<string> TestFilePatterns { get; set; } = ["test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql"];
 
 	public TranIsolationLevel TestsTransactionIsolationLevel { get; set; } = TranIsolationLevel.Serializable;
+
+	public string BeforeDeployFolder { get; set; } = "BeforeDeploy";
+	public string AfterDeployFolder { get; set; } = "AfterDeploy";
 }

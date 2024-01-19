@@ -13,16 +13,15 @@ public class FolderDeployer(
 
 	public void DeployFolder(ProjectFolder projectFolder, DeployParameters parameters)
 	{
-		if (!parameters.DeployCode)
-		{
-			return;
-		}
-
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 
-		// todo: expected some permanent order, alpabetical.
-		var items = _project.GetFolderItems(projectFolder);
-		
+		ReadOnlyCollection<GenericItem> items = _project.GetFolderItems(projectFolder);
+
+		if (items.Count == 0)
+		{
+			_logger.Information("Folder {ProjectFolder} is empty.", projectFolder);
+		}
+
 		foreach ( var item in items ) {
 			//TODO: Deploy item
 			// Save deployment status to the table

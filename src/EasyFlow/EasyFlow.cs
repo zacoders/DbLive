@@ -11,16 +11,14 @@ public class EasyFlow(
 		IEasyFlowPaths _paths,
 		BreakingChangesDeployer _breakingChangesDeployer,
 		MigrationsDeployer _migrationsDeployer,
+		FolderDeployer _folderDeployer,
 		IUnitTestsRunner _unitTestsRunner,
 		EasyFlowBuilder _builder,
 		ILogger logger
 	) : IEasyFlow
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
-
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
-
-	private EasyFlowSettings _projectSettings = new();
 
 	public void Deploy(DeployParameters parameters)
 	{
@@ -55,23 +53,27 @@ public class EasyFlow(
 	{
 		_logger.Information("Starting project deploy.");
 
-		_projectSettings = _project.GetSettings();
+		EasyFlowSettings projectSettings = _project.GetSettings();
 
 		Transactions.ExecuteWithinTransaction(
-			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
-			_projectSettings.TransactionIsolationLevel,
+			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
+			projectSettings.TransactionIsolationLevel,
 			_defaultTimeout,
 			() =>
 			{
+				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
+
 				_migrationsDeployer.DeployMigrations(isSelfDeploy, parameters);
 
 				_codeDeployer.DeployCode(isSelfDeploy, parameters);
 
 				_breakingChangesDeployer.DeployBreakingChanges(parameters);
+
+				_folderDeployer.DeployFolder(ProjectFolder.AfterDeploy, parameters);
 			}
 		);
 
-		_unitTestsRunner.RunAllTests(parameters, _projectSettings);
+		_unitTestsRunner.RunAllTests(parameters, projectSettings);
 
 		_logger.Information("Project deploy completed.");
 	}

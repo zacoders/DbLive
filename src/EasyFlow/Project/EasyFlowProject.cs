@@ -1,7 +1,3 @@
-using EasyFlow.Project.Exceptions;
-using Newtonsoft.Json;
-using System.Collections.ObjectModel;
-
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject
@@ -168,10 +164,16 @@ public class EasyFlowProject : IEasyFlowProject
 	public ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder)
 	{
 		Dictionary<string, GenericItem> items = [];
-		//todo: convert projectFolder enum to actual folder. (how?, should not be hardcoded, folder names can be defined in settings)
-		// but for now maybe use hardcoded values?...
 
-		string codePath = Path.Combine(_projectPath, projectFolder.ToString());
+		string folderPath = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => _settings.BeforeDeployFolder,
+			ProjectFolder.AfterDeploy => _settings.AfterDeployFolder,
+			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
+		};
+
+		string codePath = Path.Combine(_projectPath, folderPath);
+
 		if (_fileSystem.PathExists(codePath))
 		{
 			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", true);

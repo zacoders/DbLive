@@ -1,6 +1,4 @@
-﻿using System.Collections.ObjectModel;
-
-namespace EasyFlow.Project;
+﻿namespace EasyFlow.Project;
 
 public interface IEasyFlowProject
 {
@@ -16,6 +14,6 @@ public interface IEasyFlowProject
 	/// Gets list of items from the foder. Items ordered alphabeticaly by the path.
 	/// </summary>
 	/// <param name="projectFolder"></param>
-	/// <returns>Read only list of items.</returns>
+	/// <returns>Read only list of items. Itmes sorted by full file path.</returns>
 	ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder);
 }
