@@ -1,4 +1,5 @@
-﻿namespace EasyFlow.Adapter;
+﻿
+namespace EasyFlow.Adapter;
 
 public interface IEasyFlowDA
 {
@@ -27,4 +28,5 @@ public interface IEasyFlowDA
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);
 	void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage);
+	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs);
 }

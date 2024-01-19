@@ -172,11 +172,11 @@ public class EasyFlowProject : IEasyFlowProject
 			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
 		};
 
-		string codePath = Path.Combine(_projectPath, folderPath);
+		string fullPath = Path.Combine(_projectPath, folderPath);
 
-		if (_fileSystem.PathExists(codePath))
+		if (_fileSystem.PathExists(fullPath))
 		{
-			var files = _fileSystem.EnumerateFiles(codePath, "*.sql", true);
+			var files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
 			foreach (string filePath in files)
 			{
 				string fileName = filePath.GetLastSegment();
