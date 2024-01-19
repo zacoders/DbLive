@@ -32,4 +32,35 @@ public class GetFolderItemsTests
 		Assert.Equal("file2.sql", items[1].Name);
 		Assert.Equal("file3.sql", items[2].Name);
 	}
+
+	[Fact]
+	public void AfterDeploy_Empty()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
+		string folderPath = Path.Combine(@"C:\DB\", "AfterDeploy");
+
+		mockSet.FileSystem.PathExists(folderPath).Returns(true);
+
+		GenericItem[] items = sqlProject.GetFolderItems(ProjectFolder.AfterDeploy).ToArray();
+
+		Assert.Empty(items);
+
+		mockSet.FileSystem.Received(1).PathExists(folderPath);
+		mockSet.FileSystem.Received(1).EnumerateFiles(folderPath, "*.sql", true);
+	}
+
+	[Fact]
+	public void AfterDeploy_NotImplementedException()
+	{
+		MockSet mockSet = new();
+
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+
+		Assert.Throws<NotImplementedException>(() => sqlProject.GetFolderItems(ProjectFolder.Unspecified));
+	}
 }

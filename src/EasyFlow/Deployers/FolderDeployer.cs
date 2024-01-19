@@ -33,19 +33,12 @@ public class FolderDeployer(
 
 	private void DeployItem(ProjectFolder projectFolder, GenericItem item)
 	{
-		try
-		{
-			_logger.Information("Deploying item: {filePath}", item.FileData.FilePath.GetLastSegment());
+		_logger.Information("Deploying item: {filePath}", item.FileData.FilePath.GetLastSegment());
 
-			DateTime startedUtc = _timeProvider.UtcNow();
-			_da.ExecuteNonQuery(item.FileData.Content);
-			DateTime completedUtc = _timeProvider.UtcNow();
+		DateTime startedUtc = _timeProvider.UtcNow();
+		_da.ExecuteNonQuery(item.FileData.Content);
+		DateTime completedUtc = _timeProvider.UtcNow();
 
-			_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (int)(completedUtc - startedUtc).TotalMilliseconds);
-		}
-		catch (Exception ex)
-		{
-			_logger.Error(ex, "Deploy item error. File path: {filePath}", item.FileData.FilePath);
-		}
+		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (int)(completedUtc - startedUtc).TotalMilliseconds);
 	}
 }
