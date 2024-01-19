@@ -20,6 +20,7 @@ public class FolderDeployer(
 		if (items.Count == 0)
 		{
 			_logger.Information("Folder {ProjectFolder} is empty.", projectFolder);
+			return;
 		}
 
 		foreach (GenericItem item in items)
