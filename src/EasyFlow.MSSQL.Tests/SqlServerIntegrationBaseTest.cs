@@ -14,7 +14,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
 	protected readonly string _testingDbName;
-
+	private readonly bool _keepDatabaseAfterTests;
 	protected readonly IEasyFlow EasyFlow;
 
 	public ITestOutputHelper Output { get; }
@@ -28,13 +28,20 @@ public class SqlServerIntegrationBaseTest : IDisposable
 		return cnnBuilder.ConnectionString;
 	}
 
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string? dbName = null) //: base(output)
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string? dbName = null, bool keepDatabaseAfterTests = false)
 	{
 		var config = new TestConfig();
 
 		masterDbConnectionString = config.GetSqlServerConnectionString();
 		Output = output;
+
+		if (!string.IsNullOrWhiteSpace(dbName))
+		{
+			DropTestingDatabase(dbName);
+		}
+
 		_testingDbName = dbName ?? GetRanomDbName();
+		_keepDatabaseAfterTests = keepDatabaseAfterTests;
 
 		EasyFlow = new EasyFlowBuilder()
 			.LogToXUnitOutput(output)
@@ -47,7 +54,10 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	public void Dispose()
 	{
-		DropTestingDatabases(_testingDbName);
+		if (!_keepDatabaseAfterTests)
+		{
+			DropTestingDatabases(_testingDbName);
+		}
 	}
 
 	private void DropTestingDatabases()
