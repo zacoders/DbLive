@@ -40,7 +40,7 @@ public class EasyFlow(
 	{
 		_logger.Information("Starting self deploy.");
 
-		var selfDeployer = (EasyFlow)_builder.ClonBuilder()
+		var selfDeployer = (EasyFlow)_builder.CloneBuilder()
 			.SetProjectPath(_paths.GetPathToEasyFlowSelfProject())
 			.CreateDeployer();
 

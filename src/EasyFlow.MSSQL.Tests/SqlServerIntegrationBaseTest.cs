@@ -38,7 +38,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 		EasyFlow = new EasyFlowBuilder()
 			.LogToXUnitOutput(output)
-			.AddTestingMsSqlConnection()
+			//.AddTestingMsSqlConnection() //todo: looks like cnn sting added 2 times?
 			.SqlServer()
 			.SetDbConnection(GetDbConnectionString(_testingDbName))
 			.SetProjectPath(_msSqlTestingProjectPath)

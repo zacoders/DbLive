@@ -1,4 +1,6 @@
-﻿namespace EasyFlow;
+﻿using EasyFlow.Testing;
+
+namespace EasyFlow;
 
 public static class EasyFlowBuilderExtentions
 {
@@ -43,8 +45,19 @@ public static class EasyFlowBuilderExtentions
 
 	public static IEasyFlow CreateDeployer(this EasyFlowBuilder builder)
 	{
-		builder.Container.InitializeEasyFlow();
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlow>()!;
+	}
+
+	public static IEasyFlowTester CreateTester(this EasyFlowBuilder builder)
+	{
+		var serviceProvider = builder.Container.BuildServiceProvider();
+		return serviceProvider.GetService<IEasyFlowTester>()!;
+	}
+
+	public static IEasyFlowProject CreateProject(this EasyFlowBuilder builder)
+	{
+		var serviceProvider = builder.Container.BuildServiceProvider();
+		return serviceProvider.GetService<IEasyFlowProject>()!;
 	}
 }

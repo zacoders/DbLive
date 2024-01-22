@@ -1,36 +1,71 @@
+using EasyFlow;
+using EasyFlow.Common;
 using EasyFlow.MSSQL;
-using EasyFlow.Tests.Common;
+using EasyFlow.Testing;
+using Testcontainers.MsSql;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
 
-public class EasyFlowTestingMSSQLFixture : TheoryData<string>
+public class EasyFlowTestingMSSQLTheoryData : TheoryData<string>
 {
-	readonly static string UnitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
-	readonly static string DBConnectionString = new TestConfig().GetSqlServerConnectionString(UnitTestsDBName);
 	readonly static string ProjectPath = Path.GetFullPath(@"DemoMSSQL");
 
-	readonly EasyFlowTestingMSSQL testingMSSQL = new(ProjectPath, DBConnectionString);
-
-	public EasyFlowTestingMSSQLFixture()
+	public EasyFlowTestingMSSQLTheoryData()
 	{
-		foreach (var testItem in testingMSSQL.TestsList)
+		var project = new EasyFlowBuilder()
+			.SetProjectPath(ProjectPath)
+			.CreateProject();
+
+		foreach (var testItem in project.GetTests())
 		{
-			Add(testItem.Key); // adding tests to TheoryData base class.
+			Add(testItem.FileData.RelativePath); // adding tests to TheoryData base class.
 		}
 	}
+}
 
-	public void RunTest(ITestOutputHelper output, string relativePath)
+public class EasyFlowTestingMSSQLFixture : IAsyncLifetime
+{
+	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().Build();
+	public IEasyFlowTester? EasyFlowTester;
+
+	public async Task InitializeAsync()
 	{
-		testingMSSQL.RunTest(output.WriteLine, relativePath);
+		await _msSqlContainer.StartAsync();
+
+		var builder = new EasyFlowBuilder()
+			//.LogToXUnitOutput() //todo: need logger for test output
+			.LogToConsole()
+			.SqlServer()
+			.SetDbConnection(_msSqlContainer.GetConnectionString())
+			.SetProjectPath(Path.GetFullPath(@"DemoMSSQL"));
+
+		var easyFlow = builder.CreateDeployer();
+
+		easyFlow.Deploy(new DeployParameters
+		{
+			CreateDbIfNotExists = true,
+			DeployBreaking = true,
+			DeployCode = true,
+			DeployMigrations = true,
+			RunTests = false
+		});
+
+		EasyFlowTester = builder.CreateTester();
 	}
+
+	public Task DisposeAsync() => _msSqlContainer.DisposeAsync().AsTask();
+
 }
 
 public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
 	: IClassFixture<EasyFlowTestingMSSQLFixture>
 {
 	[Theory]
-	[ClassData(typeof(EasyFlowTestingMSSQLFixture))]
-	public void Sql(string relativePath) => _fixture.RunTest(_output, relativePath);
+	[ClassData(typeof(EasyFlowTestingMSSQLTheoryData))]
+	public void Sql(string relativePath) //=> _fixture.RunTest(_output, relativePath);\
+	{
+		_fixture.EasyFlowTester!.RunTest(_output.WriteLine, relativePath);
+	}
 }
