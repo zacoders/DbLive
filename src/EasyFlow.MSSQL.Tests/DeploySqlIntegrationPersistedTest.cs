@@ -1,7 +1,9 @@
+using Xunit.Extensions.AssemblyFixture;
+
 namespace EasyFlow.MSSQL.Tests;
 
-public class DeploySqlIntegrationPersistedTest(ITestOutputHelper output)
-	: SqlServerIntegrationBaseTest(output, dbName: "EasyFlow-PersistedTest")
+public class DeploySqlIntegrationPersistedTest(SqlServerIntegrationFixture _fixture, ITestOutputHelper output)
+	: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString, dbName: "EasyFlow-PersistedTest"), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
 	public void DeployProject_PersistedDbName()

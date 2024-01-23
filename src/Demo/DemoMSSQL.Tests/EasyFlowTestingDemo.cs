@@ -27,7 +27,7 @@ public class EasyFlowTestingMSSQLTheoryData : TheoryData<string>
 
 public class EasyFlowTestingMSSQLFixture : IAsyncLifetime
 {
-	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().Build();
+	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage("mcr.microsoft.com/mssql/server:2022-latest").Build();
 	public IEasyFlowTester? EasyFlowTester;
 
 	public async Task InitializeAsync()

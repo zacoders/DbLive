@@ -1,15 +1,22 @@
-using EasyFlow.Adapter;
+﻿using EasyFlow.Adapter;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit.Extensions.AssemblyFixture;
 
 namespace EasyFlow.MSSQL.Tests;
 
-public class MsSqlDeployerTests : IntegrationTestsBase
+public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	private readonly IEasyFlowDA _da;
 
-	public MsSqlDeployerTests(ITestOutputHelper output) : base(output)
+	public MsSqlDeployerTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeMSSQL();
 		Container.AddTestingMsSqlConnection();
+
+		var testConfig = new TestConfig();
+		var cnn = new EasyFlowDbConnection(testConfig.GetSqlServerConnectionString() ?? _fixture.MasterDbConnectionString);
+		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
+
 		Container.InitializeEasyFlow();
 
 		_da = GetService<IEasyFlowDA>();

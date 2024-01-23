@@ -1,7 +1,9 @@
+using Xunit.Extensions.AssemblyFixture;
+
 namespace EasyFlow.MSSQL.Tests;
 
-public class DeploySqlIntegrationFullRepeatTest(ITestOutputHelper output)
-	: SqlServerIntegrationBaseTest(output), IDisposable
+public class DeploySqlIntegrationFullRepeatTest(SqlServerIntegrationFixture _fixture, ITestOutputHelper output)
+	: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
 	public void DeployProject_Full_And_Repeat()

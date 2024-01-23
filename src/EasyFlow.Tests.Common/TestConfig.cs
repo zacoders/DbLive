@@ -27,19 +27,19 @@ public class TestConfig
 		return setting;
 	}
 
-	private string GetConnectionString(string settingName)
+	private string? GetConnectionString(string settingName)
 	{
 		var cnnString = config.GetConnectionString(settingName);
 
-		if (cnnString == null)
-		{
-			throw new Exception($"Connection string '{settingName}' was not found.");
-		}
+		//if (cnnString == null)
+		//{
+		//	throw new Exception($"Connection string '{settingName}' was not found.");
+		//}
 
 		return cnnString;
 	}
 
-	public string GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
+	public string? GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
 
 	public string GetSqlServerConnectionString(string dbName)
 	{
@@ -48,5 +48,5 @@ public class TestConfig
 		return cnnBuilder.ConnectionString;
 	}
 
-	public string GetPostgreSqlConnectionString() => GetConnectionString("POSTGRESQL");
+	public string? GetPostgreSqlConnectionString() => GetConnectionString("POSTGRESQL");
 }
