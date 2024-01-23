@@ -1,16 +1,23 @@
 using EasyFlow.Adapter;
+using EasyFlow.MSSQL.Tests;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit.Extensions.AssemblyFixture;
 
 namespace EasyFlow.PostgreSQL.Tests;
 
-public class PgSqlDeployerTests : IntegrationTestsBase
+public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>
 {
 	private readonly IEasyFlowDA _da;
 
-	public PgSqlDeployerTests(ITestOutputHelper output) : base(output)
+	public PgSqlDeployerTests(PostgreSqlFixture _fixture, ITestOutputHelper output) : base(output)
 	{
 		Container.InitializePostgreSQL();
 		Container.InitializeEasyFlow();
-		Container.AddTestingPostgreSQLConnection();
+
+		var testConfig = new TestConfig();
+		var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString() ?? _fixture.PostgresDBConnectionString);
+		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
+
 
 		_da = GetService<IEasyFlowDA>();
 

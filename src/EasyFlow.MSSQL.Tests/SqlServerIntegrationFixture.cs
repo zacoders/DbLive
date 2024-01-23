@@ -1,8 +1,5 @@
 using Testcontainers.MsSql;
-
 namespace EasyFlow.MSSQL.Tests;
-
-
 
 public class SqlServerIntegrationFixture : IAsyncLifetime
 {
