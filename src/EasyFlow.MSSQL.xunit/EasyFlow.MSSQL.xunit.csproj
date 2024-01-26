@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Version>0.0.0</Version>
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
   
   <ItemGroup>
