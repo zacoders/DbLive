@@ -1,8 +1,7 @@
-﻿using EasyFlow;
-using EasyFlow.Common;
+﻿using EasyFlow.Common;
 using Xunit;
 
-namespace DemoMSSQL.Tests;
+namespace EasyFlow.MSSQL.xunit;
 
 public class EasyFlowTestingMSSQLTheoryData : TheoryData<string>
 {

@@ -1,16 +1,14 @@
-﻿using EasyFlow;
-using EasyFlow.Common;
-using EasyFlow.MSSQL;
+﻿using EasyFlow.Common;
 using EasyFlow.Testing;
 using Testcontainers.MsSql;
 using Xunit;
 
-namespace DemoMSSQL.Tests;
+namespace EasyFlow.MSSQL.xunit;
 
-public class EasyFlowTestingMSSQLFixture (
+public class EasyFlowTestingMSSQLFixture(
 	string projectPath,
 	string sqlServerImage = "mcr.microsoft.com/mssql/server:2022-latest"
-)	
+)
 : IAsyncLifetime
 {
 	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage(sqlServerImage).Build();
