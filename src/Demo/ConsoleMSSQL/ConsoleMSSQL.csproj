@@ -8,7 +8,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-
+  <!--
+  I commented this section, CICD build failing with error: 
+  
+  /usr/share/dotnet/sdk/8.0.101/Microsoft.Common.CurrentVersion.targets(5198,5): error MSB3024: Could not copy the file "/home/runner/work/EasySqlFlow/EasySqlFlow/src/Demo/ConsoleMSSQL/obj/Debug/net8.0/apphost" to the destination file "bin/Debug/net8.0/ConsoleMSSqlNew", because the destination is a folder instead of a file. To copy the source file into a folder, consider using the DestinationFolder parameter instead of DestinationFiles. [/home/runner/work/EasySqlFlow/EasySqlFlow/src/Demo/ConsoleMSSQL/ConsoleMSSQL.csproj]
+  
+  
+  <ItemGroup>
+    <None Include="Scripts\**\*.sql;Scripts\**\*.json" Exclude="**\bin\**;**\obj\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+  -->
   
   <ItemGroup>
     <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
