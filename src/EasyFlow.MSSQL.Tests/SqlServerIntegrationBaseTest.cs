@@ -19,15 +19,6 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	public ITestOutputHelper Output { get; }
 
-	protected string GetDbConnectionString(string dbName)
-	{
-		SqlConnectionStringBuilder cnnBuilder = new(_masterDbConnectionString)
-		{
-			InitialCatalog = dbName
-		};
-		return cnnBuilder.ConnectionString;
-	}
-
 	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null) //: base(output)
 	{
 		_masterDbConnectionString = masterDbConnectionString;
@@ -38,7 +29,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 			.LogToXUnitOutput(Output)
 			//.AddTestingMsSqlConnection() //todo: looks like cnn sting added 2 times?
 			.SqlServer()
-			.SetDbConnection(GetDbConnectionString(_testingDbName))
+			.SetDbConnection(_masterDbConnectionString.SetDatabaseName(_testingDbName))
 			.SetProjectPath(_msSqlTestingProjectPath)
 			.CreateDeployer();
 	}

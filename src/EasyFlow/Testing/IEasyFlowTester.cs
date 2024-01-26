@@ -7,7 +7,7 @@ public interface IEasyFlowTester
 	TestRunResult RunTest(Action<string> writeLine, string relativePath);
 }
 
-public class EasyFlowTester(ILogger _logger, IEasyFlowProject _project, IUnitTestsRunner _unitTestsRunner)
+public class EasyFlowTester(IEasyFlowProject _project, IUnitTestsRunner _unitTestsRunner)
 	: IEasyFlowTester
 {
 	private readonly ReadOnlyDictionary<string, TestItem> TestsList = new(
