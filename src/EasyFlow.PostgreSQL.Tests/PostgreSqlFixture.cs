@@ -18,8 +18,17 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		await _postgreSqlContainer.StartAsync();
-		_postgresDbConnectionString = new TestConfig().GetPostgreSqlConnectionString() ?? _postgreSqlContainer.GetConnectionString();
+		string? configuredConnectionString = new TestConfig().GetSqlServerConnectionString();
+
+		if (string.IsNullOrWhiteSpace(configuredConnectionString))
+		{
+			await _postgreSqlContainer.StartAsync();
+			_postgresDbConnectionString = _postgreSqlContainer.GetConnectionString();
+		}
+		else
+		{
+			_postgresDbConnectionString = configuredConnectionString;
+		}
 	}
 
 	public async Task DisposeAsync()
