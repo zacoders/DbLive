@@ -23,8 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
-    <ProjectReference Include="..\..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
+    <ProjectReference Include="..\..\EasyFlow.MSSQL.xunit\EasyFlow.MSSQL.xunit.csproj" />
     <ProjectReference Include="..\DemoMSSQL\DemoMSSQL.csproj" />
   </ItemGroup>
 
