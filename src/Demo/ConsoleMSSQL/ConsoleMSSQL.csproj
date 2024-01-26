@@ -4,11 +4,12 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ConsoleMSSqlNew</AssemblyName>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Scripts\**\*.sql;Scripts\**\*.json" Exclude="**\bin\*;**\obj\*">
+    <None Include="Scripts\**\*.sql;Scripts\**\*.json" Exclude="**\bin\**;**\obj\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
     </None>
