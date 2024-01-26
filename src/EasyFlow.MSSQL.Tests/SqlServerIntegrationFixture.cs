@@ -3,11 +3,11 @@ namespace EasyFlow.MSSQL.Tests;
 
 public class SqlServerIntegrationFixture : IAsyncLifetime
 {
-	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage("mcr.microsoft.com/mssql/server:2022-latest").Build(); 
-	
+	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage("mcr.microsoft.com/mssql/server:2022-latest").Build();
+
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
-	public string MasterDbConnectionString => 
+	public string MasterDbConnectionString =>
 		_masterDbConnectionString ?? throw new Exception("Connection string is not found or container is not initialized yet.");
 
 	private string? _masterDbConnectionString;

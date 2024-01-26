@@ -4,7 +4,7 @@ namespace EasyFlow.MSSQL.Tests;
 
 
 public class DeploySqlIntegrationFullMultiRedeployTest(
-	SqlServerIntegrationFixture _fixture, 
+	SqlServerIntegrationFixture _fixture,
 	ITestOutputHelper output
 ) : SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {

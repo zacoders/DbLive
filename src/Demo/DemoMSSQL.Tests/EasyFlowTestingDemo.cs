@@ -35,7 +35,6 @@ public class EasyFlowTestingMSSQLFixture : IAsyncLifetime
 		await _msSqlContainer.StartAsync();
 
 		var builder = new EasyFlowBuilder()
-			//.LogToXUnitOutput() //todo: need logger for test output
 			.LogToConsole()
 			.SqlServer()
 			.SetDbConnection(_msSqlContainer.GetConnectionString())
@@ -56,7 +55,6 @@ public class EasyFlowTestingMSSQLFixture : IAsyncLifetime
 	}
 
 	public Task DisposeAsync() => _msSqlContainer.DisposeAsync().AsTask();
-
 }
 
 public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)

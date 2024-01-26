@@ -5,7 +5,7 @@ using System.Collections.Specialized;
 namespace EasyFlow.MSSQL.Tests;
 
 public class SqlServerIntegrationBaseTest : IDisposable
-{	
+{
 	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
