@@ -6,12 +6,11 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Version>0.0.0</Version>
-    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
   
   <ItemGroup>
     <PackageReference Include="Testcontainers.MsSql" />
-    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.extensibility.core" />
   </ItemGroup>
 
   <ItemGroup>

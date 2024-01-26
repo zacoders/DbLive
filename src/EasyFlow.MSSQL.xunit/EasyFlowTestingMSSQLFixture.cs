@@ -17,14 +17,14 @@ public class EasyFlowTestingMSSQLFixture(
 	private IEasyFlow? _deployer;
 
 	public IEasyFlowTester? Tester { get; private set; }
-	
+
 	public async Task InitializeAsync()
-	{		
+	{
 		var builder = new EasyFlowBuilder()
 			.LogToConsole()
 			.SqlServer()
 			.SetProjectPath(_projectPath);
-		
+
 		if (string.IsNullOrEmpty(sqlServerConnectionString))
 		{
 			await _msSqlContainer.StartAsync();
