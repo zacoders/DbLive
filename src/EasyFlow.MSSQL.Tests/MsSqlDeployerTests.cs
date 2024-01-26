@@ -13,8 +13,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		Container.InitializeMSSQL();
 		Container.AddTestingMsSqlConnection();
 
-		var testConfig = new TestConfig();
-		var cnn = new EasyFlowDbConnection(testConfig.GetSqlServerConnectionString() ?? _fixture.MasterDbConnectionString);
+		var cnn = new EasyFlowDbConnection(_fixture.MasterDbConnectionString.SetRandomDatabaseName());
 		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
 
 		Container.InitializeEasyFlow();
