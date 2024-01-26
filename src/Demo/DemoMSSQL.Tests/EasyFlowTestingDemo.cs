@@ -8,17 +8,13 @@ public class MyEasyFlowTestingMSSQLFixture()
 	: EasyFlowTestingMSSQLFixture(Path.GetFullPath(@"DemoMSSQL"))
 { }
 
-public class MyEasyFlowTestingMSSQLTheoryData()
-	: EasyFlowTestingMSSQLTheoryData(Path.GetFullPath(@"DemoMSSQL"))
-{ }
-
 public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
 	: IClassFixture<MyEasyFlowTestingMSSQLFixture>
 {
 	[Theory]
-	[ClassData(typeof(MyEasyFlowTestingMSSQLTheoryData))]
+	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
 	public void Sql(string relativePath)
 	{
-		_fixture.EasyFlowTester!.RunTest(_output.WriteLine, relativePath);
+		_fixture.Tester!.RunTest(_output.WriteLine, relativePath);
 	}
 }

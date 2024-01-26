@@ -9,10 +9,10 @@ public class EasyFlowTestingMSSQLFixture(
 	string projectPath,
 	string sqlServerImage = "mcr.microsoft.com/mssql/server:2022-latest"
 )
-: IAsyncLifetime
+: EasyFlowTestingMSSQLTheoryData(projectPath), IAsyncLifetime
 {
 	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage(sqlServerImage).Build();
-	public IEasyFlowTester? EasyFlowTester;
+	public IEasyFlowTester? Tester { get; private set; }
 
 	public async Task InitializeAsync()
 	{
@@ -24,9 +24,9 @@ public class EasyFlowTestingMSSQLFixture(
 			.SetDbConnection(_msSqlContainer.GetConnectionString())
 			.SetProjectPath(projectPath);
 
-		var easyFlow = builder.CreateDeployer();
+		var deployer = builder.CreateDeployer();
 
-		easyFlow.Deploy(new DeployParameters
+		deployer.Deploy(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,
@@ -35,7 +35,7 @@ public class EasyFlowTestingMSSQLFixture(
 			RunTests = false
 		});
 
-		EasyFlowTester = builder.CreateTester();
+		Tester = builder.CreateTester();
 	}
 
 	public Task DisposeAsync() => _msSqlContainer.DisposeAsync().AsTask();
