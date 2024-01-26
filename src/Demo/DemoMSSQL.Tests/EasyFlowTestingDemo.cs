@@ -62,7 +62,7 @@ public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _fixture, ITestOutp
 {
 	[Theory]
 	[ClassData(typeof(EasyFlowTestingMSSQLTheoryData))]
-	public void Sql(string relativePath) //=> _fixture.RunTest(_output, relativePath);\
+	public void Sql(string relativePath)
 	{
 		_fixture.EasyFlowTester!.RunTest(_output.WriteLine, relativePath);
 	}
