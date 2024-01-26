@@ -13,8 +13,9 @@ public class EasyFlowTestingMSSQLFixture(
 : EasyFlowTestingMSSQLTheoryData(projectPath), IAsyncLifetime
 {
 	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage(sqlServerImage).Build();
+	private readonly string _projectPath = projectPath;
 	private IEasyFlow? _deployer;
-	
+
 	public IEasyFlowTester? Tester { get; private set; }
 	
 	public async Task InitializeAsync()
@@ -22,8 +23,8 @@ public class EasyFlowTestingMSSQLFixture(
 		var builder = new EasyFlowBuilder()
 			.LogToConsole()
 			.SqlServer()
-			.SetProjectPath(projectPath);
-
+			.SetProjectPath(_projectPath);
+		
 		if (string.IsNullOrEmpty(sqlServerConnectionString))
 		{
 			await _msSqlContainer.StartAsync();
