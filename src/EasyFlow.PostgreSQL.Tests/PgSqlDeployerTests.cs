@@ -1,9 +1,12 @@
 using EasyFlow.Adapter;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace EasyFlow.PostgreSQL.Tests;
 
+
+[SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>
 {
 	private readonly IEasyFlowDA _da;
