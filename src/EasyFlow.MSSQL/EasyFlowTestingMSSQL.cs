@@ -1,17 +1,17 @@
-﻿using EasyFlow.Common;
-using EasyFlow.Testing;
+﻿//using EasyFlow.Testing;
 
-namespace EasyFlow.MSSQL;
+//namespace EasyFlow.MSSQL;
 
-public class EasyFlowTestingMSSQL(string projectPath, string dbConnectionString)
-	: EasyFlowTesting(CreateContainer(), projectPath, dbConnectionString)
-{
-	private static EasyFlowBuilder CreateContainer()
-	{
-		var builder = new EasyFlowBuilder();
+//public class EasyFlowTestingMSSQL : EasyFlowTesting
+//{
+//	public EasyFlowTestingMSSQL(string projectPath)
+//		: base(projectPath)
+//	{
+//		_easyFlowBuilder.SqlServer();
+//	}
 
-		builder.SqlServer();
-
-		return builder;
-	}
-}
+//	public void SetConnectionString(string connectionString)
+//	{
+//		_easyFlowBuilder.SetDbConnection(connectionString);
+//	}
+//}

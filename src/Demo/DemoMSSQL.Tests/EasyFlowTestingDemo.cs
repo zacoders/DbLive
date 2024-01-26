@@ -1,36 +1,20 @@
-using EasyFlow.MSSQL;
-using EasyFlow.Tests.Common;
+using EasyFlow.MSSQL.xunit;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
 
-public class EasyFlowTestingMSSQLFixture : TheoryData<string>
-{
-	readonly static string UnitTestsDBName = $"EasyFlow-UnitTests-{nameof(EasyFlowTestingDemo)}-{Guid.NewGuid()}";
-	readonly static string DBConnectionString = new TestConfig().GetSqlServerConnectionString(UnitTestsDBName);
-	readonly static string ProjectPath = Path.GetFullPath(@"DemoMSSQL");
+public class MyEasyFlowTestingMSSQLFixture()
+	: EasyFlowTestingMSSQLFixture(Path.GetFullPath(@"DemoMSSQL"))
+{ }
 
-	readonly EasyFlowTestingMSSQL testingMSSQL = new(ProjectPath, DBConnectionString);
-
-	public EasyFlowTestingMSSQLFixture()
-	{
-		foreach (var testItem in testingMSSQL.TestsList)
-		{
-			Add(testItem.Key); // adding tests to TheoryData base class.
-		}
-	}
-
-	public void RunTest(ITestOutputHelper output, string relativePath)
-	{
-		testingMSSQL.RunTest(output.WriteLine, relativePath);
-	}
-}
-
-public class EasyFlowTestingDemo(EasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
-	: IClassFixture<EasyFlowTestingMSSQLFixture>
+public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
+	: IClassFixture<MyEasyFlowTestingMSSQLFixture>
 {
 	[Theory]
-	[ClassData(typeof(EasyFlowTestingMSSQLFixture))]
-	public void Sql(string relativePath) => _fixture.RunTest(_output, relativePath);
+	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
+	public void Sql(string relativePath)
+	{
+		_fixture.Tester!.RunTest(_output.WriteLine, relativePath);
+	}
 }

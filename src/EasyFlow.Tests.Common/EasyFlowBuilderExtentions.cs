@@ -21,23 +21,23 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<ILogger>(logger);
 	}
 
-	public static EasyFlowBuilder AddTestingMsSqlConnection(this EasyFlowBuilder builder)
-	{
-		builder.Container.AddTestingMsSqlConnection();
-		return builder;
-	}
+	//public static EasyFlowBuilder AddTestingMsSqlConnection(this EasyFlowBuilder builder)
+	//{
+	//	builder.Container.AddTestingMsSqlConnection();
+	//	return builder;
+	//}
 
-	public static void AddTestingMsSqlConnection(this IServiceCollection serviceCollection)
-	{
-		var testConfig = new TestConfig();
-		var cnn = new EasyFlowDbConnection(testConfig.GetSqlServerConnectionString());
-		serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
-	}
+	//public static void AddTestingMsSqlConnection(this IServiceCollection serviceCollection)
+	//{
+	//	var testConfig = new TestConfig();
+	//	var cnn = new EasyFlowDbConnection(testConfig.GetSqlServerConnectionString());
+	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+	//}
 
-	public static void AddTestingPostgreSQLConnection(this IServiceCollection serviceCollection)
-	{
-		var testConfig = new TestConfig();
-		var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString());
-		serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
-	}
+	//public static void AddTestingPostgreSQLConnection(this IServiceCollection serviceCollection)
+	//{
+	//	var testConfig = new TestConfig();
+	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString());
+	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+	//}
 }

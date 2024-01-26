@@ -9,38 +9,27 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
-	protected readonly string masterDbConnectionString;
+	private string _masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
 	protected readonly string _testingDbName;
 
-	protected readonly IEasyFlow EasyFlow;
+	protected IEasyFlow EasyFlow;
 
 	public ITestOutputHelper Output { get; }
 
-	protected string GetDbConnectionString(string dbName)
+	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null) //: base(output)
 	{
-		SqlConnectionStringBuilder cnnBuilder = new(masterDbConnectionString)
-		{
-			InitialCatalog = dbName
-		};
-		return cnnBuilder.ConnectionString;
-	}
-
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string? dbName = null) //: base(output)
-	{
-		var config = new TestConfig();
-
-		masterDbConnectionString = config.GetSqlServerConnectionString();
-		Output = output;
+		_masterDbConnectionString = masterDbConnectionString;
 		_testingDbName = dbName ?? GetRanomDbName();
+		Output = output;
 
 		EasyFlow = new EasyFlowBuilder()
-			.LogToXUnitOutput(output)
-			.AddTestingMsSqlConnection()
+			.LogToXUnitOutput(Output)
+			//.AddTestingMsSqlConnection() //todo: looks like cnn sting added 2 times?
 			.SqlServer()
-			.SetDbConnection(GetDbConnectionString(_testingDbName))
+			.SetDbConnection(_masterDbConnectionString.SetDatabaseName(_testingDbName))
 			.SetProjectPath(_msSqlTestingProjectPath)
 			.CreateDeployer();
 	}
@@ -52,7 +41,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	private void DropTestingDatabases()
 	{
-		using SqlConnection cnn = new(masterDbConnectionString);
+		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
@@ -80,7 +69,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
 	{
-		using SqlConnection cnn = new(masterDbConnectionString);
+		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
 
 		foreach (var database in databases)
@@ -110,7 +99,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	protected bool DbExists(string database)
 	{
-		using SqlConnection cnn = new(masterDbConnectionString);
+		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";

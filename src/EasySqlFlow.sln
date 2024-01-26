@@ -25,6 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.PostgreSQL.Tests",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DBC8694E-701B-4E4E-A99C-CE85134BC45A}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		Directory.Packages.props = Directory.Packages.props
 		docker-compose.yml = docker-compose.yml
 		nuget.config = nuget.config
@@ -36,6 +37,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoMSSQL.Tests", "Demo\DemoMSSQL.Tests\DemoMSSQL.Tests.csproj", "{8DEABF5A-1B0F-40EE-84D1-3D95E7784BD9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleMSSQL", "Demo\ConsoleMSSQL\ConsoleMSSQL.csproj", "{BE9594BE-8D31-4A82-8CE9-048DEA29E798}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.MSSQL.xunit", "EasyFlow.MSSQL.xunit\EasyFlow.MSSQL.xunit.csproj", "{72CCD431-3D05-4F2F-93F6-F9BCD613D435}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +90,10 @@ Global
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
