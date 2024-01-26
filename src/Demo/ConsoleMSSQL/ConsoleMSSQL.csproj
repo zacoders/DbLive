@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Scripts\**\*.sql;Scripts\**\*.json" Exclude="**\bin\**;**\obj\**">
+    <None Include="Scripts\**\*.sql;Scripts\**\*.json" Exclude="**\bin\*;**\obj\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
     </None>
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
     <ProjectReference Include="..\..\EasyFlow\EasyFlow.csproj" />
