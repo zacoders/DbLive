@@ -1,5 +1,6 @@
 ﻿using EasyFlow.Deployers.Migrations;
 using EasyFlow.Deployers.Tests;
+using EasyFlow.Testing;
 
 namespace EasyFlow;
 
@@ -16,6 +17,7 @@ public static class Bootstrapper
 		container.AddSingleton<MigrationItemDeployer>();
 		container.AddSingleton<FolderDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
+		container.AddSingleton<IEasyFlowTester, EasyFlowTester>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
 	}
 }

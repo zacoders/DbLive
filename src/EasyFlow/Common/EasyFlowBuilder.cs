@@ -7,9 +7,10 @@ public class EasyFlowBuilder
 	public EasyFlowBuilder()
 	{
 		Container.AddSingleton(this);
+		Container.InitializeEasyFlow();
 	}
 
-	public EasyFlowBuilder ClonBuilder()
+	public EasyFlowBuilder CloneBuilder()
 	{
 		EasyFlowBuilder newBuilder = new();
 

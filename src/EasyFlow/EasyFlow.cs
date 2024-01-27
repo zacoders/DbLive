@@ -36,11 +36,16 @@ public class EasyFlow(
 		DeployProjectInternal(false, parameters);
 	}
 
+	public void DropDatabase(bool skipIfNotExists = true)
+	{
+		_da.DropDB(skipIfNotExists);
+	}
+
 	private void SelfDeployProjectInternal()
 	{
 		_logger.Information("Starting self deploy.");
 
-		var selfDeployer = (EasyFlow)_builder.ClonBuilder()
+		var selfDeployer = (EasyFlow)_builder.CloneBuilder()
 			.SetProjectPath(_paths.GetPathToEasyFlowSelfProject())
 			.CreateDeployer();
 

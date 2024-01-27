@@ -1,83 +1,87 @@
-using EasyFlow.Adapter;
-using EasyFlow.Deployers.Tests;
+//using EasyFlow.Adapter;
+//using System.Collections.ObjectModel;
 
-namespace EasyFlow.Testing;
+//namespace EasyFlow.Testing;
 
-public class EasyFlowTesting : IDisposable
-{
-	private readonly ServiceProvider _serviceProvider;
-	private readonly IUnitTestsRunner _unitTestsRunner;
-	private readonly IEasyFlowDA _easyFlowDa;
-	public readonly ReadOnlyDictionary<string, TestItem> TestsList;
+//public class EasyFlowTesting : IDisposable
+//{
+//	private readonly ServiceProvider _serviceProvider;
+//	private readonly IUnitTestsRunner _unitTestsRunner;
+//	private readonly IEasyFlowDA _easyFlowDa;
+//	public readonly ReadOnlyDictionary<string, TestItem> TestsList;
+//	protected readonly EasyFlowBuilder _easyFlowBuilder;
 
-	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder, string projectPath, string sqlConnectionString)
-	{
-		var container = easyFlowBuilder.Container;
+//	public EasyFlowTesting(EasyFlowBuilder easyFlowBuilder)
+//	{
+//		easyFlowBuilder.SetProjectPath(projectPath);
+//		easyFlowBuilder.LogToConsole(); //todo: this will not log, since we xunit is used.
 
-		container.InitializeEasyFlow();
-		container.SetDbConnection(sqlConnectionString);
-		container.SetProjectPath(projectPath);
-		container.LogToConsole();
+//		//var container = easyFlowBuilder.Container;
 
-		_serviceProvider = container.BuildServiceProvider();
+//		//container.InitializeEasyFlow();
+//		//container.SetProjectPath(projectPath);
+//		//container.LogToConsole(); 
 
-		_unitTestsRunner = GetService<IUnitTestsRunner>();
-		_easyFlowDa = GetService<IEasyFlowDA>();
+//		//_serviceProvider = container.BuildServiceProvider();
 
-		var project = GetService<IEasyFlowProject>();
+//		_unitTestsRunner = GetService<IUnitTestsRunner>();
 
-		TestsList = new ReadOnlyDictionary<string, TestItem>(
-			project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
-		);
+//		_easyFlowDa = GetService<IEasyFlowDA>();
 
-		PrepareTestingDatabase();
-	}
+//		var project = GetService<IEasyFlowProject>();
 
-	public void Dispose()
-	{
-		_easyFlowDa.DropDB();
-		GC.SuppressFinalize(this);
-	}
+//		TestsList = new ReadOnlyDictionary<string, TestItem>(
+//			project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
+//		);
 
-	protected void PrepareTestingDatabase()
-	{
-		var easyFlow = GetService<IEasyFlow>();
+//		PrepareTestingDatabase();
+//	}
 
-		DeployParameters deployParams = new()
-		{
-			CreateDbIfNotExists = true,
-			DeployBreaking = true,
-			DeployCode = true,
-			DeployMigrations = true,
-			RunTests = false /* we will run tests in Visual Studio UI */
-		};
+//	public void Dispose()
+//	{
+//		_easyFlowDa.DropDB();
+//		GC.SuppressFinalize(this);
+//	}
 
-		easyFlow.Deploy(deployParams);
-	}
+//	protected void PrepareTestingDatabase()
+//	{
+//		var easyFlow = GetService<IEasyFlow>();
 
-	private TService GetService<TService>()
-	{
-		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
-	}
+//		DeployParameters deployParams = new()
+//		{
+//			CreateDbIfNotExists = true,
+//			DeployBreaking = true,
+//			DeployCode = true,
+//			DeployMigrations = true,
+//			RunTests = false /* we will run tests in Visual Studio UI */
+//		};
 
-	/// <summary>
-	/// Runs Sql test.
-	/// </summary>
-	/// <param name="output"><see cref="ITestOutput"/></param>
-	/// <param name="relativePath">Relative path to the sql test.</param>
-	public TestRunResult RunTest(Action<string> writeLine, string relativePath)
-	{
-		writeLine($"Running unit test {relativePath}");
-		writeLine("");
+//		easyFlow.Deploy(deployParams);
+//	}
 
-		var testItem = TestsList[relativePath];
+//	private TService GetService<TService>()
+//	{
+//		return _serviceProvider.GetService<TService>() ?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
+//	}
 
-		writeLine($"{testItem.FileData.Content}");
+//	/// <summary>
+//	/// Runs Sql test.
+//	/// </summary>
+//	/// <param name="output"><see cref="ITestOutput"/></param>
+//	/// <param name="relativePath">Relative path to the sql test.</param>
+//	public TestRunResult RunTest(Action<string> writeLine, string relativePath)
+//	{
+//		writeLine($"Running unit test {relativePath}");
+//		writeLine("");
 
-		var testRunResult = _unitTestsRunner.RunTest(testItem, new EasyFlowSettings());
+//		var testItem = TestsList[relativePath];
 
-		writeLine(testRunResult.Output);
+//		writeLine($"{testItem.FileData.Content}");
 
-		return testRunResult;
-	}
-}
+//		var testRunResult = _unitTestsRunner.RunTest(testItem, new EasyFlowSettings());
+
+//		writeLine(testRunResult.Output);
+
+//		return testRunResult;
+//	}
+//}
