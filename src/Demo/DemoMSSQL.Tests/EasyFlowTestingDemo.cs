@@ -1,3 +1,4 @@
+using EasyFlow.Deployers.Tests;
 using EasyFlow.MSSQL.xunit;
 using Xunit;
 using Xunit.Abstractions;
@@ -17,6 +18,7 @@ public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOu
 	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
 	public void Sql(string relativePath)
 	{
-		_fixture.Tester!.RunTest(_output.WriteLine, relativePath);
+		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, relativePath);
+		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }

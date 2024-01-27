@@ -80,6 +80,11 @@ public class UnitTestsRunner(
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
+			if (test.InitFileData is not null)
+			{
+				_da.ExecuteNonQuery(test.InitFileData.Content);
+			}
+			_da.ExecuteNonQuery("select 1");
 			_da.ExecuteNonQuery(test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction

@@ -21,7 +21,8 @@ public class EasyFlowProject : IEasyFlowProject
 		if (_fileSystem.FileExists(settingsPath))
 		{
 			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
+			var loadedSettings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
+			_settings = loadedSettings ?? _settings;
 		}
 	}
 
@@ -133,25 +134,42 @@ public class EasyFlowProject : IEasyFlowProject
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		List<TestItem> tests = [];
-
 		string testsPath = _projectPath.CombineWith("Tests");
 		string codePath = _projectPath.CombineWith("Code");
 
-		if (!_fileSystem.PathExists(testsPath))
+		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
+
+		List<TestItem> testGroups = [];
+
+		foreach (var folderPath in testFolders)
 		{
-			return Array.Empty<TestItem>();
+			testGroups.AddRange(GetFolderTests(folderPath));
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePatterns, subfolders: true)
-			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePatterns, subfolders: true));
+		return testGroups.AsReadOnly();
+	}
+
+	protected List<TestItem> GetFolderTests(string folderPath)
+	{
+		List<TestItem> tests = [];
+
+		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settings.TestFilePatterns, subfolders: false);
+
+		FileData? initFileData = null;
+		string initializeFilePath = folderPath.CombineWith("init.sql");
+		if (_fileSystem.FileExists(initializeFilePath))
+		{
+			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
+		}
 
 		foreach (string testFilePath in testFiles)
 		{
 			TestItem testItem = new()
 			{
 				Name = testFilePath.GetLastSegment(),
-				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
+				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath),
+				InitFileData = initFileData,
+				Folder = folderPath
 			};
 
 			tests.Add(testItem);

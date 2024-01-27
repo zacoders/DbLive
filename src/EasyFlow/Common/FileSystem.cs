@@ -12,7 +12,7 @@ public class FileSystem : IFileSystem
 			if (Directory.Exists(path))
 				return Directory.EnumerateDirectories(path, searchPattern, searchOption);
 			return Enumerable.Empty<string>();
-		});
+		}).Distinct();
 	}
 
 	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, bool subfolders) =>
@@ -21,7 +21,7 @@ public class FileSystem : IFileSystem
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, bool subfolders) =>
 		searchPatterns.SelectMany(searchPattern =>
 			Directory.EnumerateFiles(path, searchPattern, subfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
-		);
+		).Distinct();
 
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders)
 	{
