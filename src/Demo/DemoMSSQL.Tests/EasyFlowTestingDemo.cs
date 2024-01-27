@@ -11,6 +11,8 @@ public class MyEasyFlowTestingMSSQLFixture()
 public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
 	: IClassFixture<MyEasyFlowTestingMSSQLFixture>
 {
+	// TODO: if there are a lot of tests they will be in the same place
+	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
 	[Theory]
 	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
 	public void Sql(string relativePath)
