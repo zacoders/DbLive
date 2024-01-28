@@ -92,7 +92,7 @@ public class EasyFlowProject : IEasyFlowProject
 		string migrationsPath = _projectPath.CombineWith("Migrations");
 		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
 
-		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*.*", SearchOption.TopDirectoryOnly);
+		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*", SearchOption.TopDirectoryOnly);
 
 		foreach (string folderPath in migrationDirectories)
 		{
@@ -134,8 +134,8 @@ public class EasyFlowProject : IEasyFlowProject
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		string testsPath = _projectPath.CombineWith("Tests");
-		string codePath = _projectPath.CombineWith("Code");
+		string testsPath = _projectPath.CombineWith("Tests"); //todo: Tests folder should be defined of the settings.
+		string codePath = _projectPath.CombineWith("Code"); //todo: Code folder should be defined in the settings.
 
 		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
 
