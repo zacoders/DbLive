@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Deployers.Tests;
 
+[ExcludeFromCodeCoverage]
 public class TestRunResult
 {
 	public bool IsSuccess { get; set; }

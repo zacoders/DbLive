@@ -69,6 +69,7 @@ public class UnitTestsRunner(
 
 	public TestRunResult RunTest(TestItem test, EasyFlowSettings settings)
 	{
+		//todo: cover with unit tests!
 		TestRunResult result = new()
 		{
 			IsSuccess = false,
