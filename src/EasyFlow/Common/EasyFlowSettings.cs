@@ -12,4 +12,6 @@ public class EasyFlowSettings
 
 	public string BeforeDeployFolder { get; set; } = "BeforeDeploy";
 	public string AfterDeployFolder { get; set; } = "AfterDeploy";
+	public string CodeFolder { get; set; } = "Code";
+	public string TestsFolder { get; set; } = "Tests";
 }

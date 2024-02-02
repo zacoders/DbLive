@@ -71,7 +71,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public IEnumerable<CodeItem> GetCodeItems()
 	{
 		List<CodeItem> codeItems = [];
-		string codePath = Path.Combine(_projectPath, "Code");
+		string codePath = Path.Combine(_projectPath, _settings.CodeFolder);
 		if (_fileSystem.PathExists(codePath))
 		{
 			var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
@@ -134,8 +134,8 @@ public class EasyFlowProject : IEasyFlowProject
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		string testsPath = _projectPath.CombineWith("Tests"); //todo: Tests folder should be defined of the settings.
-		string codePath = _projectPath.CombineWith("Code"); //todo: Code folder should be defined in the settings.
+		string testsPath = _projectPath.CombineWith(_settings.TestsFolder);
+		string codePath = _projectPath.CombineWith(_settings.CodeFolder);
 
 		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
 
