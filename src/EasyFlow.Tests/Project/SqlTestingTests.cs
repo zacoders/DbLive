@@ -7,6 +7,9 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<IEnumerable<string>>(), "*", SearchOption.AllDirectories)
 			.Returns([
 				@"C:\DB\Tests\",
@@ -26,9 +29,12 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
-		string folderPath = @"C:\DB\Tests\";
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		mockSet.FileSystem.EnumerateFiles(folderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
+		string testsFolderPath = @"C:\DB\Tests\";
+
+		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
 				@"C:\DB\Tests\order.test.sql",
 				@"C:\DB\Tests\user.test.sql"
@@ -45,7 +51,7 @@ public class SqlTestingTests
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
-		var tests = sqlProject.GetFolderTests(folderPath);
+		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
 		Assert.NotNull(tests);
 		Assert.Equal(2, tests.Count);
@@ -61,9 +67,12 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
-		string folderPath = @"C:\DB\Tests\";
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		mockSet.FileSystem.EnumerateFiles(folderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
+		string testsFolderPath = @"C:\DB\Tests\";
+
+		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
 				@"C:\DB\Tests\order.test.sql",
 				@"C:\DB\Tests\user.test.sql"
@@ -90,7 +99,7 @@ public class SqlTestingTests
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
-		var tests = sqlProject.GetFolderTests(folderPath);
+		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
 		Assert.NotNull(tests);
 		Assert.Equal(2, tests.Count);

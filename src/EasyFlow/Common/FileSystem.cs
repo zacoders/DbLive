@@ -46,6 +46,12 @@ public class FileSystem : IFileSystem
 		return !Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Any();
 	}
 
+	public bool PathExistsAndNotEmpty(string path)
+	{
+		if (!Directory.Exists(path)) return false;		
+		return IsDirectoryEmpty(path);
+	}
+
 	public string FileReadAllText(string path) => File.ReadAllText(path);
 
 	public FileData ReadFileData(string path, string rootPath)

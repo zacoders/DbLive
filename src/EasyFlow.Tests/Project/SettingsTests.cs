@@ -5,14 +5,16 @@ public class SettingsTests
 	[Fact]
 	public void GetMigrationType()
 	{
-		string projectPath = "c:/project1";
-		string settingsPath = projectPath.CombineWith("settings.json");
-
 		var mockSet = new MockSet();
 
-		mockSet.FileSystem.FileExists(Arg.Is<string>(v => v == settingsPath)).Returns(true);
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		mockSet.FileSystem.FileReadAllText(Arg.Is<string>(v => v == settingsPath))
+		string settingsPath = @"C:\DB\settings.json";
+
+		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
+
+		mockSet.FileSystem.FileReadAllText(settingsPath)
 			.Returns(
 				"""
 					{
@@ -20,8 +22,6 @@ public class SettingsTests
 					}
 				"""
 			);
-
-		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 

@@ -11,8 +11,7 @@ public class EasyFlowProject : IEasyFlowProject
 		_projectPath = projectPath.ProjectPath;
 		_fileSystem = fileSystem;
 
-		if (!fileSystem.PathExists(projectPath.ProjectPath)
-			 && fileSystem.IsDirectoryEmpty(projectPath.ProjectPath))
+		if (!fileSystem.PathExistsAndNotEmpty(projectPath.ProjectPath))
 		{
 			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
 		}

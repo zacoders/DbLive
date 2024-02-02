@@ -8,6 +8,7 @@ public class GetFolderItemsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
@@ -39,6 +40,7 @@ public class GetFolderItemsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 
@@ -58,6 +60,9 @@ public class GetFolderItemsTests
 	public void AfterDeploy_NotImplementedException()
 	{
 		MockSet mockSet = new();
+
+		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
 		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
 

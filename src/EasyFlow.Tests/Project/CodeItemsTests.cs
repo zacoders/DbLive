@@ -8,6 +8,8 @@ public class CodeItemsTests
 		var mockSet = new MockSet();
 
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
+		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+
 		mockSet.FileSystem.PathExists(@"C:\DB\Code").Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
