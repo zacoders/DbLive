@@ -149,11 +149,9 @@ public class EasyFlowProject : IEasyFlowProject
 		return testGroups.AsReadOnly();
 	}
 
-	protected List<TestItem> GetFolderTests(string folderPath)
+	internal List<TestItem> GetFolderTests(string folderPath)
 	{
 		List<TestItem> tests = [];
-
-		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settings.TestFilePatterns, subfolders: false);
 
 		FileData? initFileData = null;
 		string initializeFilePath = folderPath.CombineWith("init.sql");
@@ -161,6 +159,8 @@ public class EasyFlowProject : IEasyFlowProject
 		{
 			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
 		}
+
+		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settings.TestFilePatterns, subfolders: false);
 
 		foreach (string testFilePath in testFiles)
 		{

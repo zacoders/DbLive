@@ -13,6 +13,7 @@ public class MigrationsTests
 			.Returns([
 				@"C:\MainTestDB\Migrations\_Old\001.test1",
 				@"C:\MainTestDB\Migrations\_Old\002.test2",
+				@"C:\MainTestDB\Migrations\_Old", // should be skipped.
 				@"C:\MainTestDB\Migrations\004.test4",
 				@"C:\MainTestDB\Migrations\003.test3",
 			]);

@@ -5,7 +5,7 @@ public class FileSystem : IFileSystem
 	public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, SearchOption searchOption) =>
 		Directory.EnumerateDirectories(path, searchPattern, searchOption);
 
-	public IEnumerable<string> EnumerateDirectories(string[] paths, string searchPattern, SearchOption searchOption)
+	public IEnumerable<string> EnumerateDirectories(IEnumerable<string> paths, string searchPattern, SearchOption searchOption)
 	{
 		return paths.SelectMany(path =>
 		{
