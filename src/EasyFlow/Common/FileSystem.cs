@@ -49,7 +49,7 @@ public class FileSystem : IFileSystem
 	public bool PathExistsAndNotEmpty(string path)
 	{
 		if (!Directory.Exists(path)) return false;		
-		return IsDirectoryEmpty(path);
+		return !IsDirectoryEmpty(path);
 	}
 
 	public string FileReadAllText(string path) => File.ReadAllText(path);
