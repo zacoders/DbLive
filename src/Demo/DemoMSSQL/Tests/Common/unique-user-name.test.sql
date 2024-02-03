@@ -23,6 +23,5 @@ end catch
 
 --print(@ErrorMessage)
 
-if @ExceptionThrows = 0 or 
-   @ErrorMessage not like '%IDX_Users_Name%'
+if @ExceptionThrows = 0 or @ErrorMessage not like '%IDX_Users_Name%'
 	throw 50001, 'Unique index violation is expected.', 0;

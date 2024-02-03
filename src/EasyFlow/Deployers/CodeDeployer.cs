@@ -53,7 +53,7 @@ public class CodeDeployer(
 	/// <param name="isSelfDeploy"></param>
 	/// <param name="codeItem"></param>
 	/// <returns>Returns false if there was any error during deployment.</returns>
-	internal protected bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
+	internal bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
 	{
 		try
 		{

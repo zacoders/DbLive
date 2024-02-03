@@ -1,5 +1,6 @@
 ﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
+using EasyFlow.Project;
 using System.Collections.Specialized;
 using System.Data;
 
@@ -240,6 +241,23 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				execution_time_ms = executionTimeMs,
 				pass = isSuccess,
 				error = errorMessage
+			},
+			commandType: CommandType.StoredProcedure
+		);
+	}
+
+	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		cnn.Query(
+			"easyflow.save_folder_item",
+			new
+			{
+				folder_type = projectFolder.ToString(),
+				relative_path = relativePath,
+				started_utc = startedUtc,
+				completed_utc = completedUtc,
+				execution_time_ms = executionTimeMs
 			},
 			commandType: CommandType.StoredProcedure
 		);

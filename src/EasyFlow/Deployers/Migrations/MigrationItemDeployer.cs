@@ -1,6 +1,6 @@
 using EasyFlow.Adapter;
 
-namespace EasyFlow.Deployers;
+namespace EasyFlow.Deployers.Migrations;
 
 public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
 {

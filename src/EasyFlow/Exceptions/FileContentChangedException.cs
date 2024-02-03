@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Exceptions;
 
+[ExcludeFromCodeCoverage]
 public class FileContentChangedException : Exception
 {
 	public string RelativePath { get; }

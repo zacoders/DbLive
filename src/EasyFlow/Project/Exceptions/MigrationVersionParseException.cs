@@ -2,7 +2,6 @@
 
 
 [ExcludeFromCodeCoverage]
-[Serializable]
 public class MigrationVersionParseException : Exception
 {
 	public string FolderName { get; private set; }

@@ -12,16 +12,19 @@ namespace System.Runtime.CompilerServices
 	/// Reserved to be used by the compiler for tracking metadata.
 	/// This class should not be used by developers in source code.
 	/// </summary>
+	[ExcludeFromCodeCoverage]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static class IsExternalInit
 	{
 	}
 
+	[ExcludeFromCodeCoverage]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public class RequiredMemberAttribute : Attribute { }
 
 
 #pragma warning disable CS9113 // Parameter is unread.
+	[ExcludeFromCodeCoverage]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public class CompilerFeatureRequiredAttribute(string name) : Attribute { }
 #pragma warning restore CS9113 // Parameter is unread.
@@ -29,7 +32,7 @@ namespace System.Runtime.CompilerServices
 
 namespace System.Diagnostics.CodeAnalysis
 {
-
+	[ExcludeFromCodeCoverage]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public class SetsRequiredMembersAttribute : Attribute { }
 }

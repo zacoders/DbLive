@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Adapter;
 
-[Serializable]
+[ExcludeFromCodeCoverage]
 public class NotSupportedTransactionIsolationLevelException : Exception
 {
 	private TranIsolationLevel isolationLevel;

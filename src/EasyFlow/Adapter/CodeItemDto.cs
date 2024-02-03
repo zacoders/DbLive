@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Adapter;
 
+[ExcludeFromCodeCoverage]
 public class CodeItemDto
 {
 	public required string RelativePath { get; set; }

@@ -1,7 +1,3 @@
-using EasyFlow.Project.Exceptions;
-using Newtonsoft.Json;
-using System.Collections.ObjectModel;
-
 namespace EasyFlow.Project;
 
 public class EasyFlowProject : IEasyFlowProject
@@ -15,8 +11,7 @@ public class EasyFlowProject : IEasyFlowProject
 		_projectPath = projectPath.ProjectPath;
 		_fileSystem = fileSystem;
 
-		if (!fileSystem.PathExists(projectPath.ProjectPath)
-			 && fileSystem.IsDirectoryEmpty(projectPath.ProjectPath))
+		if (!fileSystem.PathExistsAndNotEmpty(projectPath.ProjectPath))
 		{
 			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
 		}
@@ -25,7 +20,8 @@ public class EasyFlowProject : IEasyFlowProject
 		if (_fileSystem.FileExists(settingsPath))
 		{
 			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			_settings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson) ?? _settings;
+			var loadedSettings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
+			_settings = loadedSettings ?? _settings;
 		}
 	}
 
@@ -74,7 +70,7 @@ public class EasyFlowProject : IEasyFlowProject
 	public IEnumerable<CodeItem> GetCodeItems()
 	{
 		List<CodeItem> codeItems = [];
-		string codePath = Path.Combine(_projectPath, "Code");
+		string codePath = Path.Combine(_projectPath, _settings.CodeFolder);
 		if (_fileSystem.PathExists(codePath))
 		{
 			var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
@@ -95,7 +91,7 @@ public class EasyFlowProject : IEasyFlowProject
 		string migrationsPath = _projectPath.CombineWith("Migrations");
 		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
 
-		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*.*", SearchOption.TopDirectoryOnly);
+		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*", SearchOption.TopDirectoryOnly);
 
 		foreach (string folderPath in migrationDirectories)
 		{
@@ -137,30 +133,76 @@ public class EasyFlowProject : IEasyFlowProject
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		List<TestItem> tests = [];
+		string testsPath = _projectPath.CombineWith(_settings.TestsFolder);
+		string codePath = _projectPath.CombineWith(_settings.CodeFolder);
 
-		string testsPath = _projectPath.CombineWith("Tests");
-		string codePath = _projectPath.CombineWith("Code");
+		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
 
-		if (!_fileSystem.PathExists(testsPath))
+		List<TestItem> testGroups = [];
+
+		foreach (var folderPath in testFolders)
 		{
-			return Array.Empty<TestItem>();
+			testGroups.AddRange(GetFolderTests(folderPath));
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(testsPath, _settings.TestFilePatterns, subfolders: true)
-			.Union(_fileSystem.EnumerateFiles(codePath, _settings.TestFilePatterns, subfolders: true));
+		return testGroups.AsReadOnly();
+	}
+
+	internal List<TestItem> GetFolderTests(string folderPath)
+	{
+		List<TestItem> tests = [];
+
+		FileData? initFileData = null;
+		string initializeFilePath = folderPath.CombineWith("init.sql");
+		if (_fileSystem.FileExists(initializeFilePath))
+		{
+			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
+		}
+
+		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settings.TestFilePatterns, subfolders: false);
 
 		foreach (string testFilePath in testFiles)
 		{
 			TestItem testItem = new()
 			{
 				Name = testFilePath.GetLastSegment(),
-				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath)
+				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath),
+				InitFileData = initFileData,
+				Folder = folderPath
 			};
 
 			tests.Add(testItem);
 		}
 
 		return tests;
+	}
+
+	/// <inheritdoc/>
+	public ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder)
+	{
+		Dictionary<string, GenericItem> items = [];
+
+		string folderPath = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => _settings.BeforeDeployFolder,
+			ProjectFolder.AfterDeploy => _settings.AfterDeployFolder,
+			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
+		};
+
+		string fullPath = Path.Combine(_projectPath, folderPath);
+
+		if (_fileSystem.PathExists(fullPath))
+		{
+			var files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
+			foreach (string filePath in files)
+			{
+				string fileName = filePath.GetLastSegment();
+				var item = new GenericItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+				items.Add(filePath, item);
+			}
+		}
+
+		// sorting the items by full path which is in the key of the dictionary.
+		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
 	}
 }

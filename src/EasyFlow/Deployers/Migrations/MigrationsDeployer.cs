@@ -1,6 +1,6 @@
 using EasyFlow.Adapter;
 
-namespace EasyFlow.Deployers;
+namespace EasyFlow.Deployers.Migrations;
 
 public class MigrationsDeployer(
 		ILogger _logger,

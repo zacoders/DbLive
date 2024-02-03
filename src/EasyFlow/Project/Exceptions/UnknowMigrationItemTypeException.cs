@@ -2,7 +2,6 @@
 
 
 [ExcludeFromCodeCoverage]
-[Serializable]
 public class UnknowMigrationItemTypeException : Exception
 {
 	public static string AllowedItemTypes = string.Join(", ", Enum.GetValues(typeof(MigrationItemType)));

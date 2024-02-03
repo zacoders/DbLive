@@ -18,5 +18,9 @@
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Crc32.NET" />
   </ItemGroup>
-
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
+  </ItemGroup>
+  
 </Project>

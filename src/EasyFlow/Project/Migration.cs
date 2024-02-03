@@ -1,6 +1,4 @@
-﻿using System.Collections.ObjectModel;
-
-namespace EasyFlow.Project;
+﻿namespace EasyFlow.Project;
 
 [ExcludeFromCodeCoverage]
 public record Migration

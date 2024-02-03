@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Adapter;
 
+[ExcludeFromCodeCoverage]
 public class MigrationItemDto
 {
 	public required int Version { get; init; }

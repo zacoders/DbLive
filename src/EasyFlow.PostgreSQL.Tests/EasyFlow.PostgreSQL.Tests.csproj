@@ -22,7 +22,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
+  
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.PostgreSQL\EasyFlow.PostgreSQL.csproj" />
     <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />

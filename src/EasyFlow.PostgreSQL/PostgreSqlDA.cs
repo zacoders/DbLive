@@ -1,5 +1,6 @@
 ﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
+using EasyFlow.Project;
 using System.Data;
 
 namespace EasyFlow.PostgreSQL;
@@ -176,6 +177,11 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	}
 
 	public void DropDB(bool skipIfNotExists = true)
+	{
+		throw new NotImplementedException();
+	}
+
+	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}

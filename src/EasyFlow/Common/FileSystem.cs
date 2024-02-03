@@ -5,14 +5,14 @@ public class FileSystem : IFileSystem
 	public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, SearchOption searchOption) =>
 		Directory.EnumerateDirectories(path, searchPattern, searchOption);
 
-	public IEnumerable<string> EnumerateDirectories(string[] paths, string searchPattern, SearchOption searchOption)
+	public IEnumerable<string> EnumerateDirectories(IEnumerable<string> paths, string searchPattern, SearchOption searchOption)
 	{
 		return paths.SelectMany(path =>
 		{
 			if (Directory.Exists(path))
 				return Directory.EnumerateDirectories(path, searchPattern, searchOption);
 			return Enumerable.Empty<string>();
-		});
+		}).Distinct();
 	}
 
 	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, bool subfolders) =>
@@ -21,7 +21,7 @@ public class FileSystem : IFileSystem
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, bool subfolders) =>
 		searchPatterns.SelectMany(searchPattern =>
 			Directory.EnumerateFiles(path, searchPattern, subfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
-		);
+		).Distinct();
 
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders)
 	{
@@ -44,6 +44,12 @@ public class FileSystem : IFileSystem
 	public bool IsDirectoryEmpty(string path)
 	{
 		return !Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Any();
+	}
+
+	public bool PathExistsAndNotEmpty(string path)
+	{
+		if (!Directory.Exists(path)) return false;		
+		return !IsDirectoryEmpty(path);
 	}
 
 	public string FileReadAllText(string path) => File.ReadAllText(path);

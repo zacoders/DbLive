@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow.Exceptions;
 
+[ExcludeFromCodeCoverage]
 internal static class DeployParametersExtentions
 {
 	public static void Check(this DeployParameters parameters)

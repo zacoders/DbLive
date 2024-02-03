@@ -22,5 +22,9 @@
   <ItemGroup>
     <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
   </ItemGroup>
-
+  
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
+  </ItemGroup>
+  
 </Project>

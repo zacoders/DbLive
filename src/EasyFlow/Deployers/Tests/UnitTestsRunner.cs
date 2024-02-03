@@ -1,6 +1,6 @@
 using EasyFlow.Adapter;
 
-namespace EasyFlow.Deployers;
+namespace EasyFlow.Deployers.Tests;
 
 public class UnitTestsRunner(
 		ILogger _logger,
@@ -69,6 +69,7 @@ public class UnitTestsRunner(
 
 	public TestRunResult RunTest(TestItem test, EasyFlowSettings settings)
 	{
+		//todo: cover with unit tests!
 		TestRunResult result = new()
 		{
 			IsSuccess = false,
@@ -80,6 +81,11 @@ public class UnitTestsRunner(
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
 
+			if (test.InitFileData is not null)
+			{
+				_da.ExecuteNonQuery(test.InitFileData.Content);
+			}
+			_da.ExecuteNonQuery("select 1");
 			_da.ExecuteNonQuery(test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction

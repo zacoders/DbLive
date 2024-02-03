@@ -1,4 +1,5 @@
 using EasyFlow.Adapter;
+using EasyFlow.Deployers.Migrations;
 
 namespace EasyFlow.Tests.Deployers;
 
