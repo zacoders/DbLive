@@ -67,15 +67,16 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		string projectPath = @"C:\DB";
+		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
+		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
 
-		string testsFolderPath = @"C:\DB\Tests\";
+		string testsFolderPath = projectPath.CombineWith("Tests");
 
 		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
-				@"C:\DB\Tests\order.test.sql",
-				@"C:\DB\Tests\user.test.sql"
+				testsFolderPath.CombineWith("order.test.sql"),
+				testsFolderPath.CombineWith("user.test.sql")
 			]);
 
 		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
@@ -87,7 +88,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		string initSqlFilePath = @"C:\DB\Tests\init.sql";
+		string initSqlFilePath = testsFolderPath.CombineWith("init.sql");
 		mockSet.FileSystem.FileExists(initSqlFilePath).Returns(true);
 		mockSet.FileSystem.ReadFileData(initSqlFilePath, Arg.Any<string>())
 			.Returns(new FileData

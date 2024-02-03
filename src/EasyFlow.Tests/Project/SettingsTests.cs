@@ -7,10 +7,11 @@ public class SettingsTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		string projectPath = @"C:\DB";
+		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
+		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
 
-		string settingsPath = @"C:\DB\settings.json";
+		string settingsPath = projectPath.CombineWith("settings.json");
 
 		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
 

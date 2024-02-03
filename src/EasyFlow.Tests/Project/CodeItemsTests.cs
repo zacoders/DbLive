@@ -7,21 +7,23 @@ public class CodeItemsTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		string projectPath = @"C:\DB";
+		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
+		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
 
-		mockSet.FileSystem.PathExists(@"C:\DB\Code").Returns(true);
+		string codePath = projectPath.CombineWith("Code");
+		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
-			@"C:\DB\Code",
+			codePath,
 			MyArg.SequenceEqual(["*.sql"]),
 			Arg.Any<IEnumerable<string>>(),
 			true
 		).Returns([
-			@"C:\DB\Code\item1.sql",
-			@"C:\DB\Code\item2.sql",
-			@"C:\DB\Code\sub\item1.sql",
-			@"C:\DB\Code\sub\item2.sql"
+			codePath.CombineWith(@"item1.sql"),
+			codePath.CombineWith(@"item2.sql"),
+			codePath.CombineWith(@"sub\item1.sql"),
+			codePath.CombineWith(@"sub\item2.sql")
 		]);
 
 		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
