@@ -8,6 +8,7 @@ public interface IEasyFlowProject
 	//todo: swith from IEnumerable result to readonly collections?
 	IEnumerable<Migration> GetMigrations();
 	IEnumerable<CodeItem> GetCodeItems();
+	IEnumerable<CodeGroup> GetCodeGroups();
 	IReadOnlyCollection<TestItem> GetTests();
 
 	/// <summary>

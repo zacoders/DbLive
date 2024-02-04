@@ -12,6 +12,9 @@ public class EasyFlowSettings
 
 	public string BeforeDeployFolder { get; set; } = "BeforeDeploy";
 	public string AfterDeployFolder { get; set; } = "AfterDeploy";
+	
 	public string CodeFolder { get; set; } = "Code";
+	public IEnumerable<string> CodeSubFoldersDeploymentOrder { get; set; } = Enumerable.Empty<string>();
+
 	public string TestsFolder { get; set; } = "Tests";
 }

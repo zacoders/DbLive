@@ -6,10 +6,13 @@ public class EasyFlowProject : IEasyFlowProject
 	private readonly string _projectPath;
 	private readonly IFileSystem _fileSystem;
 
+	//private readonly ILogger _logger;
+
 	public EasyFlowProject(IEasyFlowProjectPath projectPath, IFileSystem fileSystem)
 	{
 		_projectPath = projectPath.ProjectPath;
 		_fileSystem = fileSystem;
+		/*_logger = logger.ForContext(typeof(EasyFlowProject));*/
 
 		if (!fileSystem.PathExistsAndNotEmpty(projectPath.ProjectPath))
 		{
@@ -66,6 +69,80 @@ public class EasyFlowProject : IEasyFlowProject
 			"b" => MigrationItemType.BreakingChange,
 			_ => throw new UnknowMigrationItemTypeException(type)
 		};
+
+	//public IEnumerable<CodeGroup> GetCodeGroups2()
+	//{
+	//	string codePath = _projectPath.CombineWith(_settings.CodeFolder);
+
+	//	var paths = _settings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
+
+	//	foreach (var path in paths) {
+	//		yield return new CodeGroup { Path = path, CodeItems = GetCodeItems(path) };
+	//	}
+
+	//	//var allCodeDirs = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories)
+	//	//	.Except(pa);
+	//}
+
+	public IEnumerable<CodeGroup> GetCodeGroups()
+	{
+		string codePath = _projectPath.CombineWith(_settings.CodeFolder);
+
+		var subPaths = _settings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
+
+		List<string> codeFiles = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true).ToList();
+
+		foreach (string subPath in subPaths)
+		{
+			var files = codeFiles.RemoveWhere(f => f.ToLower().StartsWith(subPath.ToLower() + Path.DirectorySeparatorChar));
+			yield return new CodeGroup
+			{
+				Path = codePath,
+				CodeItems = GetCodeGroup(files)
+			};
+		}
+
+		// everething else as a separate group.
+		yield return new CodeGroup
+		{
+			Path = codePath,
+			CodeItems = GetCodeGroup(codeFiles)
+		};
+	}
+
+	internal List<CodeItem> GetCodeGroup(List<string> codeFiles)
+	{
+		List<CodeItem> codeItems = [];
+		
+		foreach (string filePath in codeFiles)
+		{
+			string fileName = filePath.GetLastSegment();
+			var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+			codeItems.Add(codeItem);
+		}
+
+		return codeItems;
+	}
+
+	//internal IReadOnlyCollection<CodeItem> GetCodeItems(string codePath)
+	//{
+	//	List<CodeItem> codeItems = [];
+
+	//	if (!_fileSystem.PathExists(codePath))
+	//	{
+	//		return codeItems;
+	//	}
+
+	//	var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
+	//	foreach (string filePath in files)
+	//	{
+	//		string fileName = filePath.GetLastSegment();
+	//		var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+	//		codeItems.Add(codeItem);
+	//	}
+
+	//	return codeItems;
+	//}
 
 	public IEnumerable<CodeItem> GetCodeItems()
 	{
