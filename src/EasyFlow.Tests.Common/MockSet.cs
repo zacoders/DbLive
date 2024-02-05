@@ -13,9 +13,10 @@ public class MockSet
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
 	public readonly IProjectPathAccessor ProjectPathAccessor = Substitute.For<IProjectPathAccessor>();
 	public readonly IEasyFlowDbConnection DbConnection = Substitute.For<IEasyFlowDbConnection>();
+	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
+
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
-
 
 	public MockSet()
 	{

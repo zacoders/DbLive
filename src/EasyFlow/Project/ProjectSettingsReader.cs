@@ -18,7 +18,7 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 			{
 				var settingsJson = _fileSystem.FileReadAllText(settingsPath);
 				var loadedSettings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
-				_settings = loadedSettings ?? _defaultSettings;
+				_settings = loadedSettings;
 			}
 
 			return _settings ?? _defaultSettings;

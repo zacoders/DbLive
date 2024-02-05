@@ -59,7 +59,7 @@ public class EasyFlowProject(
 			var files = codeFiles.RemoveWhere(f => f.ToLower().StartsWith(subPath.ToLower() + Path.DirectorySeparatorChar));
 			yield return new CodeGroup
 			{
-				Path = codePath,
+				Path = subPath,
 				CodeItems = GetCodeGroup(files)
 			};
 		}
