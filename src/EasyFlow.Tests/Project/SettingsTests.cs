@@ -8,8 +8,7 @@ public class SettingsTests
 		var mockSet = new MockSet();
 
 		string projectPath = @"C:\DB";
-		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
-		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string settingsPath = projectPath.CombineWith("settings.json");
 
@@ -24,7 +23,7 @@ public class SettingsTests
 				"""
 			);
 
-		var sqlProject = new SettingsAccessor(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new SettingsAccessor(mockSet.ProjectPathAccessor, mockSet.FileSystem);
 
 		var settings = sqlProject.ProjectSettings;
 

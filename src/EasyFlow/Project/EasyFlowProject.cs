@@ -1,24 +1,13 @@
 namespace EasyFlow.Project;
 
-public class EasyFlowProject : IEasyFlowProject
+public class EasyFlowProject(
+	IProjectPathAccessor projectPath, 
+	IFileSystem _fileSystem, 
+	ISettingsAccessor _settingsAccessor
+) : IEasyFlowProject
 {
-	private readonly string _projectPath;
-	private readonly IFileSystem _fileSystem;
-	private readonly ISettingsAccessor _settingsAccessor;
-
-	public EasyFlowProject(IEasyFlowProjectPath projectPath, IFileSystem fileSystem, ISettingsAccessor settingsAccessor)
-	{
-		_projectPath = projectPath.ProjectPath;
-		_fileSystem = fileSystem;
-		_settingsAccessor = settingsAccessor;
-
-
-		if (!fileSystem.PathExistsAndNotEmpty(projectPath.ProjectPath))
-		{
-			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
-		}
-	}
-
+	private readonly string _projectPath = projectPath.ProjectPath;
+	
 	public ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		List<MigrationItem> tasks = [];
@@ -56,20 +45,6 @@ public class EasyFlowProject : IEasyFlowProject
 			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 
-	//public IEnumerable<CodeGroup> GetCodeGroups2()
-	//{
-	//	string codePath = _projectPath.CombineWith(_settings.CodeFolder);
-
-	//	var paths = _settings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
-
-	//	foreach (var path in paths) {
-	//		yield return new CodeGroup { Path = path, CodeItems = GetCodeItems(path) };
-	//	}
-
-	//	//var allCodeDirs = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories)
-	//	//	.Except(pa);
-	//}
-
 	public IEnumerable<CodeGroup> GetCodeGroups()
 	{
 		var settings = _settingsAccessor.ProjectSettings;
@@ -89,7 +64,7 @@ public class EasyFlowProject : IEasyFlowProject
 			};
 		}
 
-		// everething else as a separate group.
+		// everything else as a separate group.
 		yield return new CodeGroup
 		{
 			Path = codePath,
@@ -110,43 +85,6 @@ public class EasyFlowProject : IEasyFlowProject
 
 		return codeItems;
 	}
-
-	//internal IReadOnlyCollection<CodeItem> GetCodeItems(string codePath)
-	//{
-	//	List<CodeItem> codeItems = [];
-
-	//	if (!_fileSystem.PathExists(codePath))
-	//	{
-	//		return codeItems;
-	//	}
-
-	//	var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
-	//	foreach (string filePath in files)
-	//	{
-	//		string fileName = filePath.GetLastSegment();
-	//		var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
-	//		codeItems.Add(codeItem);
-	//	}
-
-	//	return codeItems;
-	//}
-
-	//public IEnumerable<CodeItem> GetCodeItems()
-	//{
-	//	List<CodeItem> codeItems = [];
-	//	string codePath = Path.Combine(_projectPath, _settings.CodeFolder);
-	//	if (_fileSystem.PathExists(codePath))
-	//	{
-	//		var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
-	//		foreach (string filePath in files)
-	//		{
-	//			string fileName = filePath.GetLastSegment();
-	//			var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
-	//			codeItems.Add(codeItem);
-	//		}
-	//	}
-	//	return codeItems;
-	//}
 
 	public IEnumerable<Migration> GetMigrations()
 	{

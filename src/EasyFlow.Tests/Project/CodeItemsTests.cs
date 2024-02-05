@@ -8,9 +8,8 @@ public class CodeItemsTests
 		var mockSet = new MockSet();
 
 		string projectPath = @"C:\DB";
-		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
-		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
-
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		
 		string codePath = projectPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
@@ -35,7 +34,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 

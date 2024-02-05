@@ -11,7 +11,7 @@ public class MockSet
 	public readonly IEasyFlowDA EasyFlowDA = Substitute.For<IEasyFlowDA>();
 	public readonly IEasyFlowPaths EasyFlowPaths = Substitute.For<IEasyFlowPaths>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
-	public readonly IEasyFlowProjectPath ProjectPath = Substitute.For<IEasyFlowProjectPath>();
+	public readonly IProjectPathAccessor ProjectPathAccessor = Substitute.For<IProjectPathAccessor>();
 	public readonly IEasyFlowDbConnection DbConnection = Substitute.For<IEasyFlowDbConnection>();
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
