@@ -40,8 +40,8 @@ public static class EasyFlowBuilderExtentions
 
 	public static void SetProjectPath(this IServiceCollection serviceCollection, string projectPath)
 	{
-		var path = new EasyFlowProjectPath(projectPath);
-		serviceCollection.AddSingleton<IEasyFlowProjectPath>(path);
+		var path = new ProjectPath(projectPath);
+		serviceCollection.AddSingleton<IProjectPath>(path);
 	}
 
 	public static IEasyFlow CreateDeployer(this EasyFlowBuilder builder)

@@ -9,12 +9,11 @@ public class MigrationItemTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
-		var settings = sqlProject.GetSettings();
+		//var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns(
@@ -34,12 +33,11 @@ public class MigrationItemTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
-		var settings = sqlProject.GetSettings();
+		//var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns([
@@ -59,12 +57,11 @@ public class MigrationItemTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
-		var settings = sqlProject.GetSettings();
+		//var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
 			.ReturnsForAnyArgs(call =>
@@ -104,12 +101,11 @@ public class MigrationItemTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
-		var settings = sqlProject.GetSettings();
+		//var settings = sqlProject.GetSettings();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
 			.Returns(
@@ -126,13 +122,12 @@ public class MigrationItemTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
 		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
 		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		sqlProject.GetMigrations();
 	}

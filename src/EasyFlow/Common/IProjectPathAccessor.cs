@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Common;
 
-public interface IEasyFlowProjectPath
+public interface IProjectPathAccessor
 {
 	string ProjectPath { get; }
 }

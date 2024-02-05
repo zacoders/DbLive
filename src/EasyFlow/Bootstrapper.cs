@@ -11,6 +11,8 @@ public static class Bootstrapper
 		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
 		container.AddSingleton<IFileSystem, FileSystem>();
 		container.AddSingleton<IEasyFlowProject, EasyFlowProject>();
+		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
+		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<BreakingChangesDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();

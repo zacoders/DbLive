@@ -1,35 +1,13 @@
 namespace EasyFlow.Project;
 
-public class EasyFlowProject : IEasyFlowProject
+public class EasyFlowProject(
+	IProjectPathAccessor projectPath, 
+	IFileSystem _fileSystem, 
+	ISettingsAccessor _settingsAccessor
+) : IEasyFlowProject
 {
-	private readonly EasyFlowSettings _settings = new();
-	private readonly string _projectPath;
-	private readonly IFileSystem _fileSystem;
-
-	public EasyFlowProject(IEasyFlowProjectPath projectPath, IFileSystem fileSystem)
-	{
-		_projectPath = projectPath.ProjectPath;
-		_fileSystem = fileSystem;
-
-		if (!fileSystem.PathExistsAndNotEmpty(projectPath.ProjectPath))
-		{
-			throw new ProjectFolderIsEmptyException(projectPath.ProjectPath);
-		}
-
-		string settingsPath = Path.Combine(_projectPath, "settings.json");
-		if (_fileSystem.FileExists(settingsPath))
-		{
-			var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-			var loadedSettings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
-			_settings = loadedSettings ?? _settings;
-		}
-	}
-
-	public EasyFlowSettings GetSettings()
-	{
-		return _settings;
-	}
-
+	private readonly string _projectPath = projectPath.ProjectPath;
+	
 	public ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		List<MigrationItem> tasks = [];
@@ -67,20 +45,44 @@ public class EasyFlowProject : IEasyFlowProject
 			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 
-	public IEnumerable<CodeItem> GetCodeItems()
+	public IEnumerable<CodeGroup> GetCodeGroups()
+	{
+		var settings = _settingsAccessor.ProjectSettings;
+		string codePath = _projectPath.CombineWith(settings.CodeFolder);
+
+		var subPaths = settings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
+
+		List<string> codeFiles = _fileSystem.EnumerateFiles(codePath, ["*.sql"], settings.TestFilePatterns, true).ToList();
+
+		foreach (string subPath in subPaths)
+		{
+			var files = codeFiles.RemoveWhere(f => f.ToLower().StartsWith(subPath.ToLower() + Path.DirectorySeparatorChar));
+			yield return new CodeGroup
+			{
+				Path = subPath,
+				CodeItems = GetCodeGroup(files)
+			};
+		}
+
+		// everything else as a separate group.
+		yield return new CodeGroup
+		{
+			Path = codePath,
+			CodeItems = GetCodeGroup(codeFiles)
+		};
+	}
+
+	internal List<CodeItem> GetCodeGroup(List<string> codeFiles)
 	{
 		List<CodeItem> codeItems = [];
-		string codePath = Path.Combine(_projectPath, _settings.CodeFolder);
-		if (_fileSystem.PathExists(codePath))
+		
+		foreach (string filePath in codeFiles)
 		{
-			var files = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _settings.TestFilePatterns, true);
-			foreach (string filePath in files)
-			{
-				string fileName = filePath.GetLastSegment();
-				var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
-				codeItems.Add(codeItem);
-			}
+			string fileName = filePath.GetLastSegment();
+			var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+			codeItems.Add(codeItem);
 		}
+
 		return codeItems;
 	}
 
@@ -133,8 +135,10 @@ public class EasyFlowProject : IEasyFlowProject
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		string testsPath = _projectPath.CombineWith(_settings.TestsFolder);
-		string codePath = _projectPath.CombineWith(_settings.CodeFolder);
+		var settings = _settingsAccessor.ProjectSettings;
+
+		string testsPath = _projectPath.CombineWith(settings.TestsFolder);
+		string codePath = _projectPath.CombineWith(settings.CodeFolder);
 
 		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
 
@@ -159,7 +163,7 @@ public class EasyFlowProject : IEasyFlowProject
 			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settings.TestFilePatterns, subfolders: false);
+		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settingsAccessor.ProjectSettings.TestFilePatterns, subfolders: false);
 
 		foreach (string testFilePath in testFiles)
 		{
@@ -182,10 +186,12 @@ public class EasyFlowProject : IEasyFlowProject
 	{
 		Dictionary<string, GenericItem> items = [];
 
+		var settings = _settingsAccessor.ProjectSettings;
+
 		string folderPath = projectFolder switch
 		{
-			ProjectFolder.BeforeDeploy => _settings.BeforeDeployFolder,
-			ProjectFolder.AfterDeploy => _settings.AfterDeployFolder,
+			ProjectFolder.BeforeDeploy => settings.BeforeDeployFolder,
+			ProjectFolder.AfterDeploy => settings.AfterDeployFolder,
 			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
 		};
 

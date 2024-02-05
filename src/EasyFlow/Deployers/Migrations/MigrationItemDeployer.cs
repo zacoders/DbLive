@@ -2,9 +2,9 @@ using EasyFlow.Adapter;
 
 namespace EasyFlow.Deployers.Migrations;
 
-public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
+public class MigrationItemDeployer(ILogger logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
 {
-	private readonly ILogger Logger = _logger.ForContext(typeof(MigrationItemDeployer));
+	private readonly ILogger _logger = logger.ForContext(typeof(MigrationItemDeployer));
 
 	private readonly EasyFlowSettings _projectSettings = new();
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
@@ -17,7 +17,7 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 			_defaultTimeout, //todo: separate timeout for single migration
 			() =>
 			{
-				Logger.Information(
+				_logger.Information(
 					"Migration {migrationType}, {relativePath}.",
 					migrationItem.MigrationItemType,
 					migrationItem.FileData.RelativePath
@@ -52,14 +52,14 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 					_da.SaveMigrationItemState(dto);
 				}
 
-				Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
+				_logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
 			}
 		);
 	}
 
 	public void MarkAsSkipped(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
-		Logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
+		_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
 
 		string status = "skipped";
 		if (!isSelfDeploy)
@@ -80,6 +80,6 @@ public class MigrationItemDeployer(ILogger _logger, IEasyFlowDA _da, ITimeProvid
 			_da.SaveMigrationItemState(dto);
 		}
 
-		Logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
+		_logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
 	}
 }

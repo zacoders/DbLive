@@ -7,8 +7,7 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<IEnumerable<string>>(), "*", SearchOption.AllDirectories)
 			.Returns([
@@ -17,7 +16,7 @@ public class SqlTestingTests
 				@"C:\DB\Tests\Users"
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetTests();
 
@@ -29,8 +28,7 @@ public class SqlTestingTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
-		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
 		string testsFolderPath = @"C:\DB\Tests\";
 
@@ -49,7 +47,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
@@ -68,8 +66,7 @@ public class SqlTestingTests
 		var mockSet = new MockSet();
 
 		string projectPath = @"C:\DB";
-		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
-		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string testsFolderPath = projectPath.CombineWith("Tests");
 
@@ -98,7 +95,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 

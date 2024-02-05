@@ -5,7 +5,6 @@ using EasyFlow.Deployers.Tests;
 namespace EasyFlow;
 
 public class EasyFlow(
-		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		CodeDeployer _codeDeployer,
 		IEasyFlowPaths _paths,
@@ -14,7 +13,8 @@ public class EasyFlow(
 		FolderDeployer _folderDeployer,
 		IUnitTestsRunner _unitTestsRunner,
 		EasyFlowBuilder _builder,
-		ILogger logger
+		ILogger logger,
+		ISettingsAccessor _projectSettings
 	) : IEasyFlow
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
@@ -58,7 +58,7 @@ public class EasyFlow(
 	{
 		_logger.Information("Starting project deploy.");
 
-		EasyFlowSettings projectSettings = _project.GetSettings();
+		EasyFlowSettings projectSettings = _projectSettings.ProjectSettings;
 
 		Transactions.ExecuteWithinTransaction(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,

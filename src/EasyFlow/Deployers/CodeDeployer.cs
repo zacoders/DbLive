@@ -27,17 +27,21 @@ public class CodeDeployer(
 
 		Logger.Information("Deploying Code.");
 
-		var codeItems = _project.GetCodeItems();
 		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
 
+		var codeGroups = _project.GetCodeGroups();
+
 		int failedCodeItemsCount = 0;
-		Parallel.ForEach(codeItems, parallelOptions, codeItem =>
-		{
-			if (!DeployCodeItem(isSelfDeploy, codeItem))
+
+		foreach (var codeGroup in codeGroups ) { 
+			Parallel.ForEach(codeGroup.CodeItems, parallelOptions, codeItem =>
 			{
-				Interlocked.Increment(ref failedCodeItemsCount);
-			}
-		});
+				if (!DeployCodeItem(isSelfDeploy, codeItem))
+				{
+					Interlocked.Increment(ref failedCodeItemsCount);
+				}
+			});
+		}
 
 		if (failedCodeItemsCount > 0)
 		{

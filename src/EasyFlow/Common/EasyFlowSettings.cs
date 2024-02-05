@@ -2,16 +2,19 @@
 
 public class EasyFlowSettings
 {
-	public TransactionWrapLevel TransactionWrapLevel { get; set; } = TransactionWrapLevel.Migration;
+	public TransactionWrapLevel TransactionWrapLevel { get; init; } = TransactionWrapLevel.Migration;
 
-	public TranIsolationLevel TransactionIsolationLevel { get; set; } = TranIsolationLevel.Serializable;
+	public TranIsolationLevel TransactionIsolationLevel { get; init; } = TranIsolationLevel.Serializable;
 
-	public List<string> TestFilePatterns { get; set; } = ["test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql"];
+	public List<string> TestFilePatterns { get; init; } = ["test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql"];
 
-	public TranIsolationLevel TestsTransactionIsolationLevel { get; set; } = TranIsolationLevel.Serializable;
+	public TranIsolationLevel TestsTransactionIsolationLevel { get; init; } = TranIsolationLevel.Serializable;
 
-	public string BeforeDeployFolder { get; set; } = "BeforeDeploy";
-	public string AfterDeployFolder { get; set; } = "AfterDeploy";
-	public string CodeFolder { get; set; } = "Code";
-	public string TestsFolder { get; set; } = "Tests";
+	public string BeforeDeployFolder { get; init; } = "BeforeDeploy";
+	public string AfterDeployFolder { get; init; } = "AfterDeploy";
+	
+	public string CodeFolder { get; init; } = "Code";
+	public IEnumerable<string> CodeSubFoldersDeploymentOrder { get; init; } = Enumerable.Empty<string>();
+
+	public string TestsFolder { get; init; } = "Tests";
 }
