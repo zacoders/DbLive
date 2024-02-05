@@ -17,7 +17,7 @@ public class SqlTestingTests
 				@"C:\DB\Tests\Users"
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetTests();
 
@@ -49,7 +49,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
@@ -98,7 +98,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 

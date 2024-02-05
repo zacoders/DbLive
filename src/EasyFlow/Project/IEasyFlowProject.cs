@@ -2,12 +2,10 @@
 
 public interface IEasyFlowProject
 {
-	EasyFlowSettings GetSettings();
 	ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder); //todo: change string migrationFolder parameter, maybe completelly remove this method. 
 
 	//todo: swith from IEnumerable result to readonly collections?
 	IEnumerable<Migration> GetMigrations();
-	IEnumerable<CodeItem> GetCodeItems();
 	IEnumerable<CodeGroup> GetCodeGroups();
 	IReadOnlyCollection<TestItem> GetTests();
 

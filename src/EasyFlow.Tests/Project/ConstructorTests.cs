@@ -15,7 +15,7 @@ public class ConstructorTests
 		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(false);
 
 		Assert.Throws<ProjectFolderIsEmptyException>(
-			() => new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem)
+			() => new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor)
 		);
 	}
 
@@ -29,6 +29,6 @@ public class ConstructorTests
 		mockSet.ProjectPath.ProjectPath.Returns(projectPath);
 		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
 
-		_ = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		_ = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 	}
 }

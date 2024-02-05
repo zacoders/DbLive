@@ -24,9 +24,9 @@ public class SettingsTests
 				"""
 			);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new SettingsAccessor(mockSet.ProjectPath, mockSet.FileSystem);
 
-		var settings = sqlProject.GetSettings();
+		var settings = sqlProject.ProjectSettings;
 
 		Assert.NotNull(settings);
 		Assert.Equal(TransactionWrapLevel.None, settings.TransactionWrapLevel);

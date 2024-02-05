@@ -10,7 +10,7 @@ public class GetFolderItemsTests
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
 		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		string folderPath = Path.Combine(@"C:\DB\", "BeforeDeploy");
 
@@ -19,9 +19,9 @@ public class GetFolderItemsTests
 		mockSet.FileSystem.EnumerateFiles(folderPath, "*.sql", true)
 			.Returns(
 			[
-				@$"{folderPath}\file2.sql",
-				@$"{folderPath}\file1.sql",
-				@$"{folderPath}\file3.sql"
+				folderPath.CombineWith("file2.sql"),
+				folderPath.CombineWith("file1.sql"),
+				folderPath.CombineWith("file3.sql")
 			]);
 
 		GenericItem[] items = sqlProject.GetFolderItems(ProjectFolder.BeforeDeploy).ToArray();
@@ -42,7 +42,7 @@ public class GetFolderItemsTests
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
 		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		string folderPath = Path.Combine(@"C:\DB\", "AfterDeploy");
 
@@ -64,7 +64,7 @@ public class GetFolderItemsTests
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
 		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		Assert.Throws<NotImplementedException>(() => sqlProject.GetFolderItems(ProjectFolder.Unspecified));
 	}

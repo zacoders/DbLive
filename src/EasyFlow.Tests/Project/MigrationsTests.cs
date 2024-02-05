@@ -21,7 +21,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\003.test3",
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 
@@ -45,7 +45,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\001.dup1"
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		Assert.Throws<MigrationExistsException>(sqlProject.GetMigrations);
 	}
@@ -63,7 +63,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\bad001version.bad-version-migration"
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
 	}
@@ -75,7 +75,7 @@ public class MigrationsTests
 		mockSet.ProjectPath.ProjectPath.Returns(@"C:\DB\");
 		mockSet.FileSystem.PathExistsAndNotEmpty(@"C:\DB\").Returns(true);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*", SearchOption.TopDirectoryOnly)
 			.Returns([

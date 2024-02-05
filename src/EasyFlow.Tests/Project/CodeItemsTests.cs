@@ -3,7 +3,7 @@ namespace EasyFlow.Tests.Project;
 public class CodeItemsTests
 {
 	[Fact]
-	public void GetTests()
+	public void GetCodeItems()
 	{
 		var mockSet = new MockSet();
 
@@ -35,11 +35,12 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem);
+		var sqlProject = new EasyFlowProject(mockSet.ProjectPath, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
 
-		var tests = sqlProject.GetCodeItems().ToList();
+		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
-		Assert.NotNull(tests);
-		Assert.Equal(4, tests.Count);
+		Assert.NotNull(codeGroups);
+		Assert.Single(codeGroups);
+		Assert.Equal(4, codeGroups[0].CodeItems.Count);
 	}
 }
