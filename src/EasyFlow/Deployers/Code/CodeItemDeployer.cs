@@ -3,17 +3,17 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers.Code;
 
 public class CodeItemDeployer(
-        ILogger _logger,
+        ILogger logger,
         IEasyFlowDA _da,
         ITimeProvider _timeProvider
     ) : ICodeItemDeployer
 {
-    private readonly ILogger Logger = _logger.ForContext(typeof(CodeItemDeployer));
+    private readonly ILogger _logger = logger.ForContext(typeof(CodeItemDeployer));
 
     private readonly RetryPolicy _codeItemRetryPolicy =
         Policy.Handle<Exception>()
               .WaitAndRetry(
-                    10,
+                    5,
                     retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
               );
 
@@ -22,7 +22,7 @@ public class CodeItemDeployer(
     {
         try
         {
-            Logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+            _logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 
             if (!isSelfDeploy)
             {
@@ -33,7 +33,7 @@ public class CodeItemDeployer(
                     if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
                     {
                         _da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-                        Logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+                        _logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
                         return true;
                     }
 
@@ -61,7 +61,7 @@ public class CodeItemDeployer(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
+            _logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
             return false;
         }
     }

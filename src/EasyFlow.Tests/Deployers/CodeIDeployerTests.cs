@@ -16,6 +16,16 @@ public class CodeDeployerTests
 	}
 
 	[Fact]
+	public void DeployCode_SkipDeployment()
+	{
+		var mockSet = new MockSet();
+
+		CodeDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.CodeItemDeployer);
+
+		deployer.DeployCode(true, new DeployParameters { DeployCode = false });
+	}
+
+	[Fact]
 	public void DeployCode()
 	{
 		var mockSet = new MockSet();
@@ -48,7 +58,7 @@ public class CodeDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		mockSet.EasyFlowProject.GetCodeGroups().Returns([			
+		mockSet.EasyFlowProject.GetCodeGroups().Returns([
 			new CodeGroup
 			{
 				Path = "Code2",
@@ -63,7 +73,7 @@ public class CodeDeployerTests
 		Assert.Throws<CodeDeploymentException>(
 			() => deployer.DeployCode(true, DeployParameters.Default)
 		);
-		
+
 		mockSet.CodeItemDeployer.Received(2).DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>());
 	}
 

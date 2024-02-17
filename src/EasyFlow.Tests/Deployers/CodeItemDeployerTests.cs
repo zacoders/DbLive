@@ -88,4 +88,40 @@ public class CodeItemDeployerTests
 
 		Assert.False(res);
 	}
+
+	[Fact]
+	public void DeployCodeItem_RetryTest()
+	{
+		var mockSet = new MockSet();
+
+		bool isThrown = false;
+		mockSet.EasyFlowDA
+			.When(x => x.ExecuteNonQuery(Arg.Any<string>()))
+			.Do(x => {
+				if (isThrown == false)
+				{
+					isThrown = true;
+					throw new Exception();
+				}
+			});
+
+		CodeItemDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+
+		CodeItem codeItem = new()
+		{
+			Name = "some-code-item",
+			FileData = new FileData
+			{
+				Content = "--some content",
+				RelativePath = "item.sql",
+				FilePath = "c:/data/item.sql"
+			}
+		};
+
+		var res = deployer.DeployCodeItem(false, codeItem);
+
+		Assert.True(res, "Should be deployed from the second retry attempt.");
+
+		mockSet.EasyFlowDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
+	}
 }
