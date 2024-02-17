@@ -1,11 +1,12 @@
 using EasyFlow.Adapter;
+using EasyFlow.Deployers.Code;
 
 namespace EasyFlow.Tests.Deployers;
 
-public class CodeDeployerTest
+public class CodeItemDeployerTest
 {
 	record Arrange(
-		CodeDeployer deploy,
+		CodeItemDeployer deployer,
 		string cnnString,
 		CodeItem codeItem,
 		CodeItemDto? codeItemDto
@@ -31,7 +32,7 @@ public class CodeDeployerTest
 		mockSet.EasyFlowDA.ExecuteNonQuery(content);
 		mockSet.EasyFlowDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
 
-		CodeDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		CodeItemDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
 		CodeItem codeItem = new()
 		{
 			Name = "some-code-item",
@@ -51,7 +52,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: true);
 
-		var res = arrange.deploy.DeployCodeItem(true, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(true, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -61,7 +62,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: true);
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -71,7 +72,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: false);
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -83,7 +84,7 @@ public class CodeDeployerTest
 
 		arrange.codeItemDto!.ContentHash = 99999999; // wrong hash.
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.False(res);
 	}

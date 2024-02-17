@@ -1,4 +1,5 @@
-﻿using EasyFlow.Deployers.Migrations;
+﻿using EasyFlow.Deployers.Code;
+using EasyFlow.Deployers.Migrations;
 using EasyFlow.Deployers.Tests;
 using EasyFlow.Testing;
 
@@ -15,6 +16,7 @@ public static class Bootstrapper
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
 		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<BreakingChangesDeployer>();
+		container.AddSingleton<CodeItemDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
 		container.AddSingleton<MigrationItemDeployer>();
