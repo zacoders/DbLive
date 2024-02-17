@@ -6,7 +6,7 @@ public class CodeItemDeployer(
         ILogger _logger,
         IEasyFlowDA _da,
         ITimeProvider _timeProvider
-    )
+    ) : ICodeItemDeployer
 {
     private readonly ILogger Logger = _logger.ForContext(typeof(CodeItemDeployer));
 
@@ -17,13 +17,8 @@ public class CodeItemDeployer(
                     retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
               );
 
-	/// <summary>
-	/// Deploys code item.
-	/// </summary>
-	/// <param name="isSelfDeploy"></param>
-	/// <param name="codeItem"></param>
-	/// <returns>Returns false if there was any error during deployment.</returns>
-	internal bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
+	/// <inheritdoc/>
+	public bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
     {
         try
         {

@@ -16,7 +16,7 @@ public static class Bootstrapper
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
 		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<BreakingChangesDeployer>();
-		container.AddSingleton<CodeItemDeployer>();
+		container.AddSingleton<ICodeItemDeployer, CodeItemDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
 		container.AddSingleton<MigrationItemDeployer>();

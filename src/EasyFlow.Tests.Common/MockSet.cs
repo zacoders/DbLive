@@ -1,5 +1,6 @@
 ﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
+using EasyFlow.Deployers.Code;
 
 namespace EasyFlow.Tests.Common;
 
@@ -14,7 +15,7 @@ public class MockSet
 	public readonly IProjectPathAccessor ProjectPathAccessor = Substitute.For<IProjectPathAccessor>();
 	public readonly IEasyFlowDbConnection DbConnection = Substitute.For<IEasyFlowDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
-
+	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
 

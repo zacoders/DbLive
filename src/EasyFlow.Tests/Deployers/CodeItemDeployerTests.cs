@@ -3,7 +3,7 @@ using EasyFlow.Deployers.Code;
 
 namespace EasyFlow.Tests.Deployers;
 
-public class CodeItemDeployerTest
+public class CodeItemDeployerTests
 {
 	record Arrange(
 		CodeItemDeployer deployer,

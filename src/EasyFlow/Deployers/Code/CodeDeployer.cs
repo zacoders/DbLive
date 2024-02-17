@@ -5,7 +5,7 @@ namespace EasyFlow.Deployers.Code;
 public class CodeDeployer(
         ILogger _logger,
         IEasyFlowProject _project,
-        CodeItemDeployer _codeItemDeployer
+		ICodeItemDeployer _codeItemDeployer
     )
 {
     private readonly ILogger Logger = _logger.ForContext(typeof(CodeDeployer));
@@ -38,7 +38,7 @@ public class CodeDeployer(
 
         if (failedCodeItemsCount > 0)
         {
-            throw new EasyFlowSqlException($"Code deploy failed. Deployment of {failedCodeItemsCount} item(s) failed. See logs for details.");
+            throw new CodeDeploymentException($"Code deploy failed. Deployment of {failedCodeItemsCount} item(s) failed. See logs for details.");
         }
 
         Logger.Information("Code deploy successfully completed.");
