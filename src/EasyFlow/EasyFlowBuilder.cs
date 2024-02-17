@@ -3,6 +3,7 @@ using EasyFlow.Testing;
 
 namespace EasyFlow;
 
+[ExcludeFromCodeCoverage]
 public static class EasyFlowBuilderExtentions
 {
 	public static EasyFlowBuilder LogToConsole(this EasyFlowBuilder builder)

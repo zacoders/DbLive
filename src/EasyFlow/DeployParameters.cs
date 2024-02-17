@@ -1,5 +1,6 @@
 ﻿namespace EasyFlow;
 
+[ExcludeFromCodeCoverage]
 public record DeployParameters
 {
 	public static DeployParameters Default => new()

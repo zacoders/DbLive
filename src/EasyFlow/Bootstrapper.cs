@@ -4,6 +4,7 @@ using EasyFlow.Testing;
 
 namespace EasyFlow;
 
+[ExcludeFromCodeCoverage]
 public static class Bootstrapper
 {
 	public static void InitializeEasyFlow(this IServiceCollection container)
