@@ -39,14 +39,14 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public void ExecuteNonQuery(string sqlStatementt)
+	public void ExecuteNonQuery(string sqlStatement)
 	{
 		try
 		{
 			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 			cnn.Open();
 			var cmd = cnn.CreateCommand();
-			cmd.CommandText = sqlStatementt;
+			cmd.CommandText = sqlStatement;
 			cmd.ExecuteNonQuery();
 		}
 		catch (Exception e)
@@ -124,7 +124,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 
 	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
 	{
-		//todo: refactor tabe name and column names for postgres
+		//todo: refactor table name and column names for postgres.
 		string query = @"
 			insert into easyflow.Migration
 			(
@@ -160,7 +160,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void SetEasyFlowVersion(int version, DateTime migrationDatetime)
+	public void SetEasyFlowVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			merge into easyflow.Version as t
@@ -173,7 +173,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { version, migrationDatetime });
+		cnn.Query(query, new { version, migrationDateTime });
 	}
 
 	public void DropDB(bool skipIfNotExists = true)

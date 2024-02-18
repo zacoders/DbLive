@@ -33,7 +33,7 @@ public class EasyFlow(
 		// Self deploy. Deploying EasyFlow to the database
 		SelfDeployProjectInternal();
 
-		// Deploy actuall project
+		// Deploy actual project
 		DeployProjectInternal(false, parameters);
 	}
 

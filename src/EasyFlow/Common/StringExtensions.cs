@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Common;
 
-public static class StringExtentions
+public static class StringExtensions
 {
 	public static string CombineWith(this string path, string anotherPath) => Path.Combine(path, anotherPath);
 
@@ -13,12 +13,12 @@ public static class StringExtentions
 	/// Gets path segment, counting from the end.
 	/// </summary>
 	/// <param name="path"></param>
-	/// <param name="segmentNumger">Segment numger counted from the end.</param>
+	/// <param name="segmentNumber">Segment number counted from the end.</param>
 	/// <returns>Segment</returns>
-	public static string GetSegmentFromTheEnd(this string path, int segmentNumger)
+	public static string GetSegmentFromTheEnd(this string path, int segmentNumber)
 	{
 		Uri folderUri = new(path);
-		return folderUri.Segments[folderUri.Segments.Length - segmentNumger];
+		return folderUri.Segments[folderUri.Segments.Length - segmentNumber];
 	}
 
 	//public static string GetRelativePath(this string fullPath, string rootPath)
@@ -27,8 +27,8 @@ public static class StringExtentions
 	public static string GetRelativePath(this string fullPath, string rootPath)
 	{
 		// Calculate the relative path using Uri
-		Uri rootUri = new Uri(rootPath + Path.DirectorySeparatorChar);
-		Uri fullUri = new Uri(fullPath);
+		Uri rootUri = new(rootPath + Path.DirectorySeparatorChar);
+		Uri fullUri = new(fullPath);
 		return Uri.UnescapeDataString(rootUri.MakeRelativeUri(fullUri).ToString());
 	}
 }

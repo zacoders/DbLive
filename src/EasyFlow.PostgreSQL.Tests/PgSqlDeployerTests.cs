@@ -17,7 +17,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		Container.InitializeEasyFlow();
 
 		var testConfig = new TestConfig();
-		var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString() ?? _fixture.PostgresDBConnectionString);
+		var cnn = new EasyFlowDbConnection(testConfig.GetPostgresConnectionString() ?? _fixture.PostgresDBConnectionString);
 		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
 
 
@@ -148,7 +148,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 				end if;
 
 				if exists ( select * from TestTran1 where name = 'new name' ) then
-					raise exception 'Transaction doesn`t work!'; 
+					raise exception 'Transaction do not work!'; 
 				end if;
 
 			end $$;  

@@ -4,27 +4,27 @@ namespace EasyFlow.Tests.Common;
 
 public class TestConfig
 {
-	IConfigurationRoot config;
+	readonly IConfigurationRoot config;
 
 	public TestConfig()
 	{
 		config = new ConfigurationBuilder()
 		   .AddJsonFile("appsettings.json", true, true)
-		   .AddEnvironmentVariables() // environment ovveride appsettings.json config. this used in github actions to ovverride connection strings.
+		   .AddEnvironmentVariables() // environment override appsettings.json config. this used in github actions to override connection strings.
 		   .Build();
 	}
 
-	private string GetSetting(string settingName)
-	{
-		var setting = config[settingName];
+	//private string GetSetting(string settingName)
+	//{
+	//	var setting = config[settingName];
 
-		if (setting == null)
-		{
-			throw new Exception($"Setting '{settingName}' was not found.");
-		}
+	//	if (setting == null)
+	//	{
+	//		throw new Exception($"Setting '{settingName}' was not found.");
+	//	}
 
-		return setting;
-	}
+	//	return setting;
+	//}
 
 	private string? GetConnectionString(string settingName)
 	{
@@ -39,6 +39,6 @@ public class TestConfig
 	}
 
 	public string? GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
-
-	public string? GetPostgreSqlConnectionString() => GetConnectionString("POSTGRESQL");
+	
+	public string? GetPostgresConnectionString() => GetConnectionString("POSTGRESQL");
 }

@@ -54,10 +54,11 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
 
-		string projectPath = @"C:\DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		string projekt = @"C:\DB";
+		string projektPath = projekt;
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projektPath);
 		
-		string codePath = projectPath.CombineWith("Code");
+		string codePath = projektPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(

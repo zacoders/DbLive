@@ -2,13 +2,8 @@
 
 
 [ExcludeFromCodeCoverage]
-public class MigrationExistsException : Exception
+public class MigrationExistsException(Migration migration) 
+	: Exception($"Migration already exists, duplicate folder name. Folder = '{migration.FolderPath.GetLastSegment()}'.")
 {
-	internal Migration Migration { get; private set; }
-
-	public MigrationExistsException(Migration migration)
-		: base($"Migration alredy exists, duplicate folder name. Folder = '{migration.FolderPath.GetLastSegment()}'.")
-	{
-		Migration = migration;
-	}
+	internal Migration Migration { get; private set; } = migration;
 }

@@ -25,8 +25,8 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
-                NewMigration(2, "sameversion-1"),
-                NewMigration(2, "sameversion-2"),
+                NewMigration(2, "same-version-1"),
+                NewMigration(2, "same-version-2"),
                 NewMigration(3, "test3")
             });
 
@@ -36,7 +36,7 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 new MigrationDto { Version = 1, Name = "test1" },
-                new MigrationDto { Version = 2, Name = "sameversion-2" }
+                new MigrationDto { Version = 2, Name = "same-version-2" }
             });
 
 
@@ -45,7 +45,7 @@ public class MigrationsDeployerTests
         Assert.Equal(2, migrations.Length);
 
         Assert.Equal(2, migrations[0].Version);
-        Assert.Equal("sameversion-1", migrations[0].Name);
+        Assert.Equal("same-version-1", migrations[0].Name);
 
         Assert.Equal(3, migrations[1].Version);
         Assert.Equal("test3", migrations[1].Name);
@@ -63,8 +63,8 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
-                NewMigration(2, "sameversion-1"),
-                NewMigration(2, "sameversion-2"),
+                NewMigration(2, "same-version-1"),
+                NewMigration(2, "same-version-2"),
                 NewMigration(3, "test3")
             });
 
@@ -74,7 +74,7 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 new MigrationDto { Version = 1, Name = "test1" },
-                new MigrationDto { Version = 2, Name = "sameversion-2" }
+                new MigrationDto { Version = 2, Name = "same-version-2" }
             });
 
         var deployParams = DeployParameters.Default;
@@ -85,7 +85,7 @@ public class MigrationsDeployerTests
         Assert.Single(migrations);
 
         Assert.Equal(2, migrations[0].Version);
-        Assert.Equal("sameversion-1", migrations[0].Name);
+        Assert.Equal("same-version-1", migrations[0].Name);
     }
 
     [Fact]
@@ -99,8 +99,8 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
-                NewMigration(2, "sameversion-1"),
-                NewMigration(2, "sameversion-2"),
+                NewMigration(2, "same-version-1"),
+                NewMigration(2, "same-version-2"),
                 NewMigration(3, "test3")
             });
 
@@ -123,8 +123,8 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
-                NewMigration(2, "sameversion-1"),
-                NewMigration(2, "sameversion-2"),
+                NewMigration(2, "same-version-1"),
+                NewMigration(2, "same-version-2"),
                 NewMigration(3, "test3")
             });
 
@@ -136,10 +136,10 @@ public class MigrationsDeployerTests
         Assert.Equal(3, migrations.Length);
 
         Assert.Equal(2, migrations[0].Version);
-        Assert.Equal("sameversion-1", migrations[0].Name);
+        Assert.Equal("same-version-1", migrations[0].Name);
 
         Assert.Equal(2, migrations[1].Version);
-        Assert.Equal("sameversion-2", migrations[1].Name);
+        Assert.Equal("same-version-2", migrations[1].Name);
 
         Assert.Equal(3, migrations[2].Version);
         Assert.Equal("test3", migrations[2].Name);
@@ -157,8 +157,8 @@ public class MigrationsDeployerTests
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
-                NewMigration(2, "sameversion-1"),
-                NewMigration(2, "sameversion-2"),
+                NewMigration(2, "same-version-1"),
+                NewMigration(2, "same-version-2"),
                 NewMigration(3, "test3")
             });
 
@@ -173,9 +173,9 @@ public class MigrationsDeployerTests
         Assert.Equal(2, migrations.Length);
 
         Assert.Equal(2, migrations[0].Version);
-        Assert.Equal("sameversion-1", migrations[0].Name);
+        Assert.Equal("same-version-1", migrations[0].Name);
 
         Assert.Equal(2, migrations[1].Version);
-        Assert.Equal("sameversion-2", migrations[1].Name);
+        Assert.Equal("same-version-2", migrations[1].Name);
     }
 }

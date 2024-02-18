@@ -70,7 +70,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public void SetEasyFlowVersion(int version, DateTime migrationDatetime)
+	public void SetEasyFlowVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			update easyflow.version
@@ -79,7 +79,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { version, applied_utc = migrationDatetime });
+		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
 	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationModificationUtc)

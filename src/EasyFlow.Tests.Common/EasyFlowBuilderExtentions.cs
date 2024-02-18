@@ -37,7 +37,7 @@ public static class EasyFlowBuilderExtentions
 	//public static void AddTestingPostgreSQLConnection(this IServiceCollection serviceCollection)
 	//{
 	//	var testConfig = new TestConfig();
-	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString());
+	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgresSqlConnectionString());
 	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
 	//}
 }
