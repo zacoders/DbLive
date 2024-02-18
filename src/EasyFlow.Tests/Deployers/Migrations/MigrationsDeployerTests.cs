@@ -3,7 +3,7 @@ using EasyFlow.Deployers.Migrations;
 
 namespace EasyFlow.Tests.Deployers.Migrations;
 
-public class MigrationsDeployerTest
+public class MigrationsDeployerTests
 {
     static Migration NewMigration(int version, string name) =>
         new()

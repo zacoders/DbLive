@@ -2,7 +2,7 @@ using EasyFlow.Deployers.Migrations;
 
 namespace EasyFlow.Tests.Deployers.Migrations;
 
-public class MigrationDeployerTest
+public class MigrationDeployerTests
 {
 	[Fact]
 	public void DeployMigration_EmptyMigration()
