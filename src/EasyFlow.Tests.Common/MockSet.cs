@@ -1,6 +1,7 @@
 ﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
 using EasyFlow.Deployers.Code;
+using EasyFlow.Deployers.Migrations;
 
 namespace EasyFlow.Tests.Common;
 
@@ -16,6 +17,7 @@ public class MockSet
 	public readonly IEasyFlowDbConnection DbConnection = Substitute.For<IEasyFlowDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
+	public readonly IMigrationDeployer MigrationDeployer = Substitute.For<IMigrationDeployer>();
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
 

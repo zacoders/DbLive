@@ -6,15 +6,19 @@ namespace EasyFlow.Tests.Deployers;
 public class MigrationsDeployerTest
 {
 	static Migration NewMigration(int version, string name) =>
-		new() { Version = version, Name = name, FolderPath = "c:/", Items = new List<MigrationItem>().AsReadOnly() };
+		new() { 
+			Version = version, 
+			Name = name, 
+			FolderPath = "c:/", 
+			Items = new List<MigrationItem>().AsReadOnly() 
+		};
 
 	[Fact]
 	public void GetMigrationsToApply()
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -52,8 +56,7 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -89,8 +92,7 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -114,8 +116,7 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]
@@ -149,8 +150,7 @@ public class MigrationsDeployerTest
 	{
 		var mockSet = new MockSet();
 
-		var migrationDeployer = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
-		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, migrationDeployer, mockSet.TimeProvider);
+		var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
 
 		mockSet.EasyFlowProject.GetMigrations()
 			.Returns(new[]

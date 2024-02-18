@@ -19,6 +19,7 @@ public static class Bootstrapper
 		container.AddSingleton<ICodeItemDeployer, CodeItemDeployer>();
 		container.AddSingleton<CodeDeployer>();
 		container.AddSingleton<MigrationsDeployer>();
+		container.AddSingleton<IMigrationDeployer, MigrationDeployer>();
 		container.AddSingleton<MigrationItemDeployer>();
 		container.AddSingleton<FolderDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
