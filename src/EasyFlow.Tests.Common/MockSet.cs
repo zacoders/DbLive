@@ -18,6 +18,7 @@ public class MockSet
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
 	public readonly IMigrationDeployer MigrationDeployer = Substitute.For<IMigrationDeployer>();
+	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
 

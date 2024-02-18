@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace EasyFlow.Deployers.Code;
 
 [ExcludeFromCodeCoverage]
 public class CodeDeploymentException : Exception

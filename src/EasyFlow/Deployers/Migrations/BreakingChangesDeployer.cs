@@ -7,7 +7,7 @@ public class BreakingChangesDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
-		MigrationItemDeployer _migrationItemDeployer
+		IMigrationItemDeployer _migrationItemDeployer
 	)
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(BreakingChangesDeployer));

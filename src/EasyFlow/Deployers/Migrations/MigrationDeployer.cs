@@ -4,9 +4,8 @@ namespace EasyFlow.Deployers.Migrations;
 
 public class MigrationDeployer(
 		ILogger _logger,
-		IEasyFlowProject _project,
 		IEasyFlowDA _da,
-		MigrationItemDeployer _migrationItemDeployer,
+		IMigrationItemDeployer _migrationItemDeployer,
 		ITimeProvider _timeProvider
 	) : IMigrationDeployer
 {
@@ -18,9 +17,8 @@ public class MigrationDeployer(
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
 		_logger.Information("Applying migration: {path}", migration.FolderPath.GetLastSegment());
-		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
 
-		if (migrationItems.Count == 0) return;
+		if (migration.Items.Count == 0) return;
 
 		Transactions.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
@@ -28,7 +26,7 @@ public class MigrationDeployer(
 			_defaultTimeout, //toto: separate timeout for all migrations
 			() =>
 			{
-				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationItemType))
+				foreach (MigrationItem migrationItem in migration.Items.OrderBy(t => t.MigrationItemType))
 				{
 					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
 					{

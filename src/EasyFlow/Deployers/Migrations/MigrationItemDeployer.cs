@@ -3,6 +3,7 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers.Migrations;
 
 public class MigrationItemDeployer(ILogger logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
+	: IMigrationItemDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(MigrationItemDeployer));
 

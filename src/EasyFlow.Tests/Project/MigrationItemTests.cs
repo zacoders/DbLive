@@ -53,7 +53,7 @@ public class MigrationItemTests
 
 
 	[Fact]
-	public void GetMigrationType_MultipleItemsWithTheSameType()
+	public void GetMigrationType_MultipleItemsWithTheSameType_MustBeOrdered()
 	{
 		MockSet mockSet = new();
 
