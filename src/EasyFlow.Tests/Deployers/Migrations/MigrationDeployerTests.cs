@@ -7,9 +7,9 @@ public class MigrationDeployerTests
 	[Fact]
 	public void DeployMigration_EmptyMigration()
 	{
-		var mockSet = new MockSet();
+		var mockSet = new MockSet(true);
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
+		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
 
 		Migration migration = new()
 		{
@@ -31,9 +31,9 @@ public class MigrationDeployerTests
 	[Fact]
 	public void DeployMigration()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
+		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
 
 		Migration migration = new()
 		{
@@ -66,9 +66,9 @@ public class MigrationDeployerTests
 	[Fact]
 	public void DeployMigration_SkipMigrationTypes()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
+		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
 
 		Migration migration = new()
 		{
@@ -108,9 +108,9 @@ public class MigrationDeployerTests
 	[Fact]
 	public void DeployMigration_SelfDeployTest()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
+		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
 
 		Migration migration = new()
 		{

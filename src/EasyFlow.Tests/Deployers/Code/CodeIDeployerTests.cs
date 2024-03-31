@@ -7,9 +7,9 @@ public class CodeDeployerTests
     [Fact]
     public void DeployCode_NoCodeGroups()
     {
-        var mockSet = new MockSet();
+		MockSet mockSet = new();
 
-        CodeDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.CodeItemDeployer);
+        var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
         deployer.DeployCode(true, DeployParameters.Default);
     }
@@ -17,17 +17,17 @@ public class CodeDeployerTests
     [Fact]
     public void DeployCode_SkipDeployment()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        CodeDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.CodeItemDeployer);
+		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-        deployer.DeployCode(true, new DeployParameters { DeployCode = false });
+		deployer.DeployCode(true, new DeployParameters { DeployCode = false });
     }
 
     [Fact]
     public void DeployCode()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
         mockSet.EasyFlowProject.GetCodeGroups().Returns([
             new CodeGroup
@@ -44,9 +44,9 @@ public class CodeDeployerTests
 
         mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>()).Returns(true);
 
-        CodeDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.CodeItemDeployer);
+		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-        deployer.DeployCode(true, DeployParameters.Default);
+		deployer.DeployCode(true, DeployParameters.Default);
 
         mockSet.CodeItemDeployer.Received(5).DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>());
     }
@@ -55,7 +55,7 @@ public class CodeDeployerTests
     [Fact]
     public void DeployCode_FailedCodeItems()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
         mockSet.EasyFlowProject.GetCodeGroups().Returns([
             new CodeGroup
@@ -67,9 +67,9 @@ public class CodeDeployerTests
 
         mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>()).Returns(false);
 
-        CodeDeployer deployer = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.CodeItemDeployer);
+		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-        Assert.Throws<CodeDeploymentException>(
+		Assert.Throws<CodeDeploymentException>(
             () => deployer.DeployCode(true, DeployParameters.Default)
         );
 

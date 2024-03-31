@@ -17,11 +17,11 @@ public class MigrationsDeployerTests
     [Fact]
     public void GetMigrationsToApply()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-        mockSet.EasyFlowProject.GetMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
@@ -55,11 +55,11 @@ public class MigrationsDeployerTests
     [Fact]
     public void GetMigrationsToApply_MaxVersionToDeploy_Specified()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-        mockSet.EasyFlowProject.GetMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
@@ -91,11 +91,11 @@ public class MigrationsDeployerTests
     [Fact]
     public void GetMigrationsToApply_SelfDeploy_EasyFlowIsNotInstalled()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-        mockSet.EasyFlowProject.GetMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
@@ -115,11 +115,11 @@ public class MigrationsDeployerTests
     [Fact]
     public void GetMigrationsToApply_SelfDeploy_EasyFlowInstalled()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-        mockSet.EasyFlowProject.GetMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
             .Returns(new[]
             {
                 NewMigration(1, "test1"),
@@ -149,11 +149,11 @@ public class MigrationsDeployerTests
     [Fact]
     public void GetMigrationsToApply_SelfDeploy_EasyFlowInstalled_MaxVersionToDeploySpecified()
     {
-        var mockSet = new MockSet();
+        MockSet mockSet = new();
 
-        var deploy = new MigrationsDeployer(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.MigrationDeployer);
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-        mockSet.EasyFlowProject.GetMigrations()
+		mockSet.EasyFlowProject.GetMigrations()
             .Returns(new[]
             {
                 NewMigration(1, "test1"),

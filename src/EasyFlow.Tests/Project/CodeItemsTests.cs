@@ -1,3 +1,5 @@
+using EasyFlow.Deployers.Migrations;
+
 namespace EasyFlow.Tests.Project;
 
 public class CodeItemsTests
@@ -5,7 +7,7 @@ public class CodeItemsTests
 	[Fact]
 	public void GetCodeItems()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		string projectPath = @"C:\DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
@@ -34,7 +36,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
@@ -47,7 +49,7 @@ public class CodeItemsTests
 	[Fact]
 	public void GetCodeItems_With_CodeSubFoldersDeploymentOrder()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings
 		{
@@ -84,7 +86,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.SettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
