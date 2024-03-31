@@ -20,7 +20,6 @@ public class EasyFlow(
 	) : IEasyFlow
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
-	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public void Deploy(DeployParameters parameters)
 	{
@@ -65,7 +64,7 @@ public class EasyFlow(
 		_transactionRunner.ExecuteWithinTransaction(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
 			projectSettings.TransactionIsolationLevel,
-			_defaultTimeout,
+			projectSettings.DeploymentTimeout,
 			() =>
 			{
 				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);

@@ -13,14 +13,13 @@ public class MigrationItemDeployer(
 	private readonly ILogger _logger = logger.ForContext(typeof(MigrationItemDeployer));
 
 	private readonly EasyFlowSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
-	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
 		_transactionRunner.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
 			_projectSettings.TransactionIsolationLevel,
-			_defaultTimeout, //todo: separate timeout for single migration
+			_projectSettings.MigrationTimeout,
 			() =>
 			{
 				_logger.Information(
