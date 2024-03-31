@@ -8,7 +8,7 @@ public class EasyFlowProject(
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
 	
-	public ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
+	internal protected ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		List<MigrationItem> tasks = [];
 

@@ -21,27 +21,23 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		DeployBreakingMigration(/*, parameters*/);
-	}
-
-	private void DeployBreakingMigration(/*, DeployParameters parameters*/)
-	{
 		var dbItems = _da.GetNonAppliedBreakingMigrationItems();
 
 		if (dbItems.Count == 0) return;
 
-		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
+		Dictionary<VersionNameKey, MigrationItemDto> breakingToApply = 
+			dbItems.ToDictionary(i => new VersionNameKey(i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
 
 		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
 
-		foreach (var migration in migrations)
+		foreach (Migration migration in migrations)
 		{
-			var key = (migration.Version, migration.Name);
+			VersionNameKey key = new(migration.Version, migration.Name);
 			if (!breakingToApply.ContainsKey(key)) continue;
 
-			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
+			var breakingChnagesItem = migration.Items
 				.Where(mi => mi.MigrationItemType == MigrationItemType.BreakingChange)
 				.Single();
 
@@ -63,4 +59,6 @@ public class BreakingChangesDeployer(
 			}
 		}
 	}
+
+	private record VersionNameKey(int Version, string Name);
 }
