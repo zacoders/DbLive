@@ -178,4 +178,66 @@ public class MigrationsDeployerTests
         Assert.Equal(2, migrations[1].Version);
         Assert.Equal("same-version-2", migrations[1].Name);
     }
+
+
+	[Fact]
+	public void DeployMigrations()
+	{
+        // Arrange
+		MockSet mockSet = new();
+
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+        
+		mockSet.EasyFlowProject.GetMigrations()
+			.Returns(new[]
+			{
+				NewMigration(1, "test1"),
+				NewMigration(2, "same-version-1"),
+				NewMigration(2, "same-version-2"),
+				NewMigration(3, "test3")
+			});
+
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+
+		var deployParams = DeployParameters.Default;
+		deployParams.MaxVersionToDeploy = 2;
+
+        // Act
+        deploy.DeployMigrations(false, deployParams);
+
+        // Assert
+        mockSet.MigrationDeployer.Received(3).DeployMigration(Arg.Is(false), Arg.Any<Migration>());
+	}
+
+
+	[Fact]
+	public void DeployMigrations_DoNotDeployMigrations()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+
+		mockSet.EasyFlowProject.GetMigrations()
+			.Returns(new[]
+			{
+				NewMigration(1, "test1"),
+				NewMigration(2, "same-version-1"),
+				NewMigration(2, "same-version-2"),
+				NewMigration(3, "test3")
+			});
+
+		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+
+		var deployParams = DeployParameters.Default;
+		deployParams.DeployMigrations = false;
+
+		// Act
+		deploy.DeployMigrations(false, deployParams);
+
+		// Assert
+		mockSet.MigrationDeployer.DidNotReceive().DeployMigration(Arg.Any<bool>(), Arg.Any<Migration>());
+	}
 }
