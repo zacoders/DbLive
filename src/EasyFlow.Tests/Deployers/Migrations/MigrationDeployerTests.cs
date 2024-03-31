@@ -7,7 +7,7 @@ public class MigrationDeployerTests
 	[Fact]
 	public void DeployMigration_EmptyMigration()
 	{
-		var mockSet = new MockSet(true);
+		var mockSet = new MockSet();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
 

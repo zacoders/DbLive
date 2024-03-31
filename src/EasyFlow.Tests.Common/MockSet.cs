@@ -24,12 +24,9 @@ public class MockSet
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 
 
-	public MockSet(bool useDefaultSettings = true)
+	public MockSet()
 	{
-		if (useDefaultSettings)
-		{
-			SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
-		}
+		SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
 
 		TransactionRunner.ExecuteWithinTransaction(
 			Arg.Any<bool>(), 
@@ -38,13 +35,12 @@ public class MockSet
 			Arg.Invoke()
 		);
 		
-		foreach (var fld in GetType().GetFields().Where(fld => !fld.Name.StartsWith("_")))
+		foreach (var fld in GetType().GetFields().Where(fld => !fld.IsPrivate))
 		{
 			// this replaces adding all fields to _container:
-			//		_container.AddTransient(f => SettingsAccessor);
-			//		_container.AddTransient(f => Logger);
-			var val = fld.GetValue(this);
-			_container.AddTransient(fld.FieldType, f => val!);
+			//		_container.AddTransient(_ => SettingsAccessor);
+			//		_container.AddTransient(_ => Logger);
+			_container.AddTransient(fld.FieldType, _ => fld.GetValue(this)!);
 		}
 	}
 
