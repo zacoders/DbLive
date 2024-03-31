@@ -11,7 +11,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.SettingsAccessor);
 
 		MigrationItemDto? savedDto = null;
 		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
@@ -64,7 +64,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.SettingsAccessor);
 
 		MigrationItemDto? savedDto = null;
 		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
@@ -118,7 +118,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.SettingsAccessor);
 
 		Migration migration = new()
 		{
@@ -155,7 +155,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
 
 		Migration migration = new()
 		{

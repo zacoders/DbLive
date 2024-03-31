@@ -7,12 +7,13 @@ public class MigrationDeployer(
 		IEasyFlowDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITimeProvider _timeProvider,
-		ITransactionRunner _transactionRunner
+		ITransactionRunner _transactionRunner,
+		ISettingsAccessor projectSettingsAccessor
 	) : IMigrationDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationDeployer));
 
-	private readonly EasyFlowSettings _projectSettings = new();
+	private readonly EasyFlowSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)

@@ -9,7 +9,7 @@ public class MigrationDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
 
 		Migration migration = new()
 		{
@@ -33,7 +33,7 @@ public class MigrationDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
 
 		Migration migration = new()
 		{
@@ -68,7 +68,7 @@ public class MigrationDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
 
 		Migration migration = new()
 		{
@@ -110,7 +110,7 @@ public class MigrationDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner);
+		var deploy = new MigrationDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.MigrationItemDeployer, mockSet.TimeProvider, mockSet.TransactionRunner, mockSet.DefaultSettingsAccessor);
 
 		Migration migration = new()
 		{

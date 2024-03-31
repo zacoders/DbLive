@@ -2,9 +2,12 @@
 
 namespace EasyFlow.Testing;
 
-public class EasyFlowTester(IEasyFlowProject _project, IUnitTestsRunner _unitTestsRunner)
-	: IEasyFlowTester
+public class EasyFlowTester(
+		IEasyFlowProject _project, 
+		IUnitTestsRunner _unitTestsRunner
+	) : IEasyFlowTester
 {
+	
 	private readonly ReadOnlyDictionary<string, TestItem> TestsList = new(
 		_project.GetTests().ToDictionary(i => i.FileData.RelativePath, i => i)
 	);
@@ -36,7 +39,7 @@ public class EasyFlowTester(IEasyFlowProject _project, IUnitTestsRunner _unitTes
 		writeLine($"{testItem.FileData.Content}");
 		writeLine("");
 
-		var testRunResult = _unitTestsRunner.RunTest(testItem, new EasyFlowSettings());
+		var testRunResult = _unitTestsRunner.RunTest(testItem);
 
 		writeLine("------------------");
 		writeLine("== Test output: ==");

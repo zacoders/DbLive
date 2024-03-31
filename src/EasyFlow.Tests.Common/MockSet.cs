@@ -21,11 +21,10 @@ public class MockSet
 	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 
-	public readonly ISettingsAccessor DefaultSettingsAccessor;
+	public readonly ISettingsAccessor DefaultSettingsAccessor = Substitute.For<ISettingsAccessor>();
 
 	public MockSet()
-	{
-		DefaultSettingsAccessor = Substitute.For<ISettingsAccessor>();
+	{		 
 		DefaultSettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
 		
 		TransactionRunner.ExecuteWithinTransaction(

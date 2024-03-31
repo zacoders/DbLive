@@ -13,7 +13,7 @@ public class UnitTestsRunner(
 
 	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default 
 
-	public void RunAllTests(DeployParameters parameters, EasyFlowSettings settings)
+	public void RunAllTests(DeployParameters parameters)
 	{
 		if (!parameters.RunTests)
 		{
@@ -30,7 +30,7 @@ public class UnitTestsRunner(
 
 		Parallel.ForEach(tests, parallelOptions, test =>
 		{
-			var testResult = RunTest(test, settings);
+			var testResult = RunTest(test);
 
 			if (testResult.IsSuccess)
 			{
@@ -67,7 +67,7 @@ public class UnitTestsRunner(
 		);
 	}
 
-	public TestRunResult RunTest(TestItem test, EasyFlowSettings settings)
+	public TestRunResult RunTest(TestItem test)
 	{
 		//todo: cover with unit tests!
 		TestRunResult result = new()
@@ -79,7 +79,7 @@ public class UnitTestsRunner(
 
 		try
 		{
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(settings.TestsTransactionIsolationLevel, _defaultTimeout);
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(TranIsolationLevel.Serializable, _defaultTimeout);
 
 			if (test.InitFileData is not null)
 			{

@@ -16,7 +16,7 @@ public class EasyFlow(
 		EasyFlowBuilder _builder,
 		ILogger logger,
 		ISettingsAccessor _projectSettings,
-		TransactionRunner _transactionRunner
+		ITransactionRunner _transactionRunner
 	) : IEasyFlow
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
@@ -80,7 +80,7 @@ public class EasyFlow(
 			}
 		);
 
-		_unitTestsRunner.RunAllTests(parameters, projectSettings);
+		_unitTestsRunner.RunAllTests(parameters);
 
 		_logger.Information("Project deploy completed.");
 	}
