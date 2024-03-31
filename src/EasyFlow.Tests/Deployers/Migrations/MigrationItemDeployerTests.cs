@@ -11,7 +11,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
 
 		MigrationItemDto? savedDto = null;
 		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
@@ -64,7 +64,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
 
 		MigrationItemDto? savedDto = null;
 		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
@@ -118,7 +118,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		var mockSet = new MockSet();
 
-		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
 
 		Migration migration = new()
 		{
@@ -146,5 +146,42 @@ public class MigrationItemDeployerTests
 		// Assert
 		mockSet.EasyFlowDA.DidNotReceive()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
+	}
+
+
+	[Fact]
+	public void DeployMigrationItem()
+	{
+		// Arrange
+		var mockSet = new MockSet();
+
+		var deploy = new MigrationItemDeployer(mockSet.Logger, mockSet.EasyFlowDA, mockSet.TimeProvider, mockSet.TransactionRunner);
+
+		Migration migration = new()
+		{
+			Version = 1,
+			Name = "some-migration",
+			FolderPath = "c:/db/migrations/001.demo",
+			Items = new List<MigrationItem>().AsReadOnly()
+		};
+
+		MigrationItem migrationItem = new()
+		{
+			MigrationItemType = MigrationItemType.Migration,
+			FileData = new FileData
+			{
+				Content = $"-- some sql migration",
+				RelativePath = "db/migrations/001.demo/m.1.sql",
+				FilePath = "c:/db/migrations/001.demo/m.1.sql"
+			}
+		};
+
+		// Act
+		deploy.DeployMigrationItem(true, migration, migrationItem);
+
+
+		// Assert
+		mockSet.TransactionRunner.Received()
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromDays(1)), Arg.Any<Action>());
 	}
 }

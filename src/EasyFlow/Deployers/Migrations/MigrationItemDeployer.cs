@@ -2,8 +2,12 @@ using EasyFlow.Adapter;
 
 namespace EasyFlow.Deployers.Migrations;
 
-public class MigrationItemDeployer(ILogger logger, IEasyFlowDA _da, ITimeProvider _timeProvider)
-	: IMigrationItemDeployer
+public class MigrationItemDeployer(
+		ILogger logger,
+		IEasyFlowDA _da,
+		ITimeProvider _timeProvider,
+		ITransactionRunner _transactionRunner
+	) : IMigrationItemDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(MigrationItemDeployer));
 
@@ -12,7 +16,7 @@ public class MigrationItemDeployer(ILogger logger, IEasyFlowDA _da, ITimeProvide
 
 	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{
-		Transactions.ExecuteWithinTransaction(
+		_transactionRunner.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
 			_projectSettings.TransactionIsolationLevel,
 			_defaultTimeout, //todo: separate timeout for single migration

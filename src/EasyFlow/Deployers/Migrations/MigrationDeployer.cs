@@ -6,7 +6,8 @@ public class MigrationDeployer(
 		ILogger _logger,
 		IEasyFlowDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
-		ITimeProvider _timeProvider
+		ITimeProvider _timeProvider,
+		ITransactionRunner _transactionRunner
 	) : IMigrationDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationDeployer));
@@ -20,7 +21,7 @@ public class MigrationDeployer(
 
 		if (migration.Items.Count == 0) return;
 
-		Transactions.ExecuteWithinTransaction(
+		_transactionRunner.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
 			_projectSettings.TransactionIsolationLevel,
 			_defaultTimeout, //toto: separate timeout for all migrations

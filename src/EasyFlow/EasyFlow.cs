@@ -15,7 +15,8 @@ public class EasyFlow(
 		IUnitTestsRunner _unitTestsRunner,
 		EasyFlowBuilder _builder,
 		ILogger logger,
-		ISettingsAccessor _projectSettings
+		ISettingsAccessor _projectSettings,
+		TransactionRunner _transactionRunner
 	) : IEasyFlow
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
@@ -61,7 +62,7 @@ public class EasyFlow(
 
 		EasyFlowSettings projectSettings = _projectSettings.ProjectSettings;
 
-		Transactions.ExecuteWithinTransaction(
+		_transactionRunner.ExecuteWithinTransaction(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
 			projectSettings.TransactionIsolationLevel,
 			_defaultTimeout,

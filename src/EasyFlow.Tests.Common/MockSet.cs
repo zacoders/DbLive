@@ -19,6 +19,7 @@ public class MockSet
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
 	public readonly IMigrationDeployer MigrationDeployer = Substitute.For<IMigrationDeployer>();
 	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
+	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 
 	public readonly ISettingsAccessor DefaultSettingsAccessor;
 
@@ -26,5 +27,12 @@ public class MockSet
 	{
 		DefaultSettingsAccessor = Substitute.For<ISettingsAccessor>();
 		DefaultSettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
+		
+		TransactionRunner.ExecuteWithinTransaction(
+			Arg.Any<bool>(), 
+			Arg.Any<TranIsolationLevel>(), 
+			Arg.Any<TimeSpan>(), 
+			Arg.Invoke()
+		);
 	}
 }
