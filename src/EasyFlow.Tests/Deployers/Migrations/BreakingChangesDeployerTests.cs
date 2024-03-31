@@ -5,28 +5,19 @@ namespace EasyFlow.Tests.Deployers.Migrations;
 
 public class BreakingChangesDeployerTests
 {
-    //static Migration NewMigration(int version, string name) =>
-    //    new()
-    //    {
-    //        Version = version,
-    //        Name = name,
-    //        FolderPath = "c:/",
-    //        Items = new List<MigrationItem>().AsReadOnly()
-    //    };
-
-    [Fact]
-    public void GetMigrationsToApply_SkipBreakingChangesDeployment()
-    {
-        // Arrange
-        MockSet mockSet = new();
+	[Fact]
+	public void GetMigrationsToApply_SkipBreakingChangesDeployment()
+	{
+		// Arrange
+		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-        // Act
-        deploy.DeployBreakingChanges(new DeployParameters { DeployBreaking = false });
+		// Act
+		deploy.DeployBreakingChanges(new DeployParameters { DeployBreaking = false });
 
-        // Assert
-        mockSet.EasyFlowDA.DidNotReceive().GetNonAppliedBreakingMigrationItems();
+		// Assert
+		mockSet.EasyFlowDA.DidNotReceive().GetNonAppliedBreakingMigrationItems();
 	}
 
 
@@ -36,16 +27,16 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-        mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems()
-            .Returns(new List<MigrationItemDto>().AsReadOnly());
+		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems()
+			.Returns(new List<MigrationItemDto>().AsReadOnly());
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-        // Act
-        deploy.DeployBreakingChanges(DeployParameters.Default);
+		// Act
+		deploy.DeployBreakingChanges(DeployParameters.Breaking);
 
-        // Assert
-        mockSet.EasyFlowProject.DidNotReceive().GetMigrations();
+		// Assert
+		mockSet.EasyFlowProject.DidNotReceive().GetMigrations();
 	}
 
 
@@ -55,43 +46,122 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-        mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems()
-            .Returns(new List<MigrationItemDto>
-            {
+		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems().Returns(
+			new List<MigrationItemDto>
+			{
 				new() {
 					Version = 2,
-					ContentHash = 123,
-					Content = "-- content 1",
+					ContentHash = "-- content 2.undo".Crc32HashCode(),
+					Content = "-- content 2.undo",
 					ItemType = "breaking",
-					Name = "breaking1",
-					Status = "skipped"
-				},
-				new() {
-					Version = 2,
-					ContentHash = 123,
-					Content = "-- content 2",
-					ItemType = "breaking",
-					Name = "breaking2",
+					Name = "second-migration",
 					Status = "skipped"
 				},
 				new() {
 					Version = 3,
-					ContentHash = 123,
-					Content = "-- content 333",
+					ContentHash = "-- content 3.undo".Crc32HashCode(),
+					Content = "-- content 3.undo",
 					ItemType = "breaking",
-					Name = "breaking1",
+					Name = "3rd-migration",
 					Status = "skipped"
 				}
 			}.AsReadOnly()
-        );
+		);
+
+		mockSet.EasyFlowProject.GetMigrations().Returns(
+			new List<Migration>
+			{
+				new() {
+					FolderPath = "c:/db/migrations/001.some-migration",
+					Name = "some-migration",
+					Version = 1,
+					Items = new List<MigrationItem>
+					{
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.1.item.sql", "-- content 1.1")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Undo,
+							FileData = GetFileData("undo.sql", "-- content 1.undo")
+						},
+					}.AsReadOnly()
+				},
+				new() {
+					FolderPath = "c:/db/migrations/002.second-migration",
+					Name = "second-migration",
+					Version = 2,
+					Items = new List<MigrationItem>
+					{
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.1.item.sql", "-- content 2.1")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Undo,
+							FileData = GetFileData("undo.sql", "-- content 2.undo")
+						},
+					}.AsReadOnly()
+				},
+				new() {
+					FolderPath = "c:/db/migrations/003.second-migration",
+					Name = "3rd-migration",
+					Version = 3,
+					Items = new List<MigrationItem>
+					{
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.1.item.sql", "-- content 3.1")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.2.item.sql", "-- content 3.2")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Undo,
+							FileData = GetFileData("undo.sql", "-- content 3.undo")
+						},
+					}.AsReadOnly()
+				},
+				new() {
+					FolderPath = "c:/db/migrations/004.second-migration",
+					Name = "second-migration",
+					Version = 4,
+					Items = new List<MigrationItem>
+					{
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.1.item.sql", "-- content 4.1")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.2.item.sql", "-- content 4.2")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Undo,
+							FileData = GetFileData("undo.sql", "-- content 4.undo")
+						},
+					}.AsReadOnly()
+				}
+			}
+		);
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deploy.DeployBreakingChanges(DeployParameters.Default);
+		deploy.DeployBreakingChanges(DeployParameters.Breaking);
 
 		// Assert
-		mockSet.EasyFlowProject.DidNotReceive().GetMigrations();
+		mockSet.EasyFlowProject.Received().GetMigrations();
 	}
 
+	private static FileData GetFileData(string relativePath, string content)
+	{
+		return new FileData
+		{
+			Content = content,
+			RelativePath = relativePath,
+			FilePath = "c:/db/migrations" + relativePath
+		};
+	}
 }
