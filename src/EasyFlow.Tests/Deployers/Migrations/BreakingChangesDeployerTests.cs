@@ -51,16 +51,16 @@ public class BreakingChangesDeployerTests
 			{
 				new() {
 					Version = 2,
-					ContentHash = "-- content 2.undo".Crc32HashCode(),
-					Content = "-- content 2.undo",
+					ContentHash = "-- content 2.breaking".Crc32HashCode(),
+					Content = "-- content 2.breaking",
 					ItemType = "breaking",
 					Name = "second-migration",
 					Status = "skipped"
 				},
 				new() {
 					Version = 3,
-					ContentHash = "-- content 3.undo".Crc32HashCode(),
-					Content = "-- content 3.undo",
+					ContentHash = "-- content 3.breaking".Crc32HashCode(),
+					Content = "-- content 3.breaking",
 					ItemType = "breaking",
 					Name = "3rd-migration",
 					Status = "skipped"
@@ -69,8 +69,7 @@ public class BreakingChangesDeployerTests
 		);
 
 		mockSet.EasyFlowProject.GetMigrations().Returns(
-			new List<Migration>
-			{
+			[
 				new() {
 					FolderPath = "c:/db/migrations/001.some-migration",
 					Name = "some-migration",
@@ -83,7 +82,7 @@ public class BreakingChangesDeployerTests
 						},
 						new() {
 							MigrationItemType = MigrationItemType.Undo,
-							FileData = GetFileData("undo.sql", "-- content 1.undo")
+							FileData = GetFileData("breaking.sql", "-- content 1.breaking")
 						},
 					}.AsReadOnly()
 				},
@@ -98,8 +97,8 @@ public class BreakingChangesDeployerTests
 							FileData = GetFileData("m.1.item.sql", "-- content 2.1")
 						},
 						new() {
-							MigrationItemType = MigrationItemType.Undo,
-							FileData = GetFileData("undo.sql", "-- content 2.undo")
+							MigrationItemType = MigrationItemType.BreakingChange,
+							FileData = GetFileData("breaking.sql", "-- content 2.breaking")
 						},
 					}.AsReadOnly()
 				},
@@ -118,8 +117,8 @@ public class BreakingChangesDeployerTests
 							FileData = GetFileData("m.2.item.sql", "-- content 3.2")
 						},
 						new() {
-							MigrationItemType = MigrationItemType.Undo,
-							FileData = GetFileData("undo.sql", "-- content 3.undo")
+							MigrationItemType = MigrationItemType.BreakingChange,
+							FileData = GetFileData("breaking.sql", "-- content 3.breaking")
 						},
 					}.AsReadOnly()
 				},
@@ -138,12 +137,12 @@ public class BreakingChangesDeployerTests
 							FileData = GetFileData("m.2.item.sql", "-- content 4.2")
 						},
 						new() {
-							MigrationItemType = MigrationItemType.Undo,
-							FileData = GetFileData("undo.sql", "-- content 4.undo")
+							MigrationItemType = MigrationItemType.BreakingChange,
+							FileData = GetFileData("breaking.sql", "-- content 4.breaking")
 						},
 					}.AsReadOnly()
 				}
-			}
+			]
 		);
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
