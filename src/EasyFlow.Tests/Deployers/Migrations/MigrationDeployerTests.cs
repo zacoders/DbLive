@@ -85,7 +85,7 @@ public class MigrationDeployerTests
 					FileData = GetFileData("undo.sql")
 				},
 				new() {
-					MigrationItemType = MigrationItemType.BreakingChange,
+					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
 			}.AsReadOnly()
@@ -127,7 +127,7 @@ public class MigrationDeployerTests
 					FileData = GetFileData("undo.sql")
 				},
 				new() {
-					MigrationItemType = MigrationItemType.BreakingChange,
+					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
 			}.AsReadOnly()

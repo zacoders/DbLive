@@ -40,8 +40,8 @@ public class EasyFlowProject(
 			"m" => MigrationItemType.Migration,
 			"undo" => MigrationItemType.Undo,
 			"u" => MigrationItemType.Undo,
-			"breaking" => MigrationItemType.BreakingChange,
-			"b" => MigrationItemType.BreakingChange,
+			"breaking" => MigrationItemType.Breaking,
+			"b" => MigrationItemType.Breaking,
 			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 

@@ -49,9 +49,9 @@ public class MigrationItemDeployerTests
 
 		Assert.NotNull(savedDto);
 		Assert.Equal("some-migration", savedDto.Name);
-		Assert.Equal("skipped", savedDto.Status);
+		Assert.Equal(MigrationItemStatus.Skipped, savedDto.Status);
 		Assert.Equal("", savedDto.Content);
-		Assert.Equal("migration", savedDto.ItemType);
+		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
 		Assert.Null(savedDto.AppliedUtc);
 		Assert.Equal(1715229887, savedDto.ContentHash);
 		Assert.Equal(utcNow, savedDto.CreatedUtc);
@@ -102,9 +102,9 @@ public class MigrationItemDeployerTests
 
 		Assert.NotNull(savedDto);
 		Assert.Equal("some-migration", savedDto.Name);
-		Assert.Equal("skipped", savedDto.Status);
+		Assert.Equal(MigrationItemStatus.Skipped, savedDto.Status);
 		Assert.Equal(migrationItem.FileData.Content, savedDto.Content);
-		Assert.Equal("undo", savedDto.ItemType);
+		Assert.Equal(MigrationItemType.Undo, savedDto.ItemType);
 		Assert.Null(savedDto.AppliedUtc);
 		Assert.Equal(1715229887, savedDto.ContentHash);
 		Assert.Equal(utcNow, savedDto.CreatedUtc);
@@ -201,9 +201,9 @@ public class MigrationItemDeployerTests
 
 		Assert.NotNull(savedDto);
 		Assert.Equal("some-migration", savedDto.Name);
-		Assert.Equal("applied", savedDto.Status);
+		Assert.Equal(MigrationItemStatus.Applied, savedDto.Status);
 		Assert.Equal("", savedDto.Content);
-		Assert.Equal("migration", savedDto.ItemType);
+		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
 		Assert.Equal(utcNow2, savedDto.AppliedUtc);
 		Assert.Equal(1715229887, savedDto.ContentHash);
 		Assert.Equal(utcNow3, savedDto.CreatedUtc);
@@ -263,9 +263,9 @@ public class MigrationItemDeployerTests
 
 		Assert.NotNull(savedDto);
 		Assert.Equal("some-migration", savedDto.Name);
-		Assert.Equal("applied", savedDto.Status);
+		Assert.Equal(MigrationItemStatus.Applied, savedDto.Status);
 		Assert.Equal(migrationItem.FileData.Content, savedDto.Content);
-		Assert.Equal("undo", savedDto.ItemType);
+		Assert.Equal(MigrationItemType.Undo, savedDto.ItemType);
 		Assert.Equal(utcNow2, savedDto.AppliedUtc);
 		Assert.Equal(1715229887, savedDto.ContentHash);
 		Assert.Equal(utcNow3, savedDto.CreatedUtc);

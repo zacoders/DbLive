@@ -216,10 +216,10 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 			{
 				version = item.Version,
 				name = item.Name,
-				item_type = item.ItemType,
+				item_type = item.ItemType.ToString().ToLower(),
 				content_hash = item.ContentHash,
 				content = item.Content,
-				status = item.Status,
+				status = item.Status.ToString().ToLower(),
 				created_utc = item.CreatedUtc,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs

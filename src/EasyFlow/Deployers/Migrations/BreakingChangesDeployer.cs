@@ -37,24 +37,35 @@ public class BreakingChangesDeployer(
 			VersionNameKey key = new(migration.Version, migration.Name);
 			if (!breakingToApply.ContainsKey(key)) continue;
 
+			MigrationItemDto breakingDto = breakingToApply[key];
+
 			var breakingChnagesItem = migration.Items
-				.Where(mi => mi.MigrationItemType == MigrationItemType.BreakingChange)
+				.Where(mi => mi.MigrationItemType == MigrationItemType.Breaking)
 				.Single();
 
-			if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)
+			if (breakingChnagesItem.FileData.Crc32Hash != breakingDto.ContentHash)
 			{
 				throw new FileContentChangedException(
 					breakingChnagesItem.FileData.RelativePath,
 					breakingChnagesItem.FileData.Crc32Hash,
-					breakingToApply[key].ContentHash
+					breakingDto.ContentHash
 				);
 			}
 
 			// TODO: transaction should be configurable?
 			using var tran = TransactionScopeManager.Create();
 			{
+				var stopwatch = _timeProvider.StartNewStopwatch();
+				
 				_migrationItemDeployer.DeployMigrationItem(false, migration, breakingChnagesItem);
-				_da.SaveMigration(migration.Version, migration.Name, _timeProvider.UtcNow());
+				
+				stopwatch.Stop();
+
+				breakingDto.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
+				breakingDto.AppliedUtc = _timeProvider.UtcNow();
+
+				_da.SaveMigrationItemState(breakingDto);
+
 				tran.Complete();
 			}
 		}

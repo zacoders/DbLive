@@ -4,5 +4,5 @@ public enum MigrationItemType
 {
 	Migration,
 	Undo,
-	BreakingChange
+	Breaking
 }

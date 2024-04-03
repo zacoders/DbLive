@@ -30,12 +30,11 @@ public class MigrationItemDeployer(
 
 				DateTime migrationStartedUtc = _timeProvider.UtcNow();
 
-				string status = "";
 				DateTime? migrationAppliedUtc = null;
 				int? executionTimeMs = null;
 
 				_da.ExecuteNonQuery(migrationItem.FileData.Content);
-				status = "applied";
+				
 				migrationAppliedUtc = _timeProvider.UtcNow();
 				executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 
@@ -45,10 +44,10 @@ public class MigrationItemDeployer(
 					{
 						Version = migration.Version,
 						Name = migration.Name,
-						ItemType = migrationItem.MigrationItemType.ToString().ToLower(),
+						ItemType = migrationItem.MigrationItemType,
 						ContentHash = migrationItem.FileData.Crc32Hash,
 						Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-						Status = status,
+						Status = MigrationItemStatus.Applied,
 						CreatedUtc = _timeProvider.UtcNow(),
 						AppliedUtc = migrationAppliedUtc,
 						ExecutionTimeMs = executionTimeMs
@@ -57,7 +56,7 @@ public class MigrationItemDeployer(
 					_da.SaveMigrationItemState(dto);
 				}
 
-				_logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
+				_logger.Information("Migration {migrationType} applied.", migrationItem.MigrationItemType);
 			}
 		);
 	}
@@ -66,17 +65,16 @@ public class MigrationItemDeployer(
 	{
 		_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
 
-		string status = "skipped";
 		if (!isSelfDeploy)
 		{
 			MigrationItemDto dto = new()
 			{
 				Version = migration.Version,
 				Name = migration.Name,
-				ItemType = migrationItem.MigrationItemType.ToString().ToLower(),
+				ItemType = migrationItem.MigrationItemType,
 				ContentHash = migrationItem.FileData.Crc32Hash,
 				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-				Status = status,
+				Status = MigrationItemStatus.Skipped,
 				CreatedUtc = _timeProvider.UtcNow(),
 				AppliedUtc = null,
 				ExecutionTimeMs = null
@@ -85,6 +83,6 @@ public class MigrationItemDeployer(
 			_da.SaveMigrationItemState(dto);
 		}
 
-		_logger.Information("Migration {migrationType} {status}.", migrationItem.MigrationItemType, status);
+		_logger.Information("Migration {migrationType} skipped.", migrationItem.MigrationItemType);
 	}
 }
