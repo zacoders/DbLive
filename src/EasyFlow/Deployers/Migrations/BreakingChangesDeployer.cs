@@ -71,5 +71,6 @@ public class BreakingChangesDeployer(
 		}
 	}
 
+	[ExcludeFromCodeCoverage]
 	private record VersionNameKey(int Version, string Name);
 }

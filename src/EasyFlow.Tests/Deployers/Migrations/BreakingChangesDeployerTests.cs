@@ -1,5 +1,6 @@
 using EasyFlow.Adapter;
 using EasyFlow.Deployers.Migrations;
+using EasyFlow.Exceptions;
 
 namespace EasyFlow.Tests.Deployers.Migrations;
 
@@ -181,11 +182,64 @@ public class BreakingChangesDeployerTests
 		mockSet.EasyFlowDA.Received(2)
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
+		mockSet.EasyFlowDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto1));
+
+		mockSet.EasyFlowDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto2));
+
 		Assert.Equal(appliedUtc1, migrationItemDto1.AppliedUtc);
 		Assert.Equal(1555, migrationItemDto1.ExecutionTimeMs);
 
 		Assert.Equal(appliedUtc2, migrationItemDto2.AppliedUtc);
 		Assert.Equal(2555, migrationItemDto2.ExecutionTimeMs);
+	}
+
+
+	[Fact]
+	public void DeployBreakingChanges_BadContentHash()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems().Returns([
+			new()
+			{
+				Version = 2,
+				ContentHash = "-- content 2.breaking".Crc32HashCode(),
+				Content = "-- content 2.breaking",
+				ItemType = MigrationItemType.Breaking,
+				Name = "second-migration",
+				Status = MigrationItemStatus.Skipped
+			}
+		]);
+
+		string changedContent = "-- content 2.breaking !!! CONTENT CHANGED, BAD HASH !!!";
+
+		Migration migration2 = new()
+		{
+			FolderPath = "c:/db/migrations/002.second-migration",
+			Name = "second-migration",
+			Version = 2,
+			Items = new List<MigrationItem>
+					{
+						new() {
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("m.1.item.sql", "-- content 2.1")
+						},
+						new() {
+							MigrationItemType = MigrationItemType.Breaking,
+							FileData = GetFileData("breaking.sql", changedContent)
+						},
+					}.AsReadOnly()
+		};
+
+		mockSet.EasyFlowProject.GetMigrations().Returns([migration2]);
+
+		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		// Act
+
+		// Assert
+		Assert.Throws<FileContentChangedException>(() => deploy.DeployBreakingChanges(DeployParameters.Breaking));
 	}
 
 	private static FileData GetFileData(string relativePath, string content)
