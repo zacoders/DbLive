@@ -158,11 +158,11 @@ public class UnitTestsRunnerTests
 		]);
 
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
-			.Returns(
-				_ => new TestRunResult() { IsSuccess = true },
-				_ => new TestRunResult() { IsSuccess = false }
-			);
+		mockSet.UnitTestItemRunner.RunTest(Arg.Is(testItem1))
+			.Returns(new TestRunResult() { IsSuccess = true });
+
+		mockSet.UnitTestItemRunner.RunTest(Arg.Is(testItem2))
+			.Returns(new TestRunResult() { IsSuccess = false });
 
 		DeployParameters parameters = new() { RunTests = true };
 

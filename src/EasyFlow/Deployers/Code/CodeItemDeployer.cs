@@ -54,7 +54,7 @@ public class CodeItemDeployer(
 
             if (!isSelfDeploy)
             {
-                _da.MarkCodeAsApplied(codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (int)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
+                _da.MarkCodeAsApplied(codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (long)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
             }
 
             return true;

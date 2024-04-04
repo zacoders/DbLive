@@ -39,6 +39,6 @@ public class FolderDeployer(
 		_da.ExecuteNonQuery(item.FileData.Content);
 		DateTime completedUtc = _timeProvider.UtcNow();
 
-		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (int)(completedUtc - startedUtc).TotalMilliseconds);
+		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);
 	}
 }

@@ -31,24 +31,30 @@ public class MigrationItemDeployer(
 				DateTime migrationStartedUtc = _timeProvider.UtcNow();
 
 				DateTime? migrationAppliedUtc = null;
-				int? executionTimeMs = null;
+				long? executionTimeMs = null;
 
 				_da.ExecuteNonQuery(migrationItem.FileData.Content);
 				
 				migrationAppliedUtc = _timeProvider.UtcNow();
-				executionTimeMs = (int)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
+				executionTimeMs = (long)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 
 				if (!isSelfDeploy)
 				{
+					string content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "";
+
+					DateTime createdUtc = _timeProvider.UtcNow();
+					
+					int crc32Hash = migrationItem.FileData.Crc32Hash;
+
 					MigrationItemDto dto = new()
 					{
 						Version = migration.Version,
 						Name = migration.Name,
 						ItemType = migrationItem.MigrationItemType,
-						ContentHash = migrationItem.FileData.Crc32Hash,
-						Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
+						ContentHash = crc32Hash,
+						Content = content,
 						Status = MigrationItemStatus.Applied,
-						CreatedUtc = _timeProvider.UtcNow(),
+						CreatedUtc = createdUtc,
 						AppliedUtc = migrationAppliedUtc,
 						ExecutionTimeMs = executionTimeMs
 					};
