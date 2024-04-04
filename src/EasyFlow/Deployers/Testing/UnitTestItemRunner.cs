@@ -15,7 +15,6 @@ public class UnitTestItemRunner(
 		TestRunResult result = new()
 		{
 			IsSuccess = false,
-			ErrorMessage = null,
 			StartedUtc = _timeProvider.UtcNow()
 		};
 

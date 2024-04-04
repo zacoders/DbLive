@@ -8,5 +8,5 @@ public class UnitTestItemDto
 	public required DateTime StartedUtc { get; init; }
 	public required long ExecutionTimeMs { get; init; }
 	public required bool IsSuccess { get; init; }
-	public string? ErrorMessage { get; init; }
+	public string ErrorMessage { get; init; } = string.Empty;
 }

@@ -44,6 +44,9 @@ public class MockSet
 			//		_container.AddTransient(_ => Logger);
 			_container.AddTransient(fld.FieldType, _ => fld.GetValue(this)!);
 		}
+
+		// Simplifying testing, ForContext() method returns the same mocked logger.
+		Logger.ForContext(Arg.Any<Type>()).Returns(Logger);
 	}
 
 	public TService CreateUsingMocks<TService>() where TService : class

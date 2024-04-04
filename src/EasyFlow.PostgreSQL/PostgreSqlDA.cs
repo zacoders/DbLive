@@ -155,7 +155,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, long executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(UnitTestItemDto item)
 	{
 		throw new NotImplementedException();
 	}

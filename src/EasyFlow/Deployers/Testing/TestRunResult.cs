@@ -4,7 +4,7 @@
 public class TestRunResult
 {
 	public bool IsSuccess { get; set; }
-	public string? ErrorMessage { get; set; }
+	public string ErrorMessage { get; set; } = string.Empty;
 	public DateTime StartedUtc { get; set; }
 	public DateTime CompletedUtc { get; set; }
 
