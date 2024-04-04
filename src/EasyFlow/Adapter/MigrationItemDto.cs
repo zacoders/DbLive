@@ -11,5 +11,5 @@ public class MigrationItemDto
 	public string Content { get; set; } = string.Empty;
 	public DateTime CreatedUtc { get; init; }
 	public DateTime? AppliedUtc { get; set; }
-	public int? ExecutionTimeMs { get; set; }
+	public long? ExecutionTimeMs { get; set; }
 }

@@ -171,8 +171,7 @@ public class EasyFlowProject(
 			{
 				Name = testFilePath.GetLastSegment(),
 				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath),
-				InitFileData = initFileData,
-				Folder = folderPath
+				InitFileData = initFileData
 			};
 
 			tests.Add(testItem);

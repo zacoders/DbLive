@@ -61,7 +61,7 @@ public class BreakingChangesDeployer(
 				
 				stopwatch.Stop();
 
-				breakingDto.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
+				breakingDto.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
 				breakingDto.AppliedUtc = _timeProvider.UtcNow();
 
 				_da.SaveMigrationItemState(breakingDto);

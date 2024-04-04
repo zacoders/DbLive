@@ -112,7 +112,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		);
 	}
 
-	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime createdUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime createdUtc, long executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}
@@ -155,7 +155,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, long executionTimeMs, bool isSuccess, string? errorMessage)
 	{
 		throw new NotImplementedException();
 	}
@@ -181,7 +181,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs)
+	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
 	{
 		throw new NotImplementedException();
 	}

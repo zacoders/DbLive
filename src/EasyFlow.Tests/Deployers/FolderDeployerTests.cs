@@ -23,7 +23,7 @@ public class FolderDeployerTests
 			.ExecuteNonQuery(Arg.Any<string>());
 
 		mockSet.EasyFlowDA.Received(3)
-			.MarkItemAsApplied(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<int>());
+			.MarkItemAsApplied(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	[Fact]
@@ -45,7 +45,7 @@ public class FolderDeployerTests
 			.ExecuteNonQuery("Content of file1.sql");
 
 		mockSet.EasyFlowDA.Received()
-			.MarkItemAsApplied(projectFolder, @"folder\file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<int>());
+			.MarkItemAsApplied(projectFolder, @"folder\file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	private static GenericItem GetGenericItem(string fileName)

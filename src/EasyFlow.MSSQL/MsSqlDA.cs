@@ -172,7 +172,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query("easyflow.insert_code_state",
@@ -228,7 +228,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		);
 	}
 
-	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, long executionTimeMs, bool isSuccess, string? errorMessage)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
@@ -246,7 +246,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		);
 	}
 
-	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs)
+	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(

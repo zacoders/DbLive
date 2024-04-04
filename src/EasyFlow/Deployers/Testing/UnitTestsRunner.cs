@@ -43,7 +43,14 @@ public class UnitTestsRunner(
 				Logger.Error(testResult.Exception, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
-			SaveTestResult(test, testResult);
+			_da.SaveUnitTestResult(
+				test.FileData.RelativePath,
+				test.FileData.Crc32Hash,
+				testResult.StartedUtc,
+				testResult.ExecutionTimeMs,
+				testResult.IsSuccess,
+				testResult.ErrorMessage
+			);
 		});
 
 		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
@@ -55,21 +62,8 @@ public class UnitTestsRunner(
 		}
 	}
 
-	private void SaveTestResult(TestItem test, TestRunResult result)
-	{
-		_da.SaveUnitTestResult(
-			test.FileData.RelativePath,
-			test.FileData.Crc32Hash,
-			result.StartedUtc,
-			result.ExecutionTimeMs,
-			result.IsSuccess,
-			result.ErrorMessage
-		);
-	}
-
 	public TestRunResult RunTest(TestItem test)
 	{
-		//todo: cover with unit tests!
 		TestRunResult result = new()
 		{
 			IsSuccess = false,
@@ -77,6 +71,7 @@ public class UnitTestsRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
+		var stopWatch = _timeProvider.StartNewStopwatch();
 		try
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(TranIsolationLevel.Serializable, _defaultTimeout);
@@ -88,11 +83,11 @@ public class UnitTestsRunner(
 
 			_da.ExecuteNonQuery(test.FileData.Content);
 
-			_transactionScope.Dispose(); //canceling transaction
-
 			result.Output = "TODO: Populate it using output from sql execution.";
 
 			result.IsSuccess = true;
+
+			_transactionScope.Dispose(); //canceling transaction
 		}
 		catch (Exception ex)
 		{
@@ -100,8 +95,12 @@ public class UnitTestsRunner(
 			result.Output = "ERROR:" + ex.Message + Environment.NewLine + result.Output;
 			result.Exception = ex;
 		}
-
-		result.CompletedUtc = _timeProvider.UtcNow();
+		finally
+		{
+			stopWatch.Stop();
+			result.ExecutionTimeMs = stopWatch.ElapsedMilliseconds;
+			result.CompletedUtc = _timeProvider.UtcNow();
+		}
 
 		return result;
 	}

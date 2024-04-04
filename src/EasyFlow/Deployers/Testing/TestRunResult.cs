@@ -8,7 +8,7 @@ public class TestRunResult
 	public DateTime StartedUtc { get; set; }
 	public DateTime CompletedUtc { get; set; }
 
-	public int ExecutionTimeMs => (int)(CompletedUtc - StartedUtc).TotalMilliseconds;
+	public long ExecutionTimeMs { get; set; }
 
 	public Exception? Exception { get; set; }
 	public string Output { get; internal set; } = "";
