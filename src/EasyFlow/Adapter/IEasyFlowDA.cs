@@ -27,6 +27,6 @@ public interface IEasyFlowDA
 	void ExecuteNonQuery(string sqlStatementt);
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);
-	void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, long executionTimeMs, bool isSuccess, string? errorMessage);
+	void SaveUnitTestResult(UnitTestItemDto item);
 	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs);
 }

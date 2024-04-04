@@ -228,19 +228,19 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		);
 	}
 
-	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, long executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(UnitTestItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.save_unit_test_result",
 			new
 			{
-				relative_path = relativePath,
-				content_hash = crc32Hash,
-				run_utc = startedUtc,
-				execution_time_ms = executionTimeMs,
-				pass = isSuccess,
-				error = errorMessage
+				relative_path = item.RelativePath,
+				content_hash = item.Crc32Hash,
+				run_utc = item.StartedUtc,
+				execution_time_ms = item.ExecutionTimeMs,
+				pass = item.IsSuccess,
+				error = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
 		);

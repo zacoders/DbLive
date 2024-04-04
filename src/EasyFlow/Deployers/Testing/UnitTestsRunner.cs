@@ -42,12 +42,15 @@ public class UnitTestsRunner(
 			}
 
 			_da.SaveUnitTestResult(
-				test.FileData.RelativePath,
-				test.FileData.Crc32Hash,
-				testResult.StartedUtc,
-				testResult.ExecutionTimeMs,
-				testResult.IsSuccess,
-				testResult.ErrorMessage
+				new UnitTestItemDto
+				{
+					RelativePath = test.FileData.RelativePath,
+					Crc32Hash = test.FileData.Crc32Hash,
+					StartedUtc = testResult.StartedUtc,
+					ExecutionTimeMs = testResult.ExecutionTimeMs,
+					IsSuccess = testResult.IsSuccess,
+					ErrorMessage = testResult.ErrorMessage
+				}
 			);
 		});
 

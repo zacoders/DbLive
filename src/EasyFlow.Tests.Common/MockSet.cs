@@ -2,6 +2,7 @@
 using EasyFlow.Common;
 using EasyFlow.Deployers.Code;
 using EasyFlow.Deployers.Migrations;
+using EasyFlow.Deployers.Testing;
 
 namespace EasyFlow.Tests.Common;
 
@@ -22,6 +23,7 @@ public class MockSet
 	public readonly IMigrationDeployer MigrationDeployer = Substitute.For<IMigrationDeployer>();
 	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
+	public readonly IUnitTestItemRunner UnitTestItemRunner = Substitute.For<IUnitTestItemRunner>();
 
 
 	public MockSet()
