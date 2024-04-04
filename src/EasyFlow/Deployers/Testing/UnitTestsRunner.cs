@@ -1,6 +1,6 @@
 using EasyFlow.Adapter;
 
-namespace EasyFlow.Deployers.Tests;
+namespace EasyFlow.Deployers.Testing;
 
 public class UnitTestsRunner(
 		ILogger _logger,
@@ -85,7 +85,7 @@ public class UnitTestsRunner(
 			{
 				_da.ExecuteNonQuery(test.InitFileData.Content);
 			}
-			_da.ExecuteNonQuery("select 1");
+
 			_da.ExecuteNonQuery(test.FileData.Content);
 
 			_transactionScope.Dispose(); //canceling transaction

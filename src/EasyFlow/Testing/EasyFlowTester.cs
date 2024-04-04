@@ -1,7 +1,12 @@
-﻿using EasyFlow.Deployers.Tests;
+﻿using EasyFlow.Deployers.Testing;
 
 namespace EasyFlow.Testing;
 
+/// <summary>
+/// This class used to run unit tests in Visual Studio. Designed for xunit.
+/// </summary>
+/// <param name="_project"></param>
+/// <param name="_unitTestsRunner"></param>
 public class EasyFlowTester(
 		IEasyFlowProject _project, 
 		IUnitTestsRunner _unitTestsRunner

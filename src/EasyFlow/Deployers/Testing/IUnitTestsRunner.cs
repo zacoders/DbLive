@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deployers.Tests;
+﻿namespace EasyFlow.Deployers.Testing;
 
 public interface IUnitTestsRunner
 {

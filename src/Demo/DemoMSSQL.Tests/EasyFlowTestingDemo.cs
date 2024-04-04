@@ -1,4 +1,4 @@
-using EasyFlow.Deployers.Tests;
+using EasyFlow.Deployers.Testing;
 using EasyFlow.MSSQL.xunit;
 using Xunit;
 using Xunit.Abstractions;

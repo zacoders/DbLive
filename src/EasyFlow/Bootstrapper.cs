@@ -1,6 +1,6 @@
 ﻿using EasyFlow.Deployers.Code;
 using EasyFlow.Deployers.Migrations;
-using EasyFlow.Deployers.Tests;
+using EasyFlow.Deployers.Testing;
 using EasyFlow.Testing;
 
 namespace EasyFlow;

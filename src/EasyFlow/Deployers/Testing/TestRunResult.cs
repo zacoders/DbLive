@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deployers.Tests;
+﻿namespace EasyFlow.Deployers.Testing;
 
 [ExcludeFromCodeCoverage]
 public class TestRunResult
