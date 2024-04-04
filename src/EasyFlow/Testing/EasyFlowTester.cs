@@ -6,10 +6,10 @@ namespace EasyFlow.Testing;
 /// This class used to run unit tests in Visual Studio. Designed for xunit.
 /// </summary>
 /// <param name="_project"></param>
-/// <param name="_unitTestsRunner"></param>
+/// <param name="_unitTestItemRunner"></param>
 public class EasyFlowTester(
 		IEasyFlowProject _project, 
-		IUnitTestsRunner _unitTestsRunner
+		IUnitTestItemRunner _unitTestItemRunner
 	) : IEasyFlowTester
 {
 	
@@ -44,7 +44,7 @@ public class EasyFlowTester(
 		writeLine($"{testItem.FileData.Content}");
 		writeLine("");
 
-		var testRunResult = _unitTestsRunner.RunTest(testItem);
+		var testRunResult = _unitTestItemRunner.RunTest(testItem);
 
 		writeLine("------------------");
 		writeLine("== Test output: ==");

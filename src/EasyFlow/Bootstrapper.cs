@@ -23,6 +23,7 @@ public static class Bootstrapper
 		container.AddSingleton<IMigrationItemDeployer, MigrationItemDeployer>();
 		container.AddSingleton<FolderDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
+		container.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>();
 		container.AddSingleton<IEasyFlowTester, EasyFlowTester>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
 		container.AddSingleton<ITransactionRunner, TransactionRunner>();

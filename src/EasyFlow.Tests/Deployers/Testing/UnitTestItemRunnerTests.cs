@@ -2,7 +2,7 @@ using EasyFlow.Deployers.Testing;
 
 namespace EasyFlow.Tests.Deployers.Migrations;
 
-public class UnitTestsRunnerTests
+public class UnitTestItemRunnerTests
 {
 	[Fact]
 	public void RunTest()
@@ -10,7 +10,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -49,7 +49,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -92,7 +92,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
