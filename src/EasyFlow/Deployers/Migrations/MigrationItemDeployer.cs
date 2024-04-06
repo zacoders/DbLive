@@ -19,7 +19,7 @@ public class MigrationItemDeployer(
 		_transactionRunner.ExecuteWithinTransaction(
 			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
 			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.MigrationTimeout,
+			_projectSettings.MigrationItemTimeout,
 			() =>
 			{
 				_logger.Information(
