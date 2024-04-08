@@ -7,13 +7,13 @@ namespace EasyFlow;
 
 public class EasyFlow(
 		IEasyFlowDA _da,
-		CodeDeployer _codeDeployer,
+		ICodeDeployer _codeDeployer,
 		IEasyFlowPaths _paths,
-		BreakingChangesDeployer _breakingChangesDeployer,
-		MigrationsDeployer _migrationsDeployer,
-		FolderDeployer _folderDeployer,
+		IBreakingChangesDeployer _breakingChangesDeployer,
+		IMigrationsDeployer _migrationsDeployer,
+		IFolderDeployer _folderDeployer,
 		IUnitTestsRunner _unitTestsRunner,
-		EasyFlowBuilder _builder,
+		IEasyFlowBuilder _builder,
 		ILogger logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner

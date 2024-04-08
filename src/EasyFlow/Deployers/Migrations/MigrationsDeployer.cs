@@ -7,7 +7,7 @@ public class MigrationsDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		IMigrationDeployer _migrationDeployer
-	)
+	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 

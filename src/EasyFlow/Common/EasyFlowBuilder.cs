@@ -1,12 +1,12 @@
 ﻿namespace EasyFlow.Common;
 
-public class EasyFlowBuilder
+public class EasyFlowBuilder : IEasyFlowBuilder
 {
 	public readonly IServiceCollection Container = new ServiceCollection();
 
 	public EasyFlowBuilder()
 	{
-		Container.AddSingleton(this);
+		Container.AddSingleton<IEasyFlowBuilder>(this);
 		Container.InitializeEasyFlow();
 	}
 

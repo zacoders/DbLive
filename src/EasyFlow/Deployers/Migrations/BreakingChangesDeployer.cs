@@ -8,7 +8,7 @@ public class BreakingChangesDeployer(
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
 		IMigrationItemDeployer _migrationItemDeployer
-	)
+	) : IBreakingChangesDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(BreakingChangesDeployer));
 
@@ -25,7 +25,7 @@ public class BreakingChangesDeployer(
 
 		if (dbItems.Count == 0) return;
 
-		Dictionary<VersionNameKey, MigrationItemDto> breakingToApply = 
+		Dictionary<VersionNameKey, MigrationItemDto> breakingToApply =
 			dbItems.ToDictionary(i => new VersionNameKey(i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
@@ -56,9 +56,9 @@ public class BreakingChangesDeployer(
 			using var tran = TransactionScopeManager.Create();
 			{
 				var stopwatch = _timeProvider.StartNewStopwatch();
-				
+
 				_migrationItemDeployer.DeployMigrationItem(false, migration, breakingChnagesItem);
-				
+
 				stopwatch.Stop();
 
 				breakingDto.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;

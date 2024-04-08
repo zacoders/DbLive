@@ -7,7 +7,7 @@ public class FolderDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
-	)
+	) : IFolderDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(FolderDeployer));
 

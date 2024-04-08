@@ -9,7 +9,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "EasyFlow--";
 
-	private string _masterDbConnectionString;
+	private readonly string _masterDbConnectionString;
 
 	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 

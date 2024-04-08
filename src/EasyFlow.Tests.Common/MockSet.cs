@@ -1,5 +1,6 @@
 ﻿using EasyFlow.Adapter;
 using EasyFlow.Common;
+using EasyFlow.Deployers;
 using EasyFlow.Deployers.Code;
 using EasyFlow.Deployers.Migrations;
 using EasyFlow.Deployers.Testing;
@@ -24,7 +25,12 @@ public class MockSet
 	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 	public readonly IUnitTestItemRunner UnitTestItemRunner = Substitute.For<IUnitTestItemRunner>();
-
+	public readonly ICodeDeployer CodeDeployer = Substitute.For<ICodeDeployer>();
+	public readonly IFolderDeployer FolderDeployer = Substitute.For<IFolderDeployer>();
+	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
+	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
+	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
+	public readonly IEasyFlowBuilder EasyFlowBuilder = Substitute.For<IEasyFlowBuilder>();
 
 	public MockSet()
 	{
