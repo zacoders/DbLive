@@ -70,11 +70,11 @@ jobs:
       
     - name: Update NuGet package version
       run: |
-        echo "Updating version to $GITVERSION_SEMVER in project files"
-        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GITVERSION_SEMVER<\/Version>/g"
+        echo "Updating version to $GitVersion_SemVer in project files"
+        find . -name '*.csproj' -print0 | xargs -0 sed -i "s/<Version>.*<\/Version>/<Version>$GitVersion_SemVer<\/Version>/g"
     
     - name: Semver
-      run: echo $GITVERSION_SEMVER
+      run: echo $GitVersion_SemVer
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
@@ -99,8 +99,8 @@ jobs:
      
     - name: Create git tag
       if: github.ref == 'refs/heads/main'
-      run: git tag $GITVERSION_SEMVER
+      run: git tag $GitVersion_SemVer
 
     - name: Push git tag
       if: github.ref == 'refs/heads/main'
-      run: git push origin $GITVERSION_SEMVER
+      run: git push origin $GitVersion_SemVer
