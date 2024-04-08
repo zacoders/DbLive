@@ -51,6 +51,12 @@ public static class EasyFlowBuilderExtentions
 		return serviceProvider.GetService<IEasyFlow>()!;
 	}
 
+	public static IEasyFlowInternal CreateSelfDeployer(this EasyFlowBuilder builder)
+	{
+		var serviceProvider = builder.Container.BuildServiceProvider();
+		return serviceProvider.GetService<IEasyFlowInternal>()!;
+	}
+
 	internal static IEasyFlowDA CreateEasyFlowDA(this EasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
