@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace EasyFlow.Tests.Deployers;
 
 public class EasyFlowTests
 {

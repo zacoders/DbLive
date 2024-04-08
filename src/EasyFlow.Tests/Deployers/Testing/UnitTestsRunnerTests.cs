@@ -3,7 +3,7 @@ using EasyFlow.Deployers.Testing;
 using Microsoft.IdentityModel.Tokens;
 using Xunit.Sdk;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace EasyFlow.Tests.Deployers.Testing;
 
 public class UnitTestsRunnerTests
 {

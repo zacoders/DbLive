@@ -1,6 +1,6 @@
 using EasyFlow.Deployers.Testing;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace EasyFlow.Tests.Deployers.Testing;
 
 public class UnitTestItemRunnerTests
 {

@@ -1,6 +1,6 @@
 using EasyFlow.Deployers.Testing;
 using EasyFlow.Testing;
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace EasyFlow.Tests.Testing;
 
 public class EasyFlowTesterTests
 {
