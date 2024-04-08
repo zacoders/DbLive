@@ -5,7 +5,7 @@ public class SqlTestingTests
 	[Fact]
 	public void GetTests()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
@@ -16,7 +16,7 @@ public class SqlTestingTests
 				@"C:\DB\Tests\Users"
 			]);
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var tests = sqlProject.GetTests();
 
@@ -26,7 +26,7 @@ public class SqlTestingTests
 	[Fact]
 	public void GetFolderTests()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
@@ -47,7 +47,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
@@ -63,7 +63,7 @@ public class SqlTestingTests
 	[Fact]
 	public void GetFolderTests_With_InitFile()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		string projectPath = @"C:\DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
@@ -95,7 +95,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 

@@ -70,7 +70,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public void SetEasyFlowVersion(int version, DateTime migrationDatetime)
+	public void SetEasyFlowVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			update easyflow.version
@@ -79,7 +79,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { version, applied_utc = migrationDatetime });
+		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
 	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationModificationUtc)
@@ -172,7 +172,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, int executionTimeMs)
+	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query("easyflow.insert_code_state",
@@ -216,10 +216,10 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 			{
 				version = item.Version,
 				name = item.Name,
-				item_type = item.ItemType,
+				item_type = item.ItemType.ToString().ToLower(),
 				content_hash = item.ContentHash,
 				content = item.Content,
-				status = item.Status,
+				status = item.Status.ToString().ToLower(),
 				created_utc = item.CreatedUtc,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs
@@ -228,25 +228,25 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		);
 	}
 
-	public void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage)
+	public void SaveUnitTestResult(UnitTestItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
 			"easyflow.save_unit_test_result",
 			new
 			{
-				relative_path = relativePath,
-				content_hash = crc32Hash,
-				run_utc = startedUtc,
-				execution_time_ms = executionTimeMs,
-				pass = isSuccess,
-				error = errorMessage
+				relative_path = item.RelativePath,
+				content_hash = item.Crc32Hash,
+				run_utc = item.StartedUtc,
+				execution_time_ms = item.ExecutionTimeMs,
+				pass = item.IsSuccess,
+				error = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
 		);
 	}
 
-	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs)
+	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(

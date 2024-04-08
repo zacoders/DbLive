@@ -184,7 +184,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		}
 		catch
 		{
-			// just ignoring syntax error exeption, expected transaction rollback
+			// just ignoring syntax error exception, expected transaction rollback
 		}
 
 		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))

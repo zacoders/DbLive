@@ -1,6 +1,6 @@
 Code items are deployed after migrations.
 
-Organize folders in the way you like. It can be groupped by schemas and object types.
+Organize folders in the way you like. It can be grouped by schema and object types.
 
 Code items files can be executed multiple times, make sure it will not fail on the second run.
 

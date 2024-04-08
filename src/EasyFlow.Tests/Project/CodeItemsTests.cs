@@ -5,11 +5,11 @@ public class CodeItemsTests
 	[Fact]
 	public void GetCodeItems()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		string projectPath = @"C:\DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		
+
 		string codePath = projectPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
@@ -34,30 +34,31 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
 		Assert.NotNull(codeGroups);
 		Assert.Single(codeGroups);
 		Assert.Equal(4, codeGroups[0].CodeItems.Count);
-	}	
-	
-	
+	}
+
+
 	[Fact]
 	public void GetCodeItems_With_CodeSubFoldersDeploymentOrder()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings
 		{
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
 
-		string projectPath = @"C:\DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		
-		string codePath = projectPath.CombineWith("Code");
+		string projekt = @"C:\DB";
+		string projektPath = projekt;
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projektPath);
+
+		string codePath = projektPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
@@ -83,7 +84,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.SettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
@@ -95,7 +96,7 @@ public class CodeItemsTests
 
 		Assert.Contains("sub1", codeGroups[1].Path);
 		Assert.Equal(3, codeGroups[1].CodeItems.Count);
-		
+
 		// other items
 		Assert.Equal(2, codeGroups[2].CodeItems.Count);
 	}

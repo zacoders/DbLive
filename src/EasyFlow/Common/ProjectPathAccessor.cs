@@ -4,8 +4,8 @@ public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem _fileSyst
 {
 	private readonly string _projectPath = projectPath.Path;
 
-	public string ProjectPath 
-	{ 
+	public string ProjectPath
+	{
 		get
 		{
 			if (!_fileSystem.PathExistsAndNotEmpty(_projectPath))
@@ -22,7 +22,7 @@ public interface IProjectPath
 	string Path { get; }
 }
 
-public class ProjectPath (string projectPath) : IProjectPath
+public class ProjectPath(string projectPath) : IProjectPath
 {
 	public string Path => projectPath;
 }

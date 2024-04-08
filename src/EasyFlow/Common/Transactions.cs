@@ -1,8 +1,8 @@
 ﻿namespace EasyFlow.Common;
 
-internal class Transactions
+public class TransactionRunner : ITransactionRunner
 {
-	public static void ExecuteWithinTransaction(bool needTransaction, TranIsolationLevel isolationLevel, TimeSpan timeout, Action action)
+	public void ExecuteWithinTransaction(bool needTransaction, TranIsolationLevel isolationLevel, TimeSpan timeout, Action action)
 	{
 		if (!needTransaction)
 		{

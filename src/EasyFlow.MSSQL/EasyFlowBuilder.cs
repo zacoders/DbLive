@@ -4,7 +4,7 @@ namespace EasyFlow.MSSQL;
 
 public static class EasyFlowBuilderExtentions
 {
-	public static EasyFlowBuilder SqlServer(this EasyFlowBuilder builder)
+	public static IEasyFlowBuilder SqlServer(this IEasyFlowBuilder builder)
 	{
 		builder.Container.InitializeMSSQL();
 

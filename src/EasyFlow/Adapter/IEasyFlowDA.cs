@@ -16,7 +16,7 @@ public interface IEasyFlowDA
 	void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc);
 
 	/// <exception cref="EasyFlowSqlException"/>
-	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, int executionTimeMs);
+	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);
 	void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc);
 
 	void CreateDB(bool skipIfExists = true);
@@ -27,6 +27,6 @@ public interface IEasyFlowDA
 	void ExecuteNonQuery(string sqlStatementt);
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);
-	void SaveUnitTestResult(string relativePath, int crc32Hash, DateTime startedUtc, int executionTimeMs, bool isSuccess, string? errorMessage);
-	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, int executionTimeMs);
+	void SaveUnitTestResult(UnitTestItemDto item);
+	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs);
 }

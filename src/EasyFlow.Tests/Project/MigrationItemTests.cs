@@ -11,7 +11,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -35,7 +35,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -53,13 +53,13 @@ public class MigrationItemTests
 
 
 	[Fact]
-	public void GetMigrationType_MultipleItemsWithTheSameType()
+	public void GetMigrationType_MultipleItemsWithTheSameType_MustBeOrdered()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -88,7 +88,7 @@ public class MigrationItemTests
 
 		Assert.Equal(8, migrationItems.Count);
 
-		// checking order, they will be deploed in this order.
+		// checking order, they will be deployed in this order.
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.01.sql", migrationItems[0].FileData.FilePath);
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.02.sql", migrationItems[1].FileData.FilePath);
 		Assert.Equal(@"C:\DB\Migrations\002.test\b.03.sql", migrationItems[2].FileData.FilePath);
@@ -103,7 +103,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -127,7 +127,7 @@ public class MigrationItemTests
 		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
 		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		sqlProject.GetMigrations();
 	}

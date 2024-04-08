@@ -5,7 +5,7 @@ public class FolderDeployerTests
 	[Fact]
 	public void DeployFolder_With_Three_Items()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		var projectFolder = ProjectFolder.BeforeDeploy;
 
@@ -15,7 +15,7 @@ public class FolderDeployerTests
 			GetGenericItem("file3.sql")
 		}.AsReadOnly());
 
-		FolderDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		deploy.DeployFolder(projectFolder, DeployParameters.Default);
 
@@ -23,13 +23,13 @@ public class FolderDeployerTests
 			.ExecuteNonQuery(Arg.Any<string>());
 
 		mockSet.EasyFlowDA.Received(3)
-			.MarkItemAsApplied(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<int>());
+			.MarkItemAsApplied(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	[Fact]
 	public void DeployFolder_With_One_Item()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		var projectFolder = ProjectFolder.BeforeDeploy;
 
@@ -37,7 +37,7 @@ public class FolderDeployerTests
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
-		FolderDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		deploy.DeployFolder(projectFolder, DeployParameters.Default);
 
@@ -45,7 +45,7 @@ public class FolderDeployerTests
 			.ExecuteNonQuery("Content of file1.sql");
 
 		mockSet.EasyFlowDA.Received()
-			.MarkItemAsApplied(projectFolder, @"folder\file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<int>());
+			.MarkItemAsApplied(projectFolder, @"folder\file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	private static GenericItem GetGenericItem(string fileName)
@@ -66,13 +66,13 @@ public class FolderDeployerTests
 	[Fact]
 	public void DeployFolder_EmptyFolder()
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		var projectFolder = ProjectFolder.BeforeDeploy;
 
 		mockSet.EasyFlowProject.GetFolderItems(projectFolder).Returns(ReadOnlyCollection<GenericItem>.Empty);
 
-		FolderDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		deploy.DeployFolder(projectFolder, DeployParameters.Default);
 

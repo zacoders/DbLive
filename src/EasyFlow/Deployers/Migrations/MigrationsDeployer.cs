@@ -6,14 +6,10 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
-		MigrationItemDeployer _migrationItemDeployer,
-		ITimeProvider _timeProvider
-	)
+		IMigrationDeployer _migrationDeployer
+	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
-
-	private readonly EasyFlowSettings _projectSettings = new();
-	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromDays(1);
 
 	public void DeployMigrations(bool isSelfDeploy, DeployParameters parameters)
 	{
@@ -28,7 +24,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			DeployMigration(isSelfDeploy, migration);
+			_migrationDeployer.DeployMigration(isSelfDeploy, migration);
 		}
 	}
 
@@ -57,44 +53,5 @@ public class MigrationsDeployer(
 		return migrationsToApply
 				.OrderBy(m => m.Version)
 				.ThenBy(m => m.Name);
-	}
-
-	internal protected void DeployMigration(bool isSelfDeploy, Migration migration)
-	{
-		_logger.Information("Applying migration: {path}", migration.FolderPath.GetLastSegment());
-		var migrationItems = _project.GetMigrationItems(migration.FolderPath);
-
-		if (migrationItems.Count == 0) return;
-
-		Transactions.ExecuteWithinTransaction(
-			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
-			_projectSettings.TransactionIsolationLevel,
-			_defaultTimeout, //toto: separate timeout for all migrations
-			() =>
-			{
-				foreach (MigrationItem migrationItem in migrationItems.OrderBy(t => t.MigrationItemType))
-				{
-					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
-					{
-						_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration, migrationItem);
-					}
-					else
-					{
-						_migrationItemDeployer.MarkAsSkipped(isSelfDeploy, migration, migrationItem);
-					}
-				}
-
-				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-
-				if (isSelfDeploy)
-				{
-					_da.SetEasyFlowVersion(migration.Version, migrationCompletedUtc);
-				}
-				else
-				{
-					_da.SaveMigration(migration.Version, migration.Name, migrationCompletedUtc);
-				}
-			}
-		);
 	}
 }

@@ -7,7 +7,7 @@ public class FolderDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
-	)
+	) : IFolderDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(FolderDeployer));
 
@@ -39,6 +39,6 @@ public class FolderDeployer(
 		_da.ExecuteNonQuery(item.FileData.Content);
 		DateTime completedUtc = _timeProvider.UtcNow();
 
-		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (int)(completedUtc - startedUtc).TotalMilliseconds);
+		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);
 	}
 }

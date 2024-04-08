@@ -4,7 +4,7 @@ namespace EasyFlow.Tests.Common;
 
 public static class EasyFlowBuilderExtentions
 {
-	public static EasyFlowBuilder LogToXUnitOutput(this EasyFlowBuilder builder, ITestOutputHelper output)
+	public static IEasyFlowBuilder LogToXUnitOutput(this IEasyFlowBuilder builder, ITestOutputHelper output)
 	{
 		builder.Container.LogToXUnitOutput(output);
 		return builder;
@@ -37,7 +37,7 @@ public static class EasyFlowBuilderExtentions
 	//public static void AddTestingPostgreSQLConnection(this IServiceCollection serviceCollection)
 	//{
 	//	var testConfig = new TestConfig();
-	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgreSqlConnectionString());
+	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgresSqlConnectionString());
 	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
 	//}
 }

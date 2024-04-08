@@ -9,7 +9,7 @@ public class GetFolderItemsTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		string folderPath = Path.Combine(@"C:\DB\", "BeforeDeploy");
 
@@ -40,7 +40,7 @@ public class GetFolderItemsTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		string folderPath = Path.Combine(@"C:\DB\", "AfterDeploy");
 
@@ -61,7 +61,7 @@ public class GetFolderItemsTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = new EasyFlowProject(mockSet.ProjectPathAccessor, mockSet.FileSystem, mockSet.DefaultSettingsAccessor);
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
 
 		Assert.Throws<NotImplementedException>(() => sqlProject.GetFolderItems(ProjectFolder.Unspecified));
 	}

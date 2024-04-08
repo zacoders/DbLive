@@ -1,11 +1,12 @@
 using EasyFlow.Adapter;
+using EasyFlow.Deployers.Code;
 
-namespace EasyFlow.Tests.Deployers;
+namespace EasyFlow.Tests.Deployers.Code;
 
-public class CodeDeployerTest
+public class CodeItemDeployerTests
 {
 	record Arrange(
-		CodeDeployer deploy,
+		CodeItemDeployer deployer,
 		string cnnString,
 		CodeItem codeItem,
 		CodeItemDto? codeItemDto
@@ -13,7 +14,7 @@ public class CodeDeployerTest
 
 	private static Arrange CommonArrange(bool codeItemDtoExists)
 	{
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		string cnnString = "some cnn string";
 		string relativePath = "/path-to/some-code-item.sql";
@@ -31,7 +32,8 @@ public class CodeDeployerTest
 		mockSet.EasyFlowDA.ExecuteNonQuery(content);
 		mockSet.EasyFlowDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
 
-		CodeDeployer deploy = new(mockSet.Logger, mockSet.EasyFlowProject, mockSet.EasyFlowDA, mockSet.TimeProvider);
+		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
 		CodeItem codeItem = new()
 		{
 			Name = "some-code-item",
@@ -51,7 +53,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: true);
 
-		var res = arrange.deploy.DeployCodeItem(true, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(true, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -61,7 +63,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: true);
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -71,7 +73,7 @@ public class CodeDeployerTest
 	{
 		var arrange = CommonArrange(codeItemDtoExists: false);
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.True(res);
 	}
@@ -83,8 +85,45 @@ public class CodeDeployerTest
 
 		arrange.codeItemDto!.ContentHash = 99999999; // wrong hash.
 
-		var res = arrange.deploy.DeployCodeItem(false, arrange.codeItem);
+		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
 		Assert.False(res);
+	}
+
+	[Fact]
+	public void DeployCodeItem_RetryTest()
+	{
+		MockSet mockSet = new();
+
+		bool isThrown = false;
+		mockSet.EasyFlowDA
+			.When(x => x.ExecuteNonQuery(Arg.Any<string>()))
+			.Do(x =>
+			{
+				if (isThrown == false)
+				{
+					isThrown = true;
+					throw new Exception();
+				}
+			});
+
+		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItem codeItem = new()
+		{
+			Name = "some-code-item",
+			FileData = new FileData
+			{
+				Content = "--some content",
+				RelativePath = "item.sql",
+				FilePath = "c:/data/item.sql"
+			}
+		};
+
+		var res = deploy.DeployCodeItem(false, codeItem);
+
+		Assert.True(res, "Should be deployed from the second retry attempt.");
+
+		mockSet.EasyFlowDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
 	}
 }

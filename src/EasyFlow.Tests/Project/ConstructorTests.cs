@@ -9,7 +9,7 @@ public class ConstructorTests
 	{
 		string projectPath = @"C:\DB\";
 
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(false);
@@ -26,7 +26,7 @@ public class ConstructorTests
 	{
 		string projectPath = @"C:\DB\";
 
-		var mockSet = new MockSet();
+		MockSet mockSet = new();
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);

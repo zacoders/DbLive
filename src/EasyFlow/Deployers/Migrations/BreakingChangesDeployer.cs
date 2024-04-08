@@ -7,8 +7,8 @@ public class BreakingChangesDeployer(
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
-		MigrationItemDeployer _migrationItemDeployer
-	)
+		IMigrationItemDeployer _migrationItemDeployer
+	) : IBreakingChangesDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(BreakingChangesDeployer));
 
@@ -21,46 +21,56 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		DeployBreakingMigration(/*, parameters*/);
-	}
-
-	private void DeployBreakingMigration(/*, DeployParameters parameters*/)
-	{
 		var dbItems = _da.GetNonAppliedBreakingMigrationItems();
 
 		if (dbItems.Count == 0) return;
 
-		Dictionary<(int Version, string Name), MigrationItemDto> breakingToApply = dbItems.ToDictionary(i => (i.Version, i.Name));
+		Dictionary<VersionNameKey, MigrationItemDto> breakingToApply =
+			dbItems.ToDictionary(i => new VersionNameKey(i.Version, i.Name));
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
 
 		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
 
-		foreach (var migration in migrations)
+		foreach (Migration migration in migrations)
 		{
-			var key = (migration.Version, migration.Name);
+			VersionNameKey key = new(migration.Version, migration.Name);
 			if (!breakingToApply.ContainsKey(key)) continue;
 
-			var breakingChnagesItem = _project.GetMigrationItems(migration.FolderPath)
-				.Where(mi => mi.MigrationItemType == MigrationItemType.BreakingChange)
+			MigrationItemDto breakingDto = breakingToApply[key];
+
+			var breakingChnagesItem = migration.Items
+				.Where(mi => mi.MigrationItemType == MigrationItemType.Breaking)
 				.Single();
 
-			if (breakingChnagesItem.FileData.Crc32Hash != breakingToApply[key].ContentHash)
+			if (breakingChnagesItem.FileData.Crc32Hash != breakingDto.ContentHash)
 			{
 				throw new FileContentChangedException(
 					breakingChnagesItem.FileData.RelativePath,
 					breakingChnagesItem.FileData.Crc32Hash,
-					breakingToApply[key].ContentHash
+					breakingDto.ContentHash
 				);
 			}
 
 			// TODO: transaction should be configurable?
 			using var tran = TransactionScopeManager.Create();
 			{
+				var stopwatch = _timeProvider.StartNewStopwatch();
+
 				_migrationItemDeployer.DeployMigrationItem(false, migration, breakingChnagesItem);
-				_da.SaveMigration(migration.Version, migration.Name, _timeProvider.UtcNow());
+
+				stopwatch.Stop();
+
+				breakingDto.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
+				breakingDto.AppliedUtc = _timeProvider.UtcNow();
+
+				_da.SaveMigrationItemState(breakingDto);
+
 				tran.Complete();
 			}
 		}
 	}
+
+	[ExcludeFromCodeCoverage]
+	private record VersionNameKey(int Version, string Name);
 }
