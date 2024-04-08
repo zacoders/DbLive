@@ -190,7 +190,7 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromDays(1)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.EasyFlowDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
@@ -252,7 +252,7 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromDays(1)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.EasyFlowDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
@@ -306,7 +306,7 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromDays(1)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.EasyFlowDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));

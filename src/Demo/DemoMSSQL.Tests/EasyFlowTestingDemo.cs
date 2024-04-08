@@ -16,9 +16,9 @@ public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOu
 	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
 	[Theory]
 	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
-	public void Sql(string relativePath)
+	public void Sql(string testFileRelativePath)
 	{
-		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, relativePath);
+		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }
