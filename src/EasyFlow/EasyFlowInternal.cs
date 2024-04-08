@@ -22,7 +22,7 @@ public class EasyFlowInternal(
 	{
 		_logger.Information("Starting self deploy.");
 
-		var easyFlowSelfDeployer = _selfDeployer.CreateEasyFlowSelf();
+		IEasyFlowInternal easyFlowSelfDeployer = _selfDeployer.CreateEasyFlowSelf();
 		easyFlowSelfDeployer.DeployProjectInternal(true, DeployParameters.Default);
 
 		_logger.Information("Self deploy completed.");
