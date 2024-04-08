@@ -39,6 +39,6 @@ public class TestConfig
 	}
 
 	public string? GetSqlServerConnectionString() => GetConnectionString("SQLSERVER");
-	
+
 	public string? GetPostgresConnectionString() => GetConnectionString("POSTGRESQL");
 }

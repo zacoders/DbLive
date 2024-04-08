@@ -37,12 +37,12 @@ public class MockSet
 		SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
 
 		TransactionRunner.ExecuteWithinTransaction(
-			Arg.Any<bool>(), 
-			Arg.Any<TranIsolationLevel>(), 
-			Arg.Any<TimeSpan>(), 
+			Arg.Any<bool>(),
+			Arg.Any<TranIsolationLevel>(),
+			Arg.Any<TimeSpan>(),
 			Arg.Invoke()
 		);
-		
+
 		foreach (var fld in GetType().GetFields().Where(fld => !fld.IsPrivate))
 		{
 			// this replaces adding all fields to _container:
@@ -56,10 +56,10 @@ public class MockSet
 	}
 
 	public TService CreateUsingMocks<TService>() where TService : class
-	{		
+	{
 		_container.AddTransient<TService>();
 		var serviceProvider = _container.BuildServiceProvider();
-		return serviceProvider.GetService<TService>() 
+		return serviceProvider.GetService<TService>()
 			?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}
 }

@@ -1,6 +1,6 @@
 ﻿namespace EasyFlow.Project;
 
-public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fileSystem) 
+public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fileSystem)
 	: ISettingsAccessor
 {
 	readonly string _projectPath = projectPath.ProjectPath;

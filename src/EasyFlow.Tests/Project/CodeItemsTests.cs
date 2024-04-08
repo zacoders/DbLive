@@ -1,5 +1,3 @@
-using EasyFlow.Deployers.Migrations;
-
 namespace EasyFlow.Tests.Project;
 
 public class CodeItemsTests
@@ -11,7 +9,7 @@ public class CodeItemsTests
 
 		string projectPath = @"C:\DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		
+
 		string codePath = projectPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
@@ -43,9 +41,9 @@ public class CodeItemsTests
 		Assert.NotNull(codeGroups);
 		Assert.Single(codeGroups);
 		Assert.Equal(4, codeGroups[0].CodeItems.Count);
-	}	
-	
-	
+	}
+
+
 	[Fact]
 	public void GetCodeItems_With_CodeSubFoldersDeploymentOrder()
 	{
@@ -59,7 +57,7 @@ public class CodeItemsTests
 		string projekt = @"C:\DB";
 		string projektPath = projekt;
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projektPath);
-		
+
 		string codePath = projektPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
 
@@ -98,7 +96,7 @@ public class CodeItemsTests
 
 		Assert.Contains("sub1", codeGroups[1].Path);
 		Assert.Equal(3, codeGroups[1].CodeItems.Count);
-		
+
 		// other items
 		Assert.Equal(2, codeGroups[2].CodeItems.Count);
 	}

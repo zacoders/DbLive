@@ -37,7 +37,7 @@ public class MigrationItemDeployerTests
 				FilePath = "c:/db/migrations/001.demo/m.1.sql"
 			}
 		};
-		
+
 		// Act
 		deploy.MarkAsSkipped(false, migration, migrationItem);
 

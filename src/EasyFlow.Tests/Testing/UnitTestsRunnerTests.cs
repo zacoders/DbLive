@@ -1,5 +1,4 @@
 using EasyFlow.Deployers.Testing;
-using EasyFlow.Project;
 using EasyFlow.Testing;
 namespace EasyFlow.Tests.Deployers.Migrations;
 
@@ -39,8 +38,9 @@ public class EasyFlowTesterTests
 		MockSet mockSet = new();
 
 		mockSet.EasyFlowProject.GetTests().Returns([
-			new TestItem { 
-				Name = "first", 
+			new TestItem
+			{
+				Name = "first",
 				FileData = GetFileData("/test/first.sql"),
 				InitFileData = GetFileData("/test/init.sql")
 			},

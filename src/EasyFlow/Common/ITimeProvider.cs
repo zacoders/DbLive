@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace EasyFlow.Common;
+﻿namespace EasyFlow.Common;
 
 public interface ITimeProvider
 {

@@ -8,11 +8,11 @@ namespace EasyFlow.Testing;
 /// <param name="_project"></param>
 /// <param name="_unitTestItemRunner"></param>
 public class EasyFlowTester(
-		IEasyFlowProject _project, 
+		IEasyFlowProject _project,
 		IUnitTestItemRunner _unitTestItemRunner
 	) : IEasyFlowTester
 {
-	
+
 	private readonly ReadOnlyDictionary<string, TestItem> TestsList = new(
 		_project.GetTests().ToDictionary(test => test.FileData.RelativePath, i => i)
 	);
@@ -23,7 +23,7 @@ public class EasyFlowTester(
 	/// <param name="output"><see cref="ITestOutput"/></param>
 	/// <param name="testFileRelativePath">Relative path to the sql test.</param>
 	public TestRunResult RunTest(Action<string> writeLine, string testFileRelativePath)
-	{		
+	{
 		var testItem = TestsList[testFileRelativePath];
 
 		if (testItem.InitFileData is not null)

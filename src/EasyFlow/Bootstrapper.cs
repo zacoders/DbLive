@@ -14,18 +14,18 @@ public static class Bootstrapper
 		container.AddSingleton<IFileSystem, FileSystem>();
 		container.AddSingleton<IEasyFlowProject, EasyFlowProject>();
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
-		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>(); 
+		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>();
 		container.AddSingleton<ICodeItemDeployer, CodeItemDeployer>();
 		container.AddSingleton<ICodeDeployer, CodeDeployer>();
 		container.AddSingleton<IMigrationsDeployer, MigrationsDeployer>();
 		container.AddSingleton<IMigrationDeployer, MigrationDeployer>();
 		container.AddSingleton<IMigrationItemDeployer, MigrationItemDeployer>();
-		container.AddSingleton<IFolderDeployer, FolderDeployer>(); 
+		container.AddSingleton<IFolderDeployer, FolderDeployer>();
 		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
 		container.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>();
 		container.AddSingleton<IEasyFlowTester, EasyFlowTester>();
 		container.AddSingleton<IEasyFlow, EasyFlow>();
-		container.AddSingleton<ITransactionRunner, TransactionRunner>();		
+		container.AddSingleton<ITransactionRunner, TransactionRunner>();
 	}
 }

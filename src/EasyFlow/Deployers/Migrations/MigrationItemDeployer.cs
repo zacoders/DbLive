@@ -34,7 +34,7 @@ public class MigrationItemDeployer(
 				long? executionTimeMs = null;
 
 				_da.ExecuteNonQuery(migrationItem.FileData.Content);
-				
+
 				migrationAppliedUtc = _timeProvider.UtcNow();
 				executionTimeMs = (long)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
 
@@ -43,7 +43,7 @@ public class MigrationItemDeployer(
 					string content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "";
 
 					DateTime createdUtc = _timeProvider.UtcNow();
-					
+
 					int crc32Hash = migrationItem.FileData.Crc32Hash;
 
 					MigrationItemDto dto = new()

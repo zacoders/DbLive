@@ -1,13 +1,13 @@
 namespace EasyFlow.Project;
 
 public class EasyFlowProject(
-	IProjectPathAccessor projectPath, 
-	IFileSystem _fileSystem, 
+	IProjectPathAccessor projectPath,
+	IFileSystem _fileSystem,
 	ISettingsAccessor _settingsAccessor
 ) : IEasyFlowProject
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
-	
+
 	internal protected ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
 	{
 		List<MigrationItem> tasks = [];
@@ -75,7 +75,7 @@ public class EasyFlowProject(
 	internal List<CodeItem> GetCodeGroup(List<string> codeFiles)
 	{
 		List<CodeItem> codeItems = [];
-		
+
 		foreach (string filePath in codeFiles)
 		{
 			string fileName = filePath.GetLastSegment();
