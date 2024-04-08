@@ -28,6 +28,6 @@ public static class Bootstrapper
 		container.AddSingleton<IEasyFlow, EasyFlow>();
 		container.AddSingleton<ITransactionRunner, TransactionRunner>();
 		container.AddSingleton<IEasyFlowInternal, EasyFlowInternal>();
-		container.AddSingleton<ISelfDeployer, SelfDeployer>();
+		container.AddSingleton<IEasyFlowInternalManager, EasyFlowInternalManager>();
 	}
 }

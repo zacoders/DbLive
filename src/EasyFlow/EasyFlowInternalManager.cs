@@ -2,13 +2,13 @@
 
 namespace EasyFlow;
 
-public class SelfDeployer(
+public class EasyFlowInternalManager(
 	IEasyFlowBuilder _builder,
 	IEasyFlowPaths _paths
 )
-: ISelfDeployer
+: IEasyFlowInternalManager
 {
-	public IEasyFlowInternal CreateEasyFlowSelf()
+	public IEasyFlowInternal CreateEasyFlowInternal()
 	{
 		IEasyFlowInternal selfDeployer = _builder.CloneBuilder()
 			.SetProjectPath(_paths.GetPathToEasyFlowSelfProject())

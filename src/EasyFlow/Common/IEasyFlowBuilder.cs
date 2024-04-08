@@ -2,5 +2,6 @@
 
 public interface IEasyFlowBuilder
 {
-	EasyFlowBuilder CloneBuilder();
+	IServiceCollection Container { get; }
+	IEasyFlowBuilder CloneBuilder();
 }

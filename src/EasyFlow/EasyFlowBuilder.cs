@@ -6,7 +6,7 @@ namespace EasyFlow;
 [ExcludeFromCodeCoverage]
 public static class EasyFlowBuilderExtentions
 {
-	public static EasyFlowBuilder LogToConsole(this EasyFlowBuilder builder)
+	public static IEasyFlowBuilder LogToConsole(this IEasyFlowBuilder builder)
 	{
 		builder.Container.LogToConsole();
 		return builder;
@@ -21,7 +21,7 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<ILogger>(logger);
 	}
 
-	public static EasyFlowBuilder SetDbConnection(this EasyFlowBuilder builder, string sqlDbConnectionString)
+	public static IEasyFlowBuilder SetDbConnection(this IEasyFlowBuilder builder, string sqlDbConnectionString)
 	{
 		builder.Container.SetDbConnection(sqlDbConnectionString);
 		return builder;
@@ -33,7 +33,7 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
 	}
 
-	public static EasyFlowBuilder SetProjectPath(this EasyFlowBuilder builder, string projectPath)
+	public static IEasyFlowBuilder SetProjectPath(this IEasyFlowBuilder builder, string projectPath)
 	{
 		builder.Container.SetProjectPath(projectPath);
 		return builder;
@@ -45,31 +45,31 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<IProjectPath>(path);
 	}
 
-	public static IEasyFlow CreateDeployer(this EasyFlowBuilder builder)
+	public static IEasyFlow CreateDeployer(this IEasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlow>()!;
 	}
 
-	public static IEasyFlowInternal CreateSelfDeployer(this EasyFlowBuilder builder)
+	public static IEasyFlowInternal CreateSelfDeployer(this IEasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlowInternal>()!;
 	}
 
-	internal static IEasyFlowDA CreateEasyFlowDA(this EasyFlowBuilder builder)
+	internal static IEasyFlowDA CreateEasyFlowDA(this IEasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlowDA>()!;
 	}
 
-	public static IEasyFlowTester CreateTester(this EasyFlowBuilder builder)
+	public static IEasyFlowTester CreateTester(this IEasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlowTester>()!;
 	}
 
-	public static IEasyFlowProject CreateProject(this EasyFlowBuilder builder)
+	public static IEasyFlowProject CreateProject(this IEasyFlowBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IEasyFlowProject>()!;

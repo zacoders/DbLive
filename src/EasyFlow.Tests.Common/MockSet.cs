@@ -32,7 +32,7 @@ public class MockSet
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IEasyFlowBuilder EasyFlowBuilder = Substitute.For<IEasyFlowBuilder>();
 	public readonly IEasyFlowInternal EasyFlowInternal = Substitute.For<IEasyFlowInternal>();
-	public readonly ISelfDeployer SelfDeployer = Substitute.For<ISelfDeployer>();
+	public readonly IEasyFlowInternalManager SelfDeployer = Substitute.For<IEasyFlowInternalManager>();
 
 	public MockSet()
 	{

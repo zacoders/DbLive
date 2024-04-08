@@ -19,13 +19,13 @@ public class EasyFlowInternalTests
 
 		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternal>();
 
-		mockSet.SelfDeployer.CreateEasyFlowSelf().Returns(mockSet.EasyFlowInternal);
+		mockSet.SelfDeployer.CreateEasyFlowInternal().Returns(mockSet.EasyFlowInternal);
 
 		// Act
 		easyFlow.SelfDeployProjectInternal();
 
 		// Assert
-		mockSet.SelfDeployer.Received().CreateEasyFlowSelf();
+		mockSet.SelfDeployer.Received().CreateEasyFlowInternal();
 		mockSet.EasyFlowInternal.Received().DeployProjectInternal(Arg.Is(true), Arg.Is(selfDeployParameters));
 	}
 

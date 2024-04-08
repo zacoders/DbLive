@@ -13,7 +13,7 @@ public class EasyFlowInternal(
 		ILogger logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
-		ISelfDeployer _selfDeployer
+		IEasyFlowInternalManager _selfDeployer
 	) : IEasyFlowInternal
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlowInternal));
@@ -22,7 +22,7 @@ public class EasyFlowInternal(
 	{
 		_logger.Information("Starting self deploy.");
 
-		IEasyFlowInternal easyFlowSelfDeployer = _selfDeployer.CreateEasyFlowSelf();
+		IEasyFlowInternal easyFlowSelfDeployer = _selfDeployer.CreateEasyFlowInternal();
 		easyFlowSelfDeployer.DeployProjectInternal(true, DeployParameters.Default);
 
 		_logger.Information("Self deploy completed.");
