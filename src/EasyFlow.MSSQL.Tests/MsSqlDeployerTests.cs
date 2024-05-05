@@ -212,17 +212,21 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 11 as UserId, 'TestUser11' as Name
 		";
 
-		MultipleResults results = _da.ExecuteQuery(sql);
+		MultipleResults results = _da.ExecuteQueryMultiple(sql);
 
 		Assert.Equal(3, results.Results.Count);
+	}
 
-		//foreach(SqlResult result in results.Results)
-		//{
-		//	string resultType = result.Rows[0].ColumnValues[0].ColumnName;
-		//	if (resultType == "expected")
-		//	{
-		//		if()
-		//	}
-		//}
+	[Fact]
+	public void ExecuteQuery_NoResult()
+	{
+		var sql = @"
+			if not exists ( select 1 )
+				throw 50001, 'Admin user must exists.', 0;
+		";
+
+		MultipleResults results = _da.ExecuteQueryMultiple(sql);
+
+		Assert.Empty(results.Results);
 	}
 }

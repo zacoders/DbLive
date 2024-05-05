@@ -4,7 +4,8 @@ namespace EasyFlow.Deployers.Testing;
 
 public class UnitTestItemRunner(
 	IEasyFlowDA _da,
-	ITimeProvider _timeProvider
+	ITimeProvider _timeProvider,
+	IUnitTestResultChecker _unitTestResultChecker
 ) : IUnitTestItemRunner
 {
 	//TODO: timeout should be configurable.
@@ -28,12 +29,19 @@ public class UnitTestItemRunner(
 				_da.ExecuteNonQuery(test.InitFileData.Content);
 			}
 
-			_da.ExecuteNonQuery(test.FileData.Content);
+			MultipleResults resutls = _da.ExecuteQueryMultiple(test.FileData.Content);
 
-			result.Output = "TODO: Populate it using output from sql execution.";
-
-			result.IsSuccess = true;
-
+			var testResult = _unitTestResultChecker.ValidateTestResult(resutls);
+			if (!testResult.Match)
+			{
+				result.Output = testResult.Output;
+				result.IsSuccess = false;
+			}
+			else
+			{
+				result.IsSuccess = true;
+			}
+			
 			_transactionScope.Dispose(); //canceling transaction
 		}
 		catch (Exception ex)

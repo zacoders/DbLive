@@ -2,13 +2,20 @@
 
 public class SqlResult
 {
+	public List<string> Columns { get; } = [];
 	public List<SqlRow> Rows { get; } = [];
 
 	public SqlResult(List<object> resultRows)
 	{
-		foreach (IDictionary<string, object> row in resultRows)
+		if (resultRows.Any())
 		{
-			SqlRow sqlRow = new(row);
+			var firstRows = (IDictionary<string, object>)resultRows[0];
+			Columns = firstRows.Keys.ToList();
+		}
+
+		foreach (IDictionary<string, object> row in resultRows)
+		{            
+            SqlRow sqlRow = new(row.Values.ToList());
 			Rows.Add(sqlRow);
 		}
 	}

@@ -115,7 +115,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
-	public MultipleResults ExecuteQuery(string sqlStatement)
+	public MultipleResults ExecuteQueryMultiple(string sqlStatement)
 	{
 		try
 		{
@@ -123,10 +123,16 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 
 			SqlMapper.GridReader gridReader = cnn.QueryMultiple(sqlStatement);
 			
+			if (!GridReaderEx.HasRows(gridReader))
+			{
+				return MultipleResults.Empty;
+			}
+
 			List<List<object>> results = [];
 			while(!gridReader.IsConsumed)
 			{
-				results.Add((List<object>)gridReader.Read());
+				var readResult = gridReader.Read();
+				results.Add((List<object>)readResult);
 			}
 
 			return new MultipleResults(results);
