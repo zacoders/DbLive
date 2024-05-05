@@ -115,6 +115,29 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
+	public MultipleResults ExecuteQuery(string sqlStatement)
+	{
+		try
+		{
+			using SqlConnection cnn = new(_cnn.ConnectionString);
+
+			SqlMapper.GridReader gridReader = cnn.QueryMultiple(sqlStatement);
+			
+			List<List<object>> results = [];
+			while(!gridReader.IsConsumed)
+			{
+				results.Add((List<object>)gridReader.Read());
+			}
+
+			return new MultipleResults(results);
+		}
+		catch (Exception e)
+		{
+			var sqlException = e.Get<SqlException>();
+			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
+		}
+	}
+
 	public void CreateDB(bool skipIfExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);

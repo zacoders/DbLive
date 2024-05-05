@@ -201,4 +201,28 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		_da.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
 	}
+
+	[Fact]
+	public void ExecuteQuery()
+	{
+		var sql = @"
+			select 10 as UserId, 'TestUser10' as Name
+			
+			select expected = 'rows'
+			select 11 as UserId, 'TestUser11' as Name
+		";
+
+		MultipleResults results = _da.ExecuteQuery(sql);
+
+		Assert.Equal(3, results.Results.Count);
+
+		//foreach(SqlResult result in results.Results)
+		//{
+		//	string resultType = result.Rows[0].ColumnValues[0].ColumnName;
+		//	if (resultType == "expected")
+		//	{
+		//		if()
+		//	}
+		//}
+	}
 }

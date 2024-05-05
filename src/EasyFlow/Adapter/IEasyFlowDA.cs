@@ -25,6 +25,9 @@ public interface IEasyFlowDA
 
 	/// <exception cref="EasyFlowSqlException"/>
 	void ExecuteNonQuery(string sqlStatementt);
+
+	MultipleResults ExecuteQuery(string sqlStatement);
+
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);
 	void SaveUnitTestResult(UnitTestItemDto item);
