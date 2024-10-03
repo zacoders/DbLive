@@ -1,4 +1,7 @@
-﻿using Xunit.Abstractions;
+﻿using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Xml.Serialization;
+using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace MyUnitTestingFramework;
@@ -20,23 +23,26 @@ public class TestCaseFactDiscoverer : IXunitTestCaseDiscoverer
 		IAttributeInfo factAttribute
 	)
 	{
-		yield return new CustomTestCase(
-			DiagnosticMessageSink,
-			testMethod,
-			@"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\test1.sql"
-		);
+		//IEnumerable<IAttributeInfo> allAttributes = testMethod.Method.GetCustomAttributes(typeof(TestCaseFactAttribute));
+		//var attr = (ReflectionAttributeInfo)allAttributes.Single();
 
- 		yield return new CustomTestCase(
-			DiagnosticMessageSink,
-			testMethod,
-			@"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\test2.sql"
-		);
+		var attr = (ReflectionAttributeInfo)factAttribute;
+		string rootPath = attr.GetNamedArgument<string>("RootPath");
+				
+		foreach (string file in Directory.EnumerateFiles(rootPath, "*.sql", SearchOption.AllDirectories))
+		{
+			yield return new CustomTestCase(
+				DiagnosticMessageSink,
+				testMethod,
+				file
+			);
+		}
 
-		yield return new CustomTestCase(
-			DiagnosticMessageSink,
-			testMethod,
-			@"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\test3.sql"
-		);
+		//yield return new CustomTestCase(
+		//	DiagnosticMessageSink,
+		//	testMethod,
+		//	@"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\test3.sql"
+		//);
 	}
 
 }

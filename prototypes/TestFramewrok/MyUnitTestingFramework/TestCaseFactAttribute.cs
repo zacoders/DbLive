@@ -13,6 +13,8 @@ namespace MyUnitTestingFramework;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class TestCaseFactAttribute : FactAttribute
 {
+	public string RootPath { get; set; } = "";
+
 	public TestCaseFactAttribute()
 	{
 		//DisplayName = "Test123";

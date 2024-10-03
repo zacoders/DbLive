@@ -17,8 +17,15 @@ public class DBTests
 
 	}
 
-	[TestCaseFact]
+	[TestCaseFact(RootPath = @"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1")]
 	public void SQL(string path)
+	{
+		_output.WriteLine($"Testing file: {path}");
+	}
+
+
+	[TestCaseFact(RootPath = @"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\OtherTests")]
+	public void Other(string path)
 	{
 		_output.WriteLine($"Testing file: {path}");
 	}
