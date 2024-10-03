@@ -46,5 +46,13 @@ public class CustomTestCase : XunitTestCase
 
 	//public override string DisplayName => $"{_folderName}.{base.DisplayName}";
 	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
-		=> TestMethodArguments[0].ToString();
+	{
+		if (TestMethodArguments.Length > 0 && TestMethodArguments[0] is not null)
+		{
+			object pathToTestFile = TestMethodArguments[0];
+			return $"{pathToTestFile}";
+		}
+
+		return base.GetDisplayName(factAttribute, displayName);
+	}
 }
