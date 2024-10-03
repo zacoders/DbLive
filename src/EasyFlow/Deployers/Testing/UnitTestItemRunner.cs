@@ -35,6 +35,7 @@ public class UnitTestItemRunner(
 			if (!testResult.Match)
 			{
 				result.Output = testResult.Output;
+				result.ErrorMessage = testResult.Output;
 				result.IsSuccess = false;
 			}
 			else
