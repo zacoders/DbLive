@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="xunit.extensibility.core" />
+    <PackageReference Include="xunit.extensibility.execution" />
   </ItemGroup>
 
   <ItemGroup>
