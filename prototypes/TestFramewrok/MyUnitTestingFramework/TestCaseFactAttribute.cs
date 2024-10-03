@@ -10,34 +10,11 @@ namespace MyUnitTestingFramework;
 /// </summary>
 
 [XunitTestCaseDiscoverer("MyUnitTestingFramework.TestCaseFactDiscoverer", "MyUnitTestingFramework")]
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class TestCaseFactAttribute : FactAttribute
 {
 	public TestCaseFactAttribute()
-	{ }
+	{
+		//DisplayName = "Test123";
+	}
 }
-
-////[MyXunitTestCaseDiscoverer(typeof(TestCaseFactDiscoverer))]
-//[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-//public class MyFactAttribute : Attribute, IFactAttribute
-//{
-//	/// <inheritdoc/>
-//	public string? DisplayName { get; set; }
-
-//	/// <inheritdoc/>
-//	public bool Explicit { get; set; }
-
-//	/// <inheritdoc/>
-//	public string? Skip { get; set; }
-
-//	/// <inheritdoc/>
-//	public Type? SkipType { get; set; }
-
-//	/// <inheritdoc/>
-//	public string? SkipUnless { get; set; }
-
-//	/// <inheritdoc/>
-//	public string? SkipWhen { get; set; }
-
-//	/// <inheritdoc/>
-//	public int Timeout { get; set; }
-//}

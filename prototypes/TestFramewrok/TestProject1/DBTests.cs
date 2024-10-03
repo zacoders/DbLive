@@ -20,7 +20,6 @@ public class DBTests
 	[TestCaseFact]
 	public void SQL(string path)
 	{
-		_output.WriteLine("Testing file: ");
-		_output.WriteLine(path);
+		_output.WriteLine($"Testing file: {path}");
 	}
 }

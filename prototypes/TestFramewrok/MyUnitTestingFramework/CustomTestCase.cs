@@ -1,5 +1,4 @@
-﻿using MyUnitTestingFramework.Unused;
-using Xunit.Abstractions;
+﻿using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace MyUnitTestingFramework;
@@ -19,7 +18,7 @@ public class CustomTestCase : XunitTestCase
 		)
 	{
 		//DisplayName = Path.GetFileName(testFilePath);
-		DisplayName = testFilePath;
+		//DisplayName = testFilePath;
 		
 		SourceInformation = new SourceInformation
 		{
@@ -27,6 +26,7 @@ public class CustomTestCase : XunitTestCase
 			LineNumber = 1
 		};
 
+		//TestMethodArguments = [Path.GetFileName(testFilePath), testFilePath];
 		TestMethodArguments = [testFilePath];
 		//testMethod.Method = new TestMethod()
 		//DisplayName = "MyName1";
@@ -45,4 +45,6 @@ public class CustomTestCase : XunitTestCase
 	}
 
 	//public override string DisplayName => $"{_folderName}.{base.DisplayName}";
+	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
+		=> TestMethodArguments[0].ToString();
 }
