@@ -20,12 +20,14 @@ public class TestConstants
 			.SetProjectPath(Path.GetFullPath(SqlProjectName));
 }
 
+//maybe move it to a new method IEasyFlowBuilder.UseSqlServerContainer()?
 internal class EasyFlowDockerContainer(string dockerImage = "mcr.microsoft.com/mssql/server:2022-latest") 
 	: IEasyFlowDockerContainer
 {
 	private readonly MsSqlContainer _dockerContainer = new MsSqlBuilder().WithImage(dockerImage).Build();
 
 	public async Task StartAsync() => await _dockerContainer.StartAsync();
+	public async Task DisposeAsync() => await _dockerContainer.DisposeAsync();
 
 	public string GetConnectionString()
 	{
@@ -33,8 +35,6 @@ internal class EasyFlowDockerContainer(string dockerImage = "mcr.microsoft.com/m
 		string dbCnnString = masterDbCnnString.SetRandomDatabaseName();
 		return dbCnnString;
 	}
-
-	public async Task DisposeAsync() => await _dockerContainer.DisposeAsync();
 }
 
 
