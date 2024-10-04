@@ -22,7 +22,7 @@
   </ItemGroup>-->
   
   <PropertyGroup>
-    <ProjectInfoStringFile>$(OutputPath)projectdir.user</ProjectInfoStringFile>
+    <ProjectInfoStringFile>$(ProjectDir)projectdir.user</ProjectInfoStringFile>
   </PropertyGroup>
 
   <Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
