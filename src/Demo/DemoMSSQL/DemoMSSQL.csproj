@@ -42,11 +42,6 @@
     </None>
   </ItemGroup>
   
-  <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
-  </ItemGroup>
     
   <!--<PropertyGroup>
     <ProjectDirVarName>DemoMSSQL_ProjectDir</ProjectDirVarName>
