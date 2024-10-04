@@ -5,12 +5,75 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+
+  <!--<Target Name="WriteProjectInfoToJsonFile" AfterTargets="Build">
+    <PropertyGroup>
+      <JsonContent>{ "ProjectDir": "$(ProjectDir)" }</JsonContent>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(TargetDir)projectinfo.json"
+      Lines="$(JsonContent)"
+      Overwrite="true" />
+  </Target>
   
-	<ItemGroup>
-		<None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
-	</ItemGroup>
-		
+  <ItemGroup>
+    <EmbeddedResource Include="$(TargetDir)projectinfo.json" />
+  </ItemGroup>-->
+  
+  <PropertyGroup>
+    <ProjectInfoStringFile>$(OutputPath)projectdir.user</ProjectInfoStringFile>
+  </PropertyGroup>
+
+  <Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
+    <WriteLinesToFile File="$(ProjectInfoStringFile)" Lines="$(ProjectDir)" Overwrite="true" />
+    <Message Importance="high" Text="Generated file: $(ProjectInfoStringFile)" />
+  </Target>
+  
+  <ItemGroup>
+    <None Include="$(ProjectInfoStringFile)" Visible="false">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    
+    <None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+  </ItemGroup>
+    
+  <!--<PropertyGroup>
+    <ProjectDirVarName>DemoMSSQL_ProjectDir</ProjectDirVarName>
+  </PropertyGroup>
+
+  <Target Name="SetEnvironmentVariables" BeforeTargets="BeforeBuild">
+    <Exec Command="setx $(ProjectDirVarName) &quot;$(ProjectDir)&quot;" />
+  </Target>-->
+  
+  <!--<Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <ProjectInfoStringFile>$(IntermediateOutputPath)ProjectInfo.cs</ProjectInfoStringFile>
+    </PropertyGroup>
+
+    <WriteLinesToFile 
+      File="$(ProjectInfoStringFile)" 
+      Lines="namespace $(RootNamespace) { public static class ProjectInfo { public const string ProjectDir = @&quot;$(ProjectDir)&quot; } }" 
+      Overwrite="true" 
+    />
+
+    <Message Importance="high" Text="Generated file: $(ProjectInfoStringFile)" />
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)ProjectInfo.cs" />
+  </ItemGroup>-->
+  
+  
 </Project>
+
