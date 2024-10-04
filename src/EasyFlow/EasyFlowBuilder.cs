@@ -8,6 +8,7 @@ public static class EasyFlowBuilderExtentions
 {
 	public static IEasyFlowBuilder LogToConsole(this IEasyFlowBuilder builder)
 	{
+		// todo: if LogToConsole() is not called builder is failing.
 		builder.Container.LogToConsole();
 		return builder;
 	}

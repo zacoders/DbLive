@@ -9,13 +9,11 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="xunit.extensibility.core" />
     <PackageReference Include="xunit.extensibility.execution" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
     <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
   </ItemGroup>
 

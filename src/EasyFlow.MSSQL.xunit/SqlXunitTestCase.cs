@@ -1,7 +1,7 @@
 ﻿using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace EasyFlow.MSSQL.xunit;
+namespace EasyFlow.xunit;
 
 public class SqlXunitTestCase : XunitTestCase
 {
