@@ -41,6 +41,7 @@ public class UnitTestItemRunner(
 			else
 			{
 				result.IsSuccess = true;
+				result.Output = "Success";
 			}
 			
 			_transactionScope.Dispose(); //canceling transaction

@@ -39,8 +39,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleMSSQL", "Demo\Consol
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.MSSQL.xunit", "EasyFlow.MSSQL.xunit\EasyFlow.MSSQL.xunit.csproj", "{72CCD431-3D05-4F2F-93F6-F9BCD613D435}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyFlow.MSSQL.xunit.tests", "EasyFlow.MSSQL.xunit.tests\EasyFlow.MSSQL.xunit.tests.csproj", "{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,10 +93,6 @@ Global
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -111,7 +105,6 @@ Global
 		{EB7B4B44-4D5A-4B6C-9C53-5365CFD8F48F} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{8DEABF5A-1B0F-40EE-84D1-3D95E7784BD9} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
-		{F829EEFC-2FDA-4D7F-B25F-F2B51B4189A7} = {376B4355-689E-4585-9E27-C3E79F945023}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3BEF8A41-AC0C-4AC0-BADB-6AD40534D8A2}

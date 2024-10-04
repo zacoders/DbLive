@@ -9,8 +9,7 @@ public class EasyFlowTestingMSSQLFixture(
 	string projectPath,
 	string sqlServerImage = "mcr.microsoft.com/mssql/server:2022-latest",
 	string sqlServerConnectionString = ""
-)
-: EasyFlowTestingMSSQLTheoryData(projectPath), IAsyncLifetime
+): IAsyncLifetime
 {
 	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage(sqlServerImage).Build();
 	private readonly string _projectPath = projectPath;

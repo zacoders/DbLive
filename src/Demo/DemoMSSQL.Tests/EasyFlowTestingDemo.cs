@@ -5,20 +5,17 @@ using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
 
-public class MyEasyFlowTestingMSSQLFixture()
-	: EasyFlowTestingMSSQLFixture(Path.GetFullPath(@"DemoMSSQL"))
+
+public class MyEasyFlowTestingMSSQLFixture() : EasyFlowTestingMSSQLFixture(Path.GetFullPath(@"DemoMSSQL"))
 { }
 
-public class EasyFlowTestingDemo(MyEasyFlowTestingMSSQLFixture _fixture, ITestOutputHelper _output)
+public class DBTests(ITestOutputHelper _output, MyEasyFlowTestingMSSQLFixture _fixture)
 	: IClassFixture<MyEasyFlowTestingMSSQLFixture>
 {
-	// TODO: if there are a lot of tests they will be in the same place
-	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
-	[Theory]
-	[ClassData(typeof(MyEasyFlowTestingMSSQLFixture))]
+	[SqlFact(SqlAssemblyName = "DemoMSSQL")]
 	public void Sql(string testFileRelativePath)
 	{
 		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, testFileRelativePath);
-		Assert.True(result.IsSuccess, result.ErrorMessage);
+		Assert.True(result.IsSuccess, result.ErrorMessage);		
 	}
 }

@@ -73,11 +73,19 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	private CompareResult CompareColumns(List<string> expected, List<string> actual)
 	{
 		bool match = true;
-		for (int i = 0; i < expected.Count; i++)
+
+		if (expected.Count != actual.Count)
 		{
-			if (expected[i] != actual[i])
+			match = false;
+		}
+		else
+		{
+			for (int i = 0; i < expected.Count; i++)
 			{
-				match = false;
+				if (expected[i] != actual[i])
+				{
+					match = false;
+				}
 			}
 		}
 
@@ -98,9 +106,13 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	private CompareResult CompareColumns(List<object> expected, List<object> actual)
 	{
 		bool match = true;
+		JsonSerializerSettings settings = new()
+		{
+			NullValueHandling = NullValueHandling.Include			
+		};
 		for (int i = 0; i < expected.Count; i++)
 		{
-			if (JsonConvert.SerializeObject(expected[i]) != JsonConvert.SerializeObject(actual[i]))
+			if (JsonConvert.SerializeObject(expected[i], settings) != JsonConvert.SerializeObject(actual[i], settings))
 			{
 				match = false;
 			}
@@ -112,11 +124,16 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			{
 				Match = match,
 				Output =
-					"Expected values: " + string.Join(", ", expected) + "\n" +
-					"Actual values:   " + string.Join(", ", actual)
+					"Expected values: " + ListToSring(expected) + "\n" +
+					"Actual values:   " + ListToSring(actual)
 			};
 		}
 
 		return new CompareResult { Match = match };
+	}
+
+	private string ListToSring(List<object> list)
+	{
+		return string.Join(", ", list.Select(i => i is string ? $"'{i}'" : i.ToString()));
 	}
 }

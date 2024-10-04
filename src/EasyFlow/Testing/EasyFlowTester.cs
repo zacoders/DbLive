@@ -28,27 +28,27 @@ public class EasyFlowTester(
 
 		if (testItem.InitFileData is not null)
 		{
-			string initFileTitle = $"== Init file: {testItem.InitFileData.RelativePath} ==";
-			writeLine(new string('-', initFileTitle.Length));
+			string initFileTitle = $"Init file: {testItem.InitFileData.RelativePath}";
+			//writeLine(new string('-', initFileTitle.Length));
 			writeLine(initFileTitle);
-			writeLine(new string('-', initFileTitle.Length));
-			writeLine(testItem.InitFileData.Content);
-			writeLine("");
+			//writeLine(new string('-', initFileTitle.Length));
+			//writeLine(testItem.InitFileData.Content);
+			//writeLine("");
 		}
 
-		string testFileTitle = $"== Test file: {testFileRelativePath} ==";
-		writeLine(new string('-', testFileTitle.Length));
-		writeLine(testFileTitle);
-		writeLine(new string('-', testFileTitle.Length));
+		//string testFileTitle = $"== Test file: {testFileRelativePath} ==";
+		//writeLine(new string('-', testFileTitle.Length));
+		//writeLine(testFileTitle);
+		//writeLine(new string('-', testFileTitle.Length));
 
-		writeLine(testItem.FileData.Content);
-		writeLine("");
+		//writeLine(testItem.FileData.Content);
+		//writeLine("");
 
 		var testRunResult = _unitTestItemRunner.RunTest(testItem);
 
-		writeLine("------------------");
-		writeLine("== Test output: ==");
-		writeLine("------------------");
+		//writeLine("------------------");
+		//writeLine("== Test output: ==");
+		//writeLine("------------------");
 		writeLine(testRunResult.Output);
 
 		return testRunResult;
