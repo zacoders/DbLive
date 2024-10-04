@@ -13,4 +13,5 @@ public interface IEasyFlowProject
 	/// <param name="projectFolder"></param>
 	/// <returns>Read only list of items. Items sorted by full file path.</returns>
 	ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder);
+	string GetVisualStudioProjectPath();
 }

@@ -22,7 +22,7 @@
   </ItemGroup>-->
   
   <PropertyGroup>
-    <ProjectInfoStringFile>$(ProjectDir)projectdir.user</ProjectInfoStringFile>
+    <ProjectInfoStringFile>projectdir.user</ProjectInfoStringFile>
   </PropertyGroup>
 
   <Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
@@ -51,14 +51,17 @@
     <Exec Command="setx $(ProjectDirVarName) &quot;$(ProjectDir)&quot;" />
   </Target>-->
   
-  <!--<Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
+  <!--
+  
+ <Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
     <PropertyGroup>
       <ProjectInfoStringFile>$(IntermediateOutputPath)ProjectInfo.cs</ProjectInfoStringFile>
     </PropertyGroup>
 
+    
     <WriteLinesToFile 
       File="$(ProjectInfoStringFile)" 
-      Lines="namespace $(RootNamespace) { public static class ProjectInfo { public const string ProjectDir = @&quot;$(ProjectDir)&quot; } }" 
+      Lines="namespace $(RootNamespace) { public static class ProjectInfo { public const string ProjectDir = @&quot;$(ProjectDir)&quot; %3B } }" 
       Overwrite="true" 
     />
 
@@ -67,7 +70,17 @@
 
   <ItemGroup>
     <Compile Include="$(IntermediateOutputPath)ProjectInfo.cs" />
-  </ItemGroup>-->
+  </ItemGroup>
+
+  <ItemGroup>
+
+    <None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+  
+  -->
   
   
 </Project>

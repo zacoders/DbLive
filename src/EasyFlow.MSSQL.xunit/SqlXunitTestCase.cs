@@ -8,7 +8,14 @@ public class SqlXunitTestCase : XunitTestCase
 	[Obsolete("Called by the de-serializer", true)]
 	public SqlXunitTestCase() { }
 
-	public SqlXunitTestCase(IMessageSink sink, ITestMethod testMethod, string testFilePath)
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="sink"></param>
+	/// <param name="testMethod"></param>
+	/// <param name="testFilePathVS">Test file path in Visual Studio IDE. It should point directly to the file in Visual Studio Project.</param>
+	/// <param name="relativeFilePath">Relative path to the testing file.</param>
+	public SqlXunitTestCase(IMessageSink sink, ITestMethod testMethod, string testFilePathVS, string relativeFilePath)
 		: base(
 			sink, 
 			TestMethodDisplay.Method, 
@@ -22,12 +29,12 @@ public class SqlXunitTestCase : XunitTestCase
 		
 		SourceInformation = new SourceInformation
 		{
-			FileName = testFilePath,
+			FileName = testFilePathVS,
 			LineNumber = 1
 		};
 
 		//TestMethodArguments = [Path.GetFileName(testFilePath), testFilePath];
-		TestMethodArguments = [testFilePath];
+		TestMethodArguments = [relativeFilePath];
 		//testMethod.Method = new TestMethod()
 		//DisplayName = "MyName1";
 	}

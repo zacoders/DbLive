@@ -26,8 +26,9 @@ public class DBTests
 	[SqlFact(DisplayName = "SqlScript", SqlAssemblyName = "DemoMSSQL")]
 	public void Sql2(string sqlTestPath)
 	{
-		string projectNameVar = "DemoMSSQL_ProjectDir";
-		string? projectDir = Environment.GetEnvironmentVariable(projectNameVar);
-		_output.WriteLine($"{projectNameVar} = {projectDir}");
+		//_output.WriteLine(DemoMSSQL.ProjectInfo.ProjectDir);
+		//string projectNameVar = "DemoMSSQL_ProjectDir";
+		//string? projectDir = Environment.GetEnvironmentVariable(projectNameVar);
+		//_output.WriteLine($"{projectNameVar} = {projectDir}");
 	}
 }

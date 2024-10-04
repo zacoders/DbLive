@@ -210,4 +210,9 @@ public class EasyFlowProject(
 		// sorting the items by full path which is in the key of the dictionary.
 		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
 	}
+
+	public string GetVisualStudioProjectPath()
+	{
+		return projectPath.VisualStudioProjectPath;
+	}
 }

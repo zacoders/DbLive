@@ -32,12 +32,14 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.SetProjectPath(projectPath)
 			.CreateProject();
 
-		foreach (var testItem in project.GetTests())
+		string root = project.GetVisualStudioProjectPath();
+		foreach (Project.TestItem testItem in project.GetTests())
 		{
 			//Add(testItem.FileData.RelativePath); // adding tests to TheoryData base class.
 			yield return new SqlXunitTestCase(
 				DiagnosticMessageSink,
 				testMethod,
+				Path.Combine(root, testItem.FileData.RelativePath),
 				testItem.FileData.RelativePath
 			);
 		}
