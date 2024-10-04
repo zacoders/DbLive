@@ -47,10 +47,18 @@ public class SqlXunitTestCase : XunitTestCase
 	//public override string DisplayName => $"{_folderName}.{base.DisplayName}";
 	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
 	{
+		string attrDisplayName = factAttribute.GetNamedArgument<string>("DisplayName");
 		if (TestMethodArguments.Length > 0 && TestMethodArguments[0] is not null)
 		{
 			object pathToTestFile = TestMethodArguments[0];
-			return $"{pathToTestFile}";
+			if (string.IsNullOrWhiteSpace(attrDisplayName))
+			{
+				return $"{pathToTestFile}";
+			}
+			else
+			{
+				return $"{attrDisplayName}: {pathToTestFile}";
+			}
 		}
 
 		return base.GetDisplayName(factAttribute, displayName);

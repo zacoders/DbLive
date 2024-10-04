@@ -10,7 +10,13 @@ public class UnitTest1
 	}
 
 	[SqlFact(SqlAssemblyName = "DemoMSSQL")]
-	public void Sql()
+	public void Sql(string sqlTestPath)
+	{
+
+	}
+
+	[SqlFact(DisplayName = "SqlScript", SqlAssemblyName = "DemoMSSQL")]
+	public void Sql2(string sqlTestPath)
 	{
 
 	}
