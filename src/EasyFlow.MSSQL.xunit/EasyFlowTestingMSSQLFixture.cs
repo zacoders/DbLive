@@ -5,14 +5,16 @@ using Xunit;
 
 namespace EasyFlow.MSSQL.xunit;
 
+// todo: this can be common code, it should not be linked to MSSQL. Steps: remove default value for docker image, pass EasyFlowBuilder as parameter.
+
 public class EasyFlowTestingMSSQLFixture(
-	string projectPath,
+	string projectRelativePath,
 	string sqlServerImage = "mcr.microsoft.com/mssql/server:2022-latest",
 	string sqlServerConnectionString = ""
 ): IAsyncLifetime
 {
 	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage(sqlServerImage).Build();
-	private readonly string _projectPath = projectPath;
+	private readonly string _projectPath = Path.GetFullPath(projectRelativePath);
 	private IEasyFlow? _deployer;
 
 	public IEasyFlowTester? Tester { get; private set; }

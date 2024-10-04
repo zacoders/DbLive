@@ -9,7 +9,7 @@ public class SqlXunitTestCase : XunitTestCase
 	public SqlXunitTestCase() { }
 
 	/// <summary>
-	/// 
+	/// Initialize Test Case
 	/// </summary>
 	/// <param name="sink"></param>
 	/// <param name="testMethod"></param>
@@ -17,26 +17,19 @@ public class SqlXunitTestCase : XunitTestCase
 	/// <param name="relativeFilePath">Relative path to the testing file.</param>
 	public SqlXunitTestCase(IMessageSink sink, ITestMethod testMethod, string testFilePathVS, string relativeFilePath)
 		: base(
-			sink, 
-			TestMethodDisplay.Method, 
-			TestMethodDisplayOptions.None, 
+			sink,
+			TestMethodDisplay.Method,
+			TestMethodDisplayOptions.None,
 			testMethod
-			// new TestMethod(testMethod.TestClass, new MyMethodInfo(testMethod.Method, "Test123"))
 		)
 	{
-		//DisplayName = Path.GetFileName(testFilePath);
-		//DisplayName = testFilePath;
-		
 		SourceInformation = new SourceInformation
 		{
 			FileName = testFilePathVS,
 			LineNumber = 1
 		};
 
-		//TestMethodArguments = [Path.GetFileName(testFilePath), testFilePath];
 		TestMethodArguments = [relativeFilePath];
-		//testMethod.Method = new TestMethod()
-		//DisplayName = "MyName1";
 	}
 
 	public override void Deserialize(IXunitSerializationInfo info)
@@ -51,7 +44,6 @@ public class SqlXunitTestCase : XunitTestCase
 		//info.AddValue("FolderName", _folderName);
 	}
 
-	//public override string DisplayName => $"{_folderName}.{base.DisplayName}";
 	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
 	{
 		string attrDisplayName = factAttribute.GetNamedArgument<string>("DisplayName");
