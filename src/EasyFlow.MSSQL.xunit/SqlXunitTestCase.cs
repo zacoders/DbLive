@@ -5,6 +5,10 @@ namespace EasyFlow.xunit;
 
 public class SqlXunitTestCase : XunitTestCase
 {
+	private string RelativeFilePath { get; set; }
+	private string TestFilePathVS { get; set; }
+
+
 	[Obsolete("Called by the de-serializer", true)]
 	public SqlXunitTestCase() { }
 
@@ -28,6 +32,8 @@ public class SqlXunitTestCase : XunitTestCase
 			FileName = testFilePathVS,
 			LineNumber = 1
 		};
+		
+		TestFilePathVS = testFilePathVS;
 
 		TestMethodArguments = [relativeFilePath];
 	}
@@ -35,13 +41,15 @@ public class SqlXunitTestCase : XunitTestCase
 	public override void Deserialize(IXunitSerializationInfo info)
 	{
 		base.Deserialize(info);
-		//_folderName = info.GetValue<string>("FolderName");
+		RelativeFilePath = info.GetValue<string>("MY_RelativeFilePath");
+		TestFilePathVS = info.GetValue<string>("MY_TestFilePathVS");
 	}
 
 	public override void Serialize(IXunitSerializationInfo info)
 	{
 		base.Serialize(info);
-		//info.AddValue("FolderName", _folderName);
+		info.AddValue("MY_RelativeFilePath", RelativeFilePath);
+		info.AddValue("MY_TestFilePathVS", TestFilePathVS);
 	}
 
 	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
@@ -50,6 +58,7 @@ public class SqlXunitTestCase : XunitTestCase
 		if (TestMethodArguments.Length > 0 && TestMethodArguments[0] is not null)
 		{
 			object pathToTestFile = TestMethodArguments[0];
+			PopulateSourceInformation(TestFilePathVS, 1);
 			if (string.IsNullOrWhiteSpace(attrDisplayName))
 			{
 				return $"{pathToTestFile}";
@@ -61,5 +70,20 @@ public class SqlXunitTestCase : XunitTestCase
 		}
 
 		return base.GetDisplayName(factAttribute, displayName);
+	}
+
+	private void PopulateSourceInformation(string fileName, int lineNumber)
+	{
+		if (SourceInformation == null)
+		{
+			SourceInformation = new SourceInformation
+			{
+				FileName = fileName,
+				LineNumber = lineNumber
+			};
+		}
+
+		SourceInformation.FileName = fileName;
+		SourceInformation.LineNumber = lineNumber;
 	}
 }
