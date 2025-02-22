@@ -26,14 +26,9 @@ public class SqlXunitTestCase : XunitTestCase
 			TestMethodDisplayOptions.None,
 			testMethod
 		)
-	{
-		SourceInformation = new SourceInformation
-		{
-			FileName = testFilePathVS,
-			LineNumber = 1
-		};
-		
+	{		
 		TestFilePathVS = testFilePathVS;
+		RelativeFilePath = relativeFilePath;
 
 		TestMethodArguments = [relativeFilePath];
 	}
@@ -48,25 +43,20 @@ public class SqlXunitTestCase : XunitTestCase
 	public override void Serialize(IXunitSerializationInfo info)
 	{
 		base.Serialize(info);
-		info.AddValue("MY_RelativeFilePath", RelativeFilePath);
-		info.AddValue("MY_TestFilePathVS", TestFilePathVS);
+		info.AddValue("MY_RelativeFilePath", RelativeFilePath, typeof(string));
+		info.AddValue("MY_TestFilePathVS", TestFilePathVS, typeof(string));
 	}
 
 	protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
 	{
-		string attrDisplayName = factAttribute.GetNamedArgument<string>("DisplayName");
+		PopulateSourceInformation(TestFilePathVS, 1);
+
+		if (!string.IsNullOrWhiteSpace(RelativeFilePath)) return RelativeFilePath;
+
 		if (TestMethodArguments.Length > 0 && TestMethodArguments[0] is not null)
 		{
 			object pathToTestFile = TestMethodArguments[0];
-			PopulateSourceInformation(TestFilePathVS, 1);
-			if (string.IsNullOrWhiteSpace(attrDisplayName))
-			{
-				return $"{pathToTestFile}";
-			}
-			else
-			{
-				return $"{attrDisplayName}: {pathToTestFile}";
-			}
+			return pathToTestFile.ToString();
 		}
 
 		return base.GetDisplayName(factAttribute, displayName);
@@ -82,8 +72,10 @@ public class SqlXunitTestCase : XunitTestCase
 				LineNumber = lineNumber
 			};
 		}
-
-		SourceInformation.FileName = fileName;
-		SourceInformation.LineNumber = lineNumber;
+		else
+		{
+			SourceInformation.FileName = fileName;
+			SourceInformation.LineNumber = lineNumber;
+		}
 	}
 }
