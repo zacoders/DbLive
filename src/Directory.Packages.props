@@ -17,7 +17,7 @@
     <PackageVersion Include="Microsoft.SqlServer.SqlManagementObjects" Version="172.61.0" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Npgsql" Version="8.0.2" />
+    <PackageVersion Include="Npgsql" Version="8.0.6" />
     <PackageVersion Include="Polly" Version="8.5.2" />
     <PackageVersion Include="PowerArgs" Version="4.0.3" />
     <PackageVersion Include="Serilog" Version="4.2.0" />
