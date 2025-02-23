@@ -4,5 +4,5 @@ namespace EasyFlow.Deployers.Testing;
 
 public interface IUnitTestResultChecker
 {
-	CompareResult ValidateTestResult(MultipleResults multiResult);
+	ValidationResult ValidateTestResult(MultipleResults multiResult);
 }

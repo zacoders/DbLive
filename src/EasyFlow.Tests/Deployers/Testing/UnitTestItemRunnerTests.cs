@@ -22,7 +22,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<MultipleResults>())
-			.Returns(new CompareResult { Match = true });
+			.Returns(new ValidationResult { CompareResult = CompareResult.Match });
 
 		TestItem testItem = new()
 		{
@@ -65,7 +65,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<MultipleResults>())
-			.Returns(new CompareResult { Match = true });
+			.Returns(new ValidationResult { CompareResult = CompareResult.Match });
 
 		TestItem testItem = new()
 		{

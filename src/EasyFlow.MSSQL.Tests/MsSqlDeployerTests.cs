@@ -214,7 +214,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		MultipleResults results = _da.ExecuteQueryMultiple(sql);
 
-		Assert.Equal(3, results.Results.Count);
+		Assert.Equal(3, results.Count);
 	}
 
 	[Fact]
@@ -227,6 +227,6 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		MultipleResults results = _da.ExecuteQueryMultiple(sql);
 
-		Assert.Empty(results.Results);
+		Assert.Empty(results);
 	}
 }

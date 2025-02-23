@@ -1,4 +1,5 @@
-﻿using Xunit.Abstractions;
+﻿using System.ComponentModel;
+using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace EasyFlow.xunit;
@@ -7,9 +8,11 @@ public class SqlXunitTestCase : XunitTestCase
 {
 	private string TestFileFullPath { get; set; }
 
-
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Called by the de-serializer", true)]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. 
 	public SqlXunitTestCase() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
 
 	/// <summary>
 	/// Initialize Test Case

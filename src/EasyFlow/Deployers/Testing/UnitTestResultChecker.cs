@@ -4,73 +4,84 @@ namespace EasyFlow.Deployers.Testing;
 
 internal class UnitTestResultChecker : IUnitTestResultChecker
 {
-	public CompareResult ValidateTestResult(MultipleResults multiResult)
+	public ValidationResult ValidateTestResult(MultipleResults multiResult)
 	{
-		if (multiResult.Results.Count > 1)
+		int? expectedNum = GetExpectedResultPosition(multiResult);
+
+		if (expectedNum is null)
 		{
-			if (!multiResult.Results[1].Columns.Any())
+			return new ValidationResult { CompareResult = CompareResult.None };
+		}
+				
+
+		var expectedValue = multiResult[expectedNum.Value].Rows[0][0];
+
+		if (expectedValue.ToString() == "rows") //# todo, add more types!
+		{
+			for(int i = 0; i < expectedNum.Value; i++)
 			{
-				return new CompareResult { Match = true };
-			}
-
-			var resultType = multiResult.Results[1].Columns[0];
-
-			if (resultType == "expected")
-			{
-				var expectedValues = multiResult.Results[1].Rows[0].ColumnValues[0];
-
-				if (expectedValues.ToString() == "rows")
+				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + 1]);
+				if (compareResult.CompareResult == CompareResult.Mismatch)
 				{
-					return CompareResults(multiResult.Results[2], multiResult.Results[0]);
+					return compareResult;	
 				}
 			}
+			return new ValidationResult { CompareResult = CompareResult.Match };
 		}
-		return new CompareResult { Match = true };
+
+		throw new Exception($"Not supported expectation {expectedValue}.");
 	}
 
-	private CompareResult CompareResults(SqlResult expected, SqlResult actual)
+	private int? GetExpectedResultPosition(MultipleResults multiResult)
 	{
-		CompareResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns);
-
-		if (!columnsCompareResult.Match)
+		if (multiResult.Count(r => r.Columns.Count() > 1 && r.Columns[0].ColumnName == "expected") > 1)
 		{
-			return new CompareResult
-			{
-				Match = false,
-				Output =
-					$"""
-					Columns does not match::					
-					{columnsCompareResult.Output}
-					"""
-			};
+			new Exception("Just one 'expected' result set is allowed.");
 		}
+
+		for (int i = 0; i < multiResult.Count; i++)
+		{
+			var r = multiResult[i];
+			if (r.Columns.Count() > 1 && r.Columns[0].ColumnName == "expected")
+			{
+				return i;
+			}
+		}
+		return null;
+	}
+
+	private ValidationResult CompareResults(SqlResult expected, SqlResult actual)
+	{
+		ValidationResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns);
+		if (columnsCompareResult.CompareResult == CompareResult.Mismatch) 
+			return columnsCompareResult;
 
 		for (int i = 0; i < expected.Rows.Count; i++)
 		{
 			SqlRow expectedRow = expected.Rows[i];
 			SqlRow actualRow = actual.Rows[i];
 
-			CompareResult rowCompareResult = CompareColumns(expectedRow.ColumnValues, actualRow.ColumnValues);
-			if (!rowCompareResult.Match)
+			ValidationResult rowCompareResult = CompareRows(expectedRow, actualRow);
+			if (rowCompareResult.CompareResult == CompareResult.Mismatch)
 			{
-				return new CompareResult
+				return new ValidationResult
 				{
-					Match = false,
+					CompareResult = CompareResult.Mismatch,
 					Output =
 					$"""
-					Data for one or more rows does not match:					
+					Data for one or more rows does not match:
 					Columns: {string.Join(",", expected.Columns)}
-					[Row {i + 1}]> 
+					[Row {i + 1}]>
 					{rowCompareResult.Output}
 					"""
 				};
 			}
 		}
 
-		return new CompareResult { Match = true };
+		return new ValidationResult { CompareResult = CompareResult.Match };
 	}
 
-	private CompareResult CompareColumns(List<string> expected, List<string> actual)
+	private ValidationResult CompareColumns(List<SqlColumn> expected, List<SqlColumn> actual)
 	{
 		bool match = true;
 
@@ -88,27 +99,31 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				}
 			}
 		}
+		
+		// TODO: compare columns data types too.
 
 		if (!match)
 		{
-			return new CompareResult
+			return new ValidationResult
 			{
-				Match = match,
+				CompareResult = CompareResult.Mismatch,
 				Output =
-					"Expected columns: " + string.Join(", ", expected) + "\n" +
-					"Actual columns:   " + string.Join(", ", actual)
+					"Columns does not match:" +
+					"Expected columns: " + string.Join(", ", expected.Select(c => c.ColumnName)) + 
+					"\n" +
+					"Actual columns:   " + string.Join(", ", actual.Select(c => c.ColumnName))
 			};
 		}
 
-		return new CompareResult { Match = match };
+		return new ValidationResult { CompareResult = CompareResult.Match };
 	}
 
-	private CompareResult CompareColumns(List<object> expected, List<object> actual)
+	private ValidationResult CompareRows(SqlRow expected, SqlRow actual)
 	{
 		bool match = true;
 		JsonSerializerSettings settings = new()
 		{
-			NullValueHandling = NullValueHandling.Include			
+			NullValueHandling = NullValueHandling.Include
 		};
 		for (int i = 0; i < expected.Count; i++)
 		{
@@ -120,20 +135,20 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		if (!match)
 		{
-			return new CompareResult
+			return new ValidationResult
 			{
-				Match = match,
+				CompareResult = CompareResult.Mismatch,
 				Output =
 					"Expected values: " + ListToSring(expected) + "\n" +
 					"Actual values:   " + ListToSring(actual)
 			};
 		}
 
-		return new CompareResult { Match = match };
+		return new ValidationResult { CompareResult = CompareResult.Match };
 	}
 
-	private string ListToSring(List<object> list)
+	private string ListToSring(SqlRow row)
 	{
-		return string.Join(", ", list.Select(i => i is string ? $"'{i}'" : i.ToString()));
+		return string.Join(", ", row.Select(i => i is string ? $"'{i}'" : i.ToString()));
 	}
 }

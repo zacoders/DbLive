@@ -1,7 +1,8 @@
 ﻿namespace EasyFlow.Deployers.Testing;
 
-public class CompareResult
+public enum CompareResult 
 {
-	public bool Match { get; init; }
-	public string Output { get; init; } = "";
+	None,
+	Match,
+	Mismatch
 }

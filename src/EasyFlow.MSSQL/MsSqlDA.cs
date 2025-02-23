@@ -3,6 +3,7 @@ using EasyFlow.Common;
 using EasyFlow.Project;
 using System.Collections.Specialized;
 using System.Data;
+using System.Data.SqlTypes;
 
 namespace EasyFlow.MSSQL;
 
@@ -121,27 +122,85 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
 
-			SqlMapper.GridReader gridReader = cnn.QueryMultiple(sqlStatement);
+			using SqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandText = sqlStatement;
+
+			cnn.Open();
+
+			using SqlDataReader reader = cmd.ExecuteReader(CommandBehavior.KeyInfo);
+
+			MultipleResults multipleResults = [];
+			do
+			{
+				SqlResult? sqlResult = ReadResult(reader);
+				if (sqlResult is not null)
+				{
+					multipleResults.Add(sqlResult);
+				}
+			}
+			while (reader.NextResult());
 			
-			if (!GridReaderEx.HasRows(gridReader))
-			{
-				return MultipleResults.Empty;
-			}
-
-			List<List<object>> results = [];
-			while(!gridReader.IsConsumed)
-			{
-				var readResult = gridReader.Read();
-				results.Add((List<object>)readResult);
-			}
-
-			return new MultipleResults(results);
+			
+			return multipleResults;
 		}
 		catch (Exception e)
 		{
 			var sqlException = e.Get<SqlException>();
 			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
 		}
+	}
+
+	private static SqlResult? ReadResult(SqlDataReader reader)
+	{
+		DataTable schemaTable = reader.GetSchemaTable();
+
+		List<SqlColumn> sqlColumns = [];
+		if (schemaTable != null)
+		{
+			foreach (DataRow row in schemaTable.Rows)
+			{
+				sqlColumns.Add(GetSqlColumn(row));
+			}
+		}
+
+		if (sqlColumns.Count == 0) return null;
+
+		List<SqlRow> rows = [];
+		while (reader.Read())
+		{
+			SqlRow row = new();
+			for (int i = 0; i < reader.FieldCount; i++)
+			{
+				row.Add(reader.GetValue(i));
+			}
+			rows.Add(row);
+		}
+
+		return new SqlResult(sqlColumns, rows);
+	}
+
+	private static SqlColumn GetSqlColumn(DataRow row)
+	{
+		return new SqlColumn
+		{
+			ColumnName = GetValue<string>(row["ColumnName"]),
+			ProviderType = GetValue<int>(row["ProviderType"]),
+			NumericPrecision = GetValueN<short>(row["NumericPrecision"]),
+			NumericScale = GetValueN<short>(row["NumericScale"]),
+			ColumnSize = GetValue<int>(row["ColumnSize"])
+		};
+	}
+
+	private static T? GetValueN<T>(object objectValue)
+	{
+		if (objectValue == DBNull.Value) return default;
+		return (T?)objectValue;
+	}
+
+	private static T GetValue<T>(object objectValue)
+	{
+		if (objectValue == DBNull.Value) throw new Exception("Expected non null value, but NULL received.");
+		return (T)objectValue;
 	}
 
 	public void CreateDB(bool skipIfExists = true)

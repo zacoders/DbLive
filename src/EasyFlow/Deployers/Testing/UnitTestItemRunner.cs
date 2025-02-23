@@ -31,11 +31,11 @@ public class UnitTestItemRunner(
 
 			MultipleResults resutls = _da.ExecuteQueryMultiple(test.FileData.Content);
 
-			var testResult = _unitTestResultChecker.ValidateTestResult(resutls);
-			if (!testResult.Match)
+			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
+			if (compareResult.CompareResult == CompareResult.Mismatch)
 			{
-				result.Output = testResult.Output;
-				result.ErrorMessage = testResult.Output;
+				result.Output = compareResult.Output;
+				result.ErrorMessage = compareResult.Output;
 				result.IsSuccess = false;
 			}
 			else

@@ -1,12 +1,6 @@
 ﻿
 namespace EasyFlow.Adapter;
 
-public class SqlRow
+public class SqlRow : List<object> 
 {
-	public List<object> ColumnValues { get; } = [];
-
-	public SqlRow(List<object> columnValues)
-	{
-		ColumnValues = columnValues;
-	}
 }
