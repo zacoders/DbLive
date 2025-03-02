@@ -42,7 +42,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		for (int i = 0; i < multiResult.Count; i++)
 		{
 			var r = multiResult[i];
-			if (r.Columns.Count() > 1 && r.Columns[0].ColumnName == "expected")
+			if (r.Columns.Count() == 1 && r.Columns[0].ColumnName == "expected")
 			{
 				return i;
 			}

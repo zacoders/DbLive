@@ -1,37 +1,37 @@
 using EasyFlow.Adapter;
 using EasyFlow.Deployers.Testing;
+
 namespace EasyFlow.Tests.Testing;
 
 public class UnitTestResultCheckerTests
 {
 	[Fact]
-	public void RunTest()
+	public void Simple_Rows_Match()
 	{
-		// Arrange
-		//MockSet mockSet = new();
+		// Arrange		
+		UnitTestResultChecker checker = new();
 
-		//mockSet.EasyFlowProject.GetTests().Returns([
-		//	new TestItem { Name = "first", FileData = GetFileData("/test/first.sql") },
-		//	new TestItem { Name = "second", FileData = GetFileData("/test/second.sql") },
-		//	new TestItem { Name = "third", FileData = GetFileData("/test/third.sql") }
-		//]);
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Test", 1, 0, 0, 4)],
+			resultRows: [new SqlRow("some string value")]
+		);
 
-		//mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
-		//	.Returns(new TestRunResult { IsSuccess = true });
+		SqlResult expectedMark = new(
+			sqlColumns: [new SqlColumn("expected", 1, 0, 0, 4)],
+			resultRows: [new SqlRow("rows")]
+		);
 
-		//Action<string> writeLine = Console.WriteLine;
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("Test", 1, 0, 0, 4)],
+			resultRows: [new SqlRow("some string value")]
+		);
 
-		////var tester = mockSet.CreateUsingMocks<EasyFlowTester>();
-		//MultipleResults results = new();
-		//results.Add(new SqlResult());
 
-		//var testResultChecker = new UnitTestResultChecker();
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
 
-		//// Act
-		//testResultChecker.
-
-		//// Assert
-		//mockSet.EasyFlowProject.Received().GetTests();
+		// Assert
+		Assert.Equal(CompareResult.Match, validationResult.CompareResult);
 	}
 
 }

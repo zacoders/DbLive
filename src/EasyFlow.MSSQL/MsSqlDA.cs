@@ -181,14 +181,13 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 
 	private static SqlColumn GetSqlColumn(DataRow row)
 	{
-		return new SqlColumn
-		{
-			ColumnName = GetValue<string>(row["ColumnName"]),
-			ProviderType = GetValue<int>(row["ProviderType"]),
-			NumericPrecision = GetValueN<short>(row["NumericPrecision"]),
-			NumericScale = GetValueN<short>(row["NumericScale"]),
-			ColumnSize = GetValue<int>(row["ColumnSize"])
-		};
+		return new SqlColumn(
+			ColumnName: GetValue<string>(row["ColumnName"]),
+			ProviderType: GetValue<int>(row["ProviderType"]),
+			NumericPrecision: GetValueN<short>(row["NumericPrecision"]),
+			NumericScale: GetValueN<short>(row["NumericScale"]),
+			ColumnSize: GetValue<int>(row["ColumnSize"])
+		);
 	}
 
 	private static T? GetValueN<T>(object objectValue)
