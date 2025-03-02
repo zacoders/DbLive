@@ -12,15 +12,19 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		{
 			return new ValidationResult { CompareResult = CompareResult.None };
 		}
-				
 
-		var expectedValue = multiResult[expectedNum.Value].Rows[0][0];
+		// todo: convert to regular class, Expected with properties, so will be easier to access them.
+		SqlResult expectedResult = multiResult[expectedNum.Value]; 
 
-		if (expectedValue.ToString() == "rows") //# todo, add more types!
+		string expectedValue = expectedResult.Rows[0][0].ToString();
+
+
+		if (expectedValue == "rows") //# todo, add more check types!
 		{
-			for(int i = 0; i < expectedNum.Value; i++)
+			bool columnTypesCheck = expectedResult.GetValue<bool>("type_check", 0);
+			for (int i = 0; i < expectedNum.Value; i++)
 			{
-				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + 1]);
+				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + 1], columnTypesCheck);
 				if (compareResult.CompareResult == CompareResult.Mismatch)
 				{
 					return compareResult;	
@@ -34,7 +38,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 	private int? GetExpectedResultPosition(MultipleResults multiResult)
 	{
-		if (multiResult.Count(r => r.Columns.Count() > 1 && r.Columns[0].ColumnName == "expected") > 1)
+		if (multiResult.Count(r => r.Columns[0].ColumnName == "expected") > 1)
 		{
 			new Exception("Just one 'expected' result set is allowed.");
 		}
@@ -42,7 +46,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		for (int i = 0; i < multiResult.Count; i++)
 		{
 			var r = multiResult[i];
-			if (r.Columns.Count() == 1 && r.Columns[0].ColumnName == "expected")
+			if (r.Columns[0].ColumnName == "expected")
 			{
 				return i;
 			}
@@ -50,9 +54,9 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		return null;
 	}
 
-	private ValidationResult CompareResults(SqlResult expected, SqlResult actual)
+	private ValidationResult CompareResults(SqlResult expected, SqlResult actual, bool columnTypesCheck)
 	{
-		ValidationResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns);
+		ValidationResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns, columnTypesCheck);
 		if (columnsCompareResult.CompareResult == CompareResult.Mismatch) 
 			return columnsCompareResult;
 
@@ -81,7 +85,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		return new ValidationResult { CompareResult = CompareResult.Match };
 	}
 
-	private ValidationResult CompareColumns(List<SqlColumn> expected, List<SqlColumn> actual)
+	private ValidationResult CompareColumns(List<SqlColumn> expected, List<SqlColumn> actual, bool columnTypesCheck)
 	{
 		bool match = true;
 
@@ -93,9 +97,19 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		{
 			for (int i = 0; i < expected.Count; i++)
 			{
-				if (expected[i] != actual[i])
+				if (columnTypesCheck)
 				{
-					match = false;
+					if (expected[i] != actual[i])
+					{
+						match = false;
+					}
+				}
+				else
+				{
+					if (!expected[i].ColumnName.Equals(actual[i].ColumnName, StringComparison.InvariantCulture))
+					{
+						match = false;
+					}
 				}
 			}
 		}
@@ -125,6 +139,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		{
 			NullValueHandling = NullValueHandling.Include
 		};
+
 		for (int i = 0; i < expected.Count; i++)
 		{
 			if (JsonConvert.SerializeObject(expected[i], settings) != JsonConvert.SerializeObject(actual[i], settings))

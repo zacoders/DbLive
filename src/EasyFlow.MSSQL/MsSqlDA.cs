@@ -185,8 +185,8 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 			ColumnName: GetValue<string>(row["ColumnName"]),
 			DataType: GetSqlTypeName(
 				providerType: GetValue<int>(row["ProviderType"]),
-				numericPrecision: GetValueN<short>(row["NumericPrecision"]),
-				numericScale: GetValueN<short>(row["NumericScale"]),
+				numericPrecision: GetValueN<short?>(row["NumericPrecision"]),
+				numericScale: GetValue<short?>(row["NumericScale"]),
 				columnSize: GetValue<int>(row["ColumnSize"])
 			)
 		);

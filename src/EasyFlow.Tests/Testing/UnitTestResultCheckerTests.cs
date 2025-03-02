@@ -17,12 +17,12 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", "nvarchar(128)")],
+			sqlColumns: [new SqlColumn("expected", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
 
 		SqlResult expectedResult = new(
-			sqlColumns: [new SqlColumn("Test", "nvarchar(128)")],
+			sqlColumns: [new SqlColumn("Test", "nvarchar(30)")],
 			resultRows: [new SqlRow("some string value")]
 		);
 
@@ -33,5 +33,4 @@ public class UnitTestResultCheckerTests
 		// Assert
 		Assert.Equal(CompareResult.Match, validationResult.CompareResult);
 	}
-
 }

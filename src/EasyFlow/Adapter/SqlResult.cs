@@ -10,4 +10,13 @@ public class SqlResult
 		Columns = sqlColumns;
 		Rows = resultRows;
 	}
+
+	public T? GetValue<T>(string columnName, int rowNumber)
+	{
+		int columnIndex = Columns.FindIndex(x => x.ColumnName == columnName);
+		
+		if (columnIndex < 0) return default;
+
+		return (T)Rows[rowNumber][columnIndex];
+	}
 }
