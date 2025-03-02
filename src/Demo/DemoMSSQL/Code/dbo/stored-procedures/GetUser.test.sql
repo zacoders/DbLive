@@ -14,4 +14,4 @@ exec dbo.GetUser2 @UserId = 10
 -- select expected = 'rowcount:10' -- expected exact number of rows returned
 
 select expected = 'rows'
-select 10 as UserId, 'TestUser10' as Name
+select 10 as UserId, cast('TestUser10' as nvarchar(128)) as Name

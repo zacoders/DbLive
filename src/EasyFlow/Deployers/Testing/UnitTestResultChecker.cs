@@ -109,9 +109,9 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				CompareResult = CompareResult.Mismatch,
 				Output =
 					"Columns does not match:" +
-					"Expected columns: " + string.Join(", ", expected.Select(c => c.ColumnName)) + 
+					"Expected columns: " + string.Join(", ", expected) + 
 					"\n" +
-					"Actual columns:   " + string.Join(", ", actual.Select(c => c.ColumnName))
+					"Actual columns:   " + string.Join(", ", actual)
 			};
 		}
 

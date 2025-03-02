@@ -12,17 +12,17 @@ public class UnitTestResultCheckerTests
 		UnitTestResultChecker checker = new();
 
 		SqlResult mainResult = new(
-			sqlColumns: [new SqlColumn("Test", 1, 0, 0, 4)],
+			sqlColumns: [new SqlColumn("Test", "nvarchar(128)")],
 			resultRows: [new SqlRow("some string value")]
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", 1, 0, 0, 4)],
+			sqlColumns: [new SqlColumn("expected", "nvarchar(128)")],
 			resultRows: [new SqlRow("rows")]
 		);
 
 		SqlResult expectedResult = new(
-			sqlColumns: [new SqlColumn("Test", 1, 0, 0, 4)],
+			sqlColumns: [new SqlColumn("Test", "nvarchar(128)")],
 			resultRows: [new SqlRow("some string value")]
 		);
 

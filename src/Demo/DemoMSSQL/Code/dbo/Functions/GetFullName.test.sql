@@ -5,4 +5,4 @@ select dbo.GetFullName('first', 'last')
 
 
 select expected = 'rows'
-select 'first last' 
+select cast('first last' as nvarchar(255))
