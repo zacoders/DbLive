@@ -24,7 +24,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			bool columnTypesCheck = expectedResult.GetValue<bool>("type_check", 0);
 			for (int i = 0; i < expectedNum.Value; i++)
 			{
-				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + 1], columnTypesCheck);
+				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + i + 1], columnTypesCheck);
 				if (compareResult.CompareResult == CompareResult.Mismatch)
 				{
 					return compareResult;	
@@ -71,8 +71,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				return new ValidationResult
 				{
 					CompareResult = CompareResult.Mismatch,
-					Output =
-					$"""
+					Output = $"""
 					Data for one or more rows does not match:
 					Columns: {string.Join(",", expected.Columns)}
 					[Row {i + 1}]>
@@ -121,11 +120,11 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			return new ValidationResult
 			{
 				CompareResult = CompareResult.Mismatch,
-				Output =
-					"Columns does not match:" +
-					"Expected columns: " + string.Join(", ", expected) + 
-					"\n" +
-					"Actual columns:   " + string.Join(", ", actual)
+				Output = $"""
+				Columns does not match:
+				Expected columns: {string.Join(", ", expected)}
+				Actual columns:   {string.Join(", ", actual)}
+				"""
 			};
 		}
 
@@ -154,8 +153,10 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			{
 				CompareResult = CompareResult.Mismatch,
 				Output =
-					"Expected values: " + ListToSring(expected) + "\n" +
-					"Actual values:   " + ListToSring(actual)
+				$"""
+				Expected values: {ListToSring(expected)}
+				Actual values:   {ListToSring(actual)}
+				"""
 			};
 		}
 
