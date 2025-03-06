@@ -8,10 +8,6 @@ values ( 10, 'TestUser10' )
 exec dbo.GetUser2 @UserId = 10
 
 
--- select expected = 'rows' -- result should match to the next select statement. next select should contain expected rows.
--- select expected = 'any-row' -- no rows: exception.
--- select expected = 'single-row' -- only one rows must be returned. no rows: exception, more than one rows: exception.
--- select expected = 'rowcount:10' -- expected exact number of rows returned
-
 select expected = 'rows'
+
 select 10 as UserId, 'TestUser10' as Name

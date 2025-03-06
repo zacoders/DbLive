@@ -1,7 +1,10 @@
 
 
-select * from dbo.Users where Name = 'Admin'
+declare @cnt int = (
+	select count(*) 
+	from dbo.Users 
+	where Name = 'Admin'
+)
 
 
-select expected = 'single-row'
---select expected = 'rowcount:2'
+if @cnt != 1 throw 50000, 'Expected one admin user.', 0
