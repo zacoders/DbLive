@@ -4,30 +4,19 @@ using Xunit;
 
 namespace EasyFlow.xunit;
 
-public class EasyFlowTestingFixture(
-	IEasyFlowBuilder _easyFlowBuilder,
-	IEasyFlowDockerContainer _dockerContainer,	
-	string _connectionString = ""
-): IAsyncLifetime
+public abstract class EasyFlowTestingFixture: IAsyncLifetime
 {
 	private IEasyFlow? _deployer;
 
 	public IEasyFlowTester? Tester { get; private set; }
 
+	public abstract Task<IEasyFlowBuilder> GetBuilderAsync();
+
 	public async Task InitializeAsync()
 	{
-		if (string.IsNullOrEmpty(_connectionString))
-		{
-			await _dockerContainer.StartAsync();
-			string masterDbCnnString = _dockerContainer.GetConnectionString();
-			_easyFlowBuilder.SetDbConnection(masterDbCnnString);
-		}
-		else
-		{
-			_easyFlowBuilder.SetDbConnection(_connectionString);
-		}
+		IEasyFlowBuilder easyFlowBuilder = await GetBuilderAsync();
 
-		_deployer = _easyFlowBuilder.CreateDeployer();
+		_deployer = easyFlowBuilder.CreateDeployer();
 
 		_deployer.Deploy(new DeployParameters
 		{
@@ -35,20 +24,20 @@ public class EasyFlowTestingFixture(
 			DeployBreaking = true,
 			DeployCode = true,
 			DeployMigrations = true,
-			RunTests = false // test will be run in VS UI.
+			RunTests = false // do not need to run tests, they will be run in VS UI.
 		});
 
-		Tester = _easyFlowBuilder.CreateTester();
+		Tester = easyFlowBuilder.CreateTester();
 	}
 
 	public async Task DisposeAsync()
 	{
-		if (string.IsNullOrEmpty(_connectionString))
-		{
-			// do not need to drop testing db, just drop container.
-			await _dockerContainer.DisposeAsync();
-		}
-		else
+		//if (string.IsNullOrEmpty(_connectionString))
+		//{
+		//	// do not need to drop testing db, just drop container.
+		//	await _dockerContainer.DisposeAsync();
+		//}
+		//else
 		{
 			_deployer!.DropDatabase();
 		}
