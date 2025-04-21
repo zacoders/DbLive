@@ -10,7 +10,8 @@ using Xunit.Abstractions;
 namespace DemoMSSQL.Tests;
 
 
-public class MyEasyFlowTestingMSSQLFixture: EasyFlowTestingFixture
+public class MyEasyFlowTestingMSSQLFixture()
+	: EasyFlowTestingFixture(dropDatabaseOnComplete: true)
 {
 	public const string SqlProjectName = "DemoMSSQL";
 	public const string DockerImage = "mcr.microsoft.com/mssql/server:2022-latest";

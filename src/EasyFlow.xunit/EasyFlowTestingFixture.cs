@@ -4,7 +4,8 @@ using Xunit;
 
 namespace EasyFlow.xunit;
 
-public abstract class EasyFlowTestingFixture: IAsyncLifetime
+public abstract class EasyFlowTestingFixture (bool dropDatabaseOnComplete)
+	: IAsyncLifetime
 {
 	private IEasyFlow? _deployer;
 
@@ -30,16 +31,10 @@ public abstract class EasyFlowTestingFixture: IAsyncLifetime
 		Tester = easyFlowBuilder.CreateTester();
 	}
 
-	public async Task DisposeAsync()
+	public Task DisposeAsync()
 	{
-		//if (string.IsNullOrEmpty(_connectionString))
-		//{
-		//	// do not need to drop testing db, just drop container.
-		//	await _dockerContainer.DisposeAsync();
-		//}
-		//else
-		{
-			_deployer!.DropDatabase();
-		}
+		if (dropDatabaseOnComplete) _deployer!.DropDatabase();
+
+		return Task.CompletedTask;
 	}
 }
