@@ -22,6 +22,7 @@ public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem _fileSyst
 	{
 		get
 		{
+			// Note: projectdir.user file is needed to make it possible to open sql test file on sql test click in VS Test Explorer.
 			string projectDirFile = _projectPath.CombineWith("projectdir.user");
 			if (!_fileSystem.FileExists(projectDirFile))
 			{
@@ -30,7 +31,7 @@ public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem _fileSyst
 			var lines = _fileSystem.FileReadAllLines(projectDirFile);
 			if (lines.Length == 0 || string.IsNullOrWhiteSpace(lines[0]))
 			{
-				throw new Exception($"For some reason projectdir.user file is empy. {ProjectDirErrorDetails}");
+				throw new Exception($"For some reason projectdir.user file is empty. {ProjectDirErrorDetails}");
 			}
 			string visualStudioProjectPath = lines[0];
 			return visualStudioProjectPath;
