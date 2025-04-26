@@ -2,6 +2,6 @@
 
 public class ValidationResult
 {
-	public CompareResult CompareResult { get; init; }
+	public bool IsValid { get; init; }
 	public string Output { get; init; } = "";
 }

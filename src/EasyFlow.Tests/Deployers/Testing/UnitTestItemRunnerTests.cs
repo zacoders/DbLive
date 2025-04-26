@@ -21,8 +21,8 @@ public class UnitTestItemRunnerTests
 		mockStopWatch.ElapsedMilliseconds.Returns(999);
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
-		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<MultipleResults>())
-			.Returns(new ValidationResult { CompareResult = CompareResult.Match });
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
 
 		TestItem testItem = new()
 		{
@@ -38,7 +38,7 @@ public class UnitTestItemRunnerTests
 		// Assert
 		mockSet.EasyFlowDA.Received(1);
 		mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
-		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<MultipleResults>());
+		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<List<SqlResult>>());
 
 		Assert.True(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);
@@ -64,8 +64,8 @@ public class UnitTestItemRunnerTests
 		mockStopWatch.ElapsedMilliseconds.Returns(999);
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
-		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<MultipleResults>())
-			.Returns(new ValidationResult { CompareResult = CompareResult.Match });
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
 
 		TestItem testItem = new()
 		{

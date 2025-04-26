@@ -31,11 +31,11 @@ public class UnitTestResultCheckerTests
 		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
 
 		// Assert
-		Assert.Equal(CompareResult.Match, validationResult.CompareResult);
+		Assert.True(validationResult.IsValid);
 	}
 
 	[Fact]
-	public void Columns_DoesNotMatch_TypeCheck()
+	public void Columns_DoesNotMatch_SchemaTypeCheck()
 	{
 		// Arrange		
 		UnitTestResultChecker checker = new();
@@ -46,8 +46,8 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("assert", "..."), new SqlColumn("type_check", "bool")],
-			resultRows: [new SqlRow("rows", true)]
+			sqlColumns: [new SqlColumn("assert", "..."),],
+			resultRows: [new SqlRow("rows-with-schema")]
 		);
 
 		SqlResult expectedResult = new(
@@ -60,12 +60,12 @@ public class UnitTestResultCheckerTests
 		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
 
 		// Assert
-		Assert.Equal(CompareResult.Mismatch, validationResult.CompareResult);
+		Assert.False(validationResult.IsValid);
 		Assert.Equal(
 			"""
 			Columns does not match:
-			Expected columns: Test: nvarchar(128)
-			Actual columns:   Test: nvarchar(30)
+			Expected columns: Test: nvarchar(30)
+			Actual columns:   Test: nvarchar(128)
 			"""
 			, validationResult.Output
 		);
@@ -98,14 +98,14 @@ public class UnitTestResultCheckerTests
 		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
 
 		// Assert
-		Assert.Equal(CompareResult.Mismatch, validationResult.CompareResult);
+		Assert.False(validationResult.IsValid);
 		Assert.Equal(
 			"""
 			Data for one or more rows does not match:
-			Columns: Test: nvarchar(128)
+			Columns: Test: nvarchar(30)
 			[Row 1]>
-			Expected values: 'some string value'
-			Actual values:   'some different value'
+			Expected values: 'some different value'
+			Actual values:   'some string value'
 			"""
 			, validationResult.Output
 		);
@@ -147,6 +147,6 @@ public class UnitTestResultCheckerTests
 		);
 
 		// Assert
-		Assert.Equal(CompareResult.Match, validationResult.CompareResult);
+		Assert.True(validationResult.IsValid);
 	}
 }

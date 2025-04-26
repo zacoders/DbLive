@@ -4,39 +4,82 @@ namespace EasyFlow.Deployers.Testing;
 
 internal class UnitTestResultChecker : IUnitTestResultChecker
 {
-	public ValidationResult ValidateTestResult(MultipleResults multiResult)
+	public ValidationResult ValidateTestResult(List<SqlResult> multiResult)
 	{
-		int? expectedNum = GetExpectedResultPosition(multiResult);
+		TestRunSqlResults testRunResults = GetTestRunResults(multiResult);
 
-		if (expectedNum is null)
+		if (testRunResults.AssertType == AssertType.None)
 		{
-			return new ValidationResult { CompareResult = CompareResult.None };
+			return new ValidationResult { IsValid = true };
 		}
 
-		// todo: convert to regular class, Expected with properties, so will be easier to access them.
-		SqlResult expectedResult = multiResult[expectedNum.Value]; 
-
-		string expectedValue = expectedResult.Rows[0][0].ToString();
-
-
-		if (expectedValue == "rows") //# todo, add more check types!
+		if (testRunResults.AssertType is AssertType.Rows or AssertType.RowsWithSchema)
 		{
-			bool columnTypesCheck = expectedResult.GetValue<bool>("type_check", 0);
-			for (int i = 0; i < expectedNum.Value; i++)
+			for (int i = 0; i < testRunResults.ExpectedResults.Count; i++)
 			{
-				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + i + 1], columnTypesCheck);
-				if (compareResult.CompareResult == CompareResult.Mismatch)
+				ValidationResult compareResult = CompareResults(
+					testRunResults.ExpectedResults[i],
+					testRunResults.ActualResults[i],
+					columnTypesCheck: testRunResults.AssertType == AssertType.RowsWithSchema
+				);
+
+				if (!compareResult.IsValid)
 				{
 					return compareResult;
 				}
 			}
-			return new ValidationResult { CompareResult = CompareResult.Match };
+			return new ValidationResult { IsValid = true };
 		}
 
-		throw new Exception($"Not supported expectation {expectedValue}.");
+
+		if (testRunResults.AssertType == AssertType.HasRows)
+		{
+			if (testRunResults.ActualResults.Count > 0
+				&& testRunResults.ActualResults[0].Rows.Count > 0)
+			{
+				return new ValidationResult { IsValid = true };
+			}
+
+			return new ValidationResult
+			{
+				IsValid = false,
+				Output = $"""
+				Expected any rows, but empty result set recived.
+				"""
+			};
+		}
+
+		//# todo, add more check types!
+		throw new Exception($"Not supported assert {testRunResults.AssertType}.");
 	}
 
-	private int? GetExpectedResultPosition(MultipleResults multiResult)
+	private TestRunSqlResults GetTestRunResults(List<SqlResult> multiResult)
+	{
+		int? assertResultIndex = GetExpectedResultPosition(multiResult);
+
+		if (!assertResultIndex.HasValue)
+		{
+			return new TestRunSqlResults
+			{
+				AssertType = AssertType.None,
+				ActualResults = multiResult
+			};
+		}
+
+		SqlResult expectedResult = multiResult[assertResultIndex.Value];
+		string assertTypeStr = expectedResult.GetValue<string>("assert", 0)!;
+
+		TestRunSqlResults testRunResults = new()
+		{
+			AssertType = assertTypeStr.ToAssertType(),
+			ActualResults = multiResult.Take(assertResultIndex.Value).ToList(),
+			ExpectedResults = multiResult.Skip(assertResultIndex.Value + 1).ToList()
+		};
+
+		return testRunResults;
+	}
+
+	private int? GetExpectedResultPosition(List<SqlResult> multiResult)
 	{
 		if (multiResult.Count(r => r.Columns[0].ColumnName == "assert") > 1)
 		{
@@ -45,7 +88,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		for (int i = 0; i < multiResult.Count; i++)
 		{
-			var r = multiResult[i];
+			SqlResult r = multiResult[i];
 			if (r.Columns[0].ColumnName == "assert")
 			{
 				return i;
@@ -57,7 +100,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	private ValidationResult CompareResults(SqlResult expected, SqlResult actual, bool columnTypesCheck)
 	{
 		ValidationResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns, columnTypesCheck);
-		if (columnsCompareResult.CompareResult == CompareResult.Mismatch) 
+		if (!columnsCompareResult.IsValid)
 			return columnsCompareResult;
 
 		for (int i = 0; i < expected.Rows.Count; i++)
@@ -66,11 +109,11 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			SqlRow actualRow = actual.Rows[i];
 
 			ValidationResult rowCompareResult = CompareRows(expectedRow, actualRow);
-			if (rowCompareResult.CompareResult == CompareResult.Mismatch)
+			if (!rowCompareResult.IsValid)
 			{
 				return new ValidationResult
 				{
-					CompareResult = CompareResult.Mismatch,
+					IsValid = false,
 					Output = $"""
 					Data for one or more rows does not match:
 					Columns: {string.Join(",", expected.Columns)}
@@ -81,7 +124,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			}
 		}
 
-		return new ValidationResult { CompareResult = CompareResult.Match };
+		return new ValidationResult { IsValid = true };
 	}
 
 	private ValidationResult CompareColumns(List<SqlColumn> expected, List<SqlColumn> actual, bool columnTypesCheck)
@@ -112,14 +155,14 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				}
 			}
 		}
-		
+
 		// TODO: compare columns data types too.
 
 		if (!match)
 		{
 			return new ValidationResult
 			{
-				CompareResult = CompareResult.Mismatch,
+				IsValid = false,
 				Output = $"""
 				Columns does not match:
 				Expected columns: {string.Join(", ", expected)}
@@ -128,7 +171,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			};
 		}
 
-		return new ValidationResult { CompareResult = CompareResult.Match };
+		return new ValidationResult { IsValid = true };
 	}
 
 	private ValidationResult CompareRows(SqlRow expected, SqlRow actual)
@@ -151,7 +194,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		{
 			return new ValidationResult
 			{
-				CompareResult = CompareResult.Mismatch,
+				IsValid = false,
 				Output =
 				$"""
 				Expected values: {ListToSring(expected)}
@@ -160,7 +203,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			};
 		}
 
-		return new ValidationResult { CompareResult = CompareResult.Match };
+		return new ValidationResult { IsValid = true };
 	}
 
 	private string ListToSring(SqlRow row)

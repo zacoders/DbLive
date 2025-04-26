@@ -212,7 +212,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 11 as UserId, 'TestUser11' as Name
 		";
 
-		MultipleResults results = _da.ExecuteQueryMultiple(sql);
+		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
 
 		Assert.Equal(3, results.Count);
 	}
@@ -225,7 +225,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 				throw 50001, 'Admin user must exists.', 0;
 		";
 
-		MultipleResults results = _da.ExecuteQueryMultiple(sql);
+		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
 
 		Assert.Empty(results);
 	}

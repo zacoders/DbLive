@@ -116,7 +116,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
-	public MultipleResults ExecuteQueryMultiple(string sqlStatement)
+	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
 	{
 		try
 		{
@@ -129,7 +129,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 
 			using SqlDataReader reader = cmd.ExecuteReader(CommandBehavior.KeyInfo);
 
-			MultipleResults multipleResults = [];
+			List<SqlResult> multipleResults = [];
 			do
 			{
 				SqlResult? sqlResult = ReadResult(reader);

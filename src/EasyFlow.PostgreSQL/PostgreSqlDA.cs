@@ -56,7 +56,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
-	public MultipleResults ExecuteQueryMultiple(string sqlStatement)
+	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
 	{
 		throw new NotImplementedException();
 	}

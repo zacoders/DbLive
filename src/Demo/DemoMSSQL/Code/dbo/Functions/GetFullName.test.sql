@@ -4,5 +4,5 @@
 select dbo.GetFullName('first', 'last')
 
 
-select assert = 'rows', types_check = 1
+select assert = 'rows-with-schema'
 select cast('first last' as nvarchar(255))

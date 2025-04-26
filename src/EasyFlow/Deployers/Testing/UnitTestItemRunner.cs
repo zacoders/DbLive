@@ -29,10 +29,10 @@ public class UnitTestItemRunner(
 				_da.ExecuteNonQuery(test.InitFileData.Content);
 			}
 
-			MultipleResults resutls = _da.ExecuteQueryMultiple(test.FileData.Content);
+			List<SqlResult> resutls = _da.ExecuteQueryMultiple(test.FileData.Content);
 
 			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
-			if (compareResult.CompareResult == CompareResult.Mismatch)
+			if (!compareResult.IsValid)
 			{
 				result.Output = compareResult.Output;
 				result.ErrorMessage = compareResult.Output;
