@@ -208,7 +208,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		var sql = @"
 			select 10 as UserId, 'TestUser10' as Name
 			
-			select expected = 'rows'
+			select assert = 'rows'
 			select 11 as UserId, 'TestUser11' as Name
 		";
 

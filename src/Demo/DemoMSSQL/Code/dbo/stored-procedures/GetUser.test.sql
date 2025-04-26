@@ -8,6 +8,6 @@ values ( 10, 'TestUser10' )
 exec dbo.GetUser2 @UserId = 10
 
 
-select expected = 'rows'
+select assert = 'rows'
 
 select 10 as UserId, 'TestUser10' as Name

@@ -27,7 +27,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				ValidationResult compareResult = CompareResults(multiResult[i], multiResult[expectedNum.Value + i + 1], columnTypesCheck);
 				if (compareResult.CompareResult == CompareResult.Mismatch)
 				{
-					return compareResult;	
+					return compareResult;
 				}
 			}
 			return new ValidationResult { CompareResult = CompareResult.Match };
@@ -38,15 +38,15 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 	private int? GetExpectedResultPosition(MultipleResults multiResult)
 	{
-		if (multiResult.Count(r => r.Columns[0].ColumnName == "expected") > 1)
+		if (multiResult.Count(r => r.Columns[0].ColumnName == "assert") > 1)
 		{
-			new Exception("Just one 'expected' result set is allowed.");
+			new Exception("Just one 'assert' result set is allowed.");
 		}
 
 		for (int i = 0; i < multiResult.Count; i++)
 		{
 			var r = multiResult[i];
-			if (r.Columns[0].ColumnName == "expected")
+			if (r.Columns[0].ColumnName == "assert")
 			{
 				return i;
 			}

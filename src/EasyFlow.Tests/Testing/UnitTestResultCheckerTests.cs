@@ -17,7 +17,7 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", "...")],
+			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
 
@@ -46,7 +46,7 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", "..."), new SqlColumn("type_check", "bool")],
+			sqlColumns: [new SqlColumn("assert", "..."), new SqlColumn("type_check", "bool")],
 			resultRows: [new SqlRow("rows", true)]
 		);
 
@@ -84,7 +84,7 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", "...")],
+			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
 
@@ -128,7 +128,7 @@ public class UnitTestResultCheckerTests
 		);
 
 		SqlResult expectedMark = new(
-			sqlColumns: [new SqlColumn("expected", "...")],
+			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
 
