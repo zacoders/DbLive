@@ -43,7 +43,7 @@ public class UnitTestItemRunner(
 				result.IsSuccess = true;
 				result.Output = "Success";
 			}
-			
+
 			_transactionScope.Dispose(); //canceling transaction
 		}
 		catch (Exception ex)
