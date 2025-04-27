@@ -7,5 +7,7 @@ public enum AssertType
 	Rows,
 	RowsWithSchema,
 	HasRows,
-	RowCount
+	RowCount,
+	Empty,
+	SingleRow
 }

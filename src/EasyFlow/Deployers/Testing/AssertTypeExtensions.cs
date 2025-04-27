@@ -10,7 +10,9 @@ public static class AssertTypeExtensions
 		{AssertType.Rows, "rows" },
 		{AssertType.RowsWithSchema, "rows-with-schema" },
 		{AssertType.HasRows, "has-rows" },
-		{AssertType.RowCount, "row-count" }
+		{AssertType.RowCount, "row-count" },
+		{AssertType.Empty, "empty" },
+		{AssertType.SingleRow, "single-row" }
 	};
 
 	static Dictionary<string, AssertType> reverseAssertTypesMap =
@@ -20,6 +22,23 @@ public static class AssertTypeExtensions
 	{
 		if (reverseAssertTypesMap.TryGetValue(assertDefinition.ToLower(), out AssertType value))
 		{
+			if (value == AssertType.Empty)
+			{
+				return new AssertInfo {
+					AssertType = AssertType.RowCount,
+					RowCount = 0
+				};
+			}
+			
+			if (value == AssertType.SingleRow)
+			{
+				return new AssertInfo
+				{
+					AssertType = AssertType.RowCount,
+					RowCount = 1
+				};
+			}
+
 			return new AssertInfo { AssertType = value };
 		}
 
