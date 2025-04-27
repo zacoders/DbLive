@@ -94,7 +94,6 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			};
 		}
 
-		//# todo, add more check types!
 		throw new Exception($"Not supported assert {testRunResults.AssertInfo.AssertType}.");
 	}
 
@@ -200,8 +199,6 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				}
 			}
 		}
-
-		// TODO: compare columns data types too.
 
 		if (!match)
 		{

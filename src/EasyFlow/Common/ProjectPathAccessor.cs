@@ -17,7 +17,7 @@ public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem _fileSyst
 		}
 	}
 
-	private const string ProjectDirErrorDetails = "Make sure your sql project configured correctly. The projectdir.user file should be generated during the build. TODO: provide url with issue details.";
+	private const string ProjectDirErrorDetails = "Make sure your sql project configured correctly. The projectdir.user file should be generated during the build. TODO: provide link to project configuration description.";
 	public string VisualStudioProjectPath
 	{
 		get

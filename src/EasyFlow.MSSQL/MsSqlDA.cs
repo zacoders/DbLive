@@ -3,7 +3,6 @@ using EasyFlow.Common;
 using EasyFlow.Project;
 using System.Collections.Specialized;
 using System.Data;
-using System.Data.SqlTypes;
 
 namespace EasyFlow.MSSQL;
 
@@ -139,8 +138,8 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				}
 			}
 			while (reader.NextResult());
-			
-			
+
+
 			return multipleResults;
 		}
 		catch (Exception e)
