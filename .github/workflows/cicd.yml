@@ -91,8 +91,8 @@ jobs:
     - name: Create EasyFlow.MSSQL package
       run: dotnet pack 'src/EasyFlow.MSSQL/EasyFlow.MSSQL.csproj' --no-restore --configuration Release
 
-    - name: Create EasyFlow.MSSQL.xunit package
-      run: dotnet pack 'src/EasyFlow.MSSQL.xunit/EasyFlow.MSSQL.xunit.csproj' --no-restore --configuration Release
+    - name: Create EasyFlow.xunit package
+      run: dotnet pack 'src/EasyFlow.xunit/EasyFlow.xunit.csproj' --no-restore --configuration Release
 
     - name: Publish packages
       run: dotnet nuget push **/bin/Release/*.nupkg
