@@ -2,7 +2,7 @@
 
 namespace EasyFlow.MSSQL;
 
-public static class EasyFlowBuilderExtentions
+public static class EasyFlowBuilderExtensions
 {
 	public static IEasyFlowBuilder SqlServer(this IEasyFlowBuilder builder)
 	{

@@ -12,6 +12,7 @@ public interface IFileSystem
 	IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders);
 	FileData ReadFileData(string path, string rootPath);
 	string FileReadAllText(string path);
+	string[] FileReadAllLines(string path);
 	bool FileExists(string path);
 	bool PathExists(string path);
 	bool IsDirectoryEmpty(string path);

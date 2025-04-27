@@ -1,6 +1,8 @@
 -- will be executed in transaction with rollback.
 -- no exceptions expected.
 
-if dbo.GetFullName('first', 'last') != 'first last'
-	throw 50001, 'Expected "first last"', 0;
+select dbo.GetFullName('first', 'last')
 
+
+select assert = 'rows-with-schema'
+select cast('first last' as nvarchar(255))

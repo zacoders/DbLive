@@ -53,6 +53,7 @@ public class FileSystem : IFileSystem
 	}
 
 	public string FileReadAllText(string path) => File.ReadAllText(path);
+	public string[] FileReadAllLines(string path) => File.ReadAllLines(path);
 
 	public FileData ReadFileData(string path, string rootPath)
 	{

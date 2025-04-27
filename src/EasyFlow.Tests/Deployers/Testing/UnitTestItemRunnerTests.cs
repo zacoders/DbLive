@@ -1,3 +1,4 @@
+using EasyFlow.Adapter;
 using EasyFlow.Deployers.Testing;
 
 namespace EasyFlow.Tests.Deployers.Testing;
@@ -20,6 +21,9 @@ public class UnitTestItemRunnerTests
 		mockStopWatch.ElapsedMilliseconds.Returns(999);
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
+
 		TestItem testItem = new()
 		{
 			Name = "test1",
@@ -33,7 +37,8 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.EasyFlowDA.Received(1);
-		mockSet.EasyFlowDA.Received().ExecuteNonQuery(Arg.Is(testItem.FileData.Content));
+		mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<List<SqlResult>>());
 
 		Assert.True(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);
@@ -59,6 +64,9 @@ public class UnitTestItemRunnerTests
 		mockStopWatch.ElapsedMilliseconds.Returns(999);
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
+
 		TestItem testItem = new()
 		{
 			Name = "test1",
@@ -76,7 +84,7 @@ public class UnitTestItemRunnerTests
 		Received.InOrder(() =>
 		{
 			mockSet.EasyFlowDA.Received().ExecuteNonQuery(Arg.Is(testItem.InitFileData.Content));
-			mockSet.EasyFlowDA.Received().ExecuteNonQuery(Arg.Is(testItem.FileData.Content));
+			mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
 		});
 
 		Assert.True(result.IsSuccess);
@@ -103,7 +111,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.EasyFlowDA
-			.When(fake => fake.ExecuteNonQuery(Arg.Any<string>()))
+			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>()))
 			.Throw<Exception>();
 
 		TestItem testItem = new()
@@ -119,7 +127,7 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.EasyFlowDA.Received(1);
-		mockSet.EasyFlowDA.Received().ExecuteNonQuery(Arg.Is(testItem.FileData.Content));
+		mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);

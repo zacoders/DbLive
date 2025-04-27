@@ -56,6 +56,11 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
+	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	{
+		throw new NotImplementedException();
+	}
+
 	public int GetEasyFlowVersion()
 	{
 		const string query = @"

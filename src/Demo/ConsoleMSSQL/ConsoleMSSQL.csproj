@@ -24,7 +24,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
-    <ProjectReference Include="..\..\EasyFlow\EasyFlow.csproj" />
   </ItemGroup>
 
 </Project>

@@ -53,7 +53,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
         source-url: https://nuget.pkg.github.com/zatuliveter/index.json
 
     - name: Install GitVersion
@@ -91,8 +91,8 @@ jobs:
     - name: Create EasyFlow.MSSQL package
       run: dotnet pack 'src/EasyFlow.MSSQL/EasyFlow.MSSQL.csproj' --no-restore --configuration Release
 
-    - name: Create EasyFlow.MSSQL.xunit package
-      run: dotnet pack 'src/EasyFlow.MSSQL.xunit/EasyFlow.MSSQL.xunit.csproj' --no-restore --configuration Release
+    - name: Create EasyFlow.xunit package
+      run: dotnet pack 'src/EasyFlow.xunit/EasyFlow.xunit.csproj' --no-restore --configuration Release
 
     - name: Publish packages
       run: dotnet nuget push **/bin/Release/*.nupkg

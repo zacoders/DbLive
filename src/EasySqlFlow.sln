@@ -37,7 +37,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoMSSQL.Tests", "Demo\Dem
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleMSSQL", "Demo\ConsoleMSSQL\ConsoleMSSQL.csproj", "{BE9594BE-8D31-4A82-8CE9-048DEA29E798}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.MSSQL.xunit", "EasyFlow.MSSQL.xunit\EasyFlow.MSSQL.xunit.csproj", "{72CCD431-3D05-4F2F-93F6-F9BCD613D435}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.xunit", "EasyFlow.xunit\EasyFlow.xunit.csproj", "{72CCD431-3D05-4F2F-93F6-F9BCD613D435}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

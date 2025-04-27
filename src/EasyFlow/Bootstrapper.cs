@@ -29,5 +29,6 @@ public static class Bootstrapper
 		container.AddSingleton<ITransactionRunner, TransactionRunner>();
 		container.AddSingleton<IEasyFlowInternal, EasyFlowInternal>();
 		container.AddSingleton<IEasyFlowInternalManager, EasyFlowInternalManager>();
+		container.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>();
 	}
 }

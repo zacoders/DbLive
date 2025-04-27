@@ -201,4 +201,32 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		_da.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
 	}
+
+	[Fact]
+	public void ExecuteQuery()
+	{
+		var sql = @"
+			select 10 as UserId, 'TestUser10' as Name
+			
+			select assert = 'rows'
+			select 11 as UserId, 'TestUser11' as Name
+		";
+
+		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
+
+		Assert.Equal(3, results.Count);
+	}
+
+	[Fact]
+	public void ExecuteQuery_NoResult()
+	{
+		var sql = @"
+			if not exists ( select 1 )
+				throw 50001, 'Admin user must exists.', 0;
+		";
+
+		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
+
+		Assert.Empty(results);
+	}
 }

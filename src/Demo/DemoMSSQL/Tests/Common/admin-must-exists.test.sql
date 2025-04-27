@@ -1,5 +1,10 @@
 
 
-if not exists ( select * from dbo.Users where Name = 'Admin' )
-	throw 50001, 'Admin user must exists.', 0;
+declare @cnt int = (
+	select count(*) 
+	from dbo.Users 
+	where Name = 'Admin'
+)
 
+
+if @cnt != 1 throw 50000, 'Expected one admin user.', 0

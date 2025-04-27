@@ -115,6 +115,132 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		}
 	}
 
+	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	{
+		try
+		{
+			using SqlConnection cnn = new(_cnn.ConnectionString);
+
+			using SqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandText = sqlStatement;
+
+			cnn.Open();
+
+			using SqlDataReader reader = cmd.ExecuteReader(CommandBehavior.KeyInfo);
+
+			List<SqlResult> multipleResults = [];
+			do
+			{
+				SqlResult? sqlResult = ReadResult(reader);
+				if (sqlResult is not null)
+				{
+					multipleResults.Add(sqlResult);
+				}
+			}
+			while (reader.NextResult());
+
+
+			return multipleResults;
+		}
+		catch (Exception e)
+		{
+			var sqlException = e.Get<SqlException>();
+			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
+		}
+	}
+
+	private static SqlResult? ReadResult(SqlDataReader reader)
+	{
+		DataTable schemaTable = reader.GetSchemaTable();
+
+		List<SqlColumn> sqlColumns = [];
+		if (schemaTable != null)
+		{
+			foreach (DataRow row in schemaTable.Rows)
+			{
+				sqlColumns.Add(GetSqlColumn(row));
+			}
+		}
+
+		if (sqlColumns.Count == 0) return null;
+
+		List<SqlRow> rows = [];
+		while (reader.Read())
+		{
+			SqlRow row = new();
+			for (int i = 0; i < reader.FieldCount; i++)
+			{
+				row.Add(reader.GetValue(i));
+			}
+			rows.Add(row);
+		}
+
+		return new SqlResult(sqlColumns, rows);
+	}
+
+	private static SqlColumn GetSqlColumn(DataRow row)
+	{
+		return new SqlColumn(
+			ColumnName: GetValue<string>(row["ColumnName"]),
+			DataType: GetSqlTypeName(
+				providerType: GetValue<int>(row["ProviderType"]),
+				numericPrecision: GetValueN<short?>(row["NumericPrecision"]),
+				numericScale: GetValue<short?>(row["NumericScale"]),
+				columnSize: GetValue<int>(row["ColumnSize"])
+			)
+		);
+	}
+
+	private static string GetSqlTypeName(int providerType, short? numericPrecision, short? numericScale, int columnSize)
+	{
+		SqlDbType dbType = (SqlDbType)providerType;
+
+		return dbType switch
+		{
+			SqlDbType.BigInt => "bigint",
+			SqlDbType.Binary => $"binary({columnSize})",
+			SqlDbType.Bit => "bit",
+			SqlDbType.Char => $"char({columnSize})",
+			SqlDbType.Date => "date",
+			SqlDbType.DateTime => "datetime",
+			SqlDbType.DateTime2 => $"datetime2({numericScale ?? 7})",
+			SqlDbType.DateTimeOffset => $"datetimeoffset({numericScale ?? 7})",
+			SqlDbType.Decimal => $"decimal({numericPrecision ?? 18}, {numericScale ?? 0})",
+			SqlDbType.Float => "float",
+			SqlDbType.Image => "image",
+			SqlDbType.Int => "int",
+			SqlDbType.Money => "money",
+			SqlDbType.NChar => $"nchar({columnSize})",
+			SqlDbType.NText => "ntext",
+			SqlDbType.NVarChar => columnSize == -1 ? "nvarchar(max)" : $"nvarchar({columnSize})",
+			SqlDbType.Real => "real",
+			SqlDbType.UniqueIdentifier => "uniqueidentifier",
+			SqlDbType.SmallDateTime => "smalldatetime",
+			SqlDbType.SmallInt => "smallint",
+			SqlDbType.SmallMoney => "smallmoney",
+			SqlDbType.Text => "text",
+			SqlDbType.Timestamp => "timestamp",
+			SqlDbType.TinyInt => "tinyint",
+			SqlDbType.VarBinary => columnSize == -1 ? "varbinary(max)" : $"varbinary({columnSize})",
+			SqlDbType.VarChar => columnSize == -1 ? "varchar(max)" : $"varchar({columnSize})",
+			SqlDbType.Variant => "sql_variant",
+			SqlDbType.Xml => "xml",
+			_ => "unknown"
+		};
+	}
+
+	private static T? GetValueN<T>(object objectValue)
+	{
+		if (objectValue == DBNull.Value) return default;
+		return (T?)objectValue;
+	}
+
+	private static T GetValue<T>(object objectValue)
+	{
+		if (objectValue == DBNull.Value) throw new Exception("Expected non null value, but NULL received.");
+		return (T)objectValue;
+	}
+
 	public void CreateDB(bool skipIfExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
