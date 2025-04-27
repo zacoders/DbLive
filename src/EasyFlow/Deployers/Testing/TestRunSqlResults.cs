@@ -4,7 +4,7 @@ namespace EasyFlow.Adapter;
 
 public class TestRunSqlResults
 {
-	public AssertType AssertType { get; set; }
+	public AssertInfo AssertInfo { get; set; } = new AssertInfo {  AssertType = AssertType.None };
 
 	public List<SqlResult> ActualResults { get; set; } = [];
 	

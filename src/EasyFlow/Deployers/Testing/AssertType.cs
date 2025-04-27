@@ -6,5 +6,6 @@ public enum AssertType
 	None,
 	Rows,
 	RowsWithSchema,
-	HasRows
+	HasRows,
+	RowCount
 }

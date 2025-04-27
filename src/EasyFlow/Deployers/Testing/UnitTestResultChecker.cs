@@ -8,19 +8,19 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	{
 		TestRunSqlResults testRunResults = GetTestRunResults(multiResult);
 
-		if (testRunResults.AssertType == AssertType.None)
+		if (testRunResults.AssertInfo.AssertType == AssertType.None)
 		{
 			return new ValidationResult { IsValid = true };
 		}
 
-		if (testRunResults.AssertType is AssertType.Rows or AssertType.RowsWithSchema)
+		if (testRunResults.AssertInfo.AssertType is AssertType.Rows or AssertType.RowsWithSchema)
 		{
 			for (int i = 0; i < testRunResults.ExpectedResults.Count; i++)
 			{
 				ValidationResult compareResult = CompareResults(
 					testRunResults.ExpectedResults[i],
 					testRunResults.ActualResults[i],
-					columnTypesCheck: testRunResults.AssertType == AssertType.RowsWithSchema
+					columnTypesCheck: testRunResults.AssertInfo.AssertType == AssertType.RowsWithSchema
 				);
 
 				if (!compareResult.IsValid)
@@ -32,7 +32,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		}
 
 
-		if (testRunResults.AssertType == AssertType.HasRows)
+		if (testRunResults.AssertInfo.AssertType == AssertType.HasRows)
 		{
 			if (testRunResults.ActualResults.Count > 0
 				&& testRunResults.ActualResults[0].Rows.Count > 0)
@@ -44,13 +44,58 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			{
 				IsValid = false,
 				Output = $"""
-				Expected any rows, but empty result set recived.
+				Expected any rows, but empty result set received.
+				"""
+			};
+		}
+
+
+		if (testRunResults.AssertInfo.AssertType == AssertType.RowCount)
+		{
+			if (testRunResults.ActualResults.Count > 1)
+			{
+				return new ValidationResult
+				{
+					IsValid = false,
+					Output = $"""
+					Only one result set is expected, but multiple received.
+					"""
+				};
+			}
+
+			if (testRunResults.ActualResults.Count == 0)
+			{
+				return new ValidationResult
+				{
+					IsValid = false,
+					Output = $"""
+					Expected 0 rows, but result set is not recieved.
+					"""
+				};
+			}
+
+			if (testRunResults.ActualResults.Count == 0
+				&& testRunResults.AssertInfo.RowCount == 0)
+			{
+				return new ValidationResult { IsValid = true };
+			}
+
+			if (testRunResults.ActualResults[0].Rows.Count == testRunResults.AssertInfo.RowCount)
+			{
+				return new ValidationResult { IsValid = true };
+			}
+
+			return new ValidationResult
+			{
+				IsValid = false,
+				Output = $"""
+				Expected {testRunResults.AssertInfo.RowCount} row(s), but {testRunResults.ActualResults[0].Rows.Count} received.
 				"""
 			};
 		}
 
 		//# todo, add more check types!
-		throw new Exception($"Not supported assert {testRunResults.AssertType}.");
+		throw new Exception($"Not supported assert {testRunResults.AssertInfo.AssertType}.");
 	}
 
 	private TestRunSqlResults GetTestRunResults(List<SqlResult> multiResult)
@@ -61,7 +106,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		{
 			return new TestRunSqlResults
 			{
-				AssertType = AssertType.None,
+				AssertInfo = new AssertInfo { AssertType = AssertType.None },
 				ActualResults = multiResult
 			};
 		}
@@ -71,7 +116,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		TestRunSqlResults testRunResults = new()
 		{
-			AssertType = assertTypeStr.ToAssertType(),
+			AssertInfo = assertTypeStr.ToAssertInfo(),
 			ActualResults = multiResult.Take(assertResultIndex.Value).ToList(),
 			ExpectedResults = multiResult.Skip(assertResultIndex.Value + 1).ToList()
 		};

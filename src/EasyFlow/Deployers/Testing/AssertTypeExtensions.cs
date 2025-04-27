@@ -1,19 +1,44 @@
 ﻿
+using MoreLinq.Extensions;
+
 namespace EasyFlow.Deployers.Testing;
 
 public static class AssertTypeExtensions
 {
-	public static AssertType ToAssertType(this string assertType)
+	static Dictionary<AssertType, string> assertTypesMap = new()
 	{
-		return assertType.ToLower() switch
+		{AssertType.Rows, "rows" },
+		{AssertType.RowsWithSchema, "rows-with-schema" },
+		{AssertType.HasRows, "has-rows" },
+		{AssertType.RowCount, "row-count" }
+	};
+
+	static Dictionary<string, AssertType> reverseAssertTypesMap =
+		assertTypesMap.ToDictionary(i => i.Value, i => i.Key);
+
+	public static AssertInfo ToAssertInfo(this string assertDefinition)
+	{
+		if (reverseAssertTypesMap.TryGetValue(assertDefinition.ToLower(), out AssertType value))
 		{
-			"rows" => AssertType.Rows,
-			"rows-with-schema" => AssertType.RowsWithSchema,
-			"has-rows" => AssertType.HasRows,
-			_ => throw new Exception($"Unknown assert type {assertType}. Supported values: '{SupportedAssertTypes()}'")
-		};
+			return new AssertInfo { AssertType = value };
+		}
+
+		if (assertDefinition.Contains("row-count"))
+		{
+			int equalIndex = assertDefinition.IndexOf("=");
+			if (equalIndex != -1)
+			{
+				return new AssertInfo 
+				{ 
+					AssertType = AssertType.RowCount,
+					RowCount = Convert.ToInt32(assertDefinition.Substring(equalIndex + 1))
+				};
+			}
+		}
+
+		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: '{SupportedAssertTypes()}'");
 	}
 
 	private static string SupportedAssertTypes() =>
-		string.Join(",", Enum.GetNames(typeof(AssertType)).Select(name => name.ToLower()));
+		string.Join(", ", reverseAssertTypesMap.Keys);
 }
