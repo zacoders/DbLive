@@ -3,10 +3,10 @@ using EasyFlow.Deployers.Testing;
 
 namespace EasyFlow.Tests.Testing;
 
-public class UnitTestResultCheckerTests
+public class UnitTestResultCheckerRowsTests
 {
 	[Fact]
-	public void Simple_Rows_Match()
+	public void Rows_Simple_Success()
 	{
 		// Arrange		
 		UnitTestResultChecker checker = new();
@@ -16,7 +16,7 @@ public class UnitTestResultCheckerTests
 			resultRows: [new SqlRow("some string value")]
 		);
 
-		SqlResult expectedMark = new(
+		SqlResult assertMark = new(
 			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
@@ -28,14 +28,14 @@ public class UnitTestResultCheckerTests
 
 
 		// Act
-		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, assertMark, expectedResult]);
 
 		// Assert
 		Assert.True(validationResult.IsValid);
 	}
 
 	[Fact]
-	public void Columns_DoesNotMatch_SchemaTypeCheck()
+	public void RowsWithSchema_Columns_DoesNotMatch_Fail()
 	{
 		// Arrange		
 		UnitTestResultChecker checker = new();
@@ -45,7 +45,7 @@ public class UnitTestResultCheckerTests
 			resultRows: [new SqlRow("some string value")]
 		);
 
-		SqlResult expectedMark = new(
+		SqlResult assertMark = new(
 			sqlColumns: [new SqlColumn("assert", "..."),],
 			resultRows: [new SqlRow("rows-with-schema")]
 		);
@@ -57,7 +57,7 @@ public class UnitTestResultCheckerTests
 
 
 		// Act
-		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, assertMark, expectedResult]);
 
 		// Assert
 		Assert.False(validationResult.IsValid);
@@ -71,9 +71,8 @@ public class UnitTestResultCheckerTests
 		);
 	}
 
-
 	[Fact]
-	public void Rows_DoesNotMatch()
+	public void Rows_DoesNotMatch_Values_Fail()
 	{
 		// Arrange		
 		UnitTestResultChecker checker = new();
@@ -83,7 +82,7 @@ public class UnitTestResultCheckerTests
 			resultRows: [new SqlRow("some string value")]
 		);
 
-		SqlResult expectedMark = new(
+		SqlResult assertMark = new(
 			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
@@ -95,7 +94,7 @@ public class UnitTestResultCheckerTests
 
 
 		// Act
-		ValidationResult validationResult = checker.ValidateTestResult([mainResult, expectedMark, expectedResult]);
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, assertMark, expectedResult]);
 
 		// Assert
 		Assert.False(validationResult.IsValid);
@@ -113,7 +112,7 @@ public class UnitTestResultCheckerTests
 
 
 	[Fact]
-	public void Simple_MultipleResults_Match()
+	public void Rows_MultipleResultSets_Match()
 	{
 		// Arrange		
 		UnitTestResultChecker checker = new();
@@ -127,7 +126,7 @@ public class UnitTestResultCheckerTests
 			resultRows: [new SqlRow("some test value 2")]
 		);
 
-		SqlResult expectedMark = new(
+		SqlResult assertMark = new(
 			sqlColumns: [new SqlColumn("assert", "...")],
 			resultRows: [new SqlRow("rows")]
 		);
@@ -143,7 +142,7 @@ public class UnitTestResultCheckerTests
 
 		// Act
 		ValidationResult validationResult = checker.ValidateTestResult(
-			[mainResult1, mainResult2, expectedMark, expectedResult1, expectedResult2]
+			[mainResult1, mainResult2, assertMark, expectedResult1, expectedResult2]
 		);
 
 		// Assert
