@@ -3,12 +3,12 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers.Code;
 
 public class CodeItemDeployer(
-		ILogger logger,
+		ILogger _logger,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
 	) : ICodeItemDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(CodeItemDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
 		Policy.Handle<Exception>()

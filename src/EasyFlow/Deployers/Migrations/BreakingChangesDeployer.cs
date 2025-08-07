@@ -3,14 +3,14 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers.Migrations;
 
 public class BreakingChangesDeployer(
-		ILogger logger,
+		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
 		IMigrationItemDeployer _migrationItemDeployer
 	) : IBreakingChangesDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(BreakingChangesDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
 	public void DeployBreakingChanges(DeployParameters parameters)
 	{

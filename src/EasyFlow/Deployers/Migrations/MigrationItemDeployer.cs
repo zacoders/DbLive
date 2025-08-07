@@ -3,16 +3,16 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers.Migrations;
 
 public class MigrationItemDeployer(
-		ILogger logger,
+		ILogger _logger,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
-		ISettingsAccessor projectSettingsAccessor
+		ISettingsAccessor _projectSettingsAccessor
 	) : IMigrationItemDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(MigrationItemDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	private readonly EasyFlowSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
+	private readonly EasyFlowSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{

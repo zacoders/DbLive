@@ -3,13 +3,13 @@ using EasyFlow.Adapter;
 namespace EasyFlow.Deployers;
 
 public class FolderDeployer(
-		ILogger logger,
+		ILogger _logger,
 		IEasyFlowProject _project,
 		IEasyFlowDA _da,
 		ITimeProvider _timeProvider
 	) : IFolderDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(FolderDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
 
 	public void DeployFolder(ProjectFolder projectFolder, DeployParameters parameters)
 	{

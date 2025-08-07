@@ -3,11 +3,11 @@ namespace EasyFlow;
 
 public class EasyFlow(
 		IEasyFlowDA _da,
-		ILogger logger,
+		ILogger _logger,
 		IEasyFlowInternal _easyFlowInternal
 	) : IEasyFlow
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlow));
+	private readonly ILogger _logger = _logger.ForContext(typeof(EasyFlow));
 
 	public void Deploy(DeployParameters parameters)
 	{

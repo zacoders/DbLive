@@ -10,13 +10,13 @@ public class EasyFlowInternal(
 		IMigrationsDeployer _migrationsDeployer,
 		IFolderDeployer _folderDeployer,
 		IUnitTestsRunner _unitTestsRunner,
-		ILogger logger,
+		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
 		IEasyFlowInternalManager _selfDeployer
 	) : IEasyFlowInternal
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(EasyFlowInternal));
+	private readonly ILogger _logger = _logger.ForContext(typeof(EasyFlowInternal));
 
 	public void SelfDeployProjectInternal()
 	{

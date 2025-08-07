@@ -9,7 +9,7 @@ public class UnitTestsRunner(
 		IUnitTestItemRunner _unitTestItemRunner
 	) : IUnitTestsRunner
 {
-	private readonly ILogger Logger = _logger.ForContext(typeof(UnitTestItemRunner));
+	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
 
 	public void RunAllTests(DeployParameters parameters)
 	{
@@ -18,7 +18,7 @@ public class UnitTestsRunner(
 			return;
 		}
 
-		Logger.Information("Running Tests.");
+		_logger.Information("Running Tests.");
 
 		var tests = _project.GetTests();
 
@@ -33,12 +33,12 @@ public class UnitTestsRunner(
 			if (testResult.IsSuccess)
 			{
 				runResults.IncremenPassed();
-				Logger.Information("PASSED Test: {testName}", test.Name);
+				_logger.Information("PASSED Test: {testName}", test.Name);
 			}
 			else
 			{
 				runResults.IncremenFailed();
-				Logger.Error(testResult.Exception, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
+				_logger.Error(testResult.Exception, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
 			_da.SaveUnitTestResult(
@@ -54,7 +54,7 @@ public class UnitTestsRunner(
 			);
 		});
 
-		Logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
+		_logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
 			runResults.PassedCount, runResults.FailedCount);
 
 		if (runResults.FailedCount > 0)

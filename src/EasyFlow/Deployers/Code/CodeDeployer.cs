@@ -6,7 +6,7 @@ public class CodeDeployer(
 		ICodeItemDeployer _codeItemDeployer
 	) : ICodeDeployer
 {
-	private readonly ILogger Logger = _logger.ForContext(typeof(CodeDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeDeployer));
 
 	public void DeployCode(bool isSelfDeploy, DeployParameters parameters)
 	{
@@ -15,7 +15,7 @@ public class CodeDeployer(
 			return;
 		}
 
-		Logger.Information("Deploying Code.");
+		_logger.Information("Deploying Code.");
 
 		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
 
@@ -39,6 +39,6 @@ public class CodeDeployer(
 			throw new CodeDeploymentException($"Code deploy failed. Deployment of {failedCodeItemsCount} item(s) failed. See logs for details.");
 		}
 
-		Logger.Information("Code deploy successfully completed.");
+		_logger.Information("Code deploy successfully completed.");
 	}
 }
