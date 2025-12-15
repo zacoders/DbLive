@@ -55,7 +55,7 @@ public static class AssertTypeExtensions
 			}
 		}
 
-		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: '{SupportedAssertTypes()}'");
+		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: {SupportedAssertTypes()}");
 	}
 
 	private static string SupportedAssertTypes() =>
