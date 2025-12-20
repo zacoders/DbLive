@@ -446,3 +446,137 @@ ALTER XML SCHEMA COLLECTION [Production].[ProductDescriptionSchemaCollection] AD
     <xs:element name="Description" type="xs:string" />
 </xs:schema>';
 GO
+
+
+
+-- Create Manufacturing instructions schema.
+PRINT '';
+PRINT 'Create Manufacturing instructions schema';
+GO
+
+CREATE XML SCHEMA COLLECTION [Production].[ManuInstructionsSchemaCollection] AS
+'<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="http://schemas.microsoft.com/sqlserver/2004/07/adventure-works/ProductModelManuInstructions"
+    xmlns="http://schemas.microsoft.com/sqlserver/2004/07/adventure-works/ProductModelManuInstructions"
+    elementFormDefault="qualified" attributeFormDefault="unqualified"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema" >
+
+    <xsd:annotation>
+        <xsd:documentation>
+            SetupHour   is the time it takes to set up the machine.
+            MachineHour is the time the machine is busy manufcturing
+            LaborHour   is the labor hours in the manu process
+            LotSize     is the minimum quanity manufactured. For example,
+                    no. of frames cut from the sheet metal
+        </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:complexType name="StepType" mixed="true" >
+        <xsd:choice  minOccurs="0" maxOccurs="unbounded" >
+            <xsd:element name="tool" type="xsd:string" />
+            <xsd:element name="material" type="xsd:string" />
+            <xsd:element name="blueprint" type="xsd:string" />
+            <xsd:element name="specs" type="xsd:string" />
+            <xsd:element name="diag" type="xsd:string" />
+        </xsd:choice>
+    </xsd:complexType>
+
+    <xsd:element  name="root">
+        <xsd:complexType mixed="true">
+            <xsd:sequence>
+                <xsd:element name="Location" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType mixed="true">
+                        <xsd:sequence>
+                            <xsd:element name="step" type="StepType" minOccurs="1" maxOccurs="unbounded" />
+                        </xsd:sequence>
+                        <xsd:attribute name="LocationID" type="xsd:integer" use="required"/>
+                        <xsd:attribute name="SetupHours" type="xsd:decimal" use="optional"/>
+                        <xsd:attribute name="MachineHours" type="xsd:decimal" use="optional"/>
+                        <xsd:attribute name="LaborHours" type="xsd:decimal" use="optional"/>
+                        <xsd:attribute name="LotSize" type="xsd:decimal" use="optional"/>
+                    </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>';
+GO
+
+-- Create Store survey schema.
+PRINT '';
+PRINT 'Create Store survey schema';
+GO
+
+CREATE XML SCHEMA COLLECTION [Sales].[StoreSurveySchemaCollection] AS
+'<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://schemas.microsoft.com/sqlserver/2004/07/adventure-works/StoreSurvey"
+    xmlns="http://schemas.microsoft.com/sqlserver/2004/07/adventure-works/StoreSurvey"
+    elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+    <!-- BM=Bicycle manu BS=bicyle store OS=online store SGS=sporting goods store D=Discount Store -->
+    <xsd:simpleType name="BusinessType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="BM" />
+            <xsd:enumeration value="BS" />
+            <xsd:enumeration value="D" />
+            <xsd:enumeration value="OS" />
+            <xsd:enumeration value="SGS" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <!-- BMX=BMX Racing -->
+    <xsd:simpleType name="SpecialtyType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="Family" />
+            <xsd:enumeration value="Kids" />
+            <xsd:enumeration value="BMX" />
+            <xsd:enumeration value="Touring" />
+            <xsd:enumeration value="Road" />
+            <xsd:enumeration value="Mountain" />
+            <xsd:enumeration value="All" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <!-- AW=AdventureWorks only 2= AdvWorks+1 other brand other brand -->
+    <xsd:simpleType name="BrandType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="AW" />
+            <xsd:enumeration value="2" />
+            <xsd:enumeration value="3" />
+            <xsd:enumeration value="4+" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="InternetType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="56kb" />
+            <xsd:enumeration value="ISDN" />
+            <xsd:enumeration value="DSL" />
+            <xsd:enumeration value="T1" />
+            <xsd:enumeration value="T2" />
+            <xsd:enumeration value="T3" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:element name="StoreSurvey">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="ContactName" type="xsd:string" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="JobTitle" type="xsd:string" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="AnnualSales" type="xsd:decimal" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="AnnualRevenue" type="xsd:decimal" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="BankName" type="xsd:string" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="BusinessType" type="BusinessType" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="YearOpened" type="xsd:gYear" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="Specialty" type="SpecialtyType" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="SquareFeet" type="xsd:float" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="Brands" type="BrandType" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="Internet" type="InternetType" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="NumberEmployees" type="xsd:int" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="Comments" type="xsd:string" minOccurs="0" maxOccurs="1" />
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>';
+GO
