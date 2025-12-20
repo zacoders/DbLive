@@ -144,7 +144,7 @@ public class EasyFlowProject(
 
 		List<TestItem> testGroups = [];
 
-		foreach (var folderPath in testFolders)
+		foreach (var folderPath in testFolders.Union([codePath, testsPath]))
 		{
 			testGroups.AddRange(GetFolderTests(folderPath));
 		}
