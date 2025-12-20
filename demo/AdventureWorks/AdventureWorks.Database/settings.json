@@ -21,7 +21,8 @@
   "TestFilePatterns": [ "test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql" ],
 
   "CodeSubFoldersDeploymentOrder": [
-    "schemas",
-    "dbo\\functions"
+    "Views",
+    "Triggers",
+    "Functions"
   ]
 }
