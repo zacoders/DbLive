@@ -22,8 +22,6 @@ public class CodeItemDeployer(
 	{
 		try
 		{
-			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
-
 			if (!isSelfDeploy)
 			{
 				CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
@@ -44,6 +42,8 @@ public class CodeItemDeployer(
 					);
 				}
 			}
+
+			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
 
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>

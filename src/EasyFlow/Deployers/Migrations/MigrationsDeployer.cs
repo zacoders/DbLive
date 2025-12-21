@@ -22,6 +22,12 @@ public class MigrationsDeployer(
 
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, parameters);
 
+		if (migrationsToApply.Count() == 0)
+		{
+			_logger.Information("No migrations to apply.");
+			return;
+		}
+
 		foreach (var migration in migrationsToApply)
 		{
 			_migrationDeployer.DeployMigration(isSelfDeploy, migration);
