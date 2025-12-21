@@ -1,11 +1,13 @@
 using EasyFlow;
 using EasyFlow.Common;
 using EasyFlow.MSSQL;
+using EasyFlow.xunit;
+using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;
 
 
-public class DeployTest()
+public class DeployTest(ITestOutputHelper output)
 {
 	[Fact]
 	public async Task DeployToLocalSqlServerAsync()
@@ -15,8 +17,7 @@ public class DeployTest()
 		string localSqlServerCnnString = "Server=localhost;Database=AdventureWorksEasyFlow;Trusted_Connection=True;";
 
 		IEasyFlowBuilder builder = new EasyFlowBuilder()
-			.LogToConsole() // TODO: Fails without LogToConsole()
-			//.LogToXUnitOutput(Output) // not supported yet.
+			.LogToXUnitOutput(output) 
 			.SqlServer()
 			.SetDbConnection(localSqlServerCnnString)
 			.SetProjectPath(projectPath);
