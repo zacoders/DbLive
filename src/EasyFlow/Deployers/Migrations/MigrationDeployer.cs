@@ -17,7 +17,7 @@ public class MigrationDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		_logger.Information("Applying migration: {path}", migration.FolderPath.GetLastSegment());
+		_logger.Information("Deploying migration: {path}", migration.FolderPath.GetLastSegment());
 
 		if (migration.Items.Count == 0) return;
 

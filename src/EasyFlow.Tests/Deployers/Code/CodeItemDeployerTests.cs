@@ -55,7 +55,7 @@ public class CodeItemDeployerTests
 
 		var res = arrange.deployer.DeployCodeItem(true, arrange.codeItem);
 
-		Assert.True(res);
+		Assert.True(res.IsSuccess);
 	}
 
 	[Fact]
@@ -65,7 +65,7 @@ public class CodeItemDeployerTests
 
 		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
-		Assert.True(res);
+		Assert.True(res.IsSuccess);
 	}
 
 	[Fact]
@@ -75,7 +75,7 @@ public class CodeItemDeployerTests
 
 		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
-		Assert.True(res);
+		Assert.True(res.IsSuccess);
 	}
 
 	[Fact]
@@ -87,7 +87,7 @@ public class CodeItemDeployerTests
 
 		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
-		Assert.False(res);
+		Assert.False(res.IsSuccess);
 	}
 
 	[Fact]
@@ -122,7 +122,7 @@ public class CodeItemDeployerTests
 
 		var res = deploy.DeployCodeItem(false, codeItem);
 
-		Assert.True(res, "Should be deployed from the second retry attempt.");
+		Assert.True(res.IsSuccess, "Should be deployed from the second retry attempt.");
 
 		mockSet.EasyFlowDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
 	}

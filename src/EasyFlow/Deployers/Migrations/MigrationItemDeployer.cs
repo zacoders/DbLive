@@ -23,9 +23,9 @@ public class MigrationItemDeployer(
 			() =>
 			{
 				_logger.Information(
-					"Migration {migrationType}, {relativePath}.",
-					migrationItem.MigrationItemType,
-					migrationItem.FileData.RelativePath
+					"Deploying {relativePath}. Type {migrationType}.",
+					migrationItem.FileData.RelativePath,
+					migrationItem.MigrationItemType
 				);
 
 				DateTime migrationStartedUtc = _timeProvider.UtcNow();
@@ -61,8 +61,6 @@ public class MigrationItemDeployer(
 
 					_da.SaveMigrationItemState(dto);
 				}
-
-				_logger.Information("Migration {migrationType} applied.", migrationItem.MigrationItemType);
 			}
 		);
 	}

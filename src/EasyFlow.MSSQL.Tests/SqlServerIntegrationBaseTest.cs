@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
 using System.Collections.Specialized;
+using EasyFlow.xunit;
 
 namespace EasyFlow.MSSQL.Tests;
 
@@ -31,7 +32,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 		EasyFlow = new EasyFlowBuilder()
 			.LogToXUnitOutput(Output)
-			//.AddTestingMsSqlConnection() //todo: looks like cnn sting added 2 times?
+			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()
 			.SetDbConnection(_masterDbConnectionString.SetDatabaseName(_testingDbName))
 			.SetProjectPath(_msSqlTestingProjectPath)

@@ -16,8 +16,8 @@
 	    Serializable */
   "TransactionIsolationLevel": "serializable",
 
-  /* Search pattern for the testing files. 
-     Testing files can be executed in the end of deployment. */
+  /* Search pattern for the test files. 
+     Test files can be executed in the end of deployment. */
   "TestFilePatterns": [ "test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql" ],
 
   "CodeSubFoldersDeploymentOrder": [

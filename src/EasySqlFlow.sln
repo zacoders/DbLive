@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.6.33829.357
+# Visual Studio Version 18
+VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow", "EasyFlow\EasyFlow.csproj", "{A5ADAD33-E29F-4335-AFD9-027F42B784F2}"
 EndProject
@@ -38,6 +38,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleMSSQL", "Demo\ConsoleMSSQL\ConsoleMSSQL.csproj", "{BE9594BE-8D31-4A82-8CE9-048DEA29E798}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyFlow.xunit", "EasyFlow.xunit\EasyFlow.xunit.csproj", "{72CCD431-3D05-4F2F-93F6-F9BCD613D435}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdventureWorks.Database", "Demo\AdventureWorks\AdventureWorks.Database\AdventureWorks.Database.csproj", "{1C4F3B32-0A90-B562-3138-CED61A03BF9E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdventureWorks.Tests", "Demo\AdventureWorks\AdventureWorks.Tests\AdventureWorks.Tests.csproj", "{DCD7799A-1034-36CF-FE0C-CA076CC71815}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,6 +97,14 @@ Global
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72CCD431-3D05-4F2F-93F6-F9BCD613D435}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C4F3B32-0A90-B562-3138-CED61A03BF9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C4F3B32-0A90-B562-3138-CED61A03BF9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C4F3B32-0A90-B562-3138-CED61A03BF9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C4F3B32-0A90-B562-3138-CED61A03BF9E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -105,6 +117,8 @@ Global
 		{EB7B4B44-4D5A-4B6C-9C53-5365CFD8F48F} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{8DEABF5A-1B0F-40EE-84D1-3D95E7784BD9} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
+		{1C4F3B32-0A90-B562-3138-CED61A03BF9E} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
+		{DCD7799A-1034-36CF-FE0C-CA076CC71815} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3BEF8A41-AC0C-4AC0-BADB-6AD40534D8A2}

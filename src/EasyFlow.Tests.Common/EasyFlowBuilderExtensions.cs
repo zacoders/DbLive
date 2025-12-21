@@ -1,16 +1,10 @@
-﻿using EasyFlow.Common;
-
+﻿
 namespace EasyFlow.Tests.Common;
 
-public static class EasyFlowBuilderExtentions
-{
-	public static IEasyFlowBuilder LogToXUnitOutput(this IEasyFlowBuilder builder, ITestOutputHelper output)
-	{
-		builder.Container.LogToXUnitOutput(output);
-		return builder;
-	}
 
-	public static void LogToXUnitOutput(this IServiceCollection serviceCollection, ITestOutputHelper output)
+public static class EasyFlowBuilderExtensions
+{
+	public static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)
 	{
 		var logger = new LoggerConfiguration()
 			// add the xunit test output sink to the serilog logger

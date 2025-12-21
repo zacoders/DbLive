@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AdventureWorks.Database/AdventureWorks.Database.csproj" />
+  <Project Path="AdventureWorks.Tests/AdventureWorks.Tests.csproj" Id="3bc1e9fc-2743-4bb7-a723-5d92a25ea8f0" />
+</Solution>

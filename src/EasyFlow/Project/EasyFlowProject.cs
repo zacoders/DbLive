@@ -144,7 +144,7 @@ public class EasyFlowProject(
 
 		List<TestItem> testGroups = [];
 
-		foreach (var folderPath in testFolders)
+		foreach (var folderPath in testFolders.Union([codePath, testsPath]))
 		{
 			testGroups.AddRange(GetFolderTests(folderPath));
 		}
@@ -154,6 +154,8 @@ public class EasyFlowProject(
 
 	internal List<TestItem> GetFolderTests(string folderPath)
 	{
+		if (!_fileSystem.PathExists(folderPath)) return [];
+
 		List<TestItem> tests = [];
 
 		FileData? initFileData = null;
