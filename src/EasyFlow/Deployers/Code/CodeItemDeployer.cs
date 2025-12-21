@@ -18,7 +18,7 @@ public class CodeItemDeployer(
 			  );
 
 	/// <inheritdoc/>
-	public bool DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
+	public CodeItemDeployResult DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
 	{
 		try
 		{
@@ -34,7 +34,7 @@ public class CodeItemDeployer(
 					{
 						_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
 						_logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
-						return true;
+						return CodeItemDeployResult.Success();
 					}
 
 					throw new FileContentChangedException(
@@ -57,12 +57,15 @@ public class CodeItemDeployer(
 				_da.MarkCodeAsApplied(codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (long)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
 			}
 
-			return true;
+			return CodeItemDeployResult.Success();
 		}
 		catch (Exception ex)
 		{
 			_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
-			return false;
+			return new CodeItemDeployResult { 
+				IsSuccess = false, 
+				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.FilePath}", ex) 
+			};
 		}
 	}
 }

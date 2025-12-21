@@ -11,7 +11,7 @@ public abstract class IntegrationTestsBase
 		Output = output;
 
 		Container = new ServiceCollection();
-		Container.LogToXUnitOutput(output);
+		Container.AddXUnitLogger(output);
 	}
 
 	/// <summary>

@@ -15,7 +15,8 @@ public class DeployTest()
 		string localSqlServerCnnString = "Server=localhost;Database=AdventureWorksEasyFlow;Trusted_Connection=True;";
 
 		IEasyFlowBuilder builder = new EasyFlowBuilder()
-			.LogToConsole()
+			.LogToConsole() // TODO: Fails without LogToConsole()
+			//.LogToXUnitOutput(Output) // not supported yet.
 			.SqlServer()
 			.SetDbConnection(localSqlServerCnnString)
 			.SetProjectPath(projectPath);

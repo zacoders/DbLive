@@ -23,23 +23,27 @@ public class CodeDeployer(
 
 		var codeGroups = _project.GetCodeGroups();
 
-		ConcurrentBag<string> failedFiles = [];
+		ConcurrentBag<(string FilePath, Exception Error)> failedFiles = new();
 
 		foreach (var codeGroup in codeGroups)
 		{
 			Parallel.ForEach(codeGroup.CodeItems, parallelOptions, codeItem =>
 			{
-				if (!_codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem))
+				CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem);
+				if (!result.IsSuccess)
 				{
-					failedFiles.Add(Path.Combine(codeItem.FileData.FilePath));
+					// Use named tuple literal to ensure element names are set
+					failedFiles.Add((codeItem.FileData.FilePath, Error: result.Exception!));
 				}
 			});
 		}
 
-		if (failedFiles.Count() > 0)
+		if (failedFiles.Count > 0)
 		{
-			CodeDeploymentException ex = new ($"Code deploy failed. Deployment of {failedFiles.Count()} item(s) failed.");
-			ex.Data["FailedFiles"] = failedFiles;
+			CodeDeploymentAggregateException ex = new (
+				$"Code deploy failed. Deployment of {failedFiles.Count} item(s) failed.",
+				failedFiles.Select(ff => ff.Error)
+			);
 			throw ex;
 		}
 

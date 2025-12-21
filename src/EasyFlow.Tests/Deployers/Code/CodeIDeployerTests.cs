@@ -42,7 +42,7 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>()).Returns(true);
+		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
@@ -65,11 +65,12 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>()).Returns(false);
+		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>())
+			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		Assert.Throws<CodeDeploymentException>(
+		Assert.Throws<CodeDeploymentAggregateException>(
 			() => deployer.DeployCode(true, DeployParameters.Default)
 		);
 
