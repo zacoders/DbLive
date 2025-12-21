@@ -28,9 +28,12 @@ public class SqlTestingTests
 	{
 		MockSet mockSet = new();
 
+
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
 		string testsFolderPath = @"C:\DB\Tests\";
+
+		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
@@ -61,6 +64,24 @@ public class SqlTestingTests
 
 
 	[Fact]
+	public void GetFolderTests_EmptyTestsFolder()
+	{
+		MockSet mockSet = new();
+
+		string testsFolderPath = @"C:\DB\Tests\";
+
+		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
+
+		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+
+		var tests = sqlProject.GetFolderTests(testsFolderPath);
+
+		Assert.NotNull(tests);
+		Assert.Empty(tests);
+	}
+
+
+	[Fact]
 	public void GetFolderTests_With_InitFile()
 	{
 		MockSet mockSet = new();
@@ -69,6 +90,8 @@ public class SqlTestingTests
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string testsFolderPath = projectPath.CombineWith("Tests");
+
+		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([

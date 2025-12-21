@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace EasyFlow.Deployers.Code;
 
 public class CodeDeployer(
@@ -21,7 +23,7 @@ public class CodeDeployer(
 
 		var codeGroups = _project.GetCodeGroups();
 
-		int failedCodeItemsCount = 0;
+		ConcurrentBag<string> failedFiles = [];
 
 		foreach (var codeGroup in codeGroups)
 		{
@@ -29,14 +31,16 @@ public class CodeDeployer(
 			{
 				if (!_codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem))
 				{
-					Interlocked.Increment(ref failedCodeItemsCount);
+					failedFiles.Add(Path.Combine(codeItem.FileData.FilePath));
 				}
 			});
 		}
 
-		if (failedCodeItemsCount > 0)
+		if (failedFiles.Count() > 0)
 		{
-			throw new CodeDeploymentException($"Code deploy failed. Deployment of {failedCodeItemsCount} item(s) failed. See logs for details.");
+			CodeDeploymentException ex = new ($"Code deploy failed. Deployment of {failedFiles.Count()} item(s) failed.");
+			ex.Data["FailedFiles"] = failedFiles;
+			throw ex;
 		}
 
 		_logger.Information("Code deploy successfully completed.");

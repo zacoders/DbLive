@@ -154,6 +154,8 @@ public class EasyFlowProject(
 
 	internal List<TestItem> GetFolderTests(string folderPath)
 	{
+		if (!_fileSystem.PathExists(folderPath)) return [];
+
 		List<TestItem> tests = [];
 
 		FileData? initFileData = null;
