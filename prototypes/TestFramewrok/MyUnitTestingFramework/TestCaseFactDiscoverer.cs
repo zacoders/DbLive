@@ -38,7 +38,7 @@ public class TestCaseFactDiscoverer : IXunitTestCaseDiscoverer
 		//yield return new CustomTestCase(
 		//	DiagnosticMessageSink,
 		//	testMethod,
-		//	@"C:\Data\Code\Personal\EasySqlFlow\prototypes\TestFramewrok\TestProject1\test3.sql"
+		//	@"C:\Data\Code\Personal\DbLive\prototypes\TestFramewrok\TestProject1\test3.sql"
 		//);
 	}
 

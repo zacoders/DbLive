@@ -40,7 +40,7 @@ jobs:
     
     env:
       NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
-      SOLUTION_PATH: 'src/EasySqlFlow.sln'
+      SOLUTION_PATH: 'src/DbLive.sln'
       # ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
       # ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
 
@@ -85,14 +85,14 @@ jobs:
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --no-restore --no-build --verbosity normal 
 
-    - name: Create EasyFlow package
-      run: dotnet pack 'src/EasyFlow/EasyFlow.csproj' --no-restore --configuration Release
+    - name: Create DbLive package
+      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release
 
-    - name: Create EasyFlow.MSSQL package
-      run: dotnet pack 'src/EasyFlow.MSSQL/EasyFlow.MSSQL.csproj' --no-restore --configuration Release
+    - name: Create DbLive.MSSQL package
+      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release
 
-    - name: Create EasyFlow.xunit package
-      run: dotnet pack 'src/EasyFlow.xunit/EasyFlow.xunit.csproj' --no-restore --configuration Release
+    - name: Create DbLive.xunit package
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release
 
     - name: Publish packages
       run: dotnet nuget push **/bin/Release/*.nupkg
