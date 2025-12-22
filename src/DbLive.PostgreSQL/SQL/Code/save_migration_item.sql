@@ -1,5 +1,5 @@
 ﻿
-create or alter proc easyflow.save_migration_item
+create or alter proc dblive.save_migration_item
 	@version int
   , @name nvarchar(512)
   , @item_type varchar(32)
@@ -12,7 +12,7 @@ as
 
 	set nocount on;
 
-	merge into easyflow.migration_item as t
+	merge into dblive.migration_item as t
 	using ( select 1 ) s(c) on t.version = @version and t.name = @name and t.item_type = @item_type
 	when matched then update 
 		set status = @status

@@ -1,5 +1,5 @@
 ﻿
-create or alter proc easyflow.save_unit_test_result
+create or alter proc dblive.save_unit_test_result
 	@relative_path nvarchar(4000)
   , @content_hash int
   , @run_utc datetime2(7)
@@ -10,7 +10,7 @@ as
 
 	set nocount on;
 
-	merge into easyflow.unit_test_run as t
+	merge into dblive.unit_test_run as t
 	using ( select 1 ) s(c) on t.relative_path = @relative_path
 	when matched then update 
 		set content_hash = @content_hash

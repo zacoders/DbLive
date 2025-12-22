@@ -1,5 +1,5 @@
 ﻿
-create or alter proc easyflow.insert_code_state
+create or alter proc dblive.insert_code_state
 	@relative_path nvarchar(4000)
   , @content_hash int
   , @applied_utc datetime2(7)
@@ -8,7 +8,7 @@ as
 
 	set nocount on;
 
-	insert into easyflow.code (
+	insert into dblive.code (
 		relative_path
 	  , content_hash
 	  , applied_utc

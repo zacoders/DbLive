@@ -1,5 +1,5 @@
 ﻿
-create or alter proc easyflow.save_folder_item
+create or alter proc dblive.save_folder_item
 	@folder_type varchar(32)
   , @relative_path nvarchar(4000)
   , @started_utc datetime2(7)
@@ -8,7 +8,7 @@ create or alter proc easyflow.save_folder_item
 as
 	set nocount on;
 
-	merge into easyflow.folder_items as t
+	merge into dblive.folder_items as t
 	using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = @relative_path
 	when matched then 
 		update set 

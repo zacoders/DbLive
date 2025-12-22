@@ -1,5 +1,5 @@
 ﻿
-create table easyflow.unit_test_run (
+create table dblive.unit_test_run (
 	relative_path varchar(4000) not null
   , content_hash int not null
   , run_utc timestamp not null

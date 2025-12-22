@@ -1,17 +1,17 @@
-create schema if not exists easyflow;
+create schema if not exists dblive;
 
 
-create table easyflow.migration (
+create table dblive.migration (
 	version int not null
   , name varchar(512) not null
   , created_utc timestamp not null
   , modified_utc timestamp not null
 
-  , constraint pk_easyflow_migration primary key ( version, name )
+  , constraint pk_dblive_migration primary key ( version, name )
 )
 
 
-create table easyflow.migration_item (
+create table dblive.migration_item (
 	version int not null
   , name varchar(512) not null
   , item_type varchar(32) not null
@@ -21,18 +21,18 @@ create table easyflow.migration_item (
   , applied_utc timestamp null
   , execution_time_ms int null
 
-  , constraint pk_easyflow_migration_item primary key ( version, name, item_type )
+  , constraint pk_dblive_migration_item primary key ( version, name, item_type )
 )
 
 
-create table easyflow.version (
+create table dblive.version (
 	version int not null
   , created_utc timestamp not null
   , applied_utc timestamp null
   , one_row_lock as 1 
-  , constraint pk_easyflow_version primary key ( one_row_lock )
+  , constraint pk_dblive_version primary key ( one_row_lock )
 )
 
 
-insert into easyflow.version ( version, created_utc ) values ( 0, sysutcdatetime() );
+insert into dblive.version ( version, created_utc ) values ( 0, sysutcdatetime() );
 go
