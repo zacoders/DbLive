@@ -24,6 +24,7 @@ public class DeployTest(ITestOutputHelper output)
 	}
 
 	[Fact(Skip = "For local run only.")]
+	//[Fact]
 	public async Task DeployToLocalSqlServerAsync()
 	{
 		string dbCnnString = "Server=localhost;Database=AdventureWorksDbLive;Trusted_Connection=True;";

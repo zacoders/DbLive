@@ -4,7 +4,7 @@ using DbLive.Testing;
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public static class DbLiveBuilderExtentions
+public static class DbLiveBuilderExtensions
 {
 	public static IDbLiveBuilder LogToConsole(this IDbLiveBuilder builder)
 	{
