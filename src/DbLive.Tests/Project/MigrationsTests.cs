@@ -1,6 +1,6 @@
 using DbLive.Project.Exceptions;
 
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class MigrationsTests
 {
@@ -20,7 +20,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\003.test3",
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var migrations = sqlProject.GetMigrations().ToArray();
 
@@ -43,7 +43,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\001.dup1"
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		Assert.Throws<MigrationExistsException>(sqlProject.GetMigrations);
 	}
@@ -60,7 +60,7 @@ public class MigrationsTests
 				@"C:\DB\Migrations\bad001version.bad-version-migration"
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
 	}
@@ -71,7 +71,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<string[]>(), "*", SearchOption.TopDirectoryOnly)
 			.Returns([

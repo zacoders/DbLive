@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Deployers.Testing;
+namespace DbLive.Deployers.Testing;
 
 public record AssertInfo
 {

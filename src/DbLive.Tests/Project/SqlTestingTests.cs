@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class SqlTestingTests
 {
@@ -16,7 +16,7 @@ public class SqlTestingTests
 				@"C:\DB\Tests\Users"
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var tests = sqlProject.GetTests();
 
@@ -50,7 +50,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
@@ -72,7 +72,7 @@ public class SqlTestingTests
 
 		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 
@@ -118,7 +118,7 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var tests = sqlProject.GetFolderTests(testsFolderPath);
 

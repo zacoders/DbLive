@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Project;
+﻿namespace DbLive.Project;
 
 [ExcludeFromCodeCoverage]
 public class CodeItem

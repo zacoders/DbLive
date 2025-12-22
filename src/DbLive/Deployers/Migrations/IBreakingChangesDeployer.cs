@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deployers.Migrations;
+﻿namespace DbLive.Deployers.Migrations;
 
 public interface IBreakingChangesDeployer
 {

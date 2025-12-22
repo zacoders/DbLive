@@ -1,7 +1,7 @@
 ﻿
 using MoreLinq.Extensions;
 
-namespace EasyFlow.Deployers.Testing;
+namespace DbLive.Deployers.Testing;
 
 public static class AssertTypeExtensions
 {

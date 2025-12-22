@@ -19,5 +19,5 @@ if (Test-Path $folderPath -PathType Container) {
     Write-Host "The folder does not exist at the specified path."
 }
 
-copy src\EasyFlow\bin\Release\EasyFlow.0.0.0.nupkg C:\Data\Code\Personal\nugetstest
-copy src\EasyFlow.MSSQL\bin\Release\EasyFlow.MSSQL.0.0.0.nupkg C:\Data\Code\Personal\nugetstest 
+copy src\DbLive\bin\Release\DbLive.0.0.0.nupkg C:\Data\Code\Personal\nugetstest
+copy src\DbLive.MSSQL\bin\Release\DbLive.MSSQL.0.0.0.nupkg C:\Data\Code\Personal\nugetstest 

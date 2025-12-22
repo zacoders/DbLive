@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class CodeItemsTests
 {
@@ -34,7 +34,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 
@@ -49,7 +49,7 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings
+		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
 		{
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
@@ -84,7 +84,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = sqlProject.GetCodeGroups().ToList();
 

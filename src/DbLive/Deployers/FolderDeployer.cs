@@ -1,11 +1,11 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers;
+namespace DbLive.Deployers;
 
 public class FolderDeployer(
 		ILogger _logger,
-		IEasyFlowProject _project,
-		IEasyFlowDA _da,
+		IDbLiveProject _project,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider
 	) : IFolderDeployer
 {

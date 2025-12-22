@@ -1,6 +1,6 @@
-﻿namespace EasyFlow;
+﻿namespace DbLive;
 
-public interface IEasyFlowInternal
+public interface IDbLiveInternal
 {
 	void SelfDeployProjectInternal();
 	void DeployProjectInternal(bool isSelfDeploy, DeployParameters parameters);

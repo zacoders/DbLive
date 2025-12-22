@@ -1,7 +1,7 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Migrations;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests
 {
@@ -21,7 +21,7 @@ public class MigrationsDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -30,9 +30,9 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 
-		mockSet.EasyFlowDA.GetMigrations()
+		mockSet.DbLiveDA.GetMigrations()
 			.Returns(new[]
 			{
 				new MigrationDto { Version = 1, Name = "test1" },
@@ -59,7 +59,7 @@ public class MigrationsDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -68,9 +68,9 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 
-		mockSet.EasyFlowDA.GetMigrations()
+		mockSet.DbLiveDA.GetMigrations()
 			.Returns(new[]
 			{
 				new MigrationDto { Version = 1, Name = "test1" },
@@ -89,13 +89,13 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_EasyFlowIsNotInstalled()
+	public void GetMigrationsToApply_SelfDeploy_DbLiveIsNotInstalled()
 	{
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -104,8 +104,8 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(false);
-		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
 
@@ -113,13 +113,13 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_EasyFlowInstalled()
+	public void GetMigrationsToApply_SelfDeploy_DbLiveInstalled()
 	{
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -128,8 +128,8 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
 
@@ -147,13 +147,13 @@ public class MigrationsDeployerTests
 
 
 	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_EasyFlowInstalled_MaxVersionToDeploySpecified()
+	public void GetMigrationsToApply_SelfDeploy_DbLiveInstalled_MaxVersionToDeploySpecified()
 	{
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -162,8 +162,8 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 		deployParams.MaxVersionToDeploy = 2;
@@ -188,7 +188,7 @@ public class MigrationsDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -197,8 +197,8 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 		deployParams.MaxVersionToDeploy = 2;
@@ -219,7 +219,7 @@ public class MigrationsDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.EasyFlowProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrations()
 			.Returns(new[]
 			{
 				NewMigration(1, "test1"),
@@ -228,8 +228,8 @@ public class MigrationsDeployerTests
 				NewMigration(3, "test3")
 			});
 
-		mockSet.EasyFlowDA.EasyFlowInstalled().Returns(true);
-		mockSet.EasyFlowDA.GetEasyFlowVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 		deployParams.DeployMigrations = false;

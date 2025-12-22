@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
-namespace EasyFlow.MSSQL.Tests;
+namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
@@ -9,14 +9,14 @@ public class DeploySqlIntegrationPersistedTest(SqlServerIntegrationFixture _fixt
 	: SqlServerIntegrationBaseTest(
 		output,
 		_fixture.MasterDbConnectionString,
-		dbName: "EasyFlow-PersistedTest",
+		dbName: "DbLive-PersistedTest",
 		keepDatabaseAfterTests: true
 	), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
 	public void DeployProject_PersistedDbName()
 	{
-		EasyFlow.Deploy(DeployParameters.Default);
-		EasyFlow.Deploy(DeployParameters.Breaking);
+		DbLive.Deploy(DeployParameters.Default);
+		DbLive.Deploy(DeployParameters.Breaking);
 	}
 }

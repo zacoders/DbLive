@@ -1,6 +1,6 @@
-﻿namespace EasyFlow;
+﻿namespace DbLive;
 
-public interface IEasyFlow
+public interface IDbLive
 {
 	void Deploy(DeployParameters parameters);
 	void DropDatabase(bool skipIfNotExists = true);

@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
 public class NotSupportedTransactionIsolationLevelException : Exception

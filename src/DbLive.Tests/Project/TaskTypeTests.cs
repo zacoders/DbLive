@@ -1,6 +1,6 @@
 using DbLive.Project.Exceptions;
 
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class TaskTypeTests
 {
@@ -15,13 +15,13 @@ public class TaskTypeTests
 
 		foreach (var migrationStr in testingValues)
 		{
-			_ = EasyFlowProject.GetMigrationType(migrationStr);
+			_ = DbLiveProject.GetMigrationType(migrationStr);
 		}
 	}
 
 	[Fact]
 	public void GetMigrationType_Unknow()
 	{
-		Assert.Throws<UnknowMigrationItemTypeException>(() => EasyFlowProject.GetMigrationType("test-unknown"));
+		Assert.Throws<UnknowMigrationItemTypeException>(() => DbLiveProject.GetMigrationType("test-unknown"));
 	}
 }

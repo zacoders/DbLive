@@ -1,17 +1,17 @@
 ﻿//using DbLive.Testing;
 
-//namespace EasyFlow.MSSQL;
+//namespace DbLive.MSSQL;
 
-//public class EasyFlowTestingMSSQL : EasyFlowTesting
+//public class DbLiveTestingMSSQL : DbLiveTesting
 //{
-//	public EasyFlowTestingMSSQL(string projectPath)
+//	public DbLiveTestingMSSQL(string projectPath)
 //		: base(projectPath)
 //	{
-//		_easyFlowBuilder.SqlServer();
+//		_DbLiveBuilder.SqlServer();
 //	}
 
 //	public void SetConnectionString(string connectionString)
 //	{
-//		_easyFlowBuilder.SetDbConnection(connectionString);
+//		_DbLiveBuilder.SetDbConnection(connectionString);
 //	}
 //}

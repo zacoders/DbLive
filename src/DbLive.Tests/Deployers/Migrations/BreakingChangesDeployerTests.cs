@@ -2,7 +2,7 @@ using DbLive.Adapter;
 using DbLive.Deployers.Migrations;
 using DbLive.Exceptions;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace DbLive.Tests.Deployers.Migrations;
 
 public class BreakingChangesDeployerTests
 {
@@ -18,7 +18,7 @@ public class BreakingChangesDeployerTests
 		deploy.DeployBreakingChanges(new DeployParameters { DeployBreaking = false });
 
 		// Assert
-		mockSet.EasyFlowDA.DidNotReceive().GetNonAppliedBreakingMigrationItems();
+		mockSet.DbLiveDA.DidNotReceive().GetNonAppliedBreakingMigrationItems();
 	}
 
 
@@ -28,7 +28,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems()
+		mockSet.DbLiveDA.GetNonAppliedBreakingMigrationItems()
 			.Returns(new List<MigrationItemDto>().AsReadOnly());
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
@@ -37,7 +37,7 @@ public class BreakingChangesDeployerTests
 		deploy.DeployBreakingChanges(DeployParameters.Breaking);
 
 		// Assert
-		mockSet.EasyFlowProject.DidNotReceive().GetMigrations();
+		mockSet.DbLiveProject.DidNotReceive().GetMigrations();
 	}
 
 
@@ -67,7 +67,7 @@ public class BreakingChangesDeployerTests
 			Status = MigrationItemStatus.Skipped
 		};
 
-		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems().Returns([migrationItemDto1, migrationItemDto2]);
+		mockSet.DbLiveDA.GetNonAppliedBreakingMigrationItems().Returns([migrationItemDto1, migrationItemDto2]);
 
 		Migration migration1 = new()
 		{
@@ -149,7 +149,7 @@ public class BreakingChangesDeployerTests
 					}.AsReadOnly()
 		};
 
-		mockSet.EasyFlowProject.GetMigrations().Returns([migration1, migration2, migration3, migration4]);
+		mockSet.DbLiveProject.GetMigrations().Returns([migration1, migration2, migration3, migration4]);
 
 		IStopWatch mockStopWatch = Substitute.For<IStopWatch>();
 		mockStopWatch.ElapsedMilliseconds.Returns(_ => 1555, _ => 2555);
@@ -168,7 +168,7 @@ public class BreakingChangesDeployerTests
 		deploy.DeployBreakingChanges(DeployParameters.Breaking);
 
 		// Assert
-		mockSet.EasyFlowProject.Received().GetMigrations();
+		mockSet.DbLiveProject.Received().GetMigrations();
 
 		mockSet.MigrationItemDeployer.Received()
 			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration2), Arg.Is(migration2.Items[1]));
@@ -179,12 +179,12 @@ public class BreakingChangesDeployerTests
 		mockSet.MigrationItemDeployer.Received(2)
 			.DeployMigrationItem(Arg.Is(false), Arg.Any<Migration>(), Arg.Any<MigrationItem>());
 
-		mockSet.EasyFlowDA.Received(2)
+		mockSet.DbLiveDA.Received(2)
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
-		mockSet.EasyFlowDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto1));
+		mockSet.DbLiveDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto1));
 
-		mockSet.EasyFlowDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto2));
+		mockSet.DbLiveDA.Received().SaveMigrationItemState(Arg.Is(migrationItemDto2));
 
 		Assert.Equal(appliedUtc1, migrationItemDto1.AppliedUtc);
 		Assert.Equal(1555, migrationItemDto1.ExecutionTimeMs);
@@ -200,7 +200,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowDA.GetNonAppliedBreakingMigrationItems().Returns([
+		mockSet.DbLiveDA.GetNonAppliedBreakingMigrationItems().Returns([
 			new()
 			{
 				Version = 2,
@@ -232,7 +232,7 @@ public class BreakingChangesDeployerTests
 					}.AsReadOnly()
 		};
 
-		mockSet.EasyFlowProject.GetMigrations().Returns([migration2]);
+		mockSet.DbLiveProject.GetMigrations().Returns([migration2]);
 
 		var deploy = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 

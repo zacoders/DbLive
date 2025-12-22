@@ -1,7 +1,7 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Migrations;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationItemDeployerTests
 {
@@ -14,7 +14,7 @@ public class MigrationItemDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		MigrationItemDto? savedDto = null;
-		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
+		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
@@ -43,7 +43,7 @@ public class MigrationItemDeployerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
 
@@ -67,7 +67,7 @@ public class MigrationItemDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		MigrationItemDto? savedDto = null;
-		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
+		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
@@ -96,7 +96,7 @@ public class MigrationItemDeployerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
 
@@ -144,7 +144,7 @@ public class MigrationItemDeployerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.DidNotReceive()
+		mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 	}
 
@@ -163,7 +163,7 @@ public class MigrationItemDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
 
 		MigrationItemDto? savedDto = null;
-		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
+		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
 		Migration migration = new()
 		{
@@ -192,10 +192,10 @@ public class MigrationItemDeployerTests
 		mockSet.TransactionRunner.Received()
 			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
 
@@ -225,7 +225,7 @@ public class MigrationItemDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
 
 		MigrationItemDto? savedDto = null;
-		mockSet.EasyFlowDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
+		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
 		Migration migration = new()
 		{
@@ -254,10 +254,10 @@ public class MigrationItemDeployerTests
 		mockSet.TransactionRunner.Received()
 			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 
 
@@ -308,10 +308,10 @@ public class MigrationItemDeployerTests
 		mockSet.TransactionRunner.Received()
 			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
 
-		mockSet.EasyFlowDA.DidNotReceive()
+		mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 	}
 }

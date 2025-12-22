@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace DbLive.Adapter;
 
 
 public record SqlColumn(string ColumnName, string DataType)

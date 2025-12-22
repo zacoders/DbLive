@@ -1,10 +1,10 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Migrations;
+namespace DbLive.Deployers.Migrations;
 
 public class MigrationItemDeployer(
 		ILogger _logger,
-		IEasyFlowDA _da,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
 		ISettingsAccessor _projectSettingsAccessor
@@ -12,7 +12,7 @@ public class MigrationItemDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	private readonly EasyFlowSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
+	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
 	{

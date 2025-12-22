@@ -1,21 +1,21 @@
 ﻿
-namespace EasyFlow.Adapter;
+namespace DbLive.Adapter;
 
-public interface IEasyFlowDA
+public interface IDbLiveDA
 {
 	IReadOnlyCollection<MigrationDto> GetMigrations();
 	IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems();
 
-	bool EasyFlowInstalled();
+	bool DbLiveInstalled();
 
-	int GetEasyFlowVersion();
+	int GetDbLiveVersion();
 
-	void SetEasyFlowVersion(int version, DateTime migrationDatetime);
+	void SetDbLiveVersion(int version, DateTime migrationDatetime);
 
-	/// <exception cref="EasyFlowSqlException"/>
+	/// <exception cref="DbLiveSqlException"/>
 	void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc);
 
-	/// <exception cref="EasyFlowSqlException"/>
+	/// <exception cref="DbLiveSqlException"/>
 	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);
 	void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc);
 
@@ -23,7 +23,7 @@ public interface IEasyFlowDA
 
 	void DropDB(bool skipIfNotExists = true);
 
-	/// <exception cref="EasyFlowSqlException"/>
+	/// <exception cref="DbLiveSqlException"/>
 	void ExecuteNonQuery(string sqlStatementt);
 
 	List<SqlResult> ExecuteQueryMultiple(string sqlStatement);

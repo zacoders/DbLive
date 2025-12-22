@@ -1,7 +1,7 @@
 ﻿using Force.Crc32;
 using System.Text;
 
-namespace EasyFlow.Common;
+namespace DbLive.Common;
 
 public static class Hasher
 {

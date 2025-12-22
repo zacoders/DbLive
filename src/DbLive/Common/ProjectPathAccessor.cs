@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Common;
+namespace DbLive.Common;
 
 public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem _fileSystem) : IProjectPathAccessor
 {

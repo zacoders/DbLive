@@ -16,7 +16,7 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow\EasyFlow.csproj" />
+    <ProjectReference Include="..\DbLive\DbLive.csproj" />
   </ItemGroup>
   
   <ItemGroup>

@@ -24,9 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
-    <ProjectReference Include="..\..\..\EasyFlow.xunit\EasyFlow.xunit.csproj" />
-    <ProjectReference Include="..\..\..\EasyFlow\EasyFlow.csproj" />
+    <ProjectReference Include="..\..\..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
+    <ProjectReference Include="..\..\..\DbLive.xunit\DbLive.xunit.csproj" />
+    <ProjectReference Include="..\..\..\DbLive\DbLive.csproj" />
     <ProjectReference Include="..\AdventureWorks.Database\AdventureWorks.Database.csproj" />
   </ItemGroup>
 

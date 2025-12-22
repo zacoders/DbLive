@@ -1,6 +1,6 @@
 using DbLive.Project.Exceptions;
 
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class MigrationItemTests
 {
@@ -11,7 +11,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -35,7 +35,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -59,7 +59,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -103,7 +103,7 @@ public class MigrationItemTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -127,7 +127,7 @@ public class MigrationItemTests
 		mockSet.FileSystem.FileExists(Arg.Any<string>()).Returns(true);
 		mockSet.FileSystem.FileReadAllText(Arg.Any<string>()).Returns("");// empty string
 
-		var sqlProject = mockSet.CreateUsingMocks<EasyFlowProject>();
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		sqlProject.GetMigrations();
 	}

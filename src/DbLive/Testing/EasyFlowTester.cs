@@ -1,16 +1,16 @@
 ﻿using DbLive.Deployers.Testing;
 
-namespace EasyFlow.Testing;
+namespace DbLive.Testing;
 
 /// <summary>
 /// This class used to run unit tests in Visual Studio. Designed for xunit.
 /// </summary>
 /// <param name="_project"></param>
 /// <param name="_unitTestItemRunner"></param>
-public class EasyFlowTester(
-		IEasyFlowProject _project,
+public class DbLiveTester(
+		IDbLiveProject _project,
 		IUnitTestItemRunner _unitTestItemRunner
-	) : IEasyFlowTester
+	) : IDbLiveTester
 {
 
 	private readonly ReadOnlyDictionary<string, TestItem> TestsList = new(

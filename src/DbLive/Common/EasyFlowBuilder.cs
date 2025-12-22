@@ -1,19 +1,19 @@
-﻿namespace EasyFlow.Common;
+﻿namespace DbLive.Common;
 
-public class EasyFlowBuilder : IEasyFlowBuilder
+public class DbLiveBuilder : IDbLiveBuilder
 {
 	public IServiceCollection Container { get; }
 
-	public EasyFlowBuilder()
+	public DbLiveBuilder()
 	{
 		Container = new ServiceCollection();
-		Container.AddSingleton<IEasyFlowBuilder>(this);
-		Container.InitializeEasyFlow();
+		Container.AddSingleton<IDbLiveBuilder>(this);
+		Container.InitializeDbLive();
 	}
 
-	public IEasyFlowBuilder CloneBuilder()
+	public IDbLiveBuilder CloneBuilder()
 	{
-		EasyFlowBuilder newBuilder = new();
+		DbLiveBuilder newBuilder = new();
 
 		foreach (var serviceDescriptor in Container)
 		{

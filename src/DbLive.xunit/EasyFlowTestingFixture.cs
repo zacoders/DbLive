@@ -2,22 +2,22 @@
 using DbLive.Testing;
 using Xunit;
 
-namespace EasyFlow.xunit;
+namespace DbLive.xunit;
 
-public abstract class EasyFlowTestingFixture (bool dropDatabaseOnComplete)
+public abstract class DbLiveTestingFixture (bool dropDatabaseOnComplete)
 	: IAsyncLifetime
 {
-	private IEasyFlow? _deployer;
+	private IDbLive? _deployer;
 
-	public IEasyFlowTester? Tester { get; private set; }
+	public IDbLiveTester? Tester { get; private set; }
 
-	public abstract Task<IEasyFlowBuilder> GetBuilderAsync();
+	public abstract Task<IDbLiveBuilder> GetBuilderAsync();
 
 	public async Task InitializeAsync()
 	{
-		IEasyFlowBuilder easyFlowBuilder = await GetBuilderAsync();
+		IDbLiveBuilder DbLiveBuilder = await GetBuilderAsync();
 
-		_deployer = easyFlowBuilder.CreateDeployer();
+		_deployer = DbLiveBuilder.CreateDeployer();
 
 		_deployer.Deploy(new DeployParameters
 		{
@@ -28,7 +28,7 @@ public abstract class EasyFlowTestingFixture (bool dropDatabaseOnComplete)
 			RunTests = false // do not need to run tests, they will be run in VS UI.
 		});
 
-		Tester = easyFlowBuilder.CreateTester();
+		Tester = DbLiveBuilder.CreateTester();
 	}
 
 	public Task DisposeAsync()

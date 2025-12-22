@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 
-namespace EasyFlow.Deployers.Code;
+namespace DbLive.Deployers.Code;
 
 public class CodeDeployer(
 		ILogger _logger,
-		IEasyFlowProject _project,
+		IDbLiveProject _project,
 		ICodeItemDeployer _codeItemDeployer
 	) : ICodeDeployer
 {

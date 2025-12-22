@@ -1,13 +1,13 @@
-﻿namespace EasyFlow.Project;
+﻿namespace DbLive.Project;
 
 public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fileSystem)
 	: ISettingsAccessor
 {
 	readonly string _projectPath = projectPath.ProjectPath;
-	private readonly EasyFlowSettings _defaultSettings = new();
-	private EasyFlowSettings? _settings;
+	private readonly DbLiveSettings _defaultSettings = new();
+	private DbLiveSettings? _settings;
 
-	public EasyFlowSettings ProjectSettings
+	public DbLiveSettings ProjectSettings
 	{
 		get
 		{
@@ -17,7 +17,7 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 			if (_fileSystem.FileExists(settingsPath))
 			{
 				var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-				var loadedSettings = JsonConvert.DeserializeObject<EasyFlowSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
+				var loadedSettings = JsonConvert.DeserializeObject<DbLiveSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
 				_settings = loadedSettings;
 			}
 

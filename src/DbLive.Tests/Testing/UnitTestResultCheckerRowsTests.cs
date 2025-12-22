@@ -1,7 +1,7 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Testing;
 
-namespace EasyFlow.Tests.Testing;
+namespace DbLive.Tests.Testing;
 
 public class UnitTestResultCheckerRowsTests
 {

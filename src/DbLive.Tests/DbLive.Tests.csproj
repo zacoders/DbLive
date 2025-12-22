@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
+    <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
   </ItemGroup>
   
   <ItemGroup>

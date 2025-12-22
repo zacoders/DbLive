@@ -26,15 +26,15 @@ public class DeployTest(ITestOutputHelper output)
 	[Fact(Skip = "For local run only.")]
 	public async Task DeployToLocalSqlServerAsync()
 	{
-		string dbCnnString = "Server=localhost;Database=AdventureWorksEasyFlow;Trusted_Connection=True;";
+		string dbCnnString = "Server=localhost;Database=AdventureWorksDbLive;Trusted_Connection=True;";
 		Deploy(dbCnnString);
 	}
 
 	private void Deploy(string dbCnnString)
 	{
-		string projectPath = Path.GetFullPath(MyEasyFlowTestingMSSQLFixture.SqlProjectName);
+		string projectPath = Path.GetFullPath(MyDbLiveTestingMSSQLFixture.SqlProjectName);
 
-		IEasyFlowBuilder builder = new EasyFlowBuilder()
+		IDbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)

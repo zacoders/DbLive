@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Project;
+﻿namespace DbLive.Project;
 
 public interface ISettingsAccessor
 {
-	EasyFlowSettings ProjectSettings { get; }
+	DbLiveSettings ProjectSettings { get; }
 }

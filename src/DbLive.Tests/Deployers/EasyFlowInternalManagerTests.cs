@@ -1,23 +1,23 @@
-namespace EasyFlow.Tests.Deployers;
+namespace DbLive.Tests.Deployers;
 
-public class EasyFlowInternalManagerTests
+public class DbLiveInternalManagerTests
 {
 	[Fact]
-	public void CreateEasyFlowInternal()
+	public void CreateDbLiveInternal()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowBuilder.CloneBuilder().Returns(mockSet.EasyFlowBuilder);
+		mockSet.DbLiveBuilder.CloneBuilder().Returns(mockSet.DbLiveBuilder);
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternalManager>();
+		var DbLive = mockSet.CreateUsingMocks<DbLiveInternalManager>();
 
 		// Act
-		_ = easyFlow.CreateEasyFlowInternal();
+		_ = DbLive.CreateDbLiveInternal();
 
 		// Assert
-		mockSet.EasyFlowBuilder.Received().CloneBuilder();
-		//mockSet.EasyFlowBuilder.Received().SetProjectPath(Arg.Any<string>());
-		mockSet.EasyFlowPaths.Received().GetPathToEasyFlowSelfProject();
+		mockSet.DbLiveBuilder.Received().CloneBuilder();
+		//mockSet.DbLiveBuilder.Received().SetProjectPath(Arg.Any<string>());
+		mockSet.DbLivePaths.Received().GetPathToDbLiveSelfProject();
 	}
 }

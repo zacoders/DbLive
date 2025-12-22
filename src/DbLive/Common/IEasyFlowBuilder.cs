@@ -1,7 +1,7 @@
-﻿namespace EasyFlow.Common;
+﻿namespace DbLive.Common;
 
-public interface IEasyFlowBuilder
+public interface IDbLiveBuilder
 {
 	IServiceCollection Container { get; }
-	IEasyFlowBuilder CloneBuilder();
+	IDbLiveBuilder CloneBuilder();
 }

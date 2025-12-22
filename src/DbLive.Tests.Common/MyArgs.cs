@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Tests.Common;
+﻿namespace DbLive.Tests.Common;
 
 public static class MyArg
 {

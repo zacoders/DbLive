@@ -23,7 +23,7 @@
   -->
   
   <ItemGroup>
-    <ProjectReference Include="..\..\EasyFlow.MSSQL\EasyFlow.MSSQL.csproj" />
+    <ProjectReference Include="..\..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,17 +1,17 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow;
+namespace DbLive;
 
-public class EasyFlowInternalManager(
-	IEasyFlowBuilder _builder,
-	IEasyFlowPaths _paths
+public class DbLiveInternalManager(
+	IDbLiveBuilder _builder,
+	IDbLivePaths _paths
 )
-: IEasyFlowInternalManager
+: IDbLiveInternalManager
 {
-	public IEasyFlowInternal CreateEasyFlowInternal()
+	public IDbLiveInternal CreateDbLiveInternal()
 	{
-		IEasyFlowInternal selfDeployer = _builder.CloneBuilder()
-			.SetProjectPath(_paths.GetPathToEasyFlowSelfProject())
+		IDbLiveInternal selfDeployer = _builder.CloneBuilder()
+			.SetProjectPath(_paths.GetPathToDbLiveSelfProject())
 			.CreateSelfDeployer();
 
 		return selfDeployer;

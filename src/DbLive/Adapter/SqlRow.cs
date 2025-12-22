@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Adapter;
+namespace DbLive.Adapter;
 
 public class SqlRow : List<object> 
 {

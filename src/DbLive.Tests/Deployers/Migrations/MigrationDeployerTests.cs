@@ -1,6 +1,6 @@
 using DbLive.Deployers.Migrations;
 
-namespace EasyFlow.Tests.Deployers.Migrations;
+namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationDeployerTests
 {
@@ -59,7 +59,7 @@ public class MigrationDeployerTests
 		mockSet.MigrationItemDeployer.Received(2)
 			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigration(migration.Version, migration.Name, new DateTime(2024, 1, 1));
 	}
 
@@ -101,7 +101,7 @@ public class MigrationDeployerTests
 		mockSet.MigrationItemDeployer.Received(2)
 			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveMigration(migration.Version, migration.Name, new DateTime(2024, 1, 1));
 	}
 
@@ -143,8 +143,8 @@ public class MigrationDeployerTests
 		mockSet.MigrationItemDeployer.Received(2)
 			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
-		mockSet.EasyFlowDA.Received()
-			.SetEasyFlowVersion(migration.Version, new DateTime(2024, 1, 1));
+		mockSet.DbLiveDA.Received()
+			.SetDbLiveVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	private static FileData GetFileData(string relativePath)

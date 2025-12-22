@@ -1,6 +1,6 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Testing;
+namespace DbLive.Deployers.Testing;
 
 public interface IUnitTestResultChecker
 {

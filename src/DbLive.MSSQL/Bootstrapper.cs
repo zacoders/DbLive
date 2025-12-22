@@ -1,12 +1,12 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow.MSSQL;
+namespace DbLive.MSSQL;
 
 public static class Bootstrapper
 {
 	public static void InitializeMSSQL(this IServiceCollection container)
 	{
-		container.AddSingleton<IEasyFlowDA, MsSqlDA>();
-		container.AddSingleton<IEasyFlowPaths, MsSqlPaths>();
+		container.AddSingleton<IDbLiveDA, MsSqlDA>();
+		container.AddSingleton<IDbLivePaths, MsSqlPaths>();
 	}
 }

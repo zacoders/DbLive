@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Deployers;
+namespace DbLive.Deployers;
 
 public interface IFolderDeployer
 {

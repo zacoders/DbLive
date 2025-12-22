@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Deployers.Code;
+namespace DbLive.Deployers.Code;
 
 public class CodeItemDeployResult
 {

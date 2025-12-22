@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Exceptions;
+﻿namespace DbLive.Exceptions;
 
 [ExcludeFromCodeCoverage]
 internal static class DeployParametersExtentions

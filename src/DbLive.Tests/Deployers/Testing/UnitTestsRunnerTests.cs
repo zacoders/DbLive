@@ -3,7 +3,7 @@ using DbLive.Deployers.Testing;
 using Microsoft.IdentityModel.Tokens;
 using Xunit.Sdk;
 
-namespace EasyFlow.Tests.Deployers.Testing;
+namespace DbLive.Tests.Deployers.Testing;
 
 public class UnitTestsRunnerTests
 {
@@ -21,7 +21,7 @@ public class UnitTestsRunnerTests
 		runner.RunAllTests(parameters);
 
 		// Assert
-		mockSet.EasyFlowProject.DidNotReceive().GetTests();
+		mockSet.DbLiveProject.DidNotReceive().GetTests();
 	}
 
 
@@ -46,7 +46,7 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.EasyFlowProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTests().Returns([
 			testItem1,
 			testItem2
 		]);
@@ -61,8 +61,8 @@ public class UnitTestsRunnerTests
 		runner.RunAllTests(parameters);
 
 		// Assert
-		mockSet.EasyFlowProject.Received().GetTests();
-		mockSet.EasyFlowDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		mockSet.DbLiveProject.Received().GetTests();
+		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 	}
 
 
@@ -87,7 +87,7 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.EasyFlowProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTests().Returns([
 			testItem1,
 			testItem2
 		]);
@@ -102,11 +102,11 @@ public class UnitTestsRunnerTests
 		runner.RunAllTests(parameters);
 
 		// Assert
-		mockSet.EasyFlowProject.Received().GetTests();
+		mockSet.DbLiveProject.Received().GetTests();
 
-		mockSet.EasyFlowDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
 				dto.Crc32Hash == testItem1.FileData.Crc32Hash &&
@@ -114,7 +114,7 @@ public class UnitTestsRunnerTests
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
 				dto.Crc32Hash == testItem2.FileData.Crc32Hash &&
@@ -152,7 +152,7 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.EasyFlowProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTests().Returns([
 			testItem1,
 			testItem2
 		]);
@@ -167,15 +167,15 @@ public class UnitTestsRunnerTests
 		DeployParameters parameters = new() { RunTests = true };
 
 		// Act
-		Assert.Throws<EasyFlowSqlException>(() => runner.RunAllTests(parameters));
+		Assert.Throws<DbLiveSqlException>(() => runner.RunAllTests(parameters));
 
 		// Assert
 
-		mockSet.EasyFlowProject.Received().GetTests();
+		mockSet.DbLiveProject.Received().GetTests();
 
-		mockSet.EasyFlowDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
 				dto.Crc32Hash == testItem1.FileData.Crc32Hash &&
@@ -183,7 +183,7 @@ public class UnitTestsRunnerTests
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
 
-		mockSet.EasyFlowDA.Received()
+		mockSet.DbLiveDA.Received()
 			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
 				dto.Crc32Hash == testItem2.FileData.Crc32Hash &&

@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Exceptions;
+﻿namespace DbLive.Exceptions;
 
 [ExcludeFromCodeCoverage]
 public class FileContentChangedException : Exception

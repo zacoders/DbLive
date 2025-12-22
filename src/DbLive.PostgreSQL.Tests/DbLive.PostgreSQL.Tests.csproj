@@ -28,8 +28,8 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\EasyFlow.PostgreSQL\EasyFlow.PostgreSQL.csproj" />
-    <ProjectReference Include="..\EasyFlow.Tests.Common\EasyFlow.Tests.Common.csproj" />
+    <ProjectReference Include="..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
+    <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
   </ItemGroup>
 
 </Project>

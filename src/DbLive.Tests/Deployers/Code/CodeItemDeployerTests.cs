@@ -1,7 +1,7 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Code;
 
-namespace EasyFlow.Tests.Deployers.Code;
+namespace DbLive.Tests.Deployers.Code;
 
 public class CodeItemDeployerTests
 {
@@ -28,9 +28,9 @@ public class CodeItemDeployerTests
 			RelativePath = relativePath
 		};
 
-		mockSet.EasyFlowDA.FindCodeItem(relativePath).Returns(codeItemDtoExists ? codeItemDto : null);
-		mockSet.EasyFlowDA.ExecuteNonQuery(content);
-		mockSet.EasyFlowDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
+		mockSet.DbLiveDA.FindCodeItem(relativePath).Returns(codeItemDtoExists ? codeItemDto : null);
+		mockSet.DbLiveDA.ExecuteNonQuery(content);
+		mockSet.DbLiveDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
 
 		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -96,7 +96,7 @@ public class CodeItemDeployerTests
 		MockSet mockSet = new();
 
 		bool isThrown = false;
-		mockSet.EasyFlowDA
+		mockSet.DbLiveDA
 			.When(x => x.ExecuteNonQuery(Arg.Any<string>()))
 			.Do(x =>
 			{
@@ -124,6 +124,6 @@ public class CodeItemDeployerTests
 
 		Assert.True(res.IsSuccess, "Should be deployed from the second retry attempt.");
 
-		mockSet.EasyFlowDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
+		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
 	}
 }

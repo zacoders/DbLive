@@ -1,4 +1,4 @@
-﻿namespace EasyFlow;
+﻿namespace DbLive;
 
 [ExcludeFromCodeCoverage]
 public record DeployParameters

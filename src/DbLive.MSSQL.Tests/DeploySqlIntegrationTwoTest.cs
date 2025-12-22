@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
-namespace EasyFlow.MSSQL.Tests;
+namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
@@ -13,9 +13,9 @@ public class DeploySqlIntegrationTwoTest(SqlServerIntegrationFixture _fixture, I
 	{
 		Output.WriteLine("=== deploy up to version 2 ===");
 		DeployParameters parameters = new() { MaxVersionToDeploy = 2, DeployCode = false, RunTests = false };
-		EasyFlow.Deploy(parameters);
+		DbLive.Deploy(parameters);
 
 		Output.WriteLine("=== deploy other ===");
-		EasyFlow.Deploy(DeployParameters.Default);
+		DbLive.Deploy(DeployParameters.Default);
 	}
 }

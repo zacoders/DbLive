@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Common;
+﻿namespace DbLive.Common;
 
-public class EasyFlowSettings
+public class DbLiveSettings
 {
 	public TransactionWrapLevel TransactionWrapLevel { get; init; } = TransactionWrapLevel.Migration;
 

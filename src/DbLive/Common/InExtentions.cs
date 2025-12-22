@@ -1,5 +1,5 @@
 ﻿
-namespace EasyFlow.Common;
+namespace DbLive.Common;
 
 public static class InExtentions
 {

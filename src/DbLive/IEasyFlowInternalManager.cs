@@ -1,6 +1,6 @@
-﻿namespace EasyFlow;
+﻿namespace DbLive;
 
-public interface IEasyFlowInternalManager
+public interface IDbLiveInternalManager
 {
-	IEasyFlowInternal CreateEasyFlowInternal();
+	IDbLiveInternal CreateDbLiveInternal();
 }

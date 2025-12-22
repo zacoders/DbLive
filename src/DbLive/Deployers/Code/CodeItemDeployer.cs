@@ -1,10 +1,10 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Code;
+namespace DbLive.Deployers.Code;
 
 public class CodeItemDeployer(
 		ILogger _logger,
-		IEasyFlowDA _da,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider
 	) : ICodeItemDeployer
 {

@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Deployers.Testing;
+﻿namespace DbLive.Deployers.Testing;
 
 [ExcludeFromCodeCoverage]
 public class TestRunResult

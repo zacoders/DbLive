@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Common;
+﻿namespace DbLive.Common;
 
 internal class TestsRunResults
 {

@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace DbLive.Adapter;
 
-public interface IEasyFlowPaths
+public interface IDbLivePaths
 {
-	string GetPathToEasyFlowSelfProject();
+	string GetPathToDbLiveSelfProject();
 }

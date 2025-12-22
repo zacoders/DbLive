@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace EasyFlow.Common;
+namespace DbLive.Common;
 
 public class StopWatch : IStopWatch
 {

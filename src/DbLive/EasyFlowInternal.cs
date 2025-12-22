@@ -2,9 +2,9 @@ using DbLive.Deployers.Code;
 using DbLive.Deployers.Migrations;
 using DbLive.Deployers.Testing;
 
-namespace EasyFlow;
+namespace DbLive;
 
-public class EasyFlowInternal(
+public class DbLiveInternal(
 		ICodeDeployer _codeDeployer,
 		IBreakingChangesDeployer _breakingChangesDeployer,
 		IMigrationsDeployer _migrationsDeployer,
@@ -13,17 +13,17 @@ public class EasyFlowInternal(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
-		IEasyFlowInternalManager _selfDeployer
-	) : IEasyFlowInternal
+		IDbLiveInternalManager _selfDeployer
+	) : IDbLiveInternal
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(EasyFlowInternal));
+	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveInternal));
 
 	public void SelfDeployProjectInternal()
 	{
 		_logger.Information("Starting self deploy.");
 
-		IEasyFlowInternal easyFlowSelfDeployer = _selfDeployer.CreateEasyFlowInternal();
-		easyFlowSelfDeployer.DeployProjectInternal(true, DeployParameters.Default);
+		IDbLiveInternal DbLiveSelfDeployer = _selfDeployer.CreateDbLiveInternal();
+		DbLiveSelfDeployer.DeployProjectInternal(true, DeployParameters.Default);
 
 		_logger.Information("Self deploy completed.");
 	}
@@ -32,7 +32,7 @@ public class EasyFlowInternal(
 	{
 		_logger.Information("Starting project deploy.");
 
-		EasyFlowSettings projectSettings = _projectSettings.ProjectSettings;
+		DbLiveSettings projectSettings = _projectSettings.ProjectSettings;
 
 		_transactionRunner.ExecuteWithinTransaction(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,

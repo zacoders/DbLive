@@ -1,10 +1,10 @@
 ﻿using DbLive.Common;
 
-namespace EasyFlow.MSSQL;
+namespace DbLive.MSSQL;
 
-public static class EasyFlowBuilderExtensions
+public static class DbLiveBuilderExtensions
 {
-	public static IEasyFlowBuilder SqlServer(this IEasyFlowBuilder builder)
+	public static IDbLiveBuilder SqlServer(this IDbLiveBuilder builder)
 	{
 		builder.Container.InitializeMSSQL();
 

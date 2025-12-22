@@ -1,11 +1,11 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Testing;
+namespace DbLive.Deployers.Testing;
 
 public class UnitTestsRunner(
 		ILogger _logger,
-		IEasyFlowProject _project,
-		IEasyFlowDA _da,
+		IDbLiveProject _project,
+		IDbLiveDA _da,
 		IUnitTestItemRunner _unitTestItemRunner
 	) : IUnitTestsRunner
 {
@@ -59,7 +59,7 @@ public class UnitTestsRunner(
 
 		if (runResults.FailedCount > 0)
 		{
-			throw new EasyFlowSqlException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
+			throw new DbLiveSqlException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
 		}
 	}
 }

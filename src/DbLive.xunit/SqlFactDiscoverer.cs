@@ -2,7 +2,7 @@
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace EasyFlow.xunit;
+namespace DbLive.xunit;
 
 public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 {
@@ -23,7 +23,7 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 		string assemblyName = attr.GetNamedArgument<string>(nameof(SqlFactAttribute.SqlAssemblyName));
 		string projectPath = Path.GetFullPath(assemblyName);
 
-		var project = new EasyFlowBuilder()
+		var project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)
 			.CreateProject();
 

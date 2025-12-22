@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Project;
+﻿namespace DbLive.Project;
 
-public interface IEasyFlowProject
+public interface IDbLiveProject
 {
 	//todo: switch from IEnumerable result to readonly collections?
 	IEnumerable<Migration> GetMigrations();

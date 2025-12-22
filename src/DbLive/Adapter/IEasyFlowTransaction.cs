@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace DbLive.Adapter;
 
-public interface IEasyFlowTransaction
+public interface IDbLiveTransaction
 {
 	void Commit();
 }

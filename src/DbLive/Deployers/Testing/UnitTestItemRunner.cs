@@ -1,9 +1,9 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Testing;
+namespace DbLive.Deployers.Testing;
 
 public class UnitTestItemRunner(
-	IEasyFlowDA _da,
+	IDbLiveDA _da,
 	ITimeProvider _timeProvider,
 	IUnitTestResultChecker _unitTestResultChecker
 ) : IUnitTestItemRunner

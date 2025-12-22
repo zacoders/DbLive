@@ -1,12 +1,12 @@
 ﻿using DbLive.Adapter;
 using DbLive.Testing;
 
-namespace EasyFlow;
+namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public static class EasyFlowBuilderExtentions
+public static class DbLiveBuilderExtentions
 {
-	public static IEasyFlowBuilder LogToConsole(this IEasyFlowBuilder builder)
+	public static IDbLiveBuilder LogToConsole(this IDbLiveBuilder builder)
 	{
 		// todo: if LogToConsole() is not called builder is failing.
 		builder.Container.LogToConsole();
@@ -22,7 +22,7 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<ILogger>(logger);
 	}
 
-	public static IEasyFlowBuilder SetDbConnection(this IEasyFlowBuilder builder, string sqlDbConnectionString)
+	public static IDbLiveBuilder SetDbConnection(this IDbLiveBuilder builder, string sqlDbConnectionString)
 	{
 		builder.Container.SetDbConnection(sqlDbConnectionString);
 		return builder;
@@ -30,11 +30,11 @@ public static class EasyFlowBuilderExtentions
 
 	public static void SetDbConnection(this IServiceCollection serviceCollection, string sqlDbConnectionString)
 	{
-		var cnn = new EasyFlowDbConnection(sqlDbConnectionString);
-		serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+		var cnn = new DbLiveDbConnection(sqlDbConnectionString);
+		serviceCollection.AddSingleton<IDbLiveDbConnection>(cnn);
 	}
 
-	public static IEasyFlowBuilder SetProjectPath(this IEasyFlowBuilder builder, string projectPath)
+	public static IDbLiveBuilder SetProjectPath(this IDbLiveBuilder builder, string projectPath)
 	{
 		builder.Container.SetProjectPath(projectPath);
 		return builder;
@@ -46,33 +46,33 @@ public static class EasyFlowBuilderExtentions
 		serviceCollection.AddSingleton<IProjectPath>(path);
 	}
 
-	public static IEasyFlow CreateDeployer(this IEasyFlowBuilder builder)
+	public static IDbLive CreateDeployer(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IEasyFlow>()!;
+		return serviceProvider.GetService<IDbLive>()!;
 	}
 
-	public static IEasyFlowInternal CreateSelfDeployer(this IEasyFlowBuilder builder)
+	public static IDbLiveInternal CreateSelfDeployer(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IEasyFlowInternal>()!;
+		return serviceProvider.GetService<IDbLiveInternal>()!;
 	}
 
-	internal static IEasyFlowDA CreateEasyFlowDA(this IEasyFlowBuilder builder)
+	internal static IDbLiveDA CreateDbLiveDA(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IEasyFlowDA>()!;
+		return serviceProvider.GetService<IDbLiveDA>()!;
 	}
 
-	public static IEasyFlowTester CreateTester(this IEasyFlowBuilder builder)
+	public static IDbLiveTester CreateTester(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IEasyFlowTester>()!;
+		return serviceProvider.GetService<IDbLiveTester>()!;
 	}
 
-	public static IEasyFlowProject CreateProject(this IEasyFlowBuilder builder)
+	public static IDbLiveProject CreateProject(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IEasyFlowProject>()!;
+		return serviceProvider.GetService<IDbLiveProject>()!;
 	}
 }

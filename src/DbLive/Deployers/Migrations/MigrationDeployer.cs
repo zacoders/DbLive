@@ -1,10 +1,10 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Migrations;
+namespace DbLive.Deployers.Migrations;
 
 public class MigrationDeployer(
 		ILogger _logger,
-		IEasyFlowDA _da,
+		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
@@ -13,7 +13,7 @@ public class MigrationDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationDeployer));
 
-	private readonly EasyFlowSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
+	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
@@ -43,7 +43,7 @@ public class MigrationDeployer(
 
 				if (isSelfDeploy)
 				{
-					_da.SetEasyFlowVersion(migration.Version, migrationCompletedUtc);
+					_da.SetDbLiveVersion(migration.Version, migrationCompletedUtc);
 				}
 				else
 				{

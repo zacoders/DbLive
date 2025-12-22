@@ -3,25 +3,25 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
-namespace EasyFlow.PostgreSQL.Tests;
+namespace DbLive.PostgreSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>
 {
-	private readonly IEasyFlowDA _da;
+	private readonly IDbLiveDA _da;
 
 	public PgSqlDeployerTests(PostgreSqlFixture _fixture, ITestOutputHelper output) : base(output)
 	{
 		Container.InitializePostgreSQL();
-		Container.InitializeEasyFlow();
+		Container.InitializeDbLive();
 
 		var testConfig = new TestConfig();
-		var cnn = new EasyFlowDbConnection(testConfig.GetPostgresConnectionString() ?? _fixture.PostgresDBConnectionString);
-		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
+		var cnn = new DbLiveDbConnection(testConfig.GetPostgresConnectionString() ?? _fixture.PostgresDBConnectionString);
+		Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
 
-		_da = GetService<IEasyFlowDA>();
+		_da = GetService<IDbLiveDA>();
 
 		_da.CreateDB();
 	}
@@ -48,11 +48,11 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 	}
 
 	[Fact]
-	public void EasyFlowSqlException_Expected()
+	public void DbLiveSqlException_Expected()
 	{
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<EasyFlowSqlException>(() => _da.ExecuteNonQuery(sql));
+		Assert.Throws<DbLiveSqlException>(() => _da.ExecuteNonQuery(sql));
 	}
 
 	[Fact]

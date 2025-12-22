@@ -1,8 +1,8 @@
 ﻿using DbLive.Deployers.Testing;
 
-namespace EasyFlow.Testing;
+namespace DbLive.Testing;
 
-public interface IEasyFlowTester
+public interface IDbLiveTester
 {
 	TestRunResult RunTest(Action<string> writeLine, string relativePath);
 }

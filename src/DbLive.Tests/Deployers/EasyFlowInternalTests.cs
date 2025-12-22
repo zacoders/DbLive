@@ -1,6 +1,6 @@
-namespace EasyFlow.Tests.Deployers;
+namespace DbLive.Tests.Deployers;
 
-public class EasyFlowInternalTests
+public class DbLiveInternalTests
 {
 	[Fact]
 	public void SelfDeployProjectInternal()
@@ -17,16 +17,16 @@ public class EasyFlowInternalTests
 			RunTests = true
 		};
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternal>();
+		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
 
-		mockSet.SelfDeployer.CreateEasyFlowInternal().Returns(mockSet.EasyFlowInternal);
+		mockSet.SelfDeployer.CreateDbLiveInternal().Returns(mockSet.DbLiveInternal);
 
 		// Act
-		easyFlow.SelfDeployProjectInternal();
+		DbLive.SelfDeployProjectInternal();
 
 		// Assert
-		mockSet.SelfDeployer.Received().CreateEasyFlowInternal();
-		mockSet.EasyFlowInternal.Received().DeployProjectInternal(Arg.Is(true), Arg.Is(selfDeployParameters));
+		mockSet.SelfDeployer.Received().CreateDbLiveInternal();
+		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(true), Arg.Is(selfDeployParameters));
 	}
 
 
@@ -36,19 +36,19 @@ public class EasyFlowInternalTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings
+		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
 		{
 			TransactionWrapLevel = TransactionWrapLevel.Deployment,
 			TransactionIsolationLevel = TranIsolationLevel.RepeatableRead,
 			DeploymentTimeout = TimeSpan.FromHours(5)
 		});
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternal>();
+		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		easyFlow.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
+		DbLive.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
 
 		// Assert
 		mockSet.TransactionRunner.Received()
@@ -67,19 +67,19 @@ public class EasyFlowInternalTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings
+		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
 		{
 			TransactionWrapLevel = TransactionWrapLevel.MigrationItem,
 			TransactionIsolationLevel = TranIsolationLevel.Chaos,
 			DeploymentTimeout = TimeSpan.FromHours(15)
 		});
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternal>();
+		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		easyFlow.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
+		DbLive.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
 
 		// Assert
 		mockSet.TransactionRunner.Received()
@@ -107,12 +107,12 @@ public class EasyFlowInternalTests
 			RunTests = true
 		};
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlowInternal>();
+		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		easyFlow.DeployProjectInternal(isSelfDeploy, parameters);
+		DbLive.DeployProjectInternal(isSelfDeploy, parameters);
 
 		// Assert
 		mockSet.FolderDeployer.Received().DeployFolder(Arg.Is(ProjectFolder.BeforeDeploy), Arg.Is(parameters));

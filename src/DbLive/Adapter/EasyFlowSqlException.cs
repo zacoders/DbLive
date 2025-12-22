@@ -1,13 +1,13 @@
-﻿namespace EasyFlow.Adapter;
+﻿namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
-public class EasyFlowSqlException : Exception
+public class DbLiveSqlException : Exception
 {
-	public EasyFlowSqlException(string errorMessage, Exception innerException)
+	public DbLiveSqlException(string errorMessage, Exception innerException)
 		: base(errorMessage, innerException)
 	{
 	}
-	public EasyFlowSqlException(string errorMessage)
+	public DbLiveSqlException(string errorMessage)
 		: base(errorMessage)
 	{
 	}

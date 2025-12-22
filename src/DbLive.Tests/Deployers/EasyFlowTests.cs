@@ -1,6 +1,6 @@
-namespace EasyFlow.Tests.Deployers;
+namespace DbLive.Tests.Deployers;
 
-public class EasyFlowTests
+public class DbLiveTests
 {
 	[Fact]
 	public void DropDatabase()
@@ -8,13 +8,13 @@ public class EasyFlowTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlow>();
+		var DbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		// Act
-		easyFlow.DropDatabase();
+		DbLive.DropDatabase();
 
 		// Assert
-		mockSet.EasyFlowDA.Received().DropDB();
+		mockSet.DbLiveDA.Received().DropDB();
 	}
 
 	[Fact]
@@ -23,9 +23,9 @@ public class EasyFlowTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowInternal.SelfDeployProjectInternal();
+		mockSet.DbLiveInternal.SelfDeployProjectInternal();
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlow>();
+		var DbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -33,12 +33,12 @@ public class EasyFlowTests
 		};
 
 		// Act
-		easyFlow.Deploy(parameters);
+		DbLive.Deploy(parameters);
 
 		// Assert
-		mockSet.EasyFlowDA.Received().CreateDB();
-		mockSet.EasyFlowInternal.Received().SelfDeployProjectInternal();
-		mockSet.EasyFlowInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveDA.Received().CreateDB();
+		mockSet.DbLiveInternal.Received().SelfDeployProjectInternal();
+		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
 	}
 
 
@@ -48,9 +48,9 @@ public class EasyFlowTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowInternal.SelfDeployProjectInternal();
+		mockSet.DbLiveInternal.SelfDeployProjectInternal();
 
-		var easyFlow = mockSet.CreateUsingMocks<EasyFlow>();
+		var DbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -58,11 +58,11 @@ public class EasyFlowTests
 		};
 
 		// Act
-		easyFlow.Deploy(parameters);
+		DbLive.Deploy(parameters);
 
 		// Assert
-		mockSet.EasyFlowDA.DidNotReceive().CreateDB();
-		mockSet.EasyFlowInternal.Received().SelfDeployProjectInternal();
-		mockSet.EasyFlowInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveDA.DidNotReceive().CreateDB();
+		mockSet.DbLiveInternal.Received().SelfDeployProjectInternal();
+		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
 	}
 }

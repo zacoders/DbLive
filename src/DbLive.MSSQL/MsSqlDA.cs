@@ -4,9 +4,9 @@ using DbLive.Project;
 using System.Collections.Specialized;
 using System.Data;
 
-namespace EasyFlow.MSSQL;
+namespace DbLive.MSSQL;
 
-public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
+public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	static MsSqlDA()
 	{
@@ -21,7 +21,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				 , name
 				 , created_utc
 				 , modified_utc
-			from easyflow.migration
+			from DbLive.migration
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
@@ -40,7 +40,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from easyflow.migration_item
+			from DbLive.migration_item
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -49,31 +49,31 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		return cnn.Query<MigrationItemDto>(query).ToList();
 	}
 
-	public bool EasyFlowInstalled()
+	public bool DbLiveInstalled()
 	{
 		const string query = @"
-			select iif(object_id('easyflow.migration', 'U') is null, 0, 1)
+			select iif(object_id('DbLive.migration', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public int GetEasyFlowVersion()
+	public int GetDbLiveVersion()
 	{
 		const string query = @"
 			select version
-			from easyflow.version
+			from DbLive.version
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public void SetEasyFlowVersion(int version, DateTime migrationDateTime)
+	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
-			update easyflow.version
+			update DbLive.version
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
@@ -86,7 +86,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"easyflow.save_migration",
+			"DbLive.save_migration",
 			new
 			{
 				version = migrationVersion,
@@ -111,7 +111,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		catch (Exception e)
 		{
 			var sqlException = e.Get<SqlException>();
-			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
 		}
 	}
 
@@ -145,7 +145,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		catch (Exception e)
 		{
 			var sqlException = e.Get<SqlException>();
-			throw new EasyFlowSqlException(sqlException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
 		}
 	}
 
@@ -301,7 +301,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query("easyflow.insert_code_state",
+		cnn.Query("DbLive.insert_code_state",
 			new
 			{
 				relative_path = relativePath,
@@ -317,7 +317,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"easyflow.update_code_state",
+			"DbLive.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
 			commandType: CommandType.StoredProcedure
 		);
@@ -327,7 +327,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"easyflow.get_code_item",
+			"DbLive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
@@ -337,7 +337,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"easyflow.save_migration_item",
+			"DbLive.save_migration_item",
 			new
 			{
 				version = item.Version,
@@ -358,7 +358,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"easyflow.save_unit_test_result",
+			"DbLive.save_unit_test_result",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -376,7 +376,7 @@ public class MsSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"easyflow.save_folder_item",
+			"DbLive.save_folder_item",
 			new
 			{
 				folder_type = projectFolder.ToString(),

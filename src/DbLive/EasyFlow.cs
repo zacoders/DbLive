@@ -1,13 +1,13 @@
 using DbLive.Adapter;
-namespace EasyFlow;
+namespace DbLive;
 
-public class EasyFlow(
-		IEasyFlowDA _da,
+public class DbLive(
+		IDbLiveDA _da,
 		ILogger _logger,
-		IEasyFlowInternal _easyFlowInternal
-	) : IEasyFlow
+		IDbLiveInternal _DbLiveInternal
+	) : IDbLive
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(EasyFlow));
+	private readonly ILogger _logger = _logger.ForContext(typeof(DbLive));
 
 	public void Deploy(DeployParameters parameters)
 	{
@@ -18,11 +18,11 @@ public class EasyFlow(
 		if (parameters.CreateDbIfNotExists)
 			_da.CreateDB(true);
 
-		// Self deploy. Deploying EasyFlow to the database
-		_easyFlowInternal.SelfDeployProjectInternal();
+		// Self deploy. Deploying DbLive to the database
+		_DbLiveInternal.SelfDeployProjectInternal();
 
 		// Deploy actual project
-		_easyFlowInternal.DeployProjectInternal(false, parameters);
+		_DbLiveInternal.DeployProjectInternal(false, parameters);
 	}
 
 	public void DropDatabase(bool skipIfNotExists = true)

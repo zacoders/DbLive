@@ -1,7 +1,7 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Testing;
 
-namespace EasyFlow.Tests.Deployers.Testing;
+namespace DbLive.Tests.Deployers.Testing;
 
 public class UnitTestItemRunnerTests
 {
@@ -36,8 +36,8 @@ public class UnitTestItemRunnerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.Received(1);
-		mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+		mockSet.DbLiveDA.Received(1);
+		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
 		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<List<SqlResult>>());
 
 		Assert.True(result.IsSuccess);
@@ -79,12 +79,12 @@ public class UnitTestItemRunnerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.Received(2);
+		mockSet.DbLiveDA.Received(2);
 
 		Received.InOrder(() =>
 		{
-			mockSet.EasyFlowDA.Received().ExecuteNonQuery(Arg.Is(testItem.InitFileData.Content));
-			mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+			mockSet.DbLiveDA.Received().ExecuteNonQuery(Arg.Is(testItem.InitFileData.Content));
+			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
 		});
 
 		Assert.True(result.IsSuccess);
@@ -110,7 +110,7 @@ public class UnitTestItemRunnerTests
 		mockStopWatch.ElapsedMilliseconds.Returns(999);
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
-		mockSet.EasyFlowDA
+		mockSet.DbLiveDA
 			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>()))
 			.Throw<Exception>();
 
@@ -126,8 +126,8 @@ public class UnitTestItemRunnerTests
 
 
 		// Assert
-		mockSet.EasyFlowDA.Received(1);
-		mockSet.EasyFlowDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+		mockSet.DbLiveDA.Received(1);
+		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);

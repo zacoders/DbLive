@@ -1,10 +1,10 @@
-namespace EasyFlow.Project;
+namespace DbLive.Project;
 
-public class EasyFlowProject(
+public class DbLiveProject(
 	IProjectPathAccessor projectPath,
 	IFileSystem _fileSystem,
 	ISettingsAccessor _settingsAccessor
-) : IEasyFlowProject
+) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
 

@@ -1,10 +1,10 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow.PostgreSQL;
+namespace DbLive.PostgreSQL;
 
-internal class PostgreSqlPaths : IEasyFlowPaths
+internal class PostgreSqlPaths : IDbLivePaths
 {
-	public string GetPathToEasyFlowSelfProject() =>
+	public string GetPathToDbLiveSelfProject() =>
 		Path.Combine(
 			AppContext.BaseDirectory,
 			GetType().Assembly.GetName().Name ?? throw new Exception("Unknown assembly name.")

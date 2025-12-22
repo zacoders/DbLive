@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.MSSQL;
+﻿namespace DbLive.MSSQL;
 
 public static class StringExtentions
 {
@@ -13,6 +13,6 @@ public static class StringExtentions
 
 	public static string SetRandomDatabaseName(this string mssqlConnectionString)
 	{
-		return mssqlConnectionString.SetDatabaseName($"EasyFlow--{Guid.NewGuid()}");
+		return mssqlConnectionString.SetDatabaseName($"DbLive--{Guid.NewGuid()}");
 	}
 }

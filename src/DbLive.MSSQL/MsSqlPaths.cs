@@ -1,10 +1,10 @@
 ﻿using DbLive.Adapter;
 
-namespace EasyFlow.MSSQL;
+namespace DbLive.MSSQL;
 
-internal class MsSqlPaths : IEasyFlowPaths
+internal class MsSqlPaths : IDbLivePaths
 {
-	public string GetPathToEasyFlowSelfProject() =>
+	public string GetPathToDbLiveSelfProject() =>
 		Path.Combine(
 			AppContext.BaseDirectory,
 			GetType().Assembly.GetName().Name ?? throw new Exception("Unknown assembly name.")

@@ -3,12 +3,12 @@ using Microsoft.SqlServer.Management.Common;
 using System.Collections.Specialized;
 using DbLive.xunit;
 
-namespace EasyFlow.MSSQL.Tests;
+namespace DbLive.MSSQL.Tests;
 
 public class SqlServerIntegrationBaseTest : IDisposable
 {
 	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
-	private static readonly string TestDbNamePrefix = "EasyFlow--";
+	private static readonly string TestDbNamePrefix = "DbLive--";
 
 	private readonly string _masterDbConnectionString;
 
@@ -17,7 +17,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	protected readonly string _testingDbName;
 	private readonly bool _keepDatabaseAfterTests;
 
-	protected IEasyFlow EasyFlow;
+	protected IDbLive DbLive;
 
 	public ITestOutputHelper Output { get; }
 
@@ -30,7 +30,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 		Output = output;
 		_testingDbName = dbName ?? GetRanomDbName();
 
-		EasyFlow = new EasyFlowBuilder()
+		DbLive = new DbLiveBuilder()
 			.LogToXUnitOutput(Output)
 			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()

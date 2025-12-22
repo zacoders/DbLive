@@ -1,8 +1,8 @@
 ﻿
-namespace EasyFlow.Tests.Common;
+namespace DbLive.Tests.Common;
 
 
-public static class EasyFlowBuilderExtensions
+public static class DbLiveBuilderExtensions
 {
 	public static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)
 	{
@@ -15,7 +15,7 @@ public static class EasyFlowBuilderExtensions
 		serviceCollection.AddSingleton<ILogger>(logger);
 	}
 
-	//public static EasyFlowBuilder AddTestingMsSqlConnection(this EasyFlowBuilder builder)
+	//public static DbLiveBuilder AddTestingMsSqlConnection(this DbLiveBuilder builder)
 	//{
 	//	builder.Container.AddTestingMsSqlConnection();
 	//	return builder;
@@ -24,14 +24,14 @@ public static class EasyFlowBuilderExtensions
 	//public static void AddTestingMsSqlConnection(this IServiceCollection serviceCollection)
 	//{
 	//	var testConfig = new TestConfig();
-	//	var cnn = new EasyFlowDbConnection(testConfig.GetSqlServerConnectionString());
-	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+	//	var cnn = new DbLiveDbConnection(testConfig.GetSqlServerConnectionString());
+	//	serviceCollection.AddSingleton<IDbLiveDbConnection>(cnn);
 	//}
 
 	//public static void AddTestingPostgreSQLConnection(this IServiceCollection serviceCollection)
 	//{
 	//	var testConfig = new TestConfig();
-	//	var cnn = new EasyFlowDbConnection(testConfig.GetPostgresSqlConnectionString());
-	//	serviceCollection.AddSingleton<IEasyFlowDbConnection>(cnn);
+	//	var cnn = new DbLiveDbConnection(testConfig.GetPostgresSqlConnectionString());
+	//	serviceCollection.AddSingleton<IDbLiveDbConnection>(cnn);
 	//}
 }

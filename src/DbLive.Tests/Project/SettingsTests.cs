@@ -1,4 +1,4 @@
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class SettingsTests
 {

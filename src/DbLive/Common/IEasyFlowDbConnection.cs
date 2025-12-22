@@ -1,6 +1,6 @@
-﻿namespace EasyFlow.Common;
+﻿namespace DbLive.Common;
 
-public interface IEasyFlowDbConnection
+public interface IDbLiveDbConnection
 {
 	string ConnectionString { get; }
 }

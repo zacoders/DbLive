@@ -5,7 +5,7 @@ using DbLive.Deployers.Code;
 using DbLive.Deployers.Migrations;
 using DbLive.Deployers.Testing;
 
-namespace EasyFlow.Tests.Common;
+namespace DbLive.Tests.Common;
 
 public class MockSet
 {
@@ -13,12 +13,12 @@ public class MockSet
 
 	public readonly ILogger Logger = Substitute.For<ILogger>();
 	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
-	public readonly IEasyFlowProject EasyFlowProject = Substitute.For<IEasyFlowProject>();
-	public readonly IEasyFlowDA EasyFlowDA = Substitute.For<IEasyFlowDA>();
-	public readonly IEasyFlowPaths EasyFlowPaths = Substitute.For<IEasyFlowPaths>();
+	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
+	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
+	public readonly IDbLivePaths DbLivePaths = Substitute.For<IDbLivePaths>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
 	public readonly IProjectPathAccessor ProjectPathAccessor = Substitute.For<IProjectPathAccessor>();
-	public readonly IEasyFlowDbConnection DbConnection = Substitute.For<IEasyFlowDbConnection>();
+	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
 	public readonly IMigrationDeployer MigrationDeployer = Substitute.For<IMigrationDeployer>();
@@ -30,14 +30,14 @@ public class MockSet
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
-	public readonly IEasyFlowBuilder EasyFlowBuilder = Substitute.For<IEasyFlowBuilder>();
-	public readonly IEasyFlowInternal EasyFlowInternal = Substitute.For<IEasyFlowInternal>();
-	public readonly IEasyFlowInternalManager SelfDeployer = Substitute.For<IEasyFlowInternalManager>();
+	public readonly IDbLiveBuilder DbLiveBuilder = Substitute.For<IDbLiveBuilder>();
+	public readonly IDbLiveInternal DbLiveInternal = Substitute.For<IDbLiveInternal>();
+	public readonly IDbLiveInternalManager SelfDeployer = Substitute.For<IDbLiveInternalManager>();
 	public readonly IUnitTestResultChecker UnitTestResultChecker = Substitute.For<IUnitTestResultChecker>();
 
 	public MockSet()
 	{
-		SettingsAccessor.ProjectSettings.Returns(new EasyFlowSettings());
+		SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
 
 		TransactionRunner.ExecuteWithinTransaction(
 			Arg.Any<bool>(),

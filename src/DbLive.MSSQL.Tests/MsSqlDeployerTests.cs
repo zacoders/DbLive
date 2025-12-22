@@ -3,24 +3,24 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
-namespace EasyFlow.MSSQL.Tests;
+namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServerIntegrationFixture>
 {
-	private readonly IEasyFlowDA _da;
+	private readonly IDbLiveDA _da;
 
 	public MsSqlDeployerTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeMSSQL();
 
-		var cnn = new EasyFlowDbConnection(_fixture.MasterDbConnectionString.SetRandomDatabaseName());
-		Container.AddSingleton<IEasyFlowDbConnection>(cnn);
+		var cnn = new DbLiveDbConnection(_fixture.MasterDbConnectionString.SetRandomDatabaseName());
+		Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
-		Container.InitializeEasyFlow();
+		Container.InitializeDbLive();
 
-		_da = GetService<IEasyFlowDA>();
+		_da = GetService<IDbLiveDA>();
 
 		_da.CreateDB(skipIfExists: true);
 	}
@@ -46,11 +46,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	}
 
 	[Fact]
-	public void EasyFlowSqlException_Expected()
+	public void DbLiveSqlException_Expected()
 	{
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<EasyFlowSqlException>(() => _da.ExecuteNonQuery(sql));
+		Assert.Throws<DbLiveSqlException>(() => _da.ExecuteNonQuery(sql));
 	}
 
 	[Fact]

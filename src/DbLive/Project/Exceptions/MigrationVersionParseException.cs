@@ -1,4 +1,4 @@
-﻿namespace EasyFlow.Project.Exceptions;
+﻿namespace DbLive.Project.Exceptions;
 
 
 [ExcludeFromCodeCoverage]

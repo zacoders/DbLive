@@ -3,9 +3,9 @@ using DbLive.Common;
 using DbLive.Project;
 using System.Data;
 
-namespace EasyFlow.PostgreSQL;
+namespace DbLive.PostgreSQL;
 
-public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
+public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public void CreateDB(bool skipIfExists = true)
 	{
@@ -29,10 +29,10 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		cnn.Close();
 	}
 
-	public bool EasyFlowInstalled()
+	public bool DbLiveInstalled()
 	{
 		const string query = @"
-			select exists ( select * from pg_tables where schemaname = 'easyflow' and tablename = 'Migrations'
+			select exists ( select * from pg_tables where schemaname = 'DbLive' and tablename = 'Migrations'
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
@@ -52,7 +52,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		catch (Exception e)
 		{
 			var pgException = e.Get<PostgresException>();
-			throw new EasyFlowSqlException(pgException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(pgException?.Message ?? e.Message, e);
 		}
 	}
 
@@ -61,11 +61,11 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public int GetEasyFlowVersion()
+	public int GetDbLiveVersion()
 	{
 		const string query = @"
 			select Version
-			from easyflow.Version
+			from DbLive.Version
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
@@ -79,7 +79,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				 , name
 				 , created_utc
 				 , modified_utc
-			from easyflow.Migration
+			from DbLive.Migration
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
@@ -98,7 +98,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from easyflow.migration_item
+			from DbLive.migration_item
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -111,7 +111,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"easyflow.get_code_item",
+			"DbLive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
@@ -131,7 +131,7 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"
-			insert into easyflow.Migration
+			insert into DbLive.Migration
 			(
 				MigrationVersion
 			  , MigrationName
@@ -165,10 +165,10 @@ public class PostgreSqlDA(IEasyFlowDbConnection _cnn) : IEasyFlowDA
 		throw new NotImplementedException();
 	}
 
-	public void SetEasyFlowVersion(int version, DateTime migrationDateTime)
+	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
-			merge into easyflow.Version as t
+			merge into DbLive.Version as t
 			using ( select 1 ) as s(c) on 1 = 1
 			when not matched then 
 				insert ( Version, MigrationDatetime ) values ( @Version, @MigrationDatetime )

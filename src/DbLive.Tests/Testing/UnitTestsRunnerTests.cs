@@ -1,8 +1,8 @@
 using DbLive.Deployers.Testing;
 using DbLive.Testing;
-namespace EasyFlow.Tests.Testing;
+namespace DbLive.Tests.Testing;
 
-public class EasyFlowTesterTests
+public class DbLiveTesterTests
 {
 	[Fact]
 	public void RunTest()
@@ -10,7 +10,7 @@ public class EasyFlowTesterTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTests().Returns([
 			new TestItem { Name = "first", FileData = GetFileData("/test/first.sql") },
 			new TestItem { Name = "second", FileData = GetFileData("/test/second.sql") },
 			new TestItem { Name = "third", FileData = GetFileData("/test/third.sql") }
@@ -21,13 +21,13 @@ public class EasyFlowTesterTests
 
 		Action<string> writeLine = Console.WriteLine;
 
-		var tester = mockSet.CreateUsingMocks<EasyFlowTester>();
+		var tester = mockSet.CreateUsingMocks<DbLiveTester>();
 
 		// Act
 		tester.RunTest(writeLine, "/test/first.sql");
 
 		// Assert
-		mockSet.EasyFlowProject.Received().GetTests();
+		mockSet.DbLiveProject.Received().GetTests();
 	}
 
 
@@ -37,7 +37,7 @@ public class EasyFlowTesterTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTests().Returns([
 			new TestItem
 			{
 				Name = "first",
@@ -53,13 +53,13 @@ public class EasyFlowTesterTests
 
 		Action<string> writeLine = Console.WriteLine;
 
-		var tester = mockSet.CreateUsingMocks<EasyFlowTester>();
+		var tester = mockSet.CreateUsingMocks<DbLiveTester>();
 
 		// Act
 		tester.RunTest(writeLine, "/test/first.sql");
 
 		// Assert
-		mockSet.EasyFlowProject.Received().GetTests();
+		mockSet.DbLiveProject.Received().GetTests();
 	}
 
 	private static FileData GetFileData(string relativePath)

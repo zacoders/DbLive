@@ -3,12 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Xunit.Abstractions;
 
-namespace EasyFlow.xunit;
+namespace DbLive.xunit;
 
 
-public static class EasyFlowBuilderExtensions
+public static class DbLiveBuilderExtensions
 {
-	public static IEasyFlowBuilder LogToXUnitOutput(this IEasyFlowBuilder builder, ITestOutputHelper output)
+	public static IDbLiveBuilder LogToXUnitOutput(this IDbLiveBuilder builder, ITestOutputHelper output)
 	{
 		builder.Container.AddXUnitLogger(output);
 		return builder;

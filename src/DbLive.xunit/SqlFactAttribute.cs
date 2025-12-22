@@ -1,7 +1,7 @@
 ﻿using Xunit.Sdk;
 using Xunit;
 
-namespace EasyFlow.xunit;
+namespace DbLive.xunit;
 
 /// <summary>
 /// Attribute that is applied to a method to indicate that it is a fact that should be run
@@ -9,7 +9,7 @@ namespace EasyFlow.xunit;
 /// test method.
 /// </summary>
 
-[XunitTestCaseDiscoverer("EasyFlow.xunit.SqlFactDiscoverer", "EasyFlow.xunit")]
+[XunitTestCaseDiscoverer("DbLive.xunit.SqlFactDiscoverer", "DbLive.xunit")]
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class SqlFactAttribute : FactAttribute
 {

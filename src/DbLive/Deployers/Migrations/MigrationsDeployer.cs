@@ -1,11 +1,11 @@
 using DbLive.Adapter;
 
-namespace EasyFlow.Deployers.Migrations;
+namespace DbLive.Deployers.Migrations;
 
 public class MigrationsDeployer(
 		ILogger _logger,
-		IEasyFlowProject _project,
-		IEasyFlowDA _da,
+		IDbLiveProject _project,
+		IDbLiveDA _da,
 		IMigrationDeployer _migrationDeployer
 	) : IMigrationsDeployer
 {
@@ -38,11 +38,11 @@ public class MigrationsDeployer(
 	{
 		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
-		if (_da.EasyFlowInstalled())
+		if (_da.DbLiveInstalled())
 		{
 			if (isSelfDeploy)
 			{
-				int appliedVersion = _da.GetEasyFlowVersion();
+				int appliedVersion = _da.GetDbLiveVersion();
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 					.Where(m => m.Version > appliedVersion);

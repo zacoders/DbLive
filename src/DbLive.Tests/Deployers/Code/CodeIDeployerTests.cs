@@ -1,6 +1,6 @@
 using DbLive.Deployers.Code;
 
-namespace EasyFlow.Tests.Deployers.Code;
+namespace DbLive.Tests.Deployers.Code;
 
 public class CodeDeployerTests
 {
@@ -29,7 +29,7 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowProject.GetCodeGroups().Returns([
+		mockSet.DbLiveProject.GetCodeGroups().Returns([
 			new CodeGroup
 			{
 				Path = "Code1",
@@ -57,7 +57,7 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.EasyFlowProject.GetCodeGroups().Returns([
+		mockSet.DbLiveProject.GetCodeGroups().Returns([
 			new CodeGroup
 			{
 				Path = "Code2",

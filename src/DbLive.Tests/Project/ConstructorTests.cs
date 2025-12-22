@@ -1,6 +1,6 @@
 using DbLive.Project.Exceptions;
 
-namespace EasyFlow.Tests.Project;
+namespace DbLive.Tests.Project;
 
 public class ConstructorTests
 {
