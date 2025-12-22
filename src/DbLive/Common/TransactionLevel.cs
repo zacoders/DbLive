@@ -18,7 +18,7 @@ public enum TransactionWrapLevel
 	MigrationItem,
 
 	/// <summary>
-	/// No transactions introduced by EasySqlFlow
+	/// No transactions introduced by DbLive
 	/// </summary>
 	None
 }
