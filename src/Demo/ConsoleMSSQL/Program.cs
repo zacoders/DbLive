@@ -1,6 +1,6 @@
-﻿using EasyFlow;
-using EasyFlow.Common;
-using EasyFlow.MSSQL;
+﻿using DbLive;
+using DbLive.Common;
+using DbLive.MSSQL;
 
 string connectionString = "Server=.;Database=Test1;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=True;";
 string projectPath = Path.GetFullPath(typeof(Program).Assembly.GetName().Name!);

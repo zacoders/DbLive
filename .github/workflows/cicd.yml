@@ -40,7 +40,7 @@ jobs:
     
     env:
       NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
-      SOLUTION_PATH: 'src/EasySqlFlow.sln'
+      SOLUTION_PATH: 'src/DbLive.sln'
       # ConnectionStrings__SQLSERVER: Server=localhost,1433;Initial Catalog=master;User Id=sa;Password=Strong_Pass123;TrustServerCertificate=True;Encrypt=True;
       # ConnectionStrings__POSTGRESQL: Server=localhost;Port=5432;Database=postgres;User ID=postgres;password=Strong_Pass123;
 

@@ -1,6 +1,6 @@
-using EasyFlow;
-using EasyFlow.Common;
-using EasyFlow.MSSQL;
+using DbLive;
+using DbLive.Common;
+using DbLive.MSSQL;
 
 namespace SqlServerConsole;
 
