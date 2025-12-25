@@ -5,7 +5,7 @@
 -- Act
 
 update dbo.Orders
-set OrderStatus = 'Shipped'
+set Status = 'Shipped'
 	output inserted.OrderID
 where OrderID = 1
 
