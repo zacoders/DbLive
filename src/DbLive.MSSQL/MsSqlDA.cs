@@ -39,7 +39,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public bool DbLiveInstalled()
 	{
 		const string query = @"
-			select iif(object_id('dblive.migration', 'U') is null, 0, 1)
+			select iif(object_id('dblive.version', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
@@ -59,7 +59,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public int GetDbLiveVersion()
 	{
 		const string query = @"
-			select dblive_version
+			select version
 			from dblive.version
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
@@ -80,7 +80,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
 	{
 		const string query = @"
-			update dblive.version
+			update dblive.dbversion
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
