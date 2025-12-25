@@ -1,0 +1,3 @@
+{
+  "TransactionWrapLevel": "none" // disabling transaction
+}

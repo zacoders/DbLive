@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationDeployer
+public interface IMigrationVersionDeployer
 {
 	void DeployMigration(bool isSelfDeploy, Migration migration);
 }

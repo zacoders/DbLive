@@ -2,14 +2,14 @@ using DbLive.Deployers.Migrations;
 
 namespace DbLive.Tests.Deployers.Migrations;
 
-public class MigrationDeployerTests
+public class MigrationVersionDeployerTests
 {
 	[Fact]
 	public void DeployMigration_EmptyMigration()
 	{
 		var mockSet = new MockSet();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
+		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -33,7 +33,7 @@ public class MigrationDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
+		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -68,7 +68,7 @@ public class MigrationDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
+		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -110,7 +110,7 @@ public class MigrationDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationDeployer>();
+		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{

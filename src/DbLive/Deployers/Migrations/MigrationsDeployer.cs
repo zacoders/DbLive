@@ -6,7 +6,7 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationDeployer _migrationDeployer
+		IMigrationVersionDeployer _migrationDeployer
 	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));

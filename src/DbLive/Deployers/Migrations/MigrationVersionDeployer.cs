@@ -2,16 +2,16 @@ using DbLive.Adapter;
 
 namespace DbLive.Deployers.Migrations;
 
-public class MigrationDeployer(
+public class MigrationVersionDeployer(
 		ILogger _logger,
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
 		ISettingsAccessor projectSettingsAccessor
-	) : IMigrationDeployer
+	) : IMigrationVersionDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationVersionDeployer));
 
 	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
