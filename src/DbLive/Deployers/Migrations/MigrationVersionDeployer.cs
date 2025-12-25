@@ -47,7 +47,7 @@ public class MigrationVersionDeployer(
 				}
 				else
 				{
-					_da.SaveMigration(migration.Version, migrationCompletedUtc);
+					_da.SaveCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
 				}
 			}
 		);

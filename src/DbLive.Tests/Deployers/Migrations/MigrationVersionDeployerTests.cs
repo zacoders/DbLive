@@ -52,7 +52,7 @@ public class MigrationVersionDeployerTests
 			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveMigration(migration.Version, new DateTime(2024, 1, 1));
+			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
@@ -92,7 +92,7 @@ public class MigrationVersionDeployerTests
 			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveMigration(migration.Version, new DateTime(2024, 1, 1));
+			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]

@@ -3,8 +3,9 @@ namespace DbLive.Adapter;
 
 public interface IDbLiveDA
 {
-	IReadOnlyCollection<MigrationDto> GetMigrations();
 	IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems();
+
+	int GetCurrentMigrationVersion();
 
 	bool DbLiveInstalled();
 
@@ -13,7 +14,7 @@ public interface IDbLiveDA
 	void SetDbLiveVersion(int version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void SaveMigration(int migrationVersion, DateTime migrationCompletedUtc);
+	void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
 	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);

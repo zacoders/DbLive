@@ -13,16 +13,25 @@
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="SQL\**" Pack="true">
-      <Visible>false</Visible>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-      <PackagePath>contentFiles\any\any\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension);content\$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension);</PackagePath>
-    </None>
-  </ItemGroup>
+
+	<!-- For development -->
+	<ItemGroup>
+		<None Include="SQL\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+
+	<!-- For nuget -->
+	<ItemGroup>
+		<None Include="SQL\**" Pack="true">
+			<PackagePath>src\$(AssemblyName)</PackagePath>
+		</None>
+		<Compile Remove="build\**" />
+		<EmbeddedResource Remove="build\**" />
+		<None Remove="build\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\DbLive\DbLive.csproj" />

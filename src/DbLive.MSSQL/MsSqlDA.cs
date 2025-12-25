@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using System;
 using System.Collections.Specialized;
 using System.Data;
 
@@ -12,20 +13,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
-	}
-
-	public IReadOnlyCollection<MigrationDto> GetMigrations()
-	{
-		const string query = @"
-			select version
-				 , name
-				 , created_utc
-				 , modified_utc
-			from dblive.migration
-		";
-
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
 	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
@@ -52,20 +39,29 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public bool DbLiveInstalled()
 	{
 		const string query = @"
-			select iif(object_id('DbLive.migration', 'U') is null, 0, 1)
+			select iif(object_id('dblive.migration', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public int GetDbLiveVersion()
+	public int GetCurrentMigrationVersion()
 	{
 		const string query = @"
 			select version
+			from dblive.dbversion
+		";
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		return cnn.ExecuteScalar<int?>(query) ?? 0;
+	}
+
+	public int GetDbLiveVersion()
+	{
+		const string query = @"
+			select dblive_version
 			from dblive.version
 		";
-
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
@@ -77,24 +73,22 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
-
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
-	public void SaveMigration(int migrationVersion, DateTime migrationModificationUtc)
+	public void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
 	{
+		const string query = @"
+			update dblive.version
+			set version = @version
+			  , applied_utc = @applied_utc;
+		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(
-			"dblive.save_migration",
-			new
-			{
-				version = migrationVersion,
-				created_utc = migrationModificationUtc,
-				modified_utc = migrationModificationUtc
-			},
-			commandType: CommandType.StoredProcedure
-		);
+		cnn.Query(query, new { 
+			version, 
+			applied_utc = migrationCompletedUtc
+		});
 	}
 
 	public void ExecuteNonQuery(string sqlStatement)

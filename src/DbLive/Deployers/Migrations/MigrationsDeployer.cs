@@ -49,8 +49,7 @@ public class MigrationsDeployer(
 			}
 			else
 			{
-				var appliedMigrations = _da.GetMigrations();
-				int appliedVersion = appliedMigrations.Any() ? appliedMigrations.Max(m => m.Version) : 0;
+				var appliedVersion = _da.GetCurrentMigrationVersion();				
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 					.Where(m => m.Version > appliedVersion);

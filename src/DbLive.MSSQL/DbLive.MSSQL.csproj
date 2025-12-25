@@ -28,10 +28,6 @@
     <None Include="SQL\**" Pack="true">
       <PackagePath>src\$(AssemblyName)</PackagePath>
     </None>
-    <None Include="build\project.targets" Pack="true">
-      <!-- .targets file must be named {AssemblyName}.targets, so we rename it here using $(AssemblyName) variable. -->
-      <PackagePath>build\$(AssemblyName)%(Extension)</PackagePath>
-    </None>
   </ItemGroup>
     
 	<ItemGroup>

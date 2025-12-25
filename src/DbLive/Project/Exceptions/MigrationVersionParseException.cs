@@ -4,13 +4,13 @@
 [ExcludeFromCodeCoverage]
 public class MigrationVersionParseException : Exception
 {
-	public string FolderName { get; private set; }
+	public string FileName { get; private set; }
 	public string MigrationVersionStr { get; private set; }
 
-	public MigrationVersionParseException(string folderName, string migrationVersionStr)
-		: base($"Cannot parse folder '{folderName}', and version part '{migrationVersionStr}'.")
+	public MigrationVersionParseException(string fileName, string migrationVersionStr)
+		: base($"Cannot parse file '{fileName}', and version part '{migrationVersionStr}'.")
 	{
-		FolderName = folderName;
+		FileName = fileName;
 		MigrationVersionStr = migrationVersionStr;
 	}
 }
