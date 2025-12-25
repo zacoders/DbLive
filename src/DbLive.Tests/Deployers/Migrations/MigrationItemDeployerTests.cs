@@ -28,6 +28,7 @@ public class MigrationItemDeployerTests
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
@@ -79,6 +80,7 @@ public class MigrationItemDeployerTests
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
@@ -168,11 +170,12 @@ public class MigrationItemDeployerTests
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
+			Name = "some-migration",
 			FileData = new FileData
 			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql",
-				FilePath = "c:/db/migrations/001.demo/m.1.sql"
+				Content = $"-- some sql migration content",
+				RelativePath = "db/migrations/001.m.some-migration.sql",
+				FilePath = "c:/db/migrations/001.m.some-migration.sql"
 			}
 		};
 
@@ -197,7 +200,7 @@ public class MigrationItemDeployerTests
 		Assert.Equal("", savedDto.Content);
 		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
 		Assert.Equal(utcNow2, savedDto.AppliedUtc);
-		Assert.Equal(1715229887, savedDto.ContentHash);
+		Assert.Equal(1115364988, savedDto.ContentHash);
 		Assert.Equal(utcNow3, savedDto.CreatedUtc);
 		Assert.Equal(2000, savedDto.ExecutionTimeMs);
 	}
@@ -228,6 +231,7 @@ public class MigrationItemDeployerTests
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
