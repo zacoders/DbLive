@@ -17,7 +17,7 @@ public class MigrationVersionDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		_logger.Information("Deploying migration: {path}", migration.FolderPath.GetLastSegment());
+		_logger.Information("Deploying migration version: {version}", migration.Version);
 
 		if (migration.Items.Count == 0) return;
 
@@ -27,7 +27,7 @@ public class MigrationVersionDeployer(
 			_projectSettings.MigrationTimeout,
 			() =>
 			{
-				foreach (MigrationItem migrationItem in migration.Items.OrderBy(t => t.MigrationItemType))
+				foreach (MigrationItem migrationItem in migration.Items.Select(t => t.Value).OrderBy(t => t.MigrationItemType))
 				{
 					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
 					{
@@ -47,7 +47,7 @@ public class MigrationVersionDeployer(
 				}
 				else
 				{
-					_da.SaveMigration(migration.Version, migration.Name, migrationCompletedUtc);
+					_da.SaveMigration(migration.Version, migrationCompletedUtc);
 				}
 			}
 		);

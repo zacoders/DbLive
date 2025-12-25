@@ -14,9 +14,7 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		deploy.DeployMigration(false, migration);
@@ -38,29 +36,23 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/",
-			Items = new List<MigrationItem> {
-				new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem> {
+				[MigrationItemType.Migration] = new() {
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
-				},
-				new() {
-					MigrationItemType = MigrationItemType.Migration,
-					FileData = GetFileData("item2.sql")
 				}
-			}.AsReadOnly()
+			}
 		};
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
 		deploy.DeployMigration(false, migration);
 
-		mockSet.MigrationItemDeployer.Received(2)
+		mockSet.MigrationItemDeployer.Received(1)
 			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveMigration(migration.Version, migration.Name, new DateTime(2024, 1, 1));
+			.SaveMigration(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
@@ -73,22 +65,20 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/",
-			Items = new List<MigrationItem> {
-				new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem> {
+				[MigrationItemType.Migration] = new() {
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				new() {
+				[MigrationItemType.Undo] = new() {
 					MigrationItemType = MigrationItemType.Undo,
 					FileData = GetFileData("undo.sql")
 				},
-				new() {
+				[MigrationItemType.Breaking] = new() {
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
-			}.AsReadOnly()
+			}
 		};
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
@@ -102,7 +92,7 @@ public class MigrationVersionDeployerTests
 			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveMigration(migration.Version, migration.Name, new DateTime(2024, 1, 1));
+			.SaveMigration(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
@@ -115,22 +105,20 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/",
-			Items = new List<MigrationItem> {
-				new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem> {
+				[MigrationItemType.Migration] = new() {
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				new() {
+				[MigrationItemType.Undo] = new() {
 					MigrationItemType = MigrationItemType.Undo,
 					FileData = GetFileData("undo.sql")
 				},
-				new() {
+				[MigrationItemType.Breaking] = new() {
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
-			}.AsReadOnly()
+			}
 		};
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));

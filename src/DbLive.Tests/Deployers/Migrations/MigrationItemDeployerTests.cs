@@ -22,9 +22,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()
@@ -75,9 +73,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()
@@ -123,9 +119,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()
@@ -168,9 +162,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()
@@ -230,9 +222,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()
@@ -284,9 +274,7 @@ public class MigrationItemDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 		MigrationItem migrationItem = new()

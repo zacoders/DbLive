@@ -3,7 +3,6 @@ go
 
 create table dblive.migration (
 	version int not null
-  , name nvarchar(512) not null
   , created_utc datetime2(7) not null
   , modified_utc datetime2(7) not null
 

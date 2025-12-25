@@ -127,20 +127,18 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
+	public void SaveMigration(int migrationVersion, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"
 			insert into DbLive.Migration
 			(
 				MigrationVersion
-			  , MigrationName
 			  , MigrationStarted
 			  , MigrationCompleted
 			)
 			values (
 				@MigrationVersion
-			  , @MigrationName
 			  , @MigrationStartedUtc
 			  , @MigrationCompletedUtc
 			)
@@ -150,7 +148,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Query(query, new
 		{
 			migrationVersion,
-			migrationName,
 			migrationCompletedUtc
 		});
 	}

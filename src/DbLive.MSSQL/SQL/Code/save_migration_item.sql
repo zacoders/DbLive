@@ -14,7 +14,7 @@ as
 	set nocount on;
 
 	merge into dblive.migration_item as t
-	using ( select 1 ) s(c) on t.version = @version and t.name = @name and t.item_type = @item_type
+	using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
 	when matched then update 
 		set status = @status
 		  , content_hash = @content_hash

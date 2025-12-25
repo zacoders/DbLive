@@ -13,7 +13,7 @@ public interface IDbLiveDA
 	void SetDbLiveVersion(int version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc);
+	void SaveMigration(int migrationVersion, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
 	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);

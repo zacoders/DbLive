@@ -25,8 +25,8 @@ public class BreakingChangesDeployer(
 
 		if (dbItems.Count == 0) return;
 
-		Dictionary<VersionNameKey, MigrationItemDto> breakingToApply =
-			dbItems.ToDictionary(i => new VersionNameKey(i.Version, i.Name));
+		Dictionary<int, MigrationItemDto> breakingToApply =
+			dbItems.ToDictionary(i => i.Version);
 
 		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
 
@@ -34,14 +34,11 @@ public class BreakingChangesDeployer(
 
 		foreach (Migration migration in migrations)
 		{
-			VersionNameKey key = new(migration.Version, migration.Name);
-			if (!breakingToApply.ContainsKey(key)) continue;
+			if (!breakingToApply.ContainsKey(migration.Version)) continue;
 
-			MigrationItemDto breakingDto = breakingToApply[key];
+			MigrationItemDto breakingDto = breakingToApply[migration.Version];
 
-			var breakingChnagesItem = migration.Items
-				.Where(mi => mi.MigrationItemType == MigrationItemType.Breaking)
-				.Single();
+			var breakingChnagesItem = migration.Items[MigrationItemType.Breaking];
 
 			if (breakingChnagesItem.FileData.Crc32Hash != breakingDto.ContentHash)
 			{
@@ -52,7 +49,7 @@ public class BreakingChangesDeployer(
 				);
 			}
 
-			// TODO: transaction should be configurable?
+			// TODO: should transaction be configurable?
 			using var tran = TransactionScopeManager.Create();
 			{
 				var stopwatch = _timeProvider.StartNewStopwatch();
@@ -71,6 +68,6 @@ public class BreakingChangesDeployer(
 		}
 	}
 
-	[ExcludeFromCodeCoverage]
-	private record VersionNameKey(int Version, string Name);
+	//[ExcludeFromCodeCoverage]
+	//private record VersionNameKey(int Version, string Name);
 }

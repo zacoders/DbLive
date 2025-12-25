@@ -50,14 +50,14 @@ public class MigrationsDeployer(
 			else
 			{
 				var appliedMigrations = _da.GetMigrations();
+				int appliedVersion = appliedMigrations.Any() ? appliedMigrations.Max(m => m.Version) : 0;
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-					.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name));
+					.Where(m => m.Version > appliedVersion);
+					//.Where(m => !appliedMigrations.Any(am => am.Version == m.Version)); 
 			}
 		}
 
-		return migrationsToApply
-				.OrderBy(m => m.Version)
-				.ThenBy(m => m.Name);
+		return migrationsToApply.OrderBy(m => m.Version);
 	}
 }

@@ -71,82 +71,76 @@ public class BreakingChangesDeployerTests
 
 		Migration migration1 = new()
 		{
-			FolderPath = "c:/db/migrations/001.some-migration",
-			Name = "some-migration",
 			Version = 1,
-			Items = new List<MigrationItem>
-				{
-					new() {
-						MigrationItemType = MigrationItemType.Migration,
-						FileData = GetFileData("m.1.item.sql", "-- content 1.1")
-					},
-					new() {
-						MigrationItemType = MigrationItemType.Breaking,
-						FileData = GetFileData("breaking.sql", "-- content 1.breaking")
-					},
-				}.AsReadOnly()
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new() {
+					MigrationItemType = MigrationItemType.Migration,
+					FileData = GetFileData("m.1.item.sql", "-- content 1.1")
+				},
+				[MigrationItemType.Breaking] = new() {
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("breaking.sql", "-- content 1.breaking")
+				}
+			}
 		};
 
 		Migration migration2 = new()
 		{
-			FolderPath = "c:/db/migrations/002.second-migration",
-			Name = "second-migration",
 			Version = 2,
-			Items = new List<MigrationItem>
-					{
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.1.item.sql", "-- content 2.1")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Breaking,
-							FileData = GetFileData("breaking.sql", "-- content 2.breaking")
-						},
-					}.AsReadOnly()
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new() {
+					MigrationItemType = MigrationItemType.Migration,
+					FileData = GetFileData("m.1.item.sql", "-- content 2.1")
+				},
+				[MigrationItemType.Breaking] = new() {
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("breaking.sql", "-- content 2.breaking")
+				},
+			}
 		};
 
 		Migration migration3 = new()
 		{
-			FolderPath = "c:/db/migrations/003.second-migration",
-			Name = "3rd-migration",
 			Version = 3,
-			Items = new List<MigrationItem>
-					{
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.1.item.sql", "-- content 3.1")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.2.item.sql", "-- content 3.2")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Breaking,
-							FileData = GetFileData("breaking.sql", "-- content 3.breaking")
-						},
-					}.AsReadOnly()
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new() {
+					MigrationItemType = MigrationItemType.Migration,
+					FileData = GetFileData("m.1.item.sql", "-- content 3.1")
+				},
+				//new() {
+				//	MigrationItemType = MigrationItemType.Migration,
+				//	FileData = GetFileData("m.2.item.sql", "-- content 3.2")
+				//},
+				[MigrationItemType.Breaking] = new() {
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("breaking.sql", "-- content 3.breaking")
+				},
+			}
 		};
 
 		Migration migration4 = new()
 		{
-			FolderPath = "c:/db/migrations/004.4th-migration",
-			Name = "4th-migration",
 			Version = 4,
-			Items = new List<MigrationItem>
-					{
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.1.item.sql", "-- content 4.1")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.2.item.sql", "-- content 4.2")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Breaking,
-							FileData = GetFileData("breaking.sql", "-- content 4.breaking")
-						},
-					}.AsReadOnly()
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new()
+				{
+					MigrationItemType = MigrationItemType.Migration,
+					FileData = GetFileData("m.1.item.sql", "-- content 4.1")
+				},
+				//new() {
+				//	MigrationItemType = MigrationItemType.Migration,
+				//	FileData = GetFileData("m.2.item.sql", "-- content 4.2")
+				//},
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("breaking.sql", "-- content 4.breaking")
+				},
+			}
 		};
 
 		mockSet.DbLiveProject.GetMigrations().Returns([migration1, migration2, migration3, migration4]);
@@ -171,10 +165,10 @@ public class BreakingChangesDeployerTests
 		mockSet.DbLiveProject.Received().GetMigrations();
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration2), Arg.Is(migration2.Items[1]));
+			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration2), Arg.Is(migration2.Items[MigrationItemType.Breaking]));
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration3), Arg.Is(migration3.Items[2]));
+			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration3), Arg.Is(migration3.Items[MigrationItemType.Breaking]));
 
 		mockSet.MigrationItemDeployer.Received(2)
 			.DeployMigrationItem(Arg.Is(false), Arg.Any<Migration>(), Arg.Any<MigrationItem>());
@@ -216,20 +210,20 @@ public class BreakingChangesDeployerTests
 
 		Migration migration2 = new()
 		{
-			FolderPath = "c:/db/migrations/002.second-migration",
-			Name = "second-migration",
 			Version = 2,
-			Items = new List<MigrationItem>
-					{
-						new() {
-							MigrationItemType = MigrationItemType.Migration,
-							FileData = GetFileData("m.1.item.sql", "-- content 2.1")
-						},
-						new() {
-							MigrationItemType = MigrationItemType.Breaking,
-							FileData = GetFileData("breaking.sql", changedContent)
-						},
-					}.AsReadOnly()
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new()
+				{
+					MigrationItemType = MigrationItemType.Migration,
+					FileData = GetFileData("m.1.item.sql", "-- content 2.1")
+				},
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("breaking.sql", changedContent)
+				},
+			}
 		};
 
 		mockSet.DbLiveProject.GetMigrations().Returns([migration2]);

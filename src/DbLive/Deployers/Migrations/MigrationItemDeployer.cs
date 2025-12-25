@@ -49,7 +49,7 @@ public class MigrationItemDeployer(
 					MigrationItemDto dto = new()
 					{
 						Version = migration.Version,
-						Name = migration.Name,
+						Name = migrationItem.Name, 
 						ItemType = migrationItem.MigrationItemType,
 						ContentHash = crc32Hash,
 						Content = content,
@@ -74,7 +74,7 @@ public class MigrationItemDeployer(
 			MigrationItemDto dto = new()
 			{
 				Version = migration.Version,
-				Name = migration.Name,
+				Name = migrationItem.Name,
 				ItemType = migrationItem.MigrationItemType,
 				ContentHash = migrationItem.FileData.Crc32Hash,
 				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",

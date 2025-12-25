@@ -21,7 +21,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , name
 				 , created_utc
 				 , modified_utc
-			from DbLive.migration
+			from dblive.migration
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
@@ -40,7 +40,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from DbLive.migration_item
+			from dblive.migration_item
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -63,7 +63,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		const string query = @"
 			select version
-			from DbLive.version
+			from dblive.version
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
@@ -73,7 +73,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
-			update DbLive.version
+			update dblive.version
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
@@ -82,15 +82,14 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
-	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationModificationUtc)
+	public void SaveMigration(int migrationVersion, DateTime migrationModificationUtc)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_migration",
+			"dblive.save_migration",
 			new
 			{
 				version = migrationVersion,
-				name = migrationName,
 				created_utc = migrationModificationUtc,
 				modified_utc = migrationModificationUtc
 			},
@@ -301,7 +300,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query("DbLive.insert_code_state",
+		cnn.Query("dblive.insert_code_state",
 			new
 			{
 				relative_path = relativePath,
@@ -317,7 +316,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.update_code_state",
+			"dblive.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
 			commandType: CommandType.StoredProcedure
 		);
@@ -327,7 +326,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"DbLive.get_code_item",
+			"dblive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
@@ -337,7 +336,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_migration_item",
+			"dblive.save_migration_item",
 			new
 			{
 				version = item.Version,
@@ -358,7 +357,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_unit_test_result",
+			"dblive.save_unit_test_result",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -376,7 +375,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_folder_item",
+			"dblive.save_folder_item",
 			new
 			{
 				folder_type = projectFolder.ToString(),

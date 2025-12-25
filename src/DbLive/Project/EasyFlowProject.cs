@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace DbLive.Project;
 
 public class DbLiveProject(
@@ -8,30 +12,30 @@ public class DbLiveProject(
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
 
-	internal protected ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
-	{
-		List<MigrationItem> tasks = [];
+	//internal protected ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
+	//{
+	//	List<MigrationItem> tasks = [];
 
-		var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
+	//	var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
 
-		foreach (string filePath in files.OrderBy(path => path))
-		{
-			string fileName = filePath.GetLastSegment();
-			var fileParts = fileName.Split('.');
+	//	foreach (string filePath in files.OrderBy(path => path))
+	//	{
+	//		string fileName = filePath.GetLastSegment();
+	//		var fileParts = fileName.Split('.');
 
-			var migrationType = GetMigrationType(fileParts[0]);
+	//		var migrationType = GetMigrationType(fileParts[0]);
 
-			MigrationItem task = new()
-			{
-				MigrationItemType = migrationType,
-				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
-			};
+	//		MigrationItem task = new()
+	//		{
+	//			MigrationItemType = migrationType,
+	//			FileData = _fileSystem.ReadFileData(filePath, _projectPath)
+	//		};
 
-			tasks.Add(task);
-		}
+	//		tasks.Add(task);
+	//	}
 
-		return tasks.AsReadOnly();
-	}
+	//	return tasks.AsReadOnly();
+	//}
 
 	public static MigrationItemType GetMigrationType(string type) =>
 		type.ToLower() switch
@@ -60,7 +64,7 @@ public class DbLiveProject(
 			yield return new CodeGroup
 			{
 				Path = subPath,
-				CodeItems = GetCodeGroup(files)
+				CodeItems = GetCodeGroupItems(files)
 			};
 		}
 
@@ -68,11 +72,11 @@ public class DbLiveProject(
 		yield return new CodeGroup
 		{
 			Path = codePath,
-			CodeItems = GetCodeGroup(codeFiles)
+			CodeItems = GetCodeGroupItems(codeFiles)
 		};
 	}
 
-	internal List<CodeItem> GetCodeGroup(List<string> codeFiles)
+	internal List<CodeItem> GetCodeGroupItems(List<string> codeFiles)
 	{
 		List<CodeItem> codeItems = [];
 
@@ -86,51 +90,66 @@ public class DbLiveProject(
 		return codeItems;
 	}
 
-	public IEnumerable<Migration> GetMigrations()
+	public IReadOnlyList<Migration> GetMigrations()
 	{
-		HashSet<Migration> migrations = [];
-
 		string migrationsPath = _projectPath.CombineWith("Migrations");
-		string oldMigrationsPath = migrationsPath.CombineWith("_Old");
 
-		var migrationDirectories = _fileSystem.EnumerateDirectories(new[] { migrationsPath, oldMigrationsPath }, "*", SearchOption.TopDirectoryOnly);
+		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, "*.sql", subfolders: true);
 
-		foreach (string folderPath in migrationDirectories)
+		List<(int version, MigrationItem migrationItem)> migrationItems = [];
+
+		foreach (string filePath in migrationFiles)
 		{
-			string folderName = folderPath.GetLastSegment();
+			string fileName = filePath.GetLastSegment();
+			string[] fileParts = fileName.Split('.');
 
-			if (folderName == "_Old") continue;
+			string migrationVersionStr = fileParts[0];
 
-			var migration = ReadMigration(folderPath, folderName);
-
-			if (migrations.Contains(migration))
+			if (!int.TryParse(migrationVersionStr, out var version))
 			{
-				throw new MigrationExistsException(migration);
+				throw new MigrationVersionParseException(fileName, migrationVersionStr);
 			}
 
+			string name = "";
+			if (fileParts.Length > 2)
+			{
+				name = fileParts[2];
+			}
+
+			MigrationItem migrationItem = new()
+			{
+				MigrationItemType = GetMigrationType(fileParts[1]),
+				Name = name,
+				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
+			};
+
+			migrationItems.Add((version, migrationItem));
+		}
+
+		List<Migration> migrations = [];
+		foreach (IGrouping<int, MigrationItem> migrationGroup in migrationItems.ToLookup(i => i.version, i => i.migrationItem))
+		{
+			int migrationVersion = migrationGroup.Key;
+			Dictionary<MigrationItemType, MigrationItem> itmes = [];
+			foreach (var item in migrationGroup)
+			{
+				if (itmes.ContainsKey(item.MigrationItemType))
+				{
+					throw new DuplicateMigrationItemException(migrationVersion, item.MigrationItemType);
+				}
+				itmes.Add(item.MigrationItemType, item);
+			}
+
+			Migration migration = new()
+			{
+				Version = migrationGroup.Key,
+				Items = itmes
+			};
 			migrations.Add(migration);
 		}
-		return migrations.OrderBy(m => m.Version).ThenBy(m => m.Name);
-	}
-
-	private Migration ReadMigration(string folderPath, string folderName)
-	{
-		var splitFolder = folderName.Split('.');
-
-		string migrationVersionStr = splitFolder[0];
-
-		if (!int.TryParse(migrationVersionStr, out var version))
-		{
-			throw new MigrationVersionParseException(folderName, migrationVersionStr);
-		}
-
-		return new Migration
-		{
-			Version = version,
-			Name = splitFolder[1],
-			FolderPath = folderPath,
-			Items = GetMigrationItems(folderPath)
-		};
+		
+		// sort by version to ensure stable order
+		return migrations.OrderBy(m => m.Version).ToList().AsReadOnly();
 	}
 
 	public IReadOnlyCollection<TestItem> GetTests()
