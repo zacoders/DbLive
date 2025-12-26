@@ -17,8 +17,8 @@ public class MigrationsTests
 			Arg.Is<IEnumerable<string>>(a => a.Contains("*.sql") && a.Contains("*.json")), 
 			true
 		).Returns([
-				@"C:/DB.Migrations/_Old\001.migration.test1.sql",
-				@"C:/DB.Migrations/_Old\002.migration.test2.sql",
+				@"C:/DB.Migrations/_Old/001.migration.test1.sql",
+				@"C:/DB.Migrations/_Old/002.migration.test2.sql",
 				@"C:/DB.Migrations/004.migration.test4.sql",
 				@"C:/DB.Migrations/003.migration.test3.sql",
 			]);
@@ -42,7 +42,7 @@ public class MigrationsTests
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
-				@"C:/DB/Migrations/_Old\001.migration.dup1.sql",
+				@"C:/DB/Migrations/_Old/001.migration.dup1.sql",
 				@"C:/DB/Migrations/001.migration.dup2.sql"
 			]);
 
@@ -78,8 +78,8 @@ public class MigrationsTests
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
-				@"C:/DB/Migrations/_Old\001.m.test1.sql",
-				@"C:/DB/Migrations/_Old\002.m.test2.sql",
+				@"C:/DB/Migrations/_Old/001.m.test1.sql",
+				@"C:/DB/Migrations/_Old/002.m.test2.sql",
 				@"C:/DB/Migrations/003.m.test3.sql",
 				@"C:/DB/Migrations/004.m.test4.sql",
 			]);
@@ -180,8 +180,8 @@ public class MigrationsTests
 		Assert.Equal(@"C:/DB/Migrations/002.undo.one.sql", migrationItems[MigrationItemType.Undo].FileData.FilePath);
 		Assert.Equal(@"C:/DB/Migrations/002.b.test.sql", migrationItems[MigrationItemType.Breaking].FileData.FilePath);
 
-		//Assert.Equal(@"C:/DB/Migrations/002.test\b.03.sql", migrationItems[2].FileData.FilePath);
-		//Assert.Equal(@"C:/DB/Migrations/002.test\undo.one.sql", migrationItems[7].FileData.FilePath);
+		//Assert.Equal(@"C:/DB/Migrations/002.test/b.03.sql", migrationItems[2].FileData.FilePath);
+		//Assert.Equal(@"C:/DB/Migrations/002.test/undo.one.sql", migrationItems[7].FileData.FilePath);
 	}
 
 	[Fact]

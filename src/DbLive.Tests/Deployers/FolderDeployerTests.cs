@@ -53,19 +53,19 @@ public class FolderDeployerTests
 			);
 
 		mockSet.DbLiveDA.Received()
-			.MarkItemAsApplied(projectFolder, @"folder\file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
+			.MarkItemAsApplied(projectFolder, @"folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	private static GenericItem GetGenericItem(string fileName)
 	{
-		string relativePath = @$"folder\{fileName}";
+		string relativePath = @$"folder/{fileName}";
 		return new GenericItem
 		{
 			Name = fileName,
 			FileData = new FileData
 			{
 				Content = $"Content of {fileName}",
-				FilePath = Path.Combine(@"C:\DB", relativePath),
+				FilePath = Path.Combine(@"C:/DB", relativePath),
 				RelativePath = relativePath
 			}
 		};

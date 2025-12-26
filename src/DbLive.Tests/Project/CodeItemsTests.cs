@@ -7,7 +7,7 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:\DB";
+		string projectPath = @"C:/DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string codePath = projectPath.CombineWith("Code");
@@ -54,7 +54,7 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
 
-		string projekt = @"C:\DB";
+		string projekt = @"C:/DB";
 		string projektPath = projekt;
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projektPath);
 

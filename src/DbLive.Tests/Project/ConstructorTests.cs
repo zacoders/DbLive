@@ -6,7 +6,7 @@ public class ConstructorTests
 	[Fact]
 	public void ProjectPathDoesntExists()
 	{
-		string projectPath = @"C:\DB\";
+		string projectPath = @"C:/DB/";
 
 		MockSet mockSet = new();
 
@@ -23,7 +23,7 @@ public class ConstructorTests
 	[Fact]
 	public void ProjectPathExistsAndNotEmpty()
 	{
-		string projectPath = @"C:\DB\";
+		string projectPath = @"C:/DB/";
 
 		MockSet mockSet = new();
 

@@ -7,11 +7,11 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		string folderPath = Path.Combine(@"C:\DB\", "BeforeDeploy");
+		string folderPath = Path.Combine(@"C:/DB/", "BeforeDeploy");
 
 		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
@@ -38,11 +38,11 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		string folderPath = Path.Combine(@"C:\DB\", "AfterDeploy");
+		string folderPath = Path.Combine(@"C:/DB/", "AfterDeploy");
 
 		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
