@@ -220,6 +220,6 @@ public class MigrationsTests
 				@"C:\DB\Migrations\003.undo.sql",
 				@"C:\DB\Migrations\003.breaking.sql"
 			]);
-		Assert.Throws<UnknowMigrationItemTypeException>(sqlProject.GetMigrations);
+		Assert.Throws<UnknownMigrationItemTypeException>(sqlProject.GetMigrations);
 	}
 }

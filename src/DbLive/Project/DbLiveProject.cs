@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace DbLive.Project;
 
@@ -12,33 +9,18 @@ public class DbLiveProject(
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
 
-	//internal protected ReadOnlyCollection<MigrationItem> GetMigrationItems(string migrationFolder)
-	//{
-	//	List<MigrationItem> tasks = [];
+	public static MigrationItemType GetMigrationType(string fileName)
+	{
+		string fileExtension = Path.GetExtension(fileName);
+		string[] fileParts = fileName.Split('.');
+		string itemType = fileParts[1];
 
-	//	var files = _fileSystem.EnumerateFiles(migrationFolder, "*.sql", true);
+		if (fileExtension == ".json")
+		{
+			return MigrationItemType.Settings;
+		}
 
-	//	foreach (string filePath in files.OrderBy(path => path))
-	//	{
-	//		string fileName = filePath.GetLastSegment();
-	//		var fileParts = fileName.Split('.');
-
-	//		var migrationType = GetMigrationType(fileParts[0]);
-
-	//		MigrationItem task = new()
-	//		{
-	//			MigrationItemType = migrationType,
-	//			FileData = _fileSystem.ReadFileData(filePath, _projectPath)
-	//		};
-
-	//		tasks.Add(task);
-	//	}
-
-	//	return tasks.AsReadOnly();
-	//}
-
-	public static MigrationItemType GetMigrationType(string type) =>
-		type.ToLower() switch
+		MigrationItemType migrationType = itemType.ToLower() switch
 		{
 			"migration" => MigrationItemType.Migration,
 			"m" => MigrationItemType.Migration,
@@ -46,10 +28,11 @@ public class DbLiveProject(
 			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
-			"settings" => MigrationItemType.Settings,
-			"s" => MigrationItemType.Settings,
-			_ => throw new UnknowMigrationItemTypeException(type)
+			_ => throw new UnknownMigrationItemTypeException(itemType, fileName)
 		};
+
+		return migrationType;
+	}
 
 	public IEnumerable<CodeGroup> GetCodeGroups()
 	{
@@ -104,7 +87,7 @@ public class DbLiveProject(
 		{
 			string fileName = Path.GetFileName(filePath);
 			string[] fileParts = fileName.Split('.');
-
+			
 			string migrationVersionStr = fileParts[0];
 
 			if (!int.TryParse(migrationVersionStr, out var version))
@@ -120,7 +103,7 @@ public class DbLiveProject(
 
 			MigrationItem migrationItem = new()
 			{
-				MigrationItemType = GetMigrationType(fileParts[1]),
+				MigrationItemType = GetMigrationType(fileName),
 				Name = name,
 				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
 			};
