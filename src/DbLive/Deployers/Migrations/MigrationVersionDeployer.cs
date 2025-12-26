@@ -17,7 +17,7 @@ public class MigrationVersionDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		_logger.Information("Deploying migration v{version}", migration.Version);
+		//_logger.Information("Deploying migration v{version}", migration.Version);
 
 		if (migration.Items.Count == 0) return;
 
