@@ -3,18 +3,17 @@
   // can be overwritten in separate migration folder
 
   /* Options:
-      deployment - full deployment will be wrapped withing transaction
-      migration - each migration wrapped by transaction
-      task - migration task wrapped by transaction
-      none - no transactions introduced */
-  "TransactionWrapLevel": "migration",
+      Deployment - full deployment will be wrapped withing transaction
+      Migration - each migration wrapped by transaction
+      None - no transactions introduced */
+  "TransactionWrapLevel": "Migration",
 
   /* Options:
       Chaos,
 	    ReadCommitted,
 	    RepeatableRead,
 	    Serializable */
-  "TransactionIsolationLevel": "serializable",
+  "TransactionIsolationLevel": "Serializable",
 
   /* Search pattern for the test files. 
      Test files can be executed in the end of deployment. */

@@ -3,22 +3,17 @@
 public enum TransactionWrapLevel
 {
 	/// <summary>
-	/// Full deployment will be wrapped withing transaction
+	/// Full deployment will be wrapped withing transaction.
 	/// </summary>
 	Deployment,
 
 	/// <summary>
-	/// Each migration wrapped by transaction
+	/// Each migration wrapped by transaction.
 	/// </summary>
 	Migration,
 
 	/// <summary>
-	/// Migration item wrapped by transaction
-	/// </summary>
-	MigrationItem,
-
-	/// <summary>
-	/// No transactions introduced by DbLive
+	/// No transaction will be used.
 	/// </summary>
 	None
 }

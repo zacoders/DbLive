@@ -25,9 +25,17 @@ public interface IDbLiveDA
 	void DropDB(bool skipIfNotExists = true);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void ExecuteNonQuery(string sqlStatementt);
+	void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	);
 
-	List<SqlResult> ExecuteQueryMultiple(string sqlStatement);
+	List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	);
 
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);

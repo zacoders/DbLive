@@ -12,7 +12,7 @@ public class MigrationsTests
 		string projectPath = @"C:\DB\";
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-
+		
 		mockSet.FileSystem.EnumerateFiles(
 			projectPath.CombineWith("Migrations"),
 			Arg.Is<IEnumerable<string>>(a => a.Contains("*.sql") && a.Contains("*.json")), 

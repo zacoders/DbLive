@@ -161,10 +161,14 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
@@ -216,10 +220,14 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
@@ -262,10 +270,14 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());

@@ -1,4 +1,5 @@
 global using DbLive.Common;
+global using DbLive.Common.Settings;
 global using DbLive.Deployers;
 global using DbLive.Exceptions;
 global using DbLive.Project;

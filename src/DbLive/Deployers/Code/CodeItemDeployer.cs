@@ -1,14 +1,17 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Code;
 
 public class CodeItemDeployer(
 		ILogger _logger,
 		IDbLiveDA _da,
-		ITimeProvider _timeProvider
+		ITimeProvider _timeProvider,
+		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeItemDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));	
+	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
 		Policy.Handle<Exception>()
@@ -48,7 +51,11 @@ public class CodeItemDeployer(
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				_da.ExecuteNonQuery(codeItem.FileData.Content);
+				_da.ExecuteNonQuery(
+					codeItem.FileData.Content,
+					_projectSettings.TransactionIsolationLevel,
+					_projectSettings.CodeItemTimeout
+				);
 			});
 			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 

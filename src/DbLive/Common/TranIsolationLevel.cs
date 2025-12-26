@@ -5,5 +5,6 @@ public enum TranIsolationLevel
 	Chaos,
 	ReadCommitted,
 	RepeatableRead,
-	Serializable
+	Serializable,
+	Snapshot
 }

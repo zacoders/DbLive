@@ -1,4 +1,6 @@
-﻿namespace DbLive.Project;
+﻿using DbLive.Common.Settings;
+
+namespace DbLive.Project;
 
 public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fileSystem)
 	: ISettingsAccessor

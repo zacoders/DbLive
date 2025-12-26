@@ -77,7 +77,8 @@ public class DbLiveProject(
 
 	public IReadOnlyList<Migration> GetMigrations()
 	{
-		string migrationsPath = _projectPath.CombineWith("Migrations");
+		var settings = _settingsAccessor.ProjectSettings;
+		string migrationsPath = _projectPath.CombineWith(settings.MigrationsFolder);
 
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 

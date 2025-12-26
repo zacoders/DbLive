@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Specialized;
 using System.Data;
@@ -91,13 +92,21 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		});
 	}
 
-	public void ExecuteNonQuery(string sqlStatement)
+	public void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		try
-		{
+		{			
 			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
 			sqlConnection.Open();
-			ServerConnection serverConnection = new(sqlConnection);
+			SetTransactionIsolationLevel(sqlConnection, isolationLevel);
+			ServerConnection serverConnection = new(sqlConnection)
+			{
+				StatementTimeout = GetTimeoutSeconds(timeout)
+			};
 			serverConnection.ExecuteNonQuery(sqlStatement);
 			serverConnection.Disconnect();
 		}
@@ -108,13 +117,39 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	private void SetTransactionIsolationLevel(SqlConnection cnn, TranIsolationLevel isolationLevel)
+	{
+		string isolationLevelSql = isolationLevel switch
+		{
+			TranIsolationLevel.Chaos => "READ UNCOMMITTED;",
+			TranIsolationLevel.ReadCommitted => "READ COMMITTED;",
+			TranIsolationLevel.RepeatableRead => "REPEATABLE READ;",
+			TranIsolationLevel.Serializable => "SERIALIZABLE;",
+			TranIsolationLevel.Snapshot => "SNAPSHOT;",
+			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
+		};
+		cnn.Execute($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};");
+	}
+
+	private int GetTimeoutSeconds(TimeSpan? timeout)
+	{
+		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
+	}
+
+	public List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	)
 	{
 		try
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
+			
+			SetTransactionIsolationLevel(cnn, isolationLevel);
 
 			using SqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
 
 			cnn.Open();

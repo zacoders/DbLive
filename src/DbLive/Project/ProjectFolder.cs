@@ -2,7 +2,6 @@
 
 public enum ProjectFolder
 {
-	Unspecified,
 	BeforeDeploy,
 	AfterDeploy
 }

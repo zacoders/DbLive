@@ -39,13 +39,24 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public void ExecuteNonQuery(string sqlStatement)
+	public void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		try
 		{
+			int timeoutSeconds = 30;
+			if (timeout.HasValue)
+			{
+				timeoutSeconds = (int)timeout.Value.TotalSeconds;
+			}
 			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 			cnn.Open();
+			// todo: apply transaction isolation level
 			var cmd = cnn.CreateCommand();
+			cmd.CommandTimeout = timeoutSeconds;
 			cmd.CommandText = sqlStatement;
 			cmd.ExecuteNonQuery();
 		}
@@ -56,7 +67,11 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	public List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		throw new NotImplementedException();
 	}

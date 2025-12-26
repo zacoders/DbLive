@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Migrations;
 
@@ -17,9 +18,9 @@ public class MigrationItemDeployer(
 	public void DeployMigrationItem(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
 	{
 		_transactionRunner.ExecuteWithinTransaction(
-			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
+			false,
 			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.MigrationItemTimeout,
+			_projectSettings.MigrationTimeout,
 			() =>
 			{
 				_logger.Information(
@@ -33,7 +34,11 @@ public class MigrationItemDeployer(
 				DateTime? migrationAppliedUtc = null;
 				long? executionTimeMs = null;
 
-				_da.ExecuteNonQuery(migrationItem.FileData.Content);
+				_da.ExecuteNonQuery(
+					migrationItem.FileData.Content, 
+					_projectSettings.TransactionIsolationLevel, 
+					_projectSettings.MigrationTimeout
+				);
 
 				migrationAppliedUtc = _timeProvider.UtcNow();
 				executionTimeMs = (long)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
