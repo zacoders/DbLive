@@ -38,7 +38,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration, migrationItem);
+		deploy.MarkAsSkipped(false, migration.Version, migrationItem);
 
 
 		// Assert
@@ -90,7 +90,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration, migrationItem);
+		deploy.MarkAsSkipped(false, migration.Version, migrationItem);
 
 
 		// Assert
@@ -136,7 +136,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(true, migration, migrationItem);
+		deploy.MarkAsSkipped(true, migration.Version, migrationItem);
 
 
 		// Assert

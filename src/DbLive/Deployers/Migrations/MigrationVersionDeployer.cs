@@ -17,7 +17,7 @@ public class MigrationVersionDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		_logger.Information("Deploying migration version: {version}", migration.Version);
+		_logger.Information("Deploying migration v{version}", migration.Version);
 
 		if (migration.Items.Count == 0) return;
 
@@ -31,11 +31,11 @@ public class MigrationVersionDeployer(
 				{
 					if (migrationItem.MigrationItemType == MigrationItemType.Migration)
 					{
-						_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration, migrationItem);
+						_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, migrationItem);
 					}
 					else
 					{
-						_migrationItemDeployer.MarkAsSkipped(isSelfDeploy, migration, migrationItem);
+						_migrationItemDeployer.MarkAsSkipped(isSelfDeploy, migration.Version, migrationItem);
 					}
 				}
 

@@ -54,7 +54,7 @@ public class BreakingChangesDeployer(
 			{
 				var stopwatch = _timeProvider.StartNewStopwatch();
 
-				_migrationItemDeployer.DeployMigrationItem(false, migration, breakingChnagesItem);
+				_migrationItemDeployer.DeployMigrationItem(false, migration.Version, breakingChnagesItem);
 
 				stopwatch.Stop();
 
