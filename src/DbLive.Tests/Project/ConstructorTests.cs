@@ -1,4 +1,3 @@
-using DbLive.Project.Exceptions;
 
 namespace DbLive.Tests.Project;
 

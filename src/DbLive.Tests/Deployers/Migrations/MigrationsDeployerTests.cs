@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 
 namespace DbLive.Tests.Deployers.Migrations;
 

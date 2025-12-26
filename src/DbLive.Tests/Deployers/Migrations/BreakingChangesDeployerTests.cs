@@ -1,6 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
-using DbLive.Exceptions;
 
 namespace DbLive.Tests.Deployers.Migrations;
 

@@ -17,7 +17,10 @@ public class MigrationVersionDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		if (migration.Items.Count == 0) return;
+		if (migration.Items.Count == 0) 
+		{
+			throw new InvalidOperationException($"Migration v{migration.Version} has no items to deploy.");
+		}
 
 		MigrationSettings migrationSettings = new();
 
@@ -25,13 +28,16 @@ public class MigrationVersionDeployer(
 		{
 			MigrationItem settingsItem = migration.Items[MigrationItemType.Settings];
 			_logger.Information("Custom settings for migration v{version}", migration.Version);
-			// todo: apply settings
+			// todo: should we show a custom settings in the log? if yes, should we see global settings in the log?
+			migrationSettings = SettingsTools.GetSettings<MigrationSettings>(settingsItem.FileData.Content);
 		}
+		
+		migrationSettings = _projectSettings.GetMigrationSettings(migrationSettings);
 
 		_transactionRunner.ExecuteWithinTransaction(
-			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
-			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.MigrationTimeout,
+			migrationSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
+			migrationSettings.TransactionIsolationLevel!.Value,
+			migrationSettings.MigrationTimeout!.Value,
 			() =>
 			{
 				foreach (MigrationItem migrationItem in migration.Items.Select(t => t.Value).OrderBy(t => t.MigrationItemType))

@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Testing;
 
 namespace DbLive.Tests.Deployers.Testing;
 

@@ -8,14 +8,6 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 	private readonly DbLiveSettings _defaultSettings = new();
 	private DbLiveSettings? _settings;
 
-	private static JsonSerializerOptions JsonSerializerOptions = new()
-	{
-		PropertyNameCaseInsensitive = false,
-		UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-		ReadCommentHandling = JsonCommentHandling.Skip,
-		Converters = { new JsonStringEnumConverter() }
-	};
-
 	public DbLiveSettings ProjectSettings
 	{
 		get
@@ -26,7 +18,7 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 			if (_fileSystem.FileExists(settingsPath))
 			{
 				string settingsJson = _fileSystem.FileReadAllText(settingsPath);
-				_settings = JsonSerializer.Deserialize<DbLiveSettings>(settingsJson, JsonSerializerOptions);
+				_settings = JsonSerializer.Deserialize<DbLiveSettings>(settingsJson, SettingsTools.JsonSerializerOptions);
 				_settings ??= _defaultSettings;
 			}
 			else

@@ -1,5 +1,5 @@
 {
-  "TransactionWrapLevel": "none", // indexes will be build online, do not need to use additional transaction
-  "TranIsolationLevel": "ReadCommitted",
-  "MigrationTimeout": ""
+  "TransactionWrapLevel": "none", // no transaction for online index creation.
+  "TransactionIsolationLevel": "ReadCommitted",
+  "MigrationTimeout": "01:00:00" // should not take more than 1 hour
 }
