@@ -6,11 +6,12 @@ global using DbLive.Project;
 global using DbLive.Project.Exceptions;
 global using Microsoft.Extensions.DependencyInjection;
 global using MoreLinq;
-global using Newtonsoft.Json;
 global using Polly;
 global using Polly.Retry;
 global using Serilog;
 global using System.Collections.ObjectModel;
 global using System.Diagnostics.CodeAnalysis;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
 global using System.Transactions;
 

@@ -15,11 +15,10 @@ public class SettingsTests
 		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
 
 		mockSet.FileSystem.FileReadAllText(settingsPath)
-			.Returns(
-				"""
-					{
-						"TransactionWrapLevel": "None"
-					}
+			.Returns("""
+				{
+					"TransactionWrapLevel": "None"
+				}
 				"""
 			);
 

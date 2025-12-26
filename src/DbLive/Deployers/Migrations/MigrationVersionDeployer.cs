@@ -1,9 +1,9 @@
 using DbLive.Adapter;
-using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationVersionDeployer(
+		ILogger _logger,
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITimeProvider _timeProvider,
@@ -11,18 +11,20 @@ public class MigrationVersionDeployer(
 		ISettingsAccessor projectSettingsAccessor
 	) : IMigrationVersionDeployer
 {
-	
+
+	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationVersionDeployer));
 	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		//_logger.Information("Deploying migration v{version}", migration.Version);
-
 		if (migration.Items.Count == 0) return;
+
+		MigrationSettings migrationSettings = new();
 
 		if (migration.Items.ContainsKey(MigrationItemType.Settings))
 		{
 			MigrationItem settingsItem = migration.Items[MigrationItemType.Settings];
+			_logger.Information("Custom settings for migration v{version}", migration.Version);
 			// todo: apply settings
 		}
 

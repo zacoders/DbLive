@@ -6,7 +6,7 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationVersionDeployer _migrationDeployer
+		IMigrationVersionDeployer _migrationVersionDeployer
 	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
@@ -30,7 +30,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationDeployer.DeployMigration(isSelfDeploy, migration);
+			_migrationVersionDeployer.DeployMigration(isSelfDeploy, migration);
 		}
 	}
 
