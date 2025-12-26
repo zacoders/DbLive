@@ -46,6 +46,8 @@ public class DbLiveProject(
 			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
+			"settings" => MigrationItemType.Settings,
+			"s" => MigrationItemType.Settings,
 			_ => throw new UnknowMigrationItemTypeException(type)
 		};
 
@@ -82,7 +84,7 @@ public class DbLiveProject(
 
 		foreach (string filePath in codeFiles)
 		{
-			string fileName = filePath.GetLastSegment();
+			string fileName = Path.GetFileName(filePath);
 			var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
 			codeItems.Add(codeItem);
 		}
@@ -94,13 +96,13 @@ public class DbLiveProject(
 	{
 		string migrationsPath = _projectPath.CombineWith("Migrations");
 
-		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, "*.sql", subfolders: true);
+		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 
 		List<(int version, MigrationItem migrationItem)> migrationItems = [];
 
 		foreach (string filePath in migrationFiles)
 		{
-			string fileName = filePath.GetLastSegment();
+			string fileName = Path.GetFileName(filePath);
 			string[] fileParts = fileName.Split('.');
 
 			string migrationVersionStr = fileParts[0];
@@ -190,7 +192,7 @@ public class DbLiveProject(
 		{
 			TestItem testItem = new()
 			{
-				Name = testFilePath.GetLastSegment(),
+				Name = Path.GetFileName(testFilePath),
 				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath),
 				InitFileData = initFileData
 			};
@@ -222,7 +224,7 @@ public class DbLiveProject(
 			var files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
 			foreach (string filePath in files)
 			{
-				string fileName = filePath.GetLastSegment();
+				string fileName = Path.GetFileName(filePath);
 				var item = new GenericItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
 				items.Add(filePath, item);
 			}

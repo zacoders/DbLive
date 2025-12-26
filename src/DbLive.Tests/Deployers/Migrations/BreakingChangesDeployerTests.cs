@@ -165,13 +165,13 @@ public class BreakingChangesDeployerTests
 		mockSet.DbLiveProject.Received().GetMigrations();
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration2), Arg.Is(migration2.Items[MigrationItemType.Breaking]));
+			.DeployMigrationItem(Arg.Is(false), Arg.Is(2), Arg.Is(migration2.Items[MigrationItemType.Breaking]));
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Is(false), Arg.Is(migration3), Arg.Is(migration3.Items[MigrationItemType.Breaking]));
+			.DeployMigrationItem(Arg.Is(false), Arg.Is(3), Arg.Is(migration3.Items[MigrationItemType.Breaking]));
 
 		mockSet.MigrationItemDeployer.Received(2)
-			.DeployMigrationItem(Arg.Is(false), Arg.Any<Migration>(), Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Is(false), Arg.Any<int>(), Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received(2)
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());

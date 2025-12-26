@@ -33,7 +33,7 @@ public class FolderDeployer(
 
 	private void DeployItem(ProjectFolder projectFolder, GenericItem item)
 	{
-		_logger.Information("Deploying item: {filePath}", item.FileData.FilePath.GetLastSegment());
+		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
 		_da.ExecuteNonQuery(item.FileData.Content);

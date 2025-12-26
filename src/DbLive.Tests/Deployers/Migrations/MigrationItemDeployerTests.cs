@@ -19,12 +19,6 @@ public class MigrationItemDeployerTests
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -38,7 +32,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration.Version, migrationItem);
+		deploy.MarkAsSkipped(false, 1, migrationItem);
 
 
 		// Assert
@@ -71,12 +65,6 @@ public class MigrationItemDeployerTests
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
@@ -90,7 +78,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration.Version, migrationItem);
+		deploy.MarkAsSkipped(false, 1, migrationItem);
 
 
 		// Assert
@@ -118,12 +106,6 @@ public class MigrationItemDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -136,7 +118,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(true, migration.Version, migrationItem);
+		deploy.MarkAsSkipped(true, 1, migrationItem);
 
 
 		// Assert
@@ -161,12 +143,6 @@ public class MigrationItemDeployerTests
 		MigrationItemDto? savedDto = null;
 		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -180,7 +156,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, migration, migrationItem);
+		deploy.DeployMigrationItem(false, 1, migrationItem);
 
 
 		// Assert
@@ -222,12 +198,6 @@ public class MigrationItemDeployerTests
 		MigrationItemDto? savedDto = null;
 		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
@@ -241,7 +211,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, migration, migrationItem);
+		deploy.DeployMigrationItem(false, 1, migrationItem);
 
 
 		// Assert
@@ -275,12 +245,6 @@ public class MigrationItemDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = []
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -293,7 +257,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(true, migration, migrationItem);
+		deploy.DeployMigrationItem(true, 1, migrationItem);
 
 
 		// Assert

@@ -8,11 +8,16 @@ public class MigrationsTests
 	public void TestReadingOfMigrations()
 	{
 		MockSet mockSet = new();
+		
+		string projectPath = @"C:\DB\";
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
-			.Returns([
+		mockSet.FileSystem.EnumerateFiles(
+			projectPath.CombineWith("Migrations"),
+			Arg.Is<IEnumerable<string>>(a => a.Contains("*.sql") && a.Contains("*.json")), 
+			true
+		).Returns([
 				@"C:\DB\Migrations\_Old\001.migration.test1.sql",
 				@"C:\DB\Migrations\_Old\002.migration.test2.sql",
 				@"C:\DB\Migrations\004.migration.test4.sql",
@@ -36,7 +41,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
 				@"C:\DB\Migrations\_Old\001.migration.dup1.sql",
 				@"C:\DB\Migrations\001.migration.dup2.sql"
@@ -54,7 +59,7 @@ public class MigrationsTests
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
 				@"C:\DB\Migrations\bad001version.bad-version-migration"
 			]);
@@ -72,7 +77,7 @@ public class MigrationsTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
 				@"C:\DB\Migrations\_Old\001.m.test1.sql",
 				@"C:\DB\Migrations\_Old\002.m.test2.sql",
@@ -98,7 +103,7 @@ public class MigrationsTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
 			[
 				@"C:\DB\Migrations\003.migration.some-note.sql",
@@ -123,7 +128,7 @@ public class MigrationsTests
 
 		//var settings = sqlProject.GetSettings();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
 				@"C:\DB\Migrations\002.m.test.sql",
 				@"C:\DB\Migrations\002.u.test.sql",
@@ -154,7 +159,7 @@ public class MigrationsTests
 				RelativePath = ""
 			});
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
 				@"C:\DB\Migrations\001.m.01.sql",
 				@"C:\DB\Migrations\001.b.01.sql",
@@ -189,7 +194,7 @@ public class MigrationsTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
 			[
 				@"C:\DB\Migrations\no-version-provided.sql",
@@ -208,7 +213,7 @@ public class MigrationsTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), "*.sql", true)
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
 			[
 				@"C:\DB\Migrations\003.some-unknown-type.sql",

@@ -20,10 +20,10 @@ public class MigrationVersionDeployerTests
 		deploy.DeployMigration(false, migration);
 
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.MarkAsSkipped(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -49,7 +49,7 @@ public class MigrationVersionDeployerTests
 		deploy.DeployMigration(false, migration);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -86,10 +86,10 @@ public class MigrationVersionDeployerTests
 		deploy.DeployMigration(false, migration);
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.MigrationItemDeployer.Received(2)
-			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.MarkAsSkipped(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -126,10 +126,10 @@ public class MigrationVersionDeployerTests
 		deploy.DeployMigration(true, migration);
 
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.MigrationItemDeployer.Received(2)
-			.MarkAsSkipped(Arg.Any<bool>(), migration, Arg.Any<MigrationItem>());
+			.MarkAsSkipped(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SetDbLiveVersion(migration.Version, new DateTime(2024, 1, 1));
