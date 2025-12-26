@@ -62,13 +62,7 @@ public class DbLiveProject(
 
 		if (fileExtension == ".json")
 		{
-			return new MigrationItemInfo()
-			{
-				Version = version,
-				MigrationItemType = MigrationItemType.Settings,
-				Name = migrationName,
-				FilePath = filePath
-			};
+			throw new UnknownMigrationSettingsException(fileName);
 		}
 
 		if (fileExtension == ".sql")
