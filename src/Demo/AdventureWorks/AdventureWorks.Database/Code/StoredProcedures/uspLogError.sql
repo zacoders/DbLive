@@ -4,7 +4,7 @@
 -- TRY...CATCH construct. This should be executed from within the scope
 -- of a CATCH block otherwise it will return without inserting error
 -- information.
-CREATE PROCEDURE [dbo].[uspLogError]
+CREATE OR ALTER PROCEDURE [dbo].[uspLogError]
     @ErrorLogID [int] = 0 OUTPUT -- contains the ErrorLogID of the row inserted
 AS                               -- by uspLogError in the ErrorLog table
 BEGIN

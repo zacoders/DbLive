@@ -1,5 +1,5 @@
 
-CREATE VIEW [HumanResources].[vJobCandidateEducation]
+CREATE OR ALTER VIEW [HumanResources].[vJobCandidateEducation]
 AS
 SELECT
     jc.[JobCandidateID]
