@@ -215,7 +215,7 @@ public class MigrationsTests
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
 			[
-				@"C:\DB\Migrations\003.some-unknown-type.sql",
+				@"C:\DB\Migrations\003.some-unknown-type.txt", // unsupported type (extension)
 				@"C:\DB\Migrations\003.undo.sql",
 				@"C:\DB\Migrations\003.breaking.sql"
 			]);

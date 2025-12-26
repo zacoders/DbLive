@@ -9,18 +9,23 @@ public class DbLiveProject(
 {
 	private readonly string _projectPath = projectPath.ProjectPath;
 
-	public static MigrationItemType GetMigrationType(string fileName)
+	internal static MigrationItemInfo GetMigrationInfo(string filePath)
 	{
+		string fileName = Path.GetFileName(filePath);
 		string fileExtension = Path.GetExtension(fileName);
-		string[] fileParts = fileName.Split('.');
-		string itemType = fileParts[1];
+		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+		string[] fileParts = fileNameWithoutExtension.Split('.');
+		
+		string migrationVersionStr = fileParts[0];
+		string migrationTypeStr = fileParts.Length > 1 ? fileParts[1] : "";
+		string migrationName = fileParts.Length > 2 ? fileParts[2] : "";
 
-		if (fileExtension == ".json")
+		if (!int.TryParse(migrationVersionStr, out var version))
 		{
-			return MigrationItemType.Settings;
+			throw new MigrationVersionParseException(fileName, migrationVersionStr);
 		}
 
-		MigrationItemType migrationType = itemType.ToLower() switch
+		MigrationItemType? migrationType = migrationTypeStr.ToLower() switch
 		{
 			"migration" => MigrationItemType.Migration,
 			"m" => MigrationItemType.Migration,
@@ -28,10 +33,56 @@ public class DbLiveProject(
 			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
-			_ => throw new UnknownMigrationItemTypeException(itemType, fileName)
+			"settings" => MigrationItemType.Settings,
+			"s" => MigrationItemType.Settings,
+			_ => null
 		};
 
-		return migrationType;
+		if (migrationType.HasValue)
+		{
+			if (fileExtension != ".json" && migrationType == MigrationItemType.Settings)
+			{
+				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".json");
+			}
+
+			if (fileExtension != ".sql" 
+			    && migrationType.Value is MigrationItemType.Migration or MigrationItemType.Undo or MigrationItemType.Breaking)
+			{
+				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
+			}
+
+			return new MigrationItemInfo()
+			{
+				Version = version,
+				MigrationItemType = migrationType.Value,
+				Name = migrationName,
+				FilePath = filePath
+			};
+		}
+
+		if (fileExtension == ".json")
+		{
+			return new MigrationItemInfo()
+			{
+				Version = version,
+				MigrationItemType = MigrationItemType.Settings,
+				Name = migrationName,
+				FilePath = filePath
+			};
+		}
+
+		if (fileExtension == ".sql")
+		{
+			return new MigrationItemInfo()
+			{
+				Version = version,
+				MigrationItemType = MigrationItemType.Migration,
+				Name = migrationName,
+				FilePath = filePath
+			};
+		}
+
+		throw new UnknownMigrationItemTypeException(migrationTypeStr, fileName);
 	}
 
 	public IEnumerable<CodeGroup> GetCodeGroups()
@@ -82,38 +133,16 @@ public class DbLiveProject(
 
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 
-		List<(int version, MigrationItem migrationItem)> migrationItems = [];
+		List<MigrationItemInfo> migrationItems = [];
 
 		foreach (string filePath in migrationFiles)
 		{
-			string fileName = Path.GetFileName(filePath);
-			string[] fileParts = fileName.Split('.');
-			
-			string migrationVersionStr = fileParts[0];
-
-			if (!int.TryParse(migrationVersionStr, out var version))
-			{
-				throw new MigrationVersionParseException(fileName, migrationVersionStr);
-			}
-
-			string name = "";
-			if (fileParts.Length > 2)
-			{
-				name = fileParts[2];
-			}
-
-			MigrationItem migrationItem = new()
-			{
-				MigrationItemType = GetMigrationType(fileName),
-				Name = name,
-				FileData = _fileSystem.ReadFileData(filePath, _projectPath)
-			};
-
-			migrationItems.Add((version, migrationItem));
+			MigrationItemInfo migrationItemInfo = GetMigrationInfo(filePath);
+			migrationItems.Add(migrationItemInfo);
 		}
 
 		List<Migration> migrations = [];
-		foreach (IGrouping<int, MigrationItem> migrationGroup in migrationItems.ToLookup(i => i.version, i => i.migrationItem))
+		foreach (IGrouping<int, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
 		{
 			int migrationVersion = migrationGroup.Key;
 			Dictionary<MigrationItemType, MigrationItem> itmes = [];
@@ -123,7 +152,13 @@ public class DbLiveProject(
 				{
 					throw new DuplicateMigrationItemException(migrationVersion, item.MigrationItemType);
 				}
-				itmes.Add(item.MigrationItemType, item);
+				MigrationItem migrationItem = new()
+				{
+					MigrationItemType = item.MigrationItemType,
+					Name = item.Name,
+					FileData = _fileSystem.ReadFileData(item.FilePath, _projectPath)
+				};
+				itmes.Add(item.MigrationItemType, migrationItem);
 			}
 
 			Migration migration = new()
