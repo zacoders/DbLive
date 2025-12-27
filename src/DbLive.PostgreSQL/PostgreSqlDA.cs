@@ -99,7 +99,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from dblive.migration_item
+			from dblive.migration
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";

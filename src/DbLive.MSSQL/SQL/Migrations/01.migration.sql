@@ -1,7 +1,7 @@
 create schema dblive;
 go
 
-create table dblive.migration_item (
+create table dblive.migration (
 	version int not null
   , item_type varchar(32) not null
   , name nvarchar(512) not null
@@ -12,12 +12,12 @@ create table dblive.migration_item (
   , applied_utc datetime2(7) null
   , execution_time_ms int null
 
-  , constraint pk_dblive_migration_item primary key ( version, item_type )
+  , constraint pk_dblive_migration primary key ( version, item_type )
 )
 go
 
 exec sys.sp_tableoption
-	@TableNamePattern = 'dblive.migration_item'
+	@TableNamePattern = 'dblive.migration'
   , @OptionName = 'large value types out of row'
   , @OptionValue = '1'
 go

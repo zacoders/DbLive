@@ -28,7 +28,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from dblive.migration_item
+			from dblive.migration
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -365,7 +365,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"dblive.save_migration_item",
+			"dblive.save_migration",
 			new
 			{
 				version = item.Version,
