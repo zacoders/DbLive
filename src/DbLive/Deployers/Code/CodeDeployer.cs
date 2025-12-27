@@ -2,13 +2,16 @@ using System.Collections.Concurrent;
 
 namespace DbLive.Deployers.Code;
 
+
 public class CodeDeployer(
-		ILogger _logger,
-		IDbLiveProject _project,
-		ICodeItemDeployer _codeItemDeployer
-	) : ICodeDeployer
+	ILogger logger,
+	IDbLiveProject project,
+	ICodeItemDeployer codeItemDeployer
+) : ICodeDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(CodeDeployer));
+	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
+	private readonly IDbLiveProject _project = project;
+	private readonly ICodeItemDeployer _codeItemDeployer = codeItemDeployer;
 
 	public void DeployCode(bool isSelfDeploy, DeployParameters parameters)
 	{
@@ -17,36 +20,115 @@ public class CodeDeployer(
 			return;
 		}
 
-		_logger.Information("Deploying Code.");
+		//_logger.Information(
+		//	"Deploying code using queue-based algorithm. Workers={Workers}, MaxRetries={MaxRetries}",
+		//	parameters.NumberOfThreadsForCodeDeploy,
+		//	parameters.MaxCodeDeployRetries
+		//);
 
-		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForCodeDeploy };
-
-		var codeGroups = _project.GetCodeGroups();
-
-		ConcurrentBag<(string FilePath, Exception Error)> failedFiles = new();
-
-		foreach (var codeGroup in codeGroups)
+		foreach (CodeGroup group in _project.GetCodeGroups())
 		{
-			Parallel.ForEach(codeGroup.CodeItems, parallelOptions, codeItem =>
-			{
-				CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem);
-				if (!result.IsSuccess)
-				{
-					// Use named tuple literal to ensure element names are set
-					failedFiles.Add((codeItem.FileData.FilePath, Error: result.Exception!));
-				}
-			});
-		}
-
-		if (failedFiles.Count > 0)
-		{
-			CodeDeploymentAggregateException ex = new (
-				$"Code deploy failed. Deployment of {failedFiles.Count} item(s) failed.",
-				failedFiles.Select(ff => ff.Error)
-			);
-			throw ex;
+			DeployGroup(group.Path, group.CodeItems, isSelfDeploy, parameters);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
+	}
+
+	internal void DeployGroup(string groupPath, IReadOnlyCollection<CodeItem> codeItems, bool isSelfDeploy, DeployParameters parameters)
+	{
+		var cts = new CancellationTokenSource();
+		
+		var queue = new ConcurrentQueue<CodeItem>();
+		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+		foreach (var item in codeItems)
+		{
+			queue.Enqueue(item);
+			retryCounters[item.FileData.FilePath] = 0;
+		}
+
+		Task<Exception?>[] workers = new Task<Exception?>[parameters.NumberOfThreadsForCodeDeploy];
+		for (int workerId = 0; workerId < parameters.NumberOfThreadsForCodeDeploy; workerId++)
+		{
+			Task<Exception?> worker = Task.Run(()
+				=> CreateWorker(isSelfDeploy, workerId, parameters.MaxCodeDeployRetries, queue, retryCounters, cts), cts.Token
+			);
+			workers[workerId] = worker;
+		}
+	
+		Task.WaitAll(workers);
+
+		List<Exception> exceptions = [.. workers.Where(w => w.Result is not null).Select(w => w.Result!)];
+
+		if (exceptions.Count > 0)
+		{
+			throw new CodeDeploymentAggregateException(
+				$"Code deployment failed for path '{groupPath}' after {parameters.MaxCodeDeployRetries} attempts.",
+				exceptions
+			);
+		}
+	}
+
+	internal Exception? CreateWorker(
+		bool isSelfDeploy, 
+		int workerId, 
+		int maxRetries, 
+		ConcurrentQueue<CodeItem> queue, 
+		ConcurrentDictionary<string, int> retryCounters, 
+		CancellationTokenSource cts
+	)
+	{
+		while (!cts.IsCancellationRequested)
+		{
+			if (!queue.TryDequeue(out var codeItem))
+			{
+				return null;
+			}
+
+			string filePath = codeItem.FileData.FilePath;
+
+			_logger.Debug("[Worker {WorkerId}] Deploying {FilePath}", workerId, filePath);
+
+			CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem);
+
+			if (result.IsSuccess)
+			{
+				_logger.Information("[Worker {WorkerId}] Successfully deployed {FilePath}", workerId, filePath);
+				continue;
+			}
+
+			int retry = retryCounters.AddOrUpdate(
+				filePath,
+				1,
+				static (_, current) => current + 1
+			);
+
+			if (retry >= maxRetries)
+			{
+				_logger.Error(
+					result.Exception,
+					"[Worker {WorkerId}] Deployment failed for {FilePath} after {RetryCount} attempts",
+					workerId,
+					filePath,
+					retry
+				);
+
+				cts.Cancel();
+
+				return result.Exception;				
+			}
+
+			_logger.Debug(
+				result.Exception,
+				"[Worker {WorkerId}] Deployment failed for {FilePath}. Retry {Retry}/{MaxRetries}. Returning to queue.",
+				workerId,
+				filePath,
+				retry,
+				maxRetries
+			);
+
+			queue.Enqueue(codeItem);
+		}
+		return null;
 	}
 }

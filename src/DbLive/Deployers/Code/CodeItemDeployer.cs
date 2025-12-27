@@ -1,5 +1,4 @@
 using DbLive.Adapter;
-using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Code;
 
@@ -12,13 +11,6 @@ public class CodeItemDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));	
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
-
-	private readonly RetryPolicy _codeItemRetryPolicy =
-		Policy.Handle<Exception>()
-			  .WaitAndRetry(
-					5,
-					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
-			  );
 
 	/// <inheritdoc/>
 	public CodeItemDeployResult DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
@@ -49,14 +41,13 @@ public class CodeItemDeployer(
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FileName);
 
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
-			_codeItemRetryPolicy.Execute(() =>
-			{
-				_da.ExecuteNonQuery(
-					codeItem.FileData.Content,
-					_projectSettings.TransactionIsolationLevel,
-					_projectSettings.CodeItemTimeout
-				);
-			});
+
+			_da.ExecuteNonQuery(
+				codeItem.FileData.Content,
+				_projectSettings.TransactionIsolationLevel,
+				_projectSettings.CodeItemTimeout
+			);
+
 			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
 			if (!isSelfDeploy)
@@ -68,10 +59,10 @@ public class CodeItemDeployer(
 		}
 		catch (Exception ex)
 		{
-			_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
+			_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.RelativePath);
 			return new CodeItemDeployResult { 
 				IsSuccess = false, 
-				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.FilePath}", ex) 
+				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex) 
 			};
 		}
 	}

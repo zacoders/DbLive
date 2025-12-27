@@ -87,42 +87,4 @@ public class CodeItemDeployerTests
 
 		Assert.False(res.IsSuccess);
 	}
-
-	[Fact]
-	public void DeployCodeItem_RetryTest()
-	{
-		MockSet mockSet = new();
-
-		bool isThrown = false;
-		mockSet.DbLiveDA
-			.When(x => x.ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
-			.Do(x =>
-			{
-				if (isThrown == false)
-				{
-					isThrown = true;
-					throw new Exception();
-				}
-			});
-
-		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
-
-		CodeItem codeItem = new()
-		{
-			Name = "some-code-item",
-			FileData = new FileData
-			{
-				Content = "--some content",
-				RelativePath = "item.sql",
-				FilePath = "c:/data/item.sql"
-			}
-		};
-
-		var res = deploy.DeployCodeItem(false, codeItem);
-
-		Assert.True(res.IsSuccess, "Should be deployed from the second retry attempt.");
-
-		mockSet.DbLiveDA.Received(2)
-			.ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-	}
 }
