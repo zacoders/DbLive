@@ -1,8 +1,6 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
-using Microsoft.Data.SqlClient;
-using System;
 using System.Collections.Specialized;
 using System.Data;
 

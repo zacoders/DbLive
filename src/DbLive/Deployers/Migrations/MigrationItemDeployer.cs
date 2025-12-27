@@ -1,6 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Common.Settings;
-
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationItemDeployer(

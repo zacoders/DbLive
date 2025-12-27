@@ -1,5 +1,4 @@
-﻿using DbLive.Deployers.Testing;
-
+﻿
 namespace DbLive.Testing;
 
 public interface IDbLiveTester

@@ -1,6 +1,4 @@
-﻿using DbLive.Adapter;
-using DbLive.Testing;
-
+﻿
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
