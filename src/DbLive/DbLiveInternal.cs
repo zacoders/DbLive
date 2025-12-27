@@ -1,5 +1,6 @@
 using DbLive.Common.Settings;
 using DbLive.Deployers.Code;
+using DbLive.Deployers.Folder;
 using DbLive.Deployers.Migrations;
 using DbLive.Deployers.Testing;
 

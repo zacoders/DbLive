@@ -227,7 +227,7 @@ public class DbLiveProject(
 		{
 			ProjectFolder.BeforeDeploy => settings.BeforeDeployFolder,
 			ProjectFolder.AfterDeploy => settings.AfterDeployFolder,
-			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
 		string fullPath = Path.Combine(_projectPath, folderPath);

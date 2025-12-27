@@ -180,7 +180,32 @@ public class MigrationsDeployerTests
 		deploy.DeployMigrations(false, deployParams);
 
 		// Assert
-		mockSet.MigrationDeployer.Received(3).DeployMigration(Arg.Is(false), Arg.Any<Migration>());
+		mockSet.MigrationVersionDeployer.Received(3).DeployMigration(Arg.Is(false), Arg.Any<Migration>());
+	}
+
+
+	[Fact]
+	public void DeployMigrations_Empty_Migrations_Folder()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+
+		mockSet.DbLiveProject.GetMigrations().Returns([]);
+
+		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
+
+		var deployParams = DeployParameters.Default;
+		deployParams.MaxVersionToDeploy = 2;
+
+		// Act
+		deploy.DeployMigrations(false, deployParams);
+
+		// Assert
+		mockSet.Logger.Received(1).Information("No migrations to apply.");
+		mockSet.MigrationVersionDeployer.DidNotReceive().DeployMigration(Arg.Is(false), Arg.Any<Migration>());
 	}
 
 
@@ -211,6 +236,6 @@ public class MigrationsDeployerTests
 		deploy.DeployMigrations(false, deployParams);
 
 		// Assert
-		mockSet.MigrationDeployer.DidNotReceive().DeployMigration(Arg.Any<bool>(), Arg.Any<Migration>());
+		mockSet.MigrationVersionDeployer.DidNotReceive().DeployMigration(Arg.Any<bool>(), Arg.Any<Migration>());
 	}
 }

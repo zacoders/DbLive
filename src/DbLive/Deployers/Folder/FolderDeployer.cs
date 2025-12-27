@@ -1,7 +1,4 @@
-using DbLive.Adapter;
-using DbLive.Common.Settings;
-
-namespace DbLive.Deployers;
+namespace DbLive.Deployers.Folder;
 
 public class FolderDeployer(
 		ILogger _logger,

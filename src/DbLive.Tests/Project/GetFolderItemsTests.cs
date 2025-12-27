@@ -53,4 +53,14 @@ public class GetFolderItemsTests
 		mockSet.FileSystem.Received(1).PathExists(folderPath);
 		mockSet.FileSystem.Received(1).EnumerateFiles(folderPath, "*.sql", true);
 	}
+
+	[Fact]
+	public void GetFolderItems_With_NonExistedFolder()
+	{
+		MockSet mockSet = new();
+
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => sqlProject.GetFolderItems((ProjectFolder)999));
+	}
 }

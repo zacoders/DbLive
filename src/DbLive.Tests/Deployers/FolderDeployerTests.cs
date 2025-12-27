@@ -1,3 +1,5 @@
+using DbLive.Deployers.Folder;
+
 namespace DbLive.Tests.Deployers;
 
 public class FolderDeployerTests
@@ -35,7 +37,7 @@ public class FolderDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var projectFolder = ProjectFolder.BeforeDeploy;
+		var projectFolder = ProjectFolder.AfterDeploy;
 
 		mockSet.DbLiveProject.GetFolderItems(projectFolder).Returns(new List<GenericItem>{
 			GetGenericItem("file1.sql"),
@@ -85,5 +87,21 @@ public class FolderDeployerTests
 		deploy.DeployFolder(projectFolder, DeployParameters.Default);
 
 		mockSet.DbLiveDA.DidNotReceive().ExecuteNonQuery(Arg.Any<string>());
+	}
+
+	[Fact]
+	public void Deploy_NonExisted_Folder_Type()
+	{
+		MockSet mockSet = new();
+
+		ProjectFolder projectFolder = (ProjectFolder)999;
+
+		mockSet.DbLiveProject.GetFolderItems(projectFolder).Returns(new List<GenericItem>{
+			GetGenericItem("file1.sql"),
+		}.AsReadOnly());
+
+		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => deploy.DeployFolder(projectFolder, DeployParameters.Default));
 	}
 }
