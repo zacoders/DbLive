@@ -58,7 +58,7 @@ public class CodeDeployer(
 		if (exceptions.Count > 0)
 		{
 			throw new CodeDeploymentAggregateException(
-				$"Code deployment failed for path '{groupPath}' after {parameters.MaxCodeDeployRetries} attempts.",
+				$"Code deployment failed after {parameters.MaxCodeDeployRetries} attempts.",
 				exceptions
 			);
 		}
