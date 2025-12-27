@@ -20,11 +20,7 @@ public class CodeDeployer(
 			return;
 		}
 
-		//_logger.Information(
-		//	"Deploying code using queue-based algorithm. Workers={Workers}, MaxRetries={MaxRetries}",
-		//	parameters.NumberOfThreadsForCodeDeploy,
-		//	parameters.MaxCodeDeployRetries
-		//);
+		_logger.Information("Deploying code.");
 
 		foreach (CodeGroup group in _project.GetCodeGroups())
 		{

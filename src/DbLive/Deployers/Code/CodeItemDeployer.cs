@@ -27,12 +27,12 @@ public class CodeItemDeployer(
 					&& codeItemDto.Status == CodeItemStatus.Applied)
 				{
 					_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.FileName);
+					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
 					return CodeItemDeployResult.Success();
 				}
 			}
 
-			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FileName);
+			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
 			_da.ExecuteNonQuery(
 				codeItem.FileData.Content,
