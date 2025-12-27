@@ -82,23 +82,23 @@ public class CodeDeployer(
 		{
 			if (!queue.TryDequeue(out var codeItem))
 			{
-				return null;
+				break;
 			}
 
-			string filePath = codeItem.FileData.FilePath;
+			string relativePath = codeItem.FileData.RelativePath;
 
-			_logger.Debug("[Worker {WorkerId}] Deploying {FilePath}", workerId, filePath);
+			_logger.Debug("Deploying {FilePath}", relativePath);
 
 			CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem);
 
 			if (result.IsSuccess)
 			{
-				_logger.Information("[Worker {WorkerId}] Successfully deployed {FilePath}", workerId, filePath);
+				_logger.Debug("Successfully deployed {FilePath}", relativePath);
 				continue;
 			}
 
 			int retry = retryCounters.AddOrUpdate(
-				filePath,
+				relativePath,
 				1,
 				static (_, current) => current + 1
 			);
@@ -107,10 +107,8 @@ public class CodeDeployer(
 			{
 				_logger.Error(
 					result.Exception,
-					"[Worker {WorkerId}] Deployment failed for {FilePath} after {RetryCount} attempts",
-					workerId,
-					filePath,
-					retry
+					"Deployment failed for {FilePath} after {RetryCount} attempts",
+					relativePath, retry
 				);
 
 				cts.Cancel();
@@ -120,11 +118,8 @@ public class CodeDeployer(
 
 			_logger.Debug(
 				result.Exception,
-				"[Worker {WorkerId}] Deployment failed for {FilePath}. Retry {Retry}/{MaxRetries}. Returning to queue.",
-				workerId,
-				filePath,
-				retry,
-				maxRetries
+				"Deployment failed for {FilePath}. Retry {Retry}/{MaxRetries}. Returning to queue.",
+				relativePath, retry, maxRetries
 			);
 
 			queue.Enqueue(codeItem);

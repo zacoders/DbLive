@@ -23,12 +23,16 @@ public class CodeItemDeployerTests
 			ContentHash = hashCode,
 			AppliedUtc = new DateTime(2023, 1, 1),
 			ExecutionTimeMs = 5,
-			RelativePath = relativePath
+			RelativePath = relativePath,
+			Status = CodeItemStatus.Applied,
+			CreatedUtc = new DateTime(2023, 1, 1, 1,1,1),
+			ErrorMessage = null,
+			VerifiedUtc = new DateTime(2023, 1, 2)
 		};
 
 		mockSet.DbLiveDA.FindCodeItem(relativePath).Returns(codeItemDtoExists ? codeItemDto : null);
 		mockSet.DbLiveDA.ExecuteNonQuery(content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		mockSet.DbLiveDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
+		mockSet.DbLiveDA.SaveCodeItem(Arg.Any<CodeItemDto>());
 
 		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -77,14 +81,14 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
-	public void DeployCodeItem_WrongHash()
+	public void DeployCodeItem_DifferentHash()
 	{
 		var arrange = CommonArrange(codeItemDtoExists: true);
 
-		arrange.codeItemDto!.ContentHash = 99999999; // wrong hash.
+		arrange.codeItemDto!.ContentHash = 99999999;
 
 		var res = arrange.deployer.DeployCodeItem(false, arrange.codeItem);
 
-		Assert.False(res.IsSuccess);
+		Assert.True(res.IsSuccess);
 	}
 }

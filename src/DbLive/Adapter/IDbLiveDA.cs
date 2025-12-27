@@ -17,7 +17,8 @@ public interface IDbLiveDA
 	void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);
+	void SaveCodeItem(CodeItemDto item);
+
 	void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc);
 
 	void CreateDB(bool skipIfExists = true);

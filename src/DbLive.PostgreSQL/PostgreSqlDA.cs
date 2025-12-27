@@ -118,10 +118,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		);
 	}
 
-	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime createdUtc, long executionTimeMs)
-	{
-		throw new NotImplementedException();
-	}
+	public void SaveCodeItem(CodeItemDto item) => throw new NotImplementedException();
 
 	public void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc)
 	{
