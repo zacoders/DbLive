@@ -10,5 +10,6 @@ global using DbLive.Project.Exceptions;
 global using DbLive.Testing;
 global using DbLive.Tests.Common;
 global using NSubstitute;
+global using NSubstitute.ReturnsExtensions;
 global using System.Collections.ObjectModel;
 global using Xunit;

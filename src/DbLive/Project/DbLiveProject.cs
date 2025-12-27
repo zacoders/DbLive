@@ -247,6 +247,7 @@ public class DbLiveProject(
 		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
 	}
 
+	[ExcludeFromCodeCoverage]
 	public string GetVisualStudioProjectPath()
 	{
 		return projectPath.VisualStudioProjectPath;

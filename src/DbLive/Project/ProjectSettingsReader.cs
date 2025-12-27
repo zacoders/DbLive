@@ -19,12 +19,9 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 			{
 				string settingsJson = _fileSystem.FileReadAllText(settingsPath);
 				_settings = JsonSerializer.Deserialize<DbLiveSettings>(settingsJson, SettingsTools.JsonSerializerOptions);
-				_settings ??= _defaultSettings;
 			}
-			else
-			{
-				_settings = _defaultSettings;
-			}
+
+			_settings ??= _defaultSettings;
 
 			return _settings;
 		}
