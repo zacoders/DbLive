@@ -47,6 +47,8 @@ public record DeployParameters
 	public bool DeployBreaking { get; set; } = false;
 
 	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
+	public int MaxCodeDeployRetries { get; set; } = 5;
+
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
 	public bool CreateDbIfNotExists { get; set; } = true;

@@ -24,12 +24,13 @@ public static class AssertTypeExtensions
 		{
 			if (value == AssertType.Empty)
 			{
-				return new AssertInfo {
+				return new AssertInfo
+				{
 					AssertType = AssertType.RowCount,
 					RowCount = 0
 				};
 			}
-			
+
 			if (value == AssertType.SingleRow)
 			{
 				return new AssertInfo
@@ -47,8 +48,8 @@ public static class AssertTypeExtensions
 			int equalIndex = assertDefinition.IndexOf("=");
 			if (equalIndex != -1)
 			{
-				return new AssertInfo 
-				{ 
+				return new AssertInfo
+				{
 					AssertType = AssertType.RowCount,
 					RowCount = Convert.ToInt32(assertDefinition.Substring(equalIndex + 1))
 				};

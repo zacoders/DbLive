@@ -1,6 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Common.Settings;
-
 namespace DbLive.Deployers.Code;
 
 public class CodeItemDeployer(
@@ -10,68 +7,76 @@ public class CodeItemDeployer(
 		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeItemDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));	
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
-
-	private readonly RetryPolicy _codeItemRetryPolicy =
-		Policy.Handle<Exception>()
-			  .WaitAndRetry(
-					5,
-					retryAttempt => TimeSpan.FromSeconds(retryAttempt * retryAttempt)
-			  );
 
 	/// <inheritdoc/>
 	public CodeItemDeployResult DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
 	{
+		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{
 			if (!isSelfDeploy)
 			{
 				CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
 
-				if (codeItemDto != null)
+				if (codeItemDto != null
+					&& codeItemDto.ContentHash == codeItem.FileData.Crc32Hash
+					&& codeItemDto.Status == CodeItemStatus.Applied)
 				{
-					if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
-					{
-						_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-						_logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FileName);
-						return CodeItemDeployResult.Success();
-					}
-
-					throw new FileContentChangedException(
-						codeItem.FileData.RelativePath,
-						codeItem.FileData.Crc32Hash,
-						codeItemDto.ContentHash
-					);
+					_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
+					return CodeItemDeployResult.Success();
 				}
 			}
 
-			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FileName);
+			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
-			DateTime migrationStartedUtc = _timeProvider.UtcNow();
-			_codeItemRetryPolicy.Execute(() =>
-			{
-				_da.ExecuteNonQuery(
-					codeItem.FileData.Content,
-					_projectSettings.TransactionIsolationLevel,
-					_projectSettings.CodeItemTimeout
-				);
-			});
-			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
+			_da.ExecuteNonQuery(
+				codeItem.FileData.Content,
+				_projectSettings.TransactionIsolationLevel,
+				_projectSettings.CodeItemTimeout
+			);
+
+			DateTime appliedUtc = _timeProvider.UtcNow();
+			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
 
 			if (!isSelfDeploy)
 			{
-				_da.MarkCodeAsApplied(codeItem.FileData.RelativePath, codeItem.FileData.Crc32Hash, migrationCompletedUtc, (long)(migrationCompletedUtc - migrationStartedUtc).TotalMilliseconds);
+				_da.SaveCodeItem(new CodeItemDto()
+				{
+					RelativePath = codeItem.FileData.RelativePath,
+					Status = CodeItemStatus.Applied,
+					ContentHash = codeItem.FileData.Crc32Hash,
+					AppliedUtc = appliedUtc,
+					ExecutionTimeMs = executionTimeMs,
+					CreatedUtc = _timeProvider.UtcNow(),
+					ErrorMessage = ""
+				});
 			}
 
 			return CodeItemDeployResult.Success();
 		}
 		catch (Exception ex)
 		{
-			_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.FilePath);
-			return new CodeItemDeployResult { 
-				IsSuccess = false, 
-				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.FilePath}", ex) 
+			//_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.RelativePath);
+
+			DateTime appliedUtc = _timeProvider.UtcNow();
+			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
+			_da.SaveCodeItem(new CodeItemDto()
+			{
+				RelativePath = codeItem.FileData.RelativePath,
+				Status = CodeItemStatus.Error,
+				ContentHash = codeItem.FileData.Crc32Hash,
+				AppliedUtc = appliedUtc,
+				ExecutionTimeMs = executionTimeMs,
+				CreatedUtc = _timeProvider.UtcNow(),
+				ErrorMessage = ex.ToString()
+			});
+			return new CodeItemDeployResult
+			{
+				IsSuccess = false,
+				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex)
 			};
 		}
 	}

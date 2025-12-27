@@ -29,8 +29,10 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Items = new Dictionary<MigrationItemType, MigrationItem> {
-				[MigrationItemType.Migration] = new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				}
@@ -58,16 +60,20 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Items = new Dictionary<MigrationItemType, MigrationItem> {
-				[MigrationItemType.Migration] = new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				[MigrationItemType.Undo] = new() {
+				[MigrationItemType.Undo] = new()
+				{
 					MigrationItemType = MigrationItemType.Undo,
 					FileData = GetFileData("undo.sql")
 				},
-				[MigrationItemType.Breaking] = new() {
+				[MigrationItemType.Breaking] = new()
+				{
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
@@ -98,16 +104,20 @@ public class MigrationVersionDeployerTests
 		Migration migration = new()
 		{
 			Version = 1,
-			Items = new Dictionary<MigrationItemType, MigrationItem> {
-				[MigrationItemType.Migration] = new() {
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				[MigrationItemType.Undo] = new() {
+				[MigrationItemType.Undo] = new()
+				{
 					MigrationItemType = MigrationItemType.Undo,
 					FileData = GetFileData("undo.sql")
 				},
-				[MigrationItemType.Breaking] = new() {
+				[MigrationItemType.Breaking] = new()
+				{
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql")
 				}
@@ -145,7 +155,7 @@ public class MigrationVersionDeployerTests
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-		
+
 		string settingsJson = """
 		{
 		  "TransactionWrapLevel": "none",
@@ -184,9 +194,9 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TransactionRunner.Received(1)
 			.ExecuteWithinTransaction(
-				false, 
-				TranIsolationLevel.ReadCommitted, 
-				TimeSpan.FromHours(2.5), 
+				false,
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(2.5),
 				Arg.Any<Action>()
 			);
 	}

@@ -6,5 +6,5 @@ public class MigrationSettings
 
 	public TranIsolationLevel? TransactionIsolationLevel { get; init; }
 
-	public TimeSpan? MigrationTimeout { get; init; }	
+	public TimeSpan? MigrationTimeout { get; init; }
 }

@@ -1,6 +1,4 @@
-﻿using DbLive.Adapter;
-
-namespace DbLive.Deployers.Testing;
+﻿namespace DbLive.Deployers.Testing;
 
 public interface IUnitTestResultChecker
 {

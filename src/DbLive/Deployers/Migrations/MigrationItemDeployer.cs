@@ -1,6 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Common.Settings;
-
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationItemDeployer(
@@ -35,8 +32,8 @@ public class MigrationItemDeployer(
 				long? executionTimeMs = null;
 
 				_da.ExecuteNonQuery(
-					migrationItem.FileData.Content, 
-					_projectSettings.TransactionIsolationLevel, 
+					migrationItem.FileData.Content,
+					_projectSettings.TransactionIsolationLevel,
 					_projectSettings.MigrationTimeout
 				);
 
@@ -54,7 +51,7 @@ public class MigrationItemDeployer(
 					MigrationItemDto dto = new()
 					{
 						Version = migrationVersion,
-						Name = migrationItem.Name, 
+						Name = migrationItem.Name,
 						ItemType = migrationItem.MigrationItemType,
 						ContentHash = crc32Hash,
 						Content = content,

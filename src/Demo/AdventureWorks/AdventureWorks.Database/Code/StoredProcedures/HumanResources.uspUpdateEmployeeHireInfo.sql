@@ -1,5 +1,4 @@
 
-
 CREATE OR ALTER PROCEDURE [HumanResources].[uspUpdateEmployeeHireInfo]
     @BusinessEntityID [int],
     @JobTitle [nvarchar](50),

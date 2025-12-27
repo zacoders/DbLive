@@ -17,7 +17,8 @@ public interface IDbLiveDA
 	void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);
+	void SaveCodeItem(CodeItemDto item);
+
 	void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc);
 
 	void CreateDB(bool skipIfExists = true);
@@ -26,8 +27,8 @@ public interface IDbLiveDA
 
 	/// <exception cref="DbLiveSqlException"/>
 	void ExecuteNonQuery(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	);
 

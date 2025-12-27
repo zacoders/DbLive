@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationsDeployer(
@@ -50,13 +48,13 @@ public class MigrationsDeployer(
 			else
 			{
 				var appliedVersion = _da.GetCurrentMigrationVersion();
-				
+
 				_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
 
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
 					.Where(m => m.Version > appliedVersion);
-					//.Where(m => !appliedMigrations.Any(am => am.Version == m.Version)); 
+				//.Where(m => !appliedMigrations.Any(am => am.Version == m.Version)); 
 			}
 		}
 

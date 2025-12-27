@@ -1,6 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Common.Settings;
-
 namespace DbLive.Deployers.Testing;
 
 public class UnitTestItemRunner(
@@ -32,7 +29,7 @@ public class UnitTestItemRunner(
 			if (test.InitFileData is not null)
 			{
 				_da.ExecuteNonQuery(
-					test.InitFileData.Content, 
+					test.InitFileData.Content,
 					TranIsolationLevel.Serializable,
 					_projectSettings.UnitTestItemTimeout
 				);

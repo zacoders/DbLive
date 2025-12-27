@@ -36,8 +36,8 @@ public class UnitTestItemRunnerTests
 		// Assert
 		mockSet.DbLiveDA.Received(1);
 		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
-			Arg.Is(testItem.FileData.Content), 
-			TranIsolationLevel.Serializable, 
+			Arg.Is(testItem.FileData.Content),
+			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)
 		);
 		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<List<SqlResult>>());
@@ -86,13 +86,13 @@ public class UnitTestItemRunnerTests
 		Received.InOrder(() =>
 		{
 			mockSet.DbLiveDA.Received().ExecuteNonQuery(
-				Arg.Is(testItem.InitFileData.Content), 
-				TranIsolationLevel.Serializable, 
+				Arg.Is(testItem.InitFileData.Content),
+				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
 			);
 			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
-				Arg.Is(testItem.FileData.Content), 
-				TranIsolationLevel.Serializable, 
+				Arg.Is(testItem.FileData.Content),
+				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
 			);
 		});
@@ -138,8 +138,8 @@ public class UnitTestItemRunnerTests
 		// Assert
 		mockSet.DbLiveDA.Received(1);
 		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
-			Arg.Is(testItem.FileData.Content), 
-			TranIsolationLevel.Serializable, 
+			Arg.Is(testItem.FileData.Content),
+			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)
 		);
 

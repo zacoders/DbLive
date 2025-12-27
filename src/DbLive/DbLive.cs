@@ -1,4 +1,3 @@
-using DbLive.Adapter;
 namespace DbLive;
 
 public class DbLive(

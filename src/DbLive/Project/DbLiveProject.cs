@@ -15,7 +15,7 @@ public class DbLiveProject(
 		string fileExtension = Path.GetExtension(fileName);
 		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 		string[] fileParts = fileNameWithoutExtension.Split('.');
-		
+
 		string migrationVersionStr = fileParts[0];
 		string migrationTypeStr = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationName = fileParts.Length > 2 ? fileParts[2] : "";
@@ -45,8 +45,8 @@ public class DbLiveProject(
 				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".json");
 			}
 
-			if (fileExtension != ".sql" 
-			    && migrationType.Value is MigrationItemType.Migration or MigrationItemType.Undo or MigrationItemType.Breaking)
+			if (fileExtension != ".sql"
+				&& migrationType.Value is MigrationItemType.Migration or MigrationItemType.Undo or MigrationItemType.Breaking)
 			{
 				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
 			}
@@ -162,7 +162,7 @@ public class DbLiveProject(
 			};
 			migrations.Add(migration);
 		}
-		
+
 		// sort by version to ensure stable order
 		return migrations.OrderBy(m => m.Version).ToList().AsReadOnly();
 	}
@@ -227,7 +227,7 @@ public class DbLiveProject(
 		{
 			ProjectFolder.BeforeDeploy => settings.BeforeDeployFolder,
 			ProjectFolder.AfterDeploy => settings.AfterDeployFolder,
-			_ => throw new NotImplementedException($"Unknown project folder {projectFolder}")
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
 		string fullPath = Path.Combine(_projectPath, folderPath);
@@ -247,6 +247,7 @@ public class DbLiveProject(
 		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
 	}
 
+	[ExcludeFromCodeCoverage]
 	public string GetVisualStudioProjectPath()
 	{
 		return projectPath.VisualStudioProjectPath;

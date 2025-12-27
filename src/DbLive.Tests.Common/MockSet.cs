@@ -1,4 +1,6 @@
 ﻿
+using DbLive.Deployers.Folder;
+
 namespace DbLive.Tests.Common;
 
 public class MockSet
@@ -15,7 +17,7 @@ public class MockSet
 	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
-	public readonly IMigrationVersionDeployer MigrationDeployer = Substitute.For<IMigrationVersionDeployer>();
+	public readonly IMigrationVersionDeployer MigrationVersionDeployer = Substitute.For<IMigrationVersionDeployer>();
 	public readonly IMigrationItemDeployer MigrationItemDeployer = Substitute.For<IMigrationItemDeployer>();
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 	public readonly IUnitTestItemRunner UnitTestItemRunner = Substitute.For<IUnitTestItemRunner>();

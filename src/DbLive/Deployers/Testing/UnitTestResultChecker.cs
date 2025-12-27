@@ -1,8 +1,4 @@
-﻿using DbLive.Adapter;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
-namespace DbLive.Deployers.Testing;
+﻿namespace DbLive.Deployers.Testing;
 
 internal class UnitTestResultChecker : IUnitTestResultChecker
 {

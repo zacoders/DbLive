@@ -23,8 +23,8 @@ public class DeployTest(ITestOutputHelper output)
 		Deploy(dbCnnString);
 	}
 
-	[Fact(Skip = "For local run only.")]
-	//[Fact]
+	[Fact]
+	[Trait("Category", "LocalOnly")]
 	public async Task DeployToLocalSqlServerAsync()
 	{
 		string dbCnnString = "Server=localhost;Database=AdventureWorksDbLive;Trusted_Connection=True;";

@@ -1,5 +1,4 @@
-﻿
-namespace DbLive.Deployers;
+﻿namespace DbLive.Deployers.Folder;
 
 public interface IFolderDeployer
 {

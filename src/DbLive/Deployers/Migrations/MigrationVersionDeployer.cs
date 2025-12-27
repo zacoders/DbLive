@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationVersionDeployer(
@@ -17,7 +15,7 @@ public class MigrationVersionDeployer(
 
 	public void DeployMigration(bool isSelfDeploy, Migration migration)
 	{
-		if (migration.Items.Count == 0) 
+		if (migration.Items.Count == 0)
 		{
 			throw new InvalidOperationException($"Migration v{migration.Version} has no items to deploy.");
 		}
@@ -31,7 +29,7 @@ public class MigrationVersionDeployer(
 			// todo: should we show a custom settings in the log? if yes, should we see global settings in the log?
 			migrationSettings = SettingsTools.GetSettings<MigrationSettings>(settingsItem.FileData.Content);
 		}
-		
+
 		migrationSettings = _projectSettings.GetMigrationSettings(migrationSettings);
 
 		_transactionRunner.ExecuteWithinTransaction(

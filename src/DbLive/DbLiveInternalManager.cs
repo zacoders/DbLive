@@ -1,6 +1,4 @@
-﻿using DbLive.Adapter;
-
-namespace DbLive;
+﻿namespace DbLive;
 
 public class DbLiveInternalManager(
 	IDbLiveBuilder _builder,

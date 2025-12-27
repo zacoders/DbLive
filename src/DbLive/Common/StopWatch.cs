@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-
+﻿
 namespace DbLive.Common;
 
 public class StopWatch : IStopWatch

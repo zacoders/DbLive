@@ -1,8 +1,6 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
-using Microsoft.Data.SqlClient;
-using System;
 using System.Collections.Specialized;
 using System.Data;
 
@@ -86,20 +84,21 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { 
-			version, 
+		cnn.Query(query, new
+		{
+			version,
 			applied_utc = migrationCompletedUtc
 		});
 	}
 
 	public void ExecuteNonQuery(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	)
 	{
 		try
-		{			
+		{
 			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
 			sqlConnection.Open();
 			SetTransactionIsolationLevel(sqlConnection, isolationLevel);
@@ -145,7 +144,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		try
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
-			
+
 			SetTransactionIsolationLevel(cnn, isolationLevel);
 
 			using SqlCommand cmd = cnn.CreateCommand();
@@ -326,16 +325,19 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
-	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
+	public void SaveCodeItem(CodeItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query("dblive.insert_code_state",
+		cnn.Query("dblive.save_code_item",
 			new
 			{
-				relative_path = relativePath,
-				content_hash = contentHash,
-				applied_utc = appliedUtc,
-				execution_time_ms = executionTimeMs
+				relative_path = item.RelativePath,
+				status = item.Status.ToString().ToLower(),
+				content_hash = item.ContentHash,
+				applied_utc = item.AppliedUtc,
+				execution_time_ms = item.ExecutionTimeMs,
+				created_utc = item.CreatedUtc,
+				error_message = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
 		);
@@ -355,9 +357,19 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"dblive.get_code_item",
-			new { relative_path = relativePath },
-			commandType: CommandType.StoredProcedure
+			"""
+			select relative_path
+				 , content_hash
+				 , applied_utc
+				 , created_utc
+				 , execution_time_ms
+				 , verified_utc
+				 , error_message
+			     , status			  
+			from dblive.code
+			where relative_path = @relative_path
+			""",
+			new { relative_path = relativePath }
 		);
 	}
 

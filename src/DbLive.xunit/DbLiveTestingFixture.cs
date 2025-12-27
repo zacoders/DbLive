@@ -4,7 +4,7 @@ using Xunit;
 
 namespace DbLive.xunit;
 
-public abstract class DbLiveTestingFixture (bool dropDatabaseOnComplete)
+public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 	: IAsyncLifetime
 {
 	private IDbLive? _deployer;
