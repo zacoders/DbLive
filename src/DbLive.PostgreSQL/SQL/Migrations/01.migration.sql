@@ -11,7 +11,7 @@ create table dblive.migration (
 )
 
 
-create table dblive.migration_item (
+create table dblive.migration (
 	version int not null
   , name varchar(512) not null
   , item_type varchar(32) not null
@@ -21,7 +21,7 @@ create table dblive.migration_item (
   , applied_utc timestamp null
   , execution_time_ms int null
 
-  , constraint pk_dblive_migration_item primary key ( version, name, item_type )
+  , constraint pk_dblive_migration primary key ( version, name, item_type )
 )
 
 

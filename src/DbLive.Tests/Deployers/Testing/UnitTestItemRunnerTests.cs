@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Testing;
 
 namespace DbLive.Tests.Deployers.Testing;
 
@@ -37,7 +35,11 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+			Arg.Is(testItem.FileData.Content), 
+			TranIsolationLevel.Serializable, 
+			TimeSpan.FromMinutes(1)
+		);
 		mockSet.UnitTestResultChecker.Received().ValidateTestResult(Arg.Any<List<SqlResult>>());
 
 		Assert.True(result.IsSuccess);
@@ -83,8 +85,16 @@ public class UnitTestItemRunnerTests
 
 		Received.InOrder(() =>
 		{
-			mockSet.DbLiveDA.Received().ExecuteNonQuery(Arg.Is(testItem.InitFileData.Content));
-			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+			mockSet.DbLiveDA.Received().ExecuteNonQuery(
+				Arg.Is(testItem.InitFileData.Content), 
+				TranIsolationLevel.Serializable, 
+				TimeSpan.FromMinutes(1)
+			);
+			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+				Arg.Is(testItem.FileData.Content), 
+				TranIsolationLevel.Serializable, 
+				TimeSpan.FromMinutes(1)
+			);
 		});
 
 		Assert.True(result.IsSuccess);
@@ -111,7 +121,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.DbLiveDA
-			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>()))
+			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>(), TranIsolationLevel.Serializable, Arg.Any<TimeSpan>()))
 			.Throw<Exception>();
 
 		TestItem testItem = new()
@@ -127,7 +137,11 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(Arg.Is(testItem.FileData.Content));
+		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+			Arg.Is(testItem.FileData.Content), 
+			TranIsolationLevel.Serializable, 
+			TimeSpan.FromMinutes(1)
+		);
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);

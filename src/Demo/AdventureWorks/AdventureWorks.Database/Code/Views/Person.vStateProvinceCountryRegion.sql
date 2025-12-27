@@ -1,5 +1,5 @@
 
-CREATE VIEW [Person].[vStateProvinceCountryRegion]
+CREATE OR ALTER VIEW [Person].[vStateProvinceCountryRegion]
 WITH SCHEMABINDING
 AS
 SELECT

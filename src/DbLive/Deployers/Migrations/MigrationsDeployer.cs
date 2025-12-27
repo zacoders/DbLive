@@ -6,7 +6,7 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationDeployer _migrationDeployer
+		IMigrationVersionDeployer _migrationVersionDeployer
 	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
@@ -30,7 +30,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationDeployer.DeployMigration(isSelfDeploy, migration);
+			_migrationVersionDeployer.DeployMigration(isSelfDeploy, migration);
 		}
 	}
 
@@ -49,15 +49,17 @@ public class MigrationsDeployer(
 			}
 			else
 			{
-				var appliedMigrations = _da.GetMigrations();
+				var appliedVersion = _da.GetCurrentMigrationVersion();
+				
+				_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
+
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-					.Where(m => !appliedMigrations.Any(am => am.Version == m.Version && am.Name == m.Name));
+					.Where(m => m.Version > appliedVersion);
+					//.Where(m => !appliedMigrations.Any(am => am.Version == m.Version)); 
 			}
 		}
 
-		return migrationsToApply
-				.OrderBy(m => m.Version)
-				.ThenBy(m => m.Name);
+		return migrationsToApply.OrderBy(m => m.Version);
 	}
 }

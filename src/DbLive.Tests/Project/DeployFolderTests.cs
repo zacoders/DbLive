@@ -7,11 +7,11 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		string folderPath = Path.Combine(@"C:\DB\", "BeforeDeploy");
+		string folderPath = Path.Combine(@"C:/DB/", "BeforeDeploy");
 
 		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
@@ -38,11 +38,11 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		string folderPath = Path.Combine(@"C:\DB\", "AfterDeploy");
+		string folderPath = Path.Combine(@"C:/DB/", "AfterDeploy");
 
 		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
@@ -52,17 +52,5 @@ public class GetFolderItemsTests
 
 		mockSet.FileSystem.Received(1).PathExists(folderPath);
 		mockSet.FileSystem.Received(1).EnumerateFiles(folderPath, "*.sql", true);
-	}
-
-	[Fact]
-	public void AfterDeploy_NotImplementedException()
-	{
-		MockSet mockSet = new();
-
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
-
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
-
-		Assert.Throws<NotImplementedException>(() => sqlProject.GetFolderItems(ProjectFolder.Unspecified));
 	}
 }

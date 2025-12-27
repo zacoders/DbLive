@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Migrations;
 
@@ -14,12 +15,12 @@ public class MigrationItemDeployer(
 
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigrationItem(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
+	public void DeployMigrationItem(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
 	{
 		_transactionRunner.ExecuteWithinTransaction(
-			_projectSettings.TransactionWrapLevel == TransactionWrapLevel.MigrationItem,
+			false,
 			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.MigrationItemTimeout,
+			_projectSettings.MigrationTimeout,
 			() =>
 			{
 				_logger.Information(
@@ -33,7 +34,11 @@ public class MigrationItemDeployer(
 				DateTime? migrationAppliedUtc = null;
 				long? executionTimeMs = null;
 
-				_da.ExecuteNonQuery(migrationItem.FileData.Content);
+				_da.ExecuteNonQuery(
+					migrationItem.FileData.Content, 
+					_projectSettings.TransactionIsolationLevel, 
+					_projectSettings.MigrationTimeout
+				);
 
 				migrationAppliedUtc = _timeProvider.UtcNow();
 				executionTimeMs = (long)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
@@ -48,8 +53,8 @@ public class MigrationItemDeployer(
 
 					MigrationItemDto dto = new()
 					{
-						Version = migration.Version,
-						Name = migration.Name,
+						Version = migrationVersion,
+						Name = migrationItem.Name, 
 						ItemType = migrationItem.MigrationItemType,
 						ContentHash = crc32Hash,
 						Content = content,
@@ -65,16 +70,16 @@ public class MigrationItemDeployer(
 		);
 	}
 
-	public void MarkAsSkipped(bool isSelfDeploy, Migration migration, MigrationItem migrationItem)
+	public void MarkAsSkipped(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
 	{
-		_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
+		//_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
 
 		if (!isSelfDeploy)
 		{
 			MigrationItemDto dto = new()
 			{
-				Version = migration.Version,
-				Name = migration.Name,
+				Version = migrationVersion,
+				Name = migrationItem.Name,
 				ItemType = migrationItem.MigrationItemType,
 				ContentHash = migrationItem.FileData.Crc32Hash,
 				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
@@ -87,6 +92,6 @@ public class MigrationItemDeployer(
 			_da.SaveMigrationItemState(dto);
 		}
 
-		_logger.Information("Migration {migrationType} skipped.", migrationItem.MigrationItemType);
+		_logger.Information("Migration v{migrationVersion} {migrationType} skipped.", migrationVersion, migrationItem.MigrationItemType);
 	}
 }

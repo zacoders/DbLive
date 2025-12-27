@@ -1,17 +1,13 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests
 {
-	static Migration NewMigration(int version, string name) =>
+	static Migration NewMigration(int version) =>
 		new()
 		{
 			Version = version,
-			Name = name,
-			FolderPath = "c:/",
-			Items = new List<MigrationItem>().AsReadOnly()
+			Items = []
 		};
 
 	[Fact]
@@ -22,33 +18,24 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(3),
+				NewMigration(4)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 
-		mockSet.DbLiveDA.GetMigrations()
-			.Returns(new[]
-			{
-				new MigrationDto { Version = 1, Name = "test1" },
-				new MigrationDto { Version = 2, Name = "same-version-2" }
-			});
-
+		mockSet.DbLiveDA.GetCurrentMigrationVersion()
+			.Returns(2);
 
 		var migrations = deploy.GetMigrationsToApply(false, DeployParameters.Default).ToArray();
 
 		Assert.Equal(2, migrations.Length);
-
-		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal("same-version-1", migrations[0].Name);
-
-		Assert.Equal(3, migrations[1].Version);
-		Assert.Equal("test3", migrations[1].Name);
+		Assert.Equal(3, migrations[0].Version);
+		Assert.Equal(4, migrations[1].Version);
 	}
 
 
@@ -60,32 +47,27 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(3),
+				NewMigration(4)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 
-		mockSet.DbLiveDA.GetMigrations()
-			.Returns(new[]
-			{
-				new MigrationDto { Version = 1, Name = "test1" },
-				new MigrationDto { Version = 2, Name = "same-version-2" }
-			});
+		mockSet.DbLiveDA.GetCurrentMigrationVersion()
+			.Returns(2);
 
 		var deployParams = DeployParameters.Default;
-		deployParams.MaxVersionToDeploy = 2;
+		deployParams.MaxVersionToDeploy = 3;
 
 		var migrations = deploy.GetMigrationsToApply(false, deployParams).ToArray();
 
 		Assert.Single(migrations);
 
-		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal("same-version-1", migrations[0].Name);
+		Assert.Equal(3, migrations[0].Version);
 	}
 
 	[Fact]
@@ -96,13 +78,13 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(2),
+				NewMigration(3)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
@@ -120,13 +102,13 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(2),
+				NewMigration(3)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
@@ -136,13 +118,8 @@ public class MigrationsDeployerTests
 		Assert.Equal(3, migrations.Length);
 
 		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal("same-version-1", migrations[0].Name);
-
 		Assert.Equal(2, migrations[1].Version);
-		Assert.Equal("same-version-2", migrations[1].Name);
-
 		Assert.Equal(3, migrations[2].Version);
-		Assert.Equal("test3", migrations[2].Name);
 	}
 
 
@@ -154,13 +131,13 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(2),
+				NewMigration(3)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
@@ -171,12 +148,8 @@ public class MigrationsDeployerTests
 		var migrations = deploy.GetMigrationsToApply(true, deployParams).ToArray();
 
 		Assert.Equal(2, migrations.Length);
-
 		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal("same-version-1", migrations[0].Name);
-
 		Assert.Equal(2, migrations[1].Version);
-		Assert.Equal("same-version-2", migrations[1].Name);
 	}
 
 
@@ -189,13 +162,13 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(2),
+				NewMigration(3)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
@@ -220,13 +193,13 @@ public class MigrationsDeployerTests
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrations()
-			.Returns(new[]
-			{
-				NewMigration(1, "test1"),
-				NewMigration(2, "same-version-1"),
-				NewMigration(2, "same-version-2"),
-				NewMigration(3, "test3")
-			});
+			.Returns(
+			[
+				NewMigration(1),
+				NewMigration(2),
+				NewMigration(2),
+				NewMigration(3)
+			]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);

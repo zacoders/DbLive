@@ -1,4 +1,6 @@
 ﻿using DbLive.Adapter;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DbLive.Deployers.Testing;
 
@@ -219,14 +221,20 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	private ValidationResult CompareRows(SqlRow expected, SqlRow actual)
 	{
 		bool match = true;
-		JsonSerializerSettings settings = new()
+
+		var options = new JsonSerializerOptions
 		{
-			NullValueHandling = NullValueHandling.Include
+			DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+			PropertyNamingPolicy = null,
+			WriteIndented = false
 		};
 
 		for (int i = 0; i < expected.Count; i++)
 		{
-			if (JsonConvert.SerializeObject(expected[i], settings) != JsonConvert.SerializeObject(actual[i], settings))
+			var expectedJson = JsonSerializer.Serialize(expected[i], options);
+			var actualJson = JsonSerializer.Serialize(actual[i], options);
+
+			if (expectedJson != actualJson)
 			{
 				match = false;
 			}

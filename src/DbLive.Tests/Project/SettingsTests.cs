@@ -7,7 +7,7 @@ public class SettingsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:\DB";
+		string projectPath = @"C:/DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string settingsPath = projectPath.CombineWith("settings.json");
@@ -15,11 +15,10 @@ public class SettingsTests
 		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
 
 		mockSet.FileSystem.FileReadAllText(settingsPath)
-			.Returns(
-				"""
-					{
-						"TransactionWrapLevel": "None"
-					}
+			.Returns("""
+				{
+					"TransactionWrapLevel": "None"
+				}
 				"""
 			);
 
@@ -39,7 +38,7 @@ public class SettingsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:\DB";
+		string projectPath = @"C:/DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string settingsPath = projectPath.CombineWith("settings.json");

@@ -3,8 +3,9 @@ namespace DbLive.Adapter;
 
 public interface IDbLiveDA
 {
-	IReadOnlyCollection<MigrationDto> GetMigrations();
 	IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems();
+
+	int GetCurrentMigrationVersion();
 
 	bool DbLiveInstalled();
 
@@ -13,7 +14,7 @@ public interface IDbLiveDA
 	void SetDbLiveVersion(int version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc);
+	void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
 	void MarkCodeAsApplied(string relativePath, int crc32Hash, DateTime createdUtc, long executionTimeMs);
@@ -24,9 +25,17 @@ public interface IDbLiveDA
 	void DropDB(bool skipIfNotExists = true);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void ExecuteNonQuery(string sqlStatementt);
+	void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	);
 
-	List<SqlResult> ExecuteQueryMultiple(string sqlStatement);
+	List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	);
 
 	CodeItemDto? FindCodeItem(string relativePath);
 	void SaveMigrationItemState(MigrationItemDto item);

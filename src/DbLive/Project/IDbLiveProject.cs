@@ -3,7 +3,7 @@
 public interface IDbLiveProject
 {
 	//todo: switch from IEnumerable result to readonly collections?
-	IEnumerable<Migration> GetMigrations();
+	IReadOnlyList<Migration> GetMigrations();
 	IEnumerable<CodeGroup> GetCodeGroups();
 	IReadOnlyCollection<TestItem> GetTests();
 

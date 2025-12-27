@@ -1,15 +1,17 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Testing;
 
 public class UnitTestItemRunner(
-	IDbLiveDA _da,
-	ITimeProvider _timeProvider,
-	IUnitTestResultChecker _unitTestResultChecker
-) : IUnitTestItemRunner
+		IDbLiveDA _da,
+		ITimeProvider _timeProvider,
+		IUnitTestResultChecker _unitTestResultChecker,
+		ISettingsAccessor projectSettingsAccessor
+	) : IUnitTestItemRunner
 {
-	//TODO: timeout should be configurable.
-	private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30); // test should be fast by default
+
+	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
 	public TestRunResult RunTest(TestItem test)
 	{
@@ -22,14 +24,25 @@ public class UnitTestItemRunner(
 		var stopWatch = _timeProvider.StartNewStopwatch();
 		try
 		{
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(TranIsolationLevel.Serializable, _defaultTimeout);
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(
+				TranIsolationLevel.Serializable,
+				_projectSettings.UnitTestItemTimeout
+			);
 
 			if (test.InitFileData is not null)
 			{
-				_da.ExecuteNonQuery(test.InitFileData.Content);
+				_da.ExecuteNonQuery(
+					test.InitFileData.Content, 
+					TranIsolationLevel.Serializable,
+					_projectSettings.UnitTestItemTimeout
+				);
 			}
 
-			List<SqlResult> resutls = _da.ExecuteQueryMultiple(test.FileData.Content);
+			List<SqlResult> resutls = _da.ExecuteQueryMultiple(
+				test.FileData.Content,
+				TranIsolationLevel.Serializable,
+				_projectSettings.UnitTestItemTimeout
+			);
 
 			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
 			if (!compareResult.IsValid)

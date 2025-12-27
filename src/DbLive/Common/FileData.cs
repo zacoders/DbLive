@@ -18,4 +18,5 @@ public class FileData
 
 	public required string FilePath { get; init; }
 	public required string RelativePath { get; init; }
+	public string FileName => Path.GetFileName(FilePath);
 }

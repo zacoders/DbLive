@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Code;
 
 namespace DbLive.Tests.Deployers.Code;
 
@@ -29,7 +27,7 @@ public class CodeItemDeployerTests
 		};
 
 		mockSet.DbLiveDA.FindCodeItem(relativePath).Returns(codeItemDtoExists ? codeItemDto : null);
-		mockSet.DbLiveDA.ExecuteNonQuery(content);
+		mockSet.DbLiveDA.ExecuteNonQuery(content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		mockSet.DbLiveDA.MarkCodeAsApplied(relativePath, hashCode, DateTime.UtcNow, 5);
 
 		var deploy = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -97,7 +95,7 @@ public class CodeItemDeployerTests
 
 		bool isThrown = false;
 		mockSet.DbLiveDA
-			.When(x => x.ExecuteNonQuery(Arg.Any<string>()))
+			.When(x => x.ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
 			.Do(x =>
 			{
 				if (isThrown == false)
@@ -124,6 +122,7 @@ public class CodeItemDeployerTests
 
 		Assert.True(res.IsSuccess, "Should be deployed from the second retry attempt.");
 
-		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
+		mockSet.DbLiveDA.Received(2)
+			.ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 	}
 }

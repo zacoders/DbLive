@@ -1,6 +1,14 @@
+global using DbLive.Adapter;
 global using DbLive.Common;
+global using DbLive.Common.Settings;
 global using DbLive.Deployers;
+global using DbLive.Deployers.Code;
+global using DbLive.Deployers.Migrations;
+global using DbLive.Deployers.Testing;
+global using DbLive.Exceptions;
 global using DbLive.Project;
+global using DbLive.Project.Exceptions;
+global using DbLive.Testing;
 global using DbLive.Tests.Common;
 global using NSubstitute;
 global using System.Collections.ObjectModel;

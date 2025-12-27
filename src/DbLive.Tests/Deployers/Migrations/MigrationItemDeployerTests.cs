@@ -1,5 +1,3 @@
-using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 
 namespace DbLive.Tests.Deployers.Migrations;
 
@@ -19,17 +17,10 @@ public class MigrationItemDeployerTests
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
@@ -39,7 +30,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration, migrationItem);
+		deploy.MarkAsSkipped(false, 1, migrationItem);
 
 
 		// Assert
@@ -72,17 +63,10 @@ public class MigrationItemDeployerTests
 		DateTime utcNow = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(utcNow);
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
@@ -92,7 +76,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, migration, migrationItem);
+		deploy.MarkAsSkipped(false, 1, migrationItem);
 
 
 		// Assert
@@ -120,14 +104,6 @@ public class MigrationItemDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -140,7 +116,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(true, migration, migrationItem);
+		deploy.MarkAsSkipped(true, 1, migrationItem);
 
 
 		// Assert
@@ -165,35 +141,32 @@ public class MigrationItemDeployerTests
 		MigrationItemDto? savedDto = null;
 		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
+			Name = "some-migration",
 			FileData = new FileData
 			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql",
-				FilePath = "c:/db/migrations/001.demo/m.1.sql"
+				Content = $"-- some sql migration content",
+				RelativePath = "db/migrations/001.m.some-migration.sql",
+				FilePath = "c:/db/migrations/001.m.some-migration.sql"
 			}
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, migration, migrationItem);
+		deploy.DeployMigrationItem(false, 1, migrationItem);
 
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
@@ -205,7 +178,7 @@ public class MigrationItemDeployerTests
 		Assert.Equal("", savedDto.Content);
 		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
 		Assert.Equal(utcNow2, savedDto.AppliedUtc);
-		Assert.Equal(1715229887, savedDto.ContentHash);
+		Assert.Equal(1115364988, savedDto.ContentHash);
 		Assert.Equal(utcNow3, savedDto.CreatedUtc);
 		Assert.Equal(2000, savedDto.ExecutionTimeMs);
 	}
@@ -227,17 +200,10 @@ public class MigrationItemDeployerTests
 		MigrationItemDto? savedDto = null;
 		mockSet.DbLiveDA.SaveMigrationItemState(Arg.Do<MigrationItemDto>(dto => savedDto = dto));
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
+			Name = "some-migration",
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
@@ -247,15 +213,19 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, migration, migrationItem);
+		deploy.DeployMigrationItem(false, 1, migrationItem);
 
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.Received()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
@@ -281,14 +251,6 @@ public class MigrationItemDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
-		Migration migration = new()
-		{
-			Version = 1,
-			Name = "some-migration",
-			FolderPath = "c:/db/migrations/001.demo",
-			Items = new List<MigrationItem>().AsReadOnly()
-		};
-
 		MigrationItem migrationItem = new()
 		{
 			MigrationItemType = MigrationItemType.Migration,
@@ -301,15 +263,19 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(true, migration, migrationItem);
+		deploy.DeployMigrationItem(true, 1, migrationItem);
 
 
 		// Assert
 		mockSet.TransactionRunner.Received()
-			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.Serializable), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
+			.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
 
 		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(Arg.Is(migrationItem.FileData.Content));
+			.ExecuteNonQuery(
+				Arg.Is(migrationItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
 
 		mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());

@@ -33,12 +33,12 @@ public class UnitTestsRunner(
 			if (testResult.IsSuccess)
 			{
 				runResults.IncremenPassed();
-				_logger.Information("PASSED Test: {testName}", test.Name);
+				_logger.Information("PASSED: {testName}", test.Name);
 			}
 			else
 			{
 				runResults.IncremenFailed();
-				_logger.Error(testResult.Exception, "FAILED Test: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
+				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
 			_da.SaveUnitTestResult(

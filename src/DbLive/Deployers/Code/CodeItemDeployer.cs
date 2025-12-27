@@ -1,14 +1,17 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers.Code;
 
 public class CodeItemDeployer(
 		ILogger _logger,
 		IDbLiveDA _da,
-		ITimeProvider _timeProvider
+		ITimeProvider _timeProvider,
+		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeItemDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));	
+	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	private readonly RetryPolicy _codeItemRetryPolicy =
 		Policy.Handle<Exception>()
@@ -31,7 +34,7 @@ public class CodeItemDeployer(
 					if (codeItemDto.ContentHash == codeItem.FileData.Crc32Hash)
 					{
 						_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-						_logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+						_logger.Information("Code file deploy skipped, (hash match): {filePath}", codeItem.FileData.FileName);
 						return CodeItemDeployResult.Success();
 					}
 
@@ -43,12 +46,16 @@ public class CodeItemDeployer(
 				}
 			}
 
-			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FilePath.GetLastSegment());
+			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.FileName);
 
 			DateTime migrationStartedUtc = _timeProvider.UtcNow();
 			_codeItemRetryPolicy.Execute(() =>
 			{
-				_da.ExecuteNonQuery(codeItem.FileData.Content);
+				_da.ExecuteNonQuery(
+					codeItem.FileData.Content,
+					_projectSettings.TransactionIsolationLevel,
+					_projectSettings.CodeItemTimeout
+				);
 			});
 			DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 

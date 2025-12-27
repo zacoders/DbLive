@@ -69,7 +69,7 @@ public class DbLiveInternalTests
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
 		{
-			TransactionWrapLevel = TransactionWrapLevel.MigrationItem,
+			TransactionWrapLevel = TransactionWrapLevel.Migration,
 			TransactionIsolationLevel = TranIsolationLevel.Chaos,
 			DeploymentTimeout = TimeSpan.FromHours(15)
 		});

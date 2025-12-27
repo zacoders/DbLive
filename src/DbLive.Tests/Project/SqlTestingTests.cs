@@ -7,13 +7,13 @@ public class SqlTestingTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<IEnumerable<string>>(), "*", SearchOption.AllDirectories)
 			.Returns([
-				@"C:\DB\Tests\",
-				@"C:\DB\Tests\Orders",
-				@"C:\DB\Tests\Users"
+				@"C:/DB/Tests/",
+				@"C:/DB/Tests/Orders",
+				@"C:/DB/Tests/Users"
 			]);
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
@@ -29,16 +29,16 @@ public class SqlTestingTests
 		MockSet mockSet = new();
 
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:\DB\");
+		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
 
-		string testsFolderPath = @"C:\DB\Tests\";
+		string testsFolderPath = @"C:/DB/Tests/";
 
 		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
-				@"C:\DB\Tests\order.test.sql",
-				@"C:\DB\Tests\user.test.sql"
+				@"C:/DB/Tests/order.test.sql",
+				@"C:/DB/Tests/user.test.sql"
 			]);
 
 		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
@@ -68,7 +68,7 @@ public class SqlTestingTests
 	{
 		MockSet mockSet = new();
 
-		string testsFolderPath = @"C:\DB\Tests\";
+		string testsFolderPath = @"C:/DB/Tests/";
 
 		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
@@ -86,7 +86,7 @@ public class SqlTestingTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:\DB";
+		string projectPath = @"C:/DB";
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
 
 		string testsFolderPath = projectPath.CombineWith("Tests");

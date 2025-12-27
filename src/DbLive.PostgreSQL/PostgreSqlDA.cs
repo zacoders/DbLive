@@ -39,13 +39,24 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
-	public void ExecuteNonQuery(string sqlStatement)
+	public void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		try
 		{
+			int timeoutSeconds = 30;
+			if (timeout.HasValue)
+			{
+				timeoutSeconds = (int)timeout.Value.TotalSeconds;
+			}
 			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 			cnn.Open();
+			// todo: apply transaction isolation level
 			var cmd = cnn.CreateCommand();
+			cmd.CommandTimeout = timeoutSeconds;
 			cmd.CommandText = sqlStatement;
 			cmd.ExecuteNonQuery();
 		}
@@ -56,7 +67,11 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	public List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		throw new NotImplementedException();
 	}
@@ -64,26 +79,12 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public int GetDbLiveVersion()
 	{
 		const string query = @"
-			select Version
-			from DbLive.Version
+			select version
+			from dblive.version
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
-	}
-
-	public IReadOnlyCollection<MigrationDto> GetMigrations()
-	{
-		const string query = @"
-			select version
-				 , name
-				 , created_utc
-				 , modified_utc
-			from DbLive.Migration
-		";
-
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
 	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
@@ -98,7 +99,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from DbLive.migration_item
+			from dblive.migration
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -111,7 +112,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"DbLive.get_code_item",
+			"dblive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
@@ -127,22 +128,20 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationCompletedUtc)
+	public void SaveCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"
-			insert into DbLive.Migration
+			insert into dblive.migration
 			(
-				MigrationVersion
-			  , MigrationName
-			  , MigrationStarted
-			  , MigrationCompleted
+				migrationversion
+			  , migrationstarted
+			  , migrationcompleted
 			)
 			values (
-				@MigrationVersion
-			  , @MigrationName
-			  , @MigrationStartedUtc
-			  , @MigrationCompletedUtc
+				@migrationversion
+			  , @migrationstartedutc
+			  , @migrationcompletedutc
 			)
 		";
 
@@ -150,7 +149,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Query(query, new
 		{
 			migrationVersion,
-			migrationName,
 			migrationCompletedUtc
 		});
 	}
@@ -168,13 +166,13 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
-			merge into DbLive.Version as t
+			merge into dblive.version as t
 			using ( select 1 ) as s(c) on 1 = 1
 			when not matched then 
-				insert ( Version, MigrationDatetime ) values ( @Version, @MigrationDatetime )
+				insert ( version, migrationdatetime ) values ( @version, @migrationDatetime )
 			when matched then update
-				set Version = @Version
-			      , MigrationDatetime = MigrationDatetime;
+				set version = @version
+			      , migrationDatetime = migrationdatetime;
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
@@ -190,4 +188,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		throw new NotImplementedException();
 	}
+
+	public int GetCurrentMigrationVersion() => throw new NotImplementedException();
 }

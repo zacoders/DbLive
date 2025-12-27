@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Common.Settings;
 
 namespace DbLive.Deployers;
 
@@ -6,10 +7,12 @@ public class FolderDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		ITimeProvider _timeProvider
+		ITimeProvider _timeProvider,
+		ISettingsAccessor _projectSettingsAccessor
 	) : IFolderDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
+	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	public void DeployFolder(ProjectFolder projectFolder, DeployParameters parameters)
 	{
@@ -33,10 +36,21 @@ public class FolderDeployer(
 
 	private void DeployItem(ProjectFolder projectFolder, GenericItem item)
 	{
-		_logger.Information("Deploying item: {filePath}", item.FileData.FilePath.GetLastSegment());
+		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
-		_da.ExecuteNonQuery(item.FileData.Content);
+		
+		_da.ExecuteNonQuery(
+			item.FileData.Content,
+			_projectSettings.TransactionIsolationLevel,
+			projectFolder switch
+			{
+				ProjectFolder.BeforeDeploy => _projectSettings.BeforeDeployFolderTimeout,
+				ProjectFolder.AfterDeploy => _projectSettings.AfterDeployFolderTimeout,
+				_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
+			}
+		);
+		
 		DateTime completedUtc = _timeProvider.UtcNow();
 
 		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);

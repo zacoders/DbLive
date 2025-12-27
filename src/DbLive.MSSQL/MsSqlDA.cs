@@ -1,6 +1,8 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Specialized;
 using System.Data;
 
@@ -12,20 +14,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
-	}
-
-	public IReadOnlyCollection<MigrationDto> GetMigrations()
-	{
-		const string query = @"
-			select version
-				 , name
-				 , created_utc
-				 , modified_utc
-			from DbLive.migration
-		";
-
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return cnn.Query<MigrationDto>(query).ToList();
 	}
 
 	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
@@ -40,7 +28,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
-			from DbLive.migration_item
+			from dblive.migration
 			where status != 'applied'
 			  and item_type = 'breakingchange'
 		";
@@ -52,20 +40,29 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public bool DbLiveInstalled()
 	{
 		const string query = @"
-			select iif(object_id('DbLive.migration', 'U') is null, 0, 1)
+			select iif(object_id('dblive.version', 'U') is null, 0, 1)
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<bool>(query);
 	}
 
+	public int GetCurrentMigrationVersion()
+	{
+		const string query = @"
+			select version
+			from dblive.dbversion
+		";
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		return cnn.ExecuteScalar<int?>(query) ?? 0;
+	}
+
 	public int GetDbLiveVersion()
 	{
 		const string query = @"
 			select version
-			from DbLive.version
+			from dblive.version
 		";
-
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
@@ -73,38 +70,43 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
-			update DbLive.version
+			update dblive.version
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
-
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
-	public void SaveMigration(int migrationVersion, string migrationName, DateTime migrationModificationUtc)
+	public void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
 	{
+		const string query = @"
+			update dblive.dbversion
+			set version = @version
+			  , applied_utc = @applied_utc;
+		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(
-			"DbLive.save_migration",
-			new
-			{
-				version = migrationVersion,
-				name = migrationName,
-				created_utc = migrationModificationUtc,
-				modified_utc = migrationModificationUtc
-			},
-			commandType: CommandType.StoredProcedure
-		);
+		cnn.Query(query, new { 
+			version, 
+			applied_utc = migrationCompletedUtc
+		});
 	}
 
-	public void ExecuteNonQuery(string sqlStatement)
+	public void ExecuteNonQuery(
+		string sqlStatement, 
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		TimeSpan? timeout = null
+	)
 	{
 		try
-		{
+		{			
 			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
 			sqlConnection.Open();
-			ServerConnection serverConnection = new(sqlConnection);
+			SetTransactionIsolationLevel(sqlConnection, isolationLevel);
+			ServerConnection serverConnection = new(sqlConnection)
+			{
+				StatementTimeout = GetTimeoutSeconds(timeout)
+			};
 			serverConnection.ExecuteNonQuery(sqlStatement);
 			serverConnection.Disconnect();
 		}
@@ -115,13 +117,39 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public List<SqlResult> ExecuteQueryMultiple(string sqlStatement)
+	private void SetTransactionIsolationLevel(SqlConnection cnn, TranIsolationLevel isolationLevel)
+	{
+		string isolationLevelSql = isolationLevel switch
+		{
+			TranIsolationLevel.Chaos => "READ UNCOMMITTED;",
+			TranIsolationLevel.ReadCommitted => "READ COMMITTED;",
+			TranIsolationLevel.RepeatableRead => "REPEATABLE READ;",
+			TranIsolationLevel.Serializable => "SERIALIZABLE;",
+			TranIsolationLevel.Snapshot => "SNAPSHOT;",
+			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
+		};
+		cnn.Execute($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};");
+	}
+
+	private int GetTimeoutSeconds(TimeSpan? timeout)
+	{
+		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
+	}
+
+	public List<SqlResult> ExecuteQueryMultiple(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	)
 	{
 		try
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
+			
+			SetTransactionIsolationLevel(cnn, isolationLevel);
 
 			using SqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
 
 			cnn.Open();
@@ -301,7 +329,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public void MarkCodeAsApplied(string relativePath, int contentHash, DateTime appliedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query("DbLive.insert_code_state",
+		cnn.Query("dblive.insert_code_state",
 			new
 			{
 				relative_path = relativePath,
@@ -317,7 +345,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.update_code_state",
+			"dblive.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
 			commandType: CommandType.StoredProcedure
 		);
@@ -327,7 +355,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.QueryFirstOrDefault<CodeItemDto>(
-			"DbLive.get_code_item",
+			"dblive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
@@ -337,7 +365,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_migration_item",
+			"dblive.save_migration",
 			new
 			{
 				version = item.Version,
@@ -358,7 +386,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_unit_test_result",
+			"dblive.save_unit_test_result",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -376,7 +404,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		cnn.Query(
-			"DbLive.save_folder_item",
+			"dblive.save_folder_item",
 			new
 			{
 				folder_type = projectFolder.ToString(),

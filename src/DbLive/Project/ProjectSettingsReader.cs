@@ -1,4 +1,5 @@
-﻿namespace DbLive.Project;
+﻿
+namespace DbLive.Project;
 
 public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fileSystem)
 	: ISettingsAccessor
@@ -16,12 +17,16 @@ public class SettingsAccessor(IProjectPathAccessor projectPath, IFileSystem _fil
 			string settingsPath = _projectPath.CombineWith("settings.json");
 			if (_fileSystem.FileExists(settingsPath))
 			{
-				var settingsJson = _fileSystem.FileReadAllText(settingsPath);
-				var loadedSettings = JsonConvert.DeserializeObject<DbLiveSettings>(settingsJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
-				_settings = loadedSettings;
+				string settingsJson = _fileSystem.FileReadAllText(settingsPath);
+				_settings = JsonSerializer.Deserialize<DbLiveSettings>(settingsJson, SettingsTools.JsonSerializerOptions);
+				_settings ??= _defaultSettings;
+			}
+			else
+			{
+				_settings = _defaultSettings;
 			}
 
-			return _settings ?? _defaultSettings;
+			return _settings;
 		}
 	}
 }
