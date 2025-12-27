@@ -1,13 +1,13 @@
 
 namespace DbLive.Tests.Project;
 
-public class MigrationInfoTests
+public class MigrationFileNameParserTests
 {
 	[Fact]
 	public void Throws_When_Version_Is_Not_Number()
 	{
 		Assert.Throws<MigrationVersionParseException>(() =>
-			DbLiveProject.GetMigrationInfo("abc.migration.sql"));
+			MigrationFileNameParser.GetMigrationInfo("abc.migration.sql"));
 	}
 
 	[Theory]
@@ -19,7 +19,7 @@ public class MigrationInfoTests
 	[InlineData("001.b.sql", MigrationItemType.Breaking)]
 	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
 	{
-		var result = DbLiveProject.GetMigrationInfo(file);
+		var result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
 		Assert.Equal(expectedType, result.MigrationItemType);
@@ -31,7 +31,7 @@ public class MigrationInfoTests
 	[InlineData("001.s.json")]
 	public void Parses_Settings_Json_Correctly(string file)
 	{
-		var result = DbLiveProject.GetMigrationInfo(file);
+		var result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(MigrationItemType.Settings, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
@@ -43,7 +43,7 @@ public class MigrationInfoTests
 	public void Throws_When_Settings_Is_Not_Json(string file)
 	{
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
-			DbLiveProject.GetMigrationInfo(file));
+			MigrationFileNameParser.GetMigrationInfo(file));
 	}
 
 	[Theory]
@@ -56,15 +56,16 @@ public class MigrationInfoTests
 	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
 	{
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
-			DbLiveProject.GetMigrationInfo(file));
+			MigrationFileNameParser.GetMigrationInfo(file));
 	}
 
 	[Fact]
 	public void Unknown_Type_With_Sql_Defaults_To_Migration()
 	{
-		var result = DbLiveProject.GetMigrationInfo("003.some-random.sql");
+		var result = MigrationFileNameParser.GetMigrationInfo("003.some-random.sql");
 
 		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
+		Assert.Equal("some-random", result.Name);
 		Assert.Equal(3, result.Version);
 	}
 
@@ -72,20 +73,20 @@ public class MigrationInfoTests
 	public void Unknown_Type_With_Json_Throws_Settings_Exception()
 	{
 		Assert.Throws<UnknownMigrationSettingsException>(() =>
-			DbLiveProject.GetMigrationInfo("004.custom.json"));
+			MigrationFileNameParser.GetMigrationInfo("004.custom.json"));
 	}
 
 	[Fact]
 	public void Throws_When_Extension_Is_Unknown()
 	{
 		Assert.Throws<UnknownMigrationItemTypeException>(() =>
-			DbLiveProject.GetMigrationInfo("001.whatever.txt"));
+			MigrationFileNameParser.GetMigrationInfo("001.whatever.txt"));
 	}
 
 	[Fact]
 	public void Parses_Migration_Name_When_Present()
 	{
-		var result = DbLiveProject.GetMigrationInfo("010.migration.create-users.sql");
+		var result = MigrationFileNameParser.GetMigrationInfo("010.migration.create-users.sql");
 
 		Assert.Equal("create-users", result.Name);
 		Assert.Equal(10, result.Version);
