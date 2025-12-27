@@ -41,7 +41,7 @@ public class SqlXunitTestCase : XunitTestCase
 		if (TestMethodArguments.Length > 0 && TestMethodArguments[0] is not null)
 		{
 			object pathToTestFile = TestMethodArguments[0];
-			return pathToTestFile.ToString();
+			return pathToTestFile.ToString() ?? "?";
 		}
 
 		return base.GetDisplayName(factAttribute, displayName);
