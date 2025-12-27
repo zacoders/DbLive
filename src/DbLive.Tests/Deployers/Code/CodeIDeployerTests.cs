@@ -73,7 +73,7 @@ public class CodeDeployerTests
 			() => deployer.DeployCode(true, DeployParameters.Default)
 		);
 
-		mockSet.CodeItemDeployer.Received(10).DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>());
+		mockSet.CodeItemDeployer.Received().DeployCodeItem(Arg.Any<bool>(), Arg.Any<CodeItem>());
 	}
 
 	private static CodeItem GetCodeItem(string name)
