@@ -71,11 +71,13 @@ public class BreakingChangesDeployerTests
 			Version = 1,
 			Items = new Dictionary<MigrationItemType, MigrationItem>
 			{
-				[MigrationItemType.Migration] = new() {
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("m.1.item.sql", "-- content 1.1")
 				},
-				[MigrationItemType.Breaking] = new() {
+				[MigrationItemType.Breaking] = new()
+				{
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql", "-- content 1.breaking")
 				}
@@ -87,11 +89,13 @@ public class BreakingChangesDeployerTests
 			Version = 2,
 			Items = new Dictionary<MigrationItemType, MigrationItem>
 			{
-				[MigrationItemType.Migration] = new() {
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("m.1.item.sql", "-- content 2.1")
 				},
-				[MigrationItemType.Breaking] = new() {
+				[MigrationItemType.Breaking] = new()
+				{
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql", "-- content 2.breaking")
 				},
@@ -103,7 +107,8 @@ public class BreakingChangesDeployerTests
 			Version = 3,
 			Items = new Dictionary<MigrationItemType, MigrationItem>
 			{
-				[MigrationItemType.Migration] = new() {
+				[MigrationItemType.Migration] = new()
+				{
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("m.1.item.sql", "-- content 3.1")
 				},
@@ -111,7 +116,8 @@ public class BreakingChangesDeployerTests
 				//	MigrationItemType = MigrationItemType.Migration,
 				//	FileData = GetFileData("m.2.item.sql", "-- content 3.2")
 				//},
-				[MigrationItemType.Breaking] = new() {
+				[MigrationItemType.Breaking] = new()
+				{
 					MigrationItemType = MigrationItemType.Breaking,
 					FileData = GetFileData("breaking.sql", "-- content 3.breaking")
 				},

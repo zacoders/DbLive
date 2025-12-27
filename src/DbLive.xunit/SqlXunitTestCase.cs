@@ -28,7 +28,7 @@ public class SqlXunitTestCase : XunitTestCase
 			TestMethodDisplayOptions.None,
 			testMethod
 		)
-	{		
+	{
 		TestFileFullPath = testFileFullPath;
 
 		TestMethodArguments = [testFileRelativePath];

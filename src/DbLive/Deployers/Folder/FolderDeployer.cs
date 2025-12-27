@@ -36,7 +36,7 @@ public class FolderDeployer(
 		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
-		
+
 		_da.ExecuteNonQuery(
 			item.FileData.Content,
 			_projectSettings.TransactionIsolationLevel,
@@ -47,7 +47,7 @@ public class FolderDeployer(
 				_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 			}
 		);
-		
+
 		DateTime completedUtc = _timeProvider.UtcNow();
 
 		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);

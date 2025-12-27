@@ -49,8 +49,8 @@ public class FolderDeployerTests
 
 		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(
-				"Content of file1.sql", 
-				TranIsolationLevel.ReadCommitted, 
+				"Content of file1.sql",
+				TranIsolationLevel.ReadCommitted,
 				TimeSpan.FromHours(6)
 			);
 

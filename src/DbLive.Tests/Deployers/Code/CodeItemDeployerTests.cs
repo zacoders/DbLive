@@ -94,7 +94,7 @@ public class CodeItemDeployerTests
 		};
 
 		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).Returns(codeItemDto);
-		
+
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
@@ -137,7 +137,7 @@ public class CodeItemDeployerTests
 		CodeItem codeItem = GetCodeItem();
 
 		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).ReturnsNull();
-		
+
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		mockSet.DbLiveDA

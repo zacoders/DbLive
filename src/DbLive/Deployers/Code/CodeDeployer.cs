@@ -32,7 +32,7 @@ public class CodeDeployer(
 	internal void DeployGroup(string groupPath, IReadOnlyCollection<CodeItem> codeItems, bool isSelfDeploy, DeployParameters parameters)
 	{
 		var cts = new CancellationTokenSource();
-		
+
 		var queue = new ConcurrentQueue<CodeItem>();
 		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -50,7 +50,7 @@ public class CodeDeployer(
 			);
 			workers[workerId] = worker;
 		}
-	
+
 		Task.WaitAll(workers);
 
 		List<Exception> exceptions = [.. workers.Where(w => w.Result is not null).Select(w => w.Result!)];
@@ -65,11 +65,11 @@ public class CodeDeployer(
 	}
 
 	internal Exception? CreateWorker(
-		bool isSelfDeploy, 
-		int workerId, 
-		int maxRetries, 
-		ConcurrentQueue<CodeItem> queue, 
-		ConcurrentDictionary<string, int> retryCounters, 
+		bool isSelfDeploy,
+		int workerId,
+		int maxRetries,
+		ConcurrentQueue<CodeItem> queue,
+		ConcurrentDictionary<string, int> retryCounters,
 		CancellationTokenSource cts
 	)
 	{
@@ -108,7 +108,7 @@ public class CodeDeployer(
 
 				cts.Cancel();
 
-				return result.Exception;				
+				return result.Exception;
 			}
 
 			_logger.Debug(

@@ -40,8 +40,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	public void ExecuteNonQuery(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	)
 	{
@@ -68,8 +68,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	public List<SqlResult> ExecuteQueryMultiple(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	)
 	{

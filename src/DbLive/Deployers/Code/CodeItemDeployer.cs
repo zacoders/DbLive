@@ -7,7 +7,7 @@ public class CodeItemDeployer(
 		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeItemDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));	
+	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	/// <inheritdoc/>
@@ -73,9 +73,10 @@ public class CodeItemDeployer(
 				CreatedUtc = _timeProvider.UtcNow(),
 				ErrorMessage = ex.ToString()
 			});
-			return new CodeItemDeployResult { 
-				IsSuccess = false, 
-				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex) 
+			return new CodeItemDeployResult
+			{
+				IsSuccess = false,
+				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex)
 			};
 		}
 	}

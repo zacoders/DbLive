@@ -7,14 +7,14 @@ public class MigrationsTests
 	public void TestReadingOfMigrations()
 	{
 		MockSet mockSet = new();
-		
+
 		string projectPath = @"C:/DB/";
 
 		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		
+
 		mockSet.FileSystem.EnumerateFiles(
 			projectPath.CombineWith("Migrations"),
-			Arg.Is<IEnumerable<string>>(a => a.Contains("*.sql") && a.Contains("*.json")), 
+			Arg.Is<IEnumerable<string>>(a => a.Contains("*.sql") && a.Contains("*.json")),
 			true
 		).Returns([
 				@"C:/DB.Migrations/_Old/001.migration.test1.sql",

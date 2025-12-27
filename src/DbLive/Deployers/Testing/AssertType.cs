@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Deployers.Testing;
 
-public enum AssertType 
+public enum AssertType
 {
 	None,
 	Rows,

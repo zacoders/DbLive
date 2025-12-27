@@ -84,20 +84,21 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { 
-			version, 
+		cnn.Query(query, new
+		{
+			version,
 			applied_utc = migrationCompletedUtc
 		});
 	}
 
 	public void ExecuteNonQuery(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	)
 	{
 		try
-		{			
+		{
 			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
 			sqlConnection.Open();
 			SetTransactionIsolationLevel(sqlConnection, isolationLevel);
@@ -143,7 +144,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		try
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
-			
+
 			SetTransactionIsolationLevel(cnn, isolationLevel);
 
 			using SqlCommand cmd = cnn.CreateCommand();

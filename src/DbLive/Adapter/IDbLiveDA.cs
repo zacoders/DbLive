@@ -27,8 +27,8 @@ public interface IDbLiveDA
 
 	/// <exception cref="DbLiveSqlException"/>
 	void ExecuteNonQuery(
-		string sqlStatement, 
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, 
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	);
 
