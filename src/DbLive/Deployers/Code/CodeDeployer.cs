@@ -42,11 +42,14 @@ public class CodeDeployer(
 			retryCounters[item.FileData.FilePath] = 0;
 		}
 
-		Task<Exception?>[] workers = new Task<Exception?>[parameters.NumberOfThreadsForCodeDeploy];
-		for (int workerId = 0; workerId < parameters.NumberOfThreadsForCodeDeploy; workerId++)
+		// Limit the number of workers to the number of code items to avoid creating unnecessary threads
+		int workersCount = Math.Min(parameters.NumberOfThreadsForCodeDeploy, codeItems.Count);
+
+		Task<Exception?>[] workers = new Task<Exception?>[workersCount];
+		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorker(isSelfDeploy, workerId, parameters.MaxCodeDeployRetries, queue, retryCounters, cts), cts.Token
+				=> CreateWorker(isSelfDeploy, parameters.MaxCodeDeployRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
@@ -66,7 +69,6 @@ public class CodeDeployer(
 
 	internal Exception? CreateWorker(
 		bool isSelfDeploy,
-		int workerId,
 		int maxRetries,
 		ConcurrentQueue<CodeItem> queue,
 		ConcurrentDictionary<string, int> retryCounters,
