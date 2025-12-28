@@ -47,3 +47,30 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }
+
+
+public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture fixture)
+	: IClassFixture<MyDbLiveTestingMSSQLFixture>
+{
+	[Theory]
+	[InlineData(false, false)]
+	[InlineData(true, false)]
+	[InlineData(false, true)]
+	[InlineData(true, true)]
+	public async Task Deploy(bool breaking, bool undoTesting)
+	{
+		_output.WriteLine($"Deploying with breaking={breaking}, undoTesting={undoTesting}");
+
+		var deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
+
+		deployer.Deploy(new DeployParameters
+		{
+			CreateDbIfNotExists = true,
+			DeployBreaking = breaking,
+			DeployCode = true,
+			DeployMigrations = true,
+			RunTests = true,
+			UndoTestDeployment = undoTesting
+		});
+	}
+}

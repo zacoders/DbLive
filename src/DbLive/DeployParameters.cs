@@ -52,4 +52,10 @@ public record DeployParameters
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
 	public bool CreateDbIfNotExists { get; set; } = true;
+
+	/// <summary>
+	/// This should be set to true only for testing purposes and should not be used for production.
+	/// This will deploy the database changes and then undo and changes again to test undo scripts.
+	/// </summary>
+	public bool UndoTestDeployment { get; set; } = false;
 }
