@@ -12,25 +12,24 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	private readonly string _masterDbConnectionString;
 
-	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
+	protected static string GetRandomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
 
 	protected readonly string _testingDbName;
 	private readonly bool _keepDatabaseAfterTests;
 
-	protected IDbLive DbLive;
+	protected IDbLive DbLiveDeployer;
 
 	public ITestOutputHelper Output { get; }
 
 	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null, bool keepDatabaseAfterTests = false)
 	{
 		_masterDbConnectionString = masterDbConnectionString;
-		_testingDbName = dbName ?? GetRanomDbName();
+		_testingDbName = dbName ?? GetRandomDbName();
 		_keepDatabaseAfterTests = keepDatabaseAfterTests;
 
 		Output = output;
-		_testingDbName = dbName ?? GetRanomDbName();
 
-		DbLive = new DbLiveBuilder()
+		DbLiveDeployer = new DbLiveBuilder()
 			.LogToXUnitOutput(Output)
 			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()

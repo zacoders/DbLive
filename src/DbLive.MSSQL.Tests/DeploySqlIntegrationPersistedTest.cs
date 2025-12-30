@@ -16,7 +16,7 @@ public class DeploySqlIntegrationPersistedTest(SqlServerIntegrationFixture _fixt
 	[Fact]
 	public void DeployProject_PersistedDbName()
 	{
-		DbLive.Deploy(DeployParameters.Default);
-		DbLive.Deploy(DeployParameters.Breaking);
+		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.Deploy(DeployParameters.Breaking);
 	}
 }

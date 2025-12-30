@@ -11,8 +11,8 @@ public class DeploySqlIntegrationFullBreakingTest(
 	[Fact]
 	public void DeployProject_Full_Plus_Breaking()
 	{
-		DbLive.Deploy(DeployParameters.Default);
+		DbLiveDeployer.Deploy(DeployParameters.Default);
 
-		DbLive.Deploy(DeployParameters.Breaking);
+		DbLiveDeployer.Deploy(DeployParameters.Breaking);
 	}
 }

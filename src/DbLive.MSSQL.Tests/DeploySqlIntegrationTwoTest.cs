@@ -13,9 +13,9 @@ public class DeploySqlIntegrationTwoTest(SqlServerIntegrationFixture _fixture, I
 	{
 		Output.WriteLine("=== deploy up to version 2 ===");
 		DeployParameters parameters = new() { MaxVersionToDeploy = 2, DeployCode = false, RunTests = false };
-		DbLive.Deploy(parameters);
+		DbLiveDeployer.Deploy(parameters);
 
 		Output.WriteLine("=== deploy other ===");
-		DbLive.Deploy(DeployParameters.Default);
+		DbLiveDeployer.Deploy(DeployParameters.Default);
 	}
 }
