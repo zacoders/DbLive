@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.Deployers.Testing;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using DotNet.Testcontainers.Containers;
 using Testcontainers.MsSql;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,11 +17,20 @@ public class MyDbLiveTestingMSSQLFixture()
 	public const string SqlProjectName = "DemoMSSQL";
 	public const string DockerImage = "mcr.microsoft.com/mssql/server:2022-latest";
 
-	private readonly MsSqlContainer _dockerContainer = new MsSqlBuilder().WithImage(DockerImage).Build();
+	private static readonly MsSqlContainer _dockerContainer
+		= new MsSqlBuilder()
+				.WithImage(DockerImage)
+				.WithName("DbLive.DemoMSSQL")
+				.WithReuse(true)
+				.Build();
 
 	public async override Task<IDbLiveBuilder> GetBuilderAsync()
 	{
-		await _dockerContainer.StartAsync();
+		if (_dockerContainer.State != TestcontainersStates.Running)
+		{
+			await _dockerContainer.StartAsync();
+		}
+
 		string masterDbCnnString = _dockerContainer.GetConnectionString();
 		string dbCnnString = masterDbCnnString.SetRandomDatabaseName();
 

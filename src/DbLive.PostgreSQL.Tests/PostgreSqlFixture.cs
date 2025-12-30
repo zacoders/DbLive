@@ -5,9 +5,14 @@ namespace DbLive.PostgreSQL.Tests;
 
 public class PostgreSqlFixture : IAsyncLifetime
 {
-	private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder().WithImage("postgres:latest").Build();
+	private static readonly PostgreSqlContainer _dockerContainer
+		= new PostgreSqlBuilder()
+			.WithImage("postgres:latest")
+			.WithName("DbLive.PostgreSQL.Tests")
+			.WithReuse(true)
+			.Build();
 
-	private static readonly string TestDbNamePrefix = "DbLive--";
+	private static readonly string TestDbNamePrefix = "dblive--";
 
 	public string PostgresDBConnectionString =>
 		_postgresDbConnectionString ?? throw new Exception("Connection string is not found or container is not initialized yet.");
@@ -22,8 +27,8 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 		if (string.IsNullOrWhiteSpace(configuredConnectionString))
 		{
-			await _postgreSqlContainer.StartAsync();
-			_postgresDbConnectionString = _postgreSqlContainer.GetConnectionString();
+			await _dockerContainer.StartAsync();
+			_postgresDbConnectionString = _dockerContainer.GetConnectionString();
 		}
 		else
 		{
@@ -33,6 +38,6 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	public async Task DisposeAsync()
 	{
-		await _postgreSqlContainer.DisposeAsync().AsTask();
+		//await _dockerContainer.DisposeAsync().AsTask();
 	}
 }

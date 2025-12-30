@@ -1,3 +1,5 @@
+using DbLive.Project;
+
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationItemDeployer(
@@ -14,48 +16,50 @@ public class MigrationItemDeployer(
 
 	public void DeployMigrationItem(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
 	{
-		_logger.Information(
-					"Deploying {relativePath}. Type {migrationType}.",
-					migrationItem.FileData.RelativePath,
-					migrationItem.MigrationItemType
-				);
+		DateTime startTimeUtc = _timeProvider.UtcNow();
+		MigrationItemStatus? migrationStatus = null;
 
-		DateTime migrationStartedUtc = _timeProvider.UtcNow();
-
-		DateTime? migrationAppliedUtc = null;
-		long? executionTimeMs = null;
-
-		_da.ExecuteNonQuery(
-			migrationItem.FileData.Content,
-			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.MigrationTimeout
-		);
-
-		migrationAppliedUtc = _timeProvider.UtcNow();
-		executionTimeMs = (long)(migrationAppliedUtc.Value - migrationStartedUtc).TotalMilliseconds;
-
-		if (!isSelfDeploy)
+		try
 		{
-			string content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "";
+			_logger.Information(
+				"Deploying {relativePath}. Type {migrationType}.",
+				migrationItem.FileData.RelativePath,
+				migrationItem.MigrationItemType
+			);
 
-			DateTime createdUtc = _timeProvider.UtcNow();
+			_da.ExecuteNonQuery(
+				migrationItem.FileData.Content,
+				_projectSettings.TransactionIsolationLevel,
+				_projectSettings.MigrationTimeout
+			);
 
-			int crc32Hash = migrationItem.FileData.Crc32Hash;
-
-			MigrationItemDto dto = new()
+			migrationStatus = MigrationItemStatus.Applied;
+		}
+		catch (Exception ex)
+		{
+			migrationStatus = MigrationItemStatus.Failed;
+			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
+		}
+		finally
+		{
+			if (!isSelfDeploy)
 			{
-				Version = migrationVersion,
-				Name = migrationItem.Name,
-				ItemType = migrationItem.MigrationItemType,
-				ContentHash = crc32Hash,
-				Content = content,
-				Status = MigrationItemStatus.Applied,
-				CreatedUtc = createdUtc,
-				AppliedUtc = migrationAppliedUtc,
-				ExecutionTimeMs = executionTimeMs
-			};
+				DateTime migrationEndTime = _timeProvider.UtcNow();				
+				MigrationItemDto dto = new()
+				{
+					Version = migrationVersion,
+					Name = migrationItem.Name,
+					ItemType = migrationItem.MigrationItemType,
+					ContentHash = migrationItem.FileData.Crc32Hash,
+					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
+					Status = migrationStatus!.Value,
+					CreatedUtc = _timeProvider.UtcNow(),
+					AppliedUtc = migrationStatus == MigrationItemStatus.Applied ? migrationEndTime : null,
+					ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
 
-			_da.SaveMigrationItemState(dto);
+				};
+				_da.SaveMigrationItemState(dto);
+			}
 		}
 	}
 
