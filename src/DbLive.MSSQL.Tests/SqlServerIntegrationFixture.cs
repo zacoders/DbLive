@@ -6,7 +6,7 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 {
 	private static readonly MsSqlContainer _dockerContainer
 		= new MsSqlBuilder()
-			.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")
 			.WithName("DbLive.MSSQL.Tests")
 			.WithReuse(true)
 			.Build();

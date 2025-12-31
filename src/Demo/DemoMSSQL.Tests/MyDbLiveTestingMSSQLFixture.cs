@@ -15,7 +15,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
 {
 	public const string SqlProjectName = "DemoMSSQL";
-	public const string DockerImage = "mcr.microsoft.com/mssql/server:2022-latest";
+	public const string DockerImage = "mcr.microsoft.com/mssql/server:2025-latest";
 
 	private static readonly MsSqlContainer _dockerContainer
 		= new MsSqlBuilder()
