@@ -1,9 +1,15 @@
+using DotNet.Testcontainers.Containers;
 using Testcontainers.MsSql;
 namespace DbLive.MSSQL.Tests;
 
 public class SqlServerIntegrationFixture : IAsyncLifetime
 {
-	private readonly MsSqlContainer _msSqlContainer = new MsSqlBuilder().WithImage("mcr.microsoft.com/mssql/server:2022-latest").Build();
+	private static readonly MsSqlContainer _dockerContainer
+		= new MsSqlBuilder()
+			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")
+			.WithName("DbLive.MSSQL.Tests")
+			//.WithReuse(true)
+			.Build();
 
 	public string MasterDbConnectionString =>
 		_masterDbConnectionString ?? throw new Exception("Connection string is not found or container is not initialized yet.");
@@ -16,8 +22,11 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 
 		if (string.IsNullOrWhiteSpace(configuredConnectionString))
 		{
-			await _msSqlContainer.StartAsync();
-			_masterDbConnectionString = _msSqlContainer.GetConnectionString();
+			if (_dockerContainer.State != TestcontainersStates.Running)
+			{
+				await _dockerContainer.StartAsync();
+			}
+			_masterDbConnectionString = _dockerContainer.GetConnectionString();
 		}
 		else
 		{
@@ -27,6 +36,6 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 
 	public async Task DisposeAsync()
 	{
-		await _msSqlContainer.DisposeAsync().AsTask();
+		//await _dockerContainer.DisposeAsync().AsTask();
 	}
 }

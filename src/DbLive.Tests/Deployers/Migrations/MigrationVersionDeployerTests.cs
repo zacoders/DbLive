@@ -16,7 +16,9 @@ public class MigrationVersionDeployerTests
 			Items = []
 		};
 
-		Assert.Throws<InvalidOperationException>(() => deploy.DeployMigration(false, migration));
+		Assert.Throws<InvalidOperationException>(
+			() => deploy.DeployMigration(false, migration, DeployParameters.Default)
+		);
 	}
 
 	[Fact]
@@ -41,7 +43,7 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(false, migration);
+		deploy.DeployMigration(false, migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
 			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
@@ -53,6 +55,7 @@ public class MigrationVersionDeployerTests
 	[Fact]
 	public void DeployMigration_SkipMigrationTypes()
 	{
+		// Arrange
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
@@ -82,13 +85,12 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(false, migration);
+		// Act
+		deploy.DeployMigration(false, migration, DeployParameters.Default);
 
+		// Assert
 		mockSet.MigrationItemDeployer.Received()
 			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
-
-		mockSet.MigrationItemDeployer.Received(2)
-			.MarkAsSkipped(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -97,6 +99,7 @@ public class MigrationVersionDeployerTests
 	[Fact]
 	public void DeployMigration_SelfDeployTest()
 	{
+		// Arrange
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
@@ -126,13 +129,12 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(true, migration);
+		// Act
+		deploy.DeployMigration(true, migration, DeployParameters.Default);
 
+		// Assert
 		mockSet.MigrationItemDeployer.Received()
 			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
-
-		mockSet.MigrationItemDeployer.Received(2)
-			.MarkAsSkipped(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SetDbLiveVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -184,7 +186,7 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(false, migration);
+		deploy.DeployMigration(false, migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
 			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());

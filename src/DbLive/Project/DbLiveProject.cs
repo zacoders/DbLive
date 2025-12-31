@@ -69,10 +69,10 @@ public class DbLiveProject(
 		foreach (IGrouping<int, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
 		{
 			int migrationVersion = migrationGroup.Key;
-			Dictionary<MigrationItemType, MigrationItem> itmes = [];
+			Dictionary<MigrationItemType, MigrationItem> items = [];
 			foreach (var item in migrationGroup)
 			{
-				if (itmes.ContainsKey(item.MigrationItemType))
+				if (items.ContainsKey(item.MigrationItemType))
 				{
 					throw new DuplicateMigrationItemException(migrationVersion, item.MigrationItemType);
 				}
@@ -82,13 +82,23 @@ public class DbLiveProject(
 					Name = item.Name,
 					FileData = _fileSystem.ReadFileData(item.FilePath, _projectPath)
 				};
-				itmes.Add(item.MigrationItemType, migrationItem);
+				items.Add(item.MigrationItemType, migrationItem);
+			}
+
+			if (!items.ContainsKey(MigrationItemType.Migration))
+			{
+				throw new MigrationItemMustExistsException(migrationVersion);
+			}
+
+			if (items.TryGetValue(MigrationItemType.Undo, out MigrationItem? undo) && !items.ContainsKey(MigrationItemType.Migration))
+			{
+				throw new UnexpectedUndoMigrationItemException(migrationVersion, undo.FileData.RelativePath);
 			}
 
 			Migration migration = new()
 			{
 				Version = migrationGroup.Key,
-				Items = itmes
+				Items = items
 			};
 			migrations.Add(migration);
 		}

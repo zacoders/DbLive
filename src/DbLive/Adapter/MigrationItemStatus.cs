@@ -4,5 +4,6 @@ public enum MigrationItemStatus
 {
 	None,
 	Skipped,
-	Applied
+	Applied,
+	Failed
 }

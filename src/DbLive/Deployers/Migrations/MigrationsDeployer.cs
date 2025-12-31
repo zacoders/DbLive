@@ -28,7 +28,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationVersionDeployer.DeployMigration(isSelfDeploy, migration);
+			_migrationVersionDeployer.DeployMigration(isSelfDeploy, migration, parameters);
 		}
 	}
 

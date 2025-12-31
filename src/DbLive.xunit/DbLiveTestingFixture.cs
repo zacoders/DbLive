@@ -15,9 +15,9 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 
 	public async Task InitializeAsync()
 	{
-		IDbLiveBuilder DbLiveBuilder = await GetBuilderAsync();
+		IDbLiveBuilder builder = await GetBuilderAsync();
 
-		_deployer = DbLiveBuilder.CreateDeployer();
+		_deployer = builder.CreateDeployer();
 
 		_deployer.Deploy(new DeployParameters
 		{
@@ -28,7 +28,7 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 			RunTests = false // do not need to run tests, they will be run in VS UI.
 		});
 
-		Tester = DbLiveBuilder.CreateTester();
+		Tester = builder.CreateTester();
 	}
 
 	public Task DisposeAsync()

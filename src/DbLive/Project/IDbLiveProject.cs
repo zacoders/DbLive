@@ -2,9 +2,15 @@
 
 public interface IDbLiveProject
 {
-	//todo: switch from IEnumerable result to readonly collections?
+	/// <summary>
+	/// Gets a read-only list of all available migrations in the current context. Migrations are ordered by their version number in ascending order.
+	/// </summary>
+	/// <returns>A read-only list of <see cref="Migration"/> objects representing the available migrations. The list is empty if no
+	/// migrations are found.</returns>
 	IReadOnlyList<Migration> GetMigrations();
+
 	IEnumerable<CodeGroup> GetCodeGroups();
+
 	IReadOnlyCollection<TestItem> GetTests();
 
 	/// <summary>

@@ -1,4 +1,4 @@
 
-drop index if exists IDX_Users_Name
+drop index dbo.Users.IDX_Users_Name
 
 
