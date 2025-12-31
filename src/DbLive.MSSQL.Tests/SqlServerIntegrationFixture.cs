@@ -8,7 +8,7 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 		= new MsSqlBuilder()
 			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")
 			.WithName("DbLive.MSSQL.Tests")
-			.WithReuse(true)
+			//.WithReuse(true)
 			.Build();
 
 	public string MasterDbConnectionString =>

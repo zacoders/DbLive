@@ -4,7 +4,6 @@ public class BreakingChangesDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		ITimeProvider _timeProvider,
 		IMigrationItemDeployer _migrationItemDeployer
 	) : IBreakingChangesDeployer
 {
@@ -19,53 +18,34 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		var dbItems = _da.GetNonAppliedBreakingMigrationItems();
+		var latestAppliedBreakingVersion =
+			_da.GetMigrations()
+				.Where(m => m.Status == MigrationItemStatus.Applied)
+				.Where(m => m.ItemType == MigrationItemType.Breaking)
+				.Select(m => m.Version)
+				.DefaultIfEmpty(0)
+				.Max();
 
-		if (dbItems.Count == 0) return;
+		var newMigrations = _project.GetMigrations().Where(m => m.Version > latestAppliedBreakingVersion);
 
-		Dictionary<int, MigrationItemDto> breakingToApply =
-			dbItems.ToDictionary(i => i.Version);
-
-		int minVersionOfMigration = breakingToApply.Min(b => b.Value.Version);
-
-		var migrations = _project.GetMigrations().Where(m => m.Version >= minVersionOfMigration);
-
-		foreach (Migration migration in migrations)
+		List<(int Version, MigrationItem Item)> breakingToApply = [];
+		foreach (var migration in newMigrations)
 		{
-			if (!breakingToApply.ContainsKey(migration.Version)) continue;
-
-			MigrationItemDto breakingDto = breakingToApply[migration.Version];
-
-			var breakingChnagesItem = migration.Items[MigrationItemType.Breaking];
-
-			if (breakingChnagesItem.FileData.Crc32Hash != breakingDto.ContentHash)
+			if (migration.Items.TryGetValue(MigrationItemType.Breaking, out var breakingItem))
 			{
-				throw new FileContentChangedException(
-					breakingChnagesItem.FileData.RelativePath,
-					breakingChnagesItem.FileData.Crc32Hash,
-					breakingDto.ContentHash
-				);
-			}
-
-			// TODO: should transaction be configurable?
-			using var tran = TransactionScopeManager.Create();
-			{
-				var stopwatch = _timeProvider.StartNewStopwatch();
-
-				_migrationItemDeployer.DeployMigrationItem(false, migration.Version, breakingChnagesItem);
-
-				stopwatch.Stop();
-
-				breakingDto.ExecutionTimeMs = stopwatch.ElapsedMilliseconds;
-				breakingDto.AppliedUtc = _timeProvider.UtcNow();
-
-				_da.SaveMigrationItemState(breakingDto);
-
-				tran.Complete();
+				breakingToApply.Add((migration.Version, breakingItem));
 			}
 		}
-	}
 
-	//[ExcludeFromCodeCoverage]
-	//private record VersionNameKey(int Version, string Name);
+		if (breakingToApply.Count == 0)
+		{
+			_logger.Information("No breaking changes to apply.");
+			return;
+		}
+
+		foreach (var breaking in breakingToApply)
+		{
+			_migrationItemDeployer.DeployMigrationItem(false, breaking.Version, breaking.Item);
+		}
+	}
 }

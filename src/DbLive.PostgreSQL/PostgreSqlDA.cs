@@ -87,7 +87,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return cnn.ExecuteScalar<int?>(query) ?? 0;
 	}
 
-	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
+	public IReadOnlyCollection<MigrationItemDto> GetMigrations()
 	{
 		const string query = @"
 			select version
@@ -100,10 +100,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , applied_utc
 				 , execution_time_ms
 			from dblive.migration
-			where status != 'applied'
-			  and item_type = 'breakingchange'
 		";
-
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationItemDto>(query).ToList();
 	}

@@ -16,7 +16,7 @@ public class MyDbLiveTestingMSSQLFixture()
 		= new MsSqlBuilder()
 			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")
 			.WithName("DbLive.AdventureWorks")
-			.WithReuse(true)
+			//.WithReuse(true)
 			.Build();
 
 	public async override Task<IDbLiveBuilder> GetBuilderAsync()

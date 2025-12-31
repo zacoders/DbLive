@@ -3,7 +3,7 @@ namespace DbLive.Adapter;
 
 public interface IDbLiveDA
 {
-	IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems();
+	IReadOnlyCollection<MigrationItemDto> GetMigrations();
 
 	int GetCurrentMigrationVersion();
 

@@ -9,7 +9,7 @@ public class PostgreSqlFixture : IAsyncLifetime
 		= new PostgreSqlBuilder()
 			.WithImage("postgres:latest")
 			.WithName("DbLive.PostgreSQL.Tests")
-			.WithReuse(true)
+			//.WithReuse(true)
 			.Build();
 
 	private static readonly string TestDbNamePrefix = "dblive--";

@@ -14,7 +14,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
 
-	public IReadOnlyCollection<MigrationItemDto> GetNonAppliedBreakingMigrationItems()
+	public IReadOnlyCollection<MigrationItemDto> GetMigrations()
 	{
 		const string query = @"
 			select version
@@ -27,8 +27,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , applied_utc
 				 , execution_time_ms
 			from dblive.migration
-			where status != 'applied'
-			  and item_type = 'breakingchange'
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
