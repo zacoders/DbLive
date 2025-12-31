@@ -5,8 +5,8 @@ public class DbLiveSelfDeployer(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		IDbLiveBuilder _builder,
-		IDbLivePaths _paths,
-		IDbLiveDbConnection connection
+		IDbLivePaths _paths
+		//IDbLiveDbConnection connection
 	) : IDbLiveSelfDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
@@ -29,6 +29,7 @@ public class DbLiveSelfDeployer(
 			builder = builder.WithNoLogs();
 		}
 
+		// todo: refactor, this prevents mock and unit test
 		IDbLiveInternalDeployer deployer = ((DbLiveBuilder)builder).CreateInternalDeployer();
 
 		deployer.Deploy(

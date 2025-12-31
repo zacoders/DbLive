@@ -53,8 +53,7 @@ public class MigrationsDeployer(
 
 				migrationsToApply = migrationsToApply
 					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-					.Where(m => m.Version > appliedVersion);
-				//.Where(m => !appliedMigrations.Any(am => am.Version == m.Version)); 
+					.Where(m => m.Version > appliedVersion); 
 			}
 		}
 
