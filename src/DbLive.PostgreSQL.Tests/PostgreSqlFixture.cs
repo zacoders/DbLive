@@ -19,8 +19,6 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	private string? _postgresDbConnectionString;
 
-	protected static string GetRanomDbName() => $"{TestDbNamePrefix}{Guid.NewGuid()}";
-
 	public async Task InitializeAsync()
 	{
 		string? configuredConnectionString = new TestConfig().GetSqlServerConnectionString();
@@ -38,6 +36,6 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	public async Task DisposeAsync()
 	{
-		//await _dockerContainer.DisposeAsync().AsTask();
+		await _dockerContainer.DisposeAsync().AsTask();
 	}
 }

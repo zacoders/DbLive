@@ -1,7 +1,11 @@
 ﻿namespace DbLive;
 
-public interface IDbLiveInternal
+public interface IDbLiveSelfDeployer
 {
-	void SelfDeployProjectInternal();
-	void DeployProjectInternal(bool isSelfDeploy, DeployParameters parameters);
+	void Deploy();
+}
+
+public interface IDbLiveInternalDeployer
+{
+	void Deploy(bool isSelfDeploy, DeployParameters parameters);
 }

@@ -26,4 +26,5 @@ public class DbLiveSettings
 	public TimeSpan AfterDeployFolderTimeout { get; init; } = TimeSpan.FromHours(6);
 	public TimeSpan CodeItemTimeout { get; init; } = TimeSpan.FromSeconds(30);
 	public TimeSpan UnitTestItemTimeout { get; init; } = TimeSpan.FromMinutes(1);
+	public bool LogSelfDeploy { get; internal set; } = false;
 }

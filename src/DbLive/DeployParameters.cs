@@ -5,7 +5,7 @@ public record DeployParameters
 {
 	public static DeployParameters Default => new()
 	{
-		CreateDbIfNotExists = true,
+		CreateDbIfNotExists = true,		
 		DeployBreaking = false,
 		DeployCode = true,
 		DeployMigrations = true,

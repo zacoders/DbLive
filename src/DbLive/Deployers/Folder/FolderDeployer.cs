@@ -28,7 +28,7 @@ public class FolderDeployer(
 			DeployItem(projectFolder, item);
 		}
 
-		_logger.Information("Deployment of the folder {ProjectFolder} successfully completed..", projectFolder);
+		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed..", projectFolder);
 	}
 
 	private void DeployItem(ProjectFolder projectFolder, GenericItem item)

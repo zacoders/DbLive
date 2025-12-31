@@ -23,8 +23,8 @@ public static class Bootstrapper
 		container.AddSingleton<IDbLiveTester, DbLiveTester>();
 		container.AddSingleton<IDbLive, DbLive>();
 		container.AddSingleton<ITransactionRunner, TransactionRunner>();
-		container.AddSingleton<IDbLiveInternal, DbLiveInternal>();
-		container.AddSingleton<IDbLiveInternalManager, DbLiveInternalManager>();
+		container.AddSingleton<IDbLiveInternalDeployer, DbLiveInternalDeployer>();
+		container.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>();
 		container.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>();
 	}
 }
