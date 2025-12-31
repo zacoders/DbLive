@@ -22,4 +22,10 @@ public class DbLiveBuilder : IDbLiveBuilder
 
 		return newBuilder;
 	}
+
+	internal IDbLiveInternalDeployer CreateInternalDeployer()
+	{
+		var serviceProvider = Container.BuildServiceProvider();
+		return serviceProvider.GetService<IDbLiveInternalDeployer>()!;
+	}
 }

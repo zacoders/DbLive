@@ -8,10 +8,10 @@ public class DbLiveTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var DbLive = mockSet.CreateUsingMocks<DbLive>();
+		var dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		// Act
-		DbLive.DropDatabase();
+		dbLive.DropDatabase();
 
 		// Assert
 		mockSet.DbLiveDA.Received().DropDB();
@@ -23,9 +23,9 @@ public class DbLiveTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveInternal.SelfDeployProjectInternal();
+		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
 
-		var DbLive = mockSet.CreateUsingMocks<DbLive>();
+		var dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -33,12 +33,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		DbLive.Deploy(parameters);
+		dbLive.Deploy(parameters);
 
 		// Assert
 		mockSet.DbLiveDA.Received().CreateDB();
-		mockSet.DbLiveInternal.Received().SelfDeployProjectInternal();
-		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveSelfDeployer.Received().Deploy();
+		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(false), Arg.Is(parameters));
 	}
 
 
@@ -48,9 +48,7 @@ public class DbLiveTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveInternal.SelfDeployProjectInternal();
-
-		var DbLive = mockSet.CreateUsingMocks<DbLive>();
+		var dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -58,11 +56,11 @@ public class DbLiveTests
 		};
 
 		// Act
-		DbLive.Deploy(parameters);
+		dbLive.Deploy(parameters);
 
 		// Assert
 		mockSet.DbLiveDA.DidNotReceive().CreateDB();
-		mockSet.DbLiveInternal.Received().SelfDeployProjectInternal();
-		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveSelfDeployer.Received().Deploy();
+		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(false), Arg.Is(parameters));
 	}
 }

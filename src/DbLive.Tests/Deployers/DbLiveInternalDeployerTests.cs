@@ -1,34 +1,8 @@
 namespace DbLive.Tests.Deployers;
 
-public class DbLiveInternalTests
+public class DbLiveInternalDeployerTests
 {
-	[Fact]
-	public void SelfDeployProjectInternal()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		DeployParameters selfDeployParameters = new()
-		{
-			CreateDbIfNotExists = true,
-			DeployBreaking = false,
-			DeployCode = true,
-			DeployMigrations = true,
-			RunTests = true
-		};
-
-		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
-
-		mockSet.SelfDeployer.CreateDbLiveInternal().Returns(mockSet.DbLiveInternal);
-
-		// Act
-		DbLive.SelfDeployProjectInternal();
-
-		// Assert
-		mockSet.SelfDeployer.Received().CreateDbLiveInternal();
-		mockSet.DbLiveInternal.Received().DeployProjectInternal(Arg.Is(true), Arg.Is(selfDeployParameters));
-	}
-
+	
 
 	[Fact]
 	public void DeployProjectInternal_ProjectSettingsTest()
@@ -43,12 +17,12 @@ public class DbLiveInternalTests
 			DeploymentTimeout = TimeSpan.FromHours(5)
 		});
 
-		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		DbLive.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
+		dbLive.Deploy(isSelfDeploy, DeployParameters.Default);
 
 		// Assert
 		mockSet.TransactionRunner.Received()
@@ -74,12 +48,12 @@ public class DbLiveInternalTests
 			DeploymentTimeout = TimeSpan.FromHours(15)
 		});
 
-		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		DbLive.DeployProjectInternal(isSelfDeploy, DeployParameters.Default);
+		dbLive.Deploy(isSelfDeploy, DeployParameters.Default);
 
 		// Assert
 		mockSet.TransactionRunner.Received()
@@ -107,12 +81,12 @@ public class DbLiveInternalTests
 			RunTests = true
 		};
 
-		var DbLive = mockSet.CreateUsingMocks<DbLiveInternal>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
 
 		bool isSelfDeploy = true;
 
 		// Act
-		DbLive.DeployProjectInternal(isSelfDeploy, parameters);
+		dbLive.Deploy(isSelfDeploy, parameters);
 
 		// Assert
 		mockSet.FolderDeployer.Received().DeployFolder(Arg.Is(ProjectFolder.BeforeDeploy), Arg.Is(parameters));

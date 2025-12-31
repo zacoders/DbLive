@@ -27,8 +27,8 @@ public class MockSet
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IDbLiveBuilder DbLiveBuilder = Substitute.For<IDbLiveBuilder>();
-	public readonly IDbLiveInternal DbLiveInternal = Substitute.For<IDbLiveInternal>();
-	public readonly IDbLiveInternalManager SelfDeployer = Substitute.For<IDbLiveInternalManager>();
+	public readonly IDbLiveInternalDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveInternalDeployer>();
+	public readonly IDbLiveSelfDeployer DbLiveSelfDeployer = Substitute.For<IDbLiveSelfDeployer>();
 	public readonly IUnitTestResultChecker UnitTestResultChecker = Substitute.For<IUnitTestResultChecker>();
 
 	public MockSet()

@@ -4,6 +4,13 @@ namespace DbLive;
 [ExcludeFromCodeCoverage]
 public static class DbLiveBuilderExtensions
 {
+	public static IDbLiveBuilder WithNoLogs(this IDbLiveBuilder builder)
+	{
+		var logger = Serilog.Core.Logger.None;
+		builder.Container.AddSingleton<ILogger>(logger);
+		return builder;
+	}
+
 	public static IDbLiveBuilder LogToConsole(this IDbLiveBuilder builder)
 	{
 		// todo: if LogToConsole() is not called builder is failing.
@@ -49,13 +56,7 @@ public static class DbLiveBuilderExtensions
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IDbLive>()!;
 	}
-
-	public static IDbLiveInternal CreateSelfDeployer(this IDbLiveBuilder builder)
-	{
-		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IDbLiveInternal>()!;
-	}
-
+	
 	internal static IDbLiveDA CreateDbLiveDA(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
