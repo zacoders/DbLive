@@ -16,8 +16,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		Container.InitializePostgreSQL();
 		Container.InitializeDbLive();
 
-		var testConfig = new TestConfig();
-		var cnn = new DbLiveDbConnection(testConfig.GetPostgresConnectionString() ?? _fixture.PostgresDBConnectionString);
+		var cnn = new DbLiveDbConnection(_fixture.PostgresDBConnectionString);
 		Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
 

@@ -18,20 +18,11 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		string? configuredConnectionString = new TestConfig().GetSqlServerConnectionString();
-
-		if (string.IsNullOrWhiteSpace(configuredConnectionString))
+		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
-			if (_dockerContainer.State != TestcontainersStates.Running)
-			{
-				await _dockerContainer.StartAsync();
-			}
-			_masterDbConnectionString = _dockerContainer.GetConnectionString();
+			await _dockerContainer.StartAsync();
 		}
-		else
-		{
-			_masterDbConnectionString = configuredConnectionString;
-		}
+		_masterDbConnectionString = _dockerContainer.GetConnectionString();
 	}
 
 	public async Task DisposeAsync()
