@@ -221,4 +221,23 @@ public class MigrationsTests
 			]);
 		Assert.Throws<UnknownMigrationItemTypeException>(sqlProject.GetMigrations);
 	}
+
+	[Fact]
+	public void GetMigrations_Throws_when_migration_item_is_missing()
+	{
+		// arrange
+		MockSet mockSet = new();
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
+			.Returns([
+				@"C:/DB/Migrations/005.undo.sql",
+			@"C:/DB/Migrations/005.breaking.sql"
+			]);
+
+		// act + assert
+		Assert.Throws<MigrationItemMustExistsException>(sqlProject.GetMigrations);
+	}
 }

@@ -90,11 +90,6 @@ public class DbLiveProject(
 				throw new MigrationItemMustExistsException(migrationVersion);
 			}
 
-			if (items.TryGetValue(MigrationItemType.Undo, out MigrationItem? undo) && !items.ContainsKey(MigrationItemType.Migration))
-			{
-				throw new UnexpectedUndoMigrationItemException(migrationVersion, undo.FileData.RelativePath);
-			}
-
 			Migration migration = new()
 			{
 				Version = migrationGroup.Key,
