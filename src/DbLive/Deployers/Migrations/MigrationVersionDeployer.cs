@@ -13,7 +13,7 @@ public class MigrationVersionDeployer(
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationVersionDeployer));
 	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigration(bool isSelfDeploy, Migration migration, DeployParameters parameters)
+	public void DeployMigration(Migration migration, DeployParameters parameters)
 	{
 		if (migration.Items.Count == 0)
 		{
@@ -36,40 +36,33 @@ public class MigrationVersionDeployer(
 			migrationSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
 			migrationSettings.TransactionIsolationLevel!.Value,
 			migrationSettings.MigrationTimeout!.Value,
-			() => DeployInternal(isSelfDeploy, migration, parameters)
+			() => DeployInternal(migration, parameters)
 		);
 	}
 
-	internal void DeployInternal(bool isSelfDeploy, Migration migration, DeployParameters parameters)
+	internal void DeployInternal(Migration migration, DeployParameters parameters)
 	{
 		migration.Items.TryGetValue(MigrationItemType.Migration, out var migrationItem);
 		migration.Items.TryGetValue(MigrationItemType.Undo, out var undoItem);
 
 		if (migrationItem is null)
 		{
-			throw new InternalException("Migration item must be specified.");	
+			throw new InternalException("Migration item must be specified.");
 		}
-		
+
 		if (parameters.UndoTestDeployment && undoItem is not null)
 		{
-			_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, migrationItem);
-			_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, undoItem);
-			_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, migrationItem);
+			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+			_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
 		}
 		else
 		{
-			_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, migrationItem);
+			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
 		}
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
-		if (isSelfDeploy)
-		{
-			_da.SetDbLiveVersion(migration.Version, migrationCompletedUtc);
-		}
-		else
-		{
-			_da.SaveCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
-		}
+		_da.SaveCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
 	}
 }

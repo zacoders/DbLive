@@ -4,11 +4,11 @@ public class UnitTestItemRunner(
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		IUnitTestResultChecker _unitTestResultChecker,
-		ISettingsAccessor projectSettingsAccessor
+		ISettingsAccessor _projectSettingsAccessor
 	) : IUnitTestItemRunner
 {
 
-	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
+	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	public TestRunResult RunTest(TestItem test)
 	{

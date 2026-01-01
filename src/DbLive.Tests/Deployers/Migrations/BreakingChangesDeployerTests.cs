@@ -18,7 +18,7 @@ public class BreakingChangesDeployerTests
 		mockSet.DbLiveDA.DidNotReceive().GetMigrations();
 		mockSet.DbLiveProject.DidNotReceive().GetMigrations();
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(Arg.Any<bool>(), Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -51,7 +51,7 @@ public class BreakingChangesDeployerTests
 
 		// Assert
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(Arg.Any<bool>(), Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployMigrationItem(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -107,10 +107,10 @@ public class BreakingChangesDeployerTests
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(false, 3, migration3.Items[MigrationItemType.Breaking]);
+			.DeployMigrationItem(3, migration3.Items[MigrationItemType.Breaking]);
 
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(false, 2, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(2, Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -158,10 +158,10 @@ public class BreakingChangesDeployerTests
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer
-				.DeployMigrationItem(false, 1, migration1.Items[MigrationItemType.Breaking]);
+				.DeployMigrationItem(1, migration1.Items[MigrationItemType.Breaking]);
 
 			mockSet.MigrationItemDeployer
-				.DeployMigrationItem(false, 2, migration2.Items[MigrationItemType.Breaking]);
+				.DeployMigrationItem(2, migration2.Items[MigrationItemType.Breaking]);
 		});
 	}
 

@@ -45,7 +45,7 @@ public class BreakingChangesDeployer(
 
 		foreach (var breaking in breakingToApply)
 		{
-			_migrationItemDeployer.DeployMigrationItem(false, breaking.Version, breaking.Item);
+			_migrationItemDeployer.DeployMigrationItem(breaking.Version, breaking.Item);
 		}
 	}
 }

@@ -56,7 +56,7 @@ public static class DbLiveBuilderExtensions
 		var serviceProvider = builder.Container.BuildServiceProvider();
 		return serviceProvider.GetService<IDbLive>()!;
 	}
-	
+
 	internal static IDbLiveDA CreateDbLiveDA(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();

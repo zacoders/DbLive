@@ -1,7 +1,6 @@
+namespace DbLive.Deployers;
 
-namespace DbLive;
-
-public class DbLiveInternalDeployer(
+public class DbLiveDeployer(
 		ICodeDeployer _codeDeployer,
 		IBreakingChangesDeployer _breakingChangesDeployer,
 		IMigrationsDeployer _migrationsDeployer,
@@ -10,11 +9,11 @@ public class DbLiveInternalDeployer(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner
-	) : IDbLiveInternalDeployer
+	) : IDbLiveDeployer
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveInternalDeployer));
+	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
 
-	public void Deploy(bool isSelfDeploy, DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		_logger.Information("Starting project deploy.");
 
@@ -28,9 +27,9 @@ public class DbLiveInternalDeployer(
 			{
 				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
 
-				_migrationsDeployer.DeployMigrations(isSelfDeploy, parameters);
+				_migrationsDeployer.DeployMigrations(parameters);
 
-				_codeDeployer.DeployCode(isSelfDeploy, parameters);
+				_codeDeployer.DeployCode(parameters);
 
 				_breakingChangesDeployer.DeployBreakingChanges(parameters);
 

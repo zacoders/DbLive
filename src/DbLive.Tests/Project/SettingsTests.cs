@@ -8,7 +8,7 @@ public class SettingsTests
 		MockSet mockSet = new();
 
 		string projectPath = @"C:/DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		string settingsPath = projectPath.CombineWith("settings.json");
 
@@ -39,7 +39,7 @@ public class SettingsTests
 		MockSet mockSet = new();
 
 		string projectPath = @"C:/DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		string settingsPath = projectPath.CombineWith("settings.json");
 

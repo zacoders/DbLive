@@ -7,7 +7,7 @@ public class SqlTestingTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		mockSet.FileSystem.EnumerateDirectories(Arg.Any<IEnumerable<string>>(), "*", SearchOption.AllDirectories)
 			.Returns([
@@ -29,7 +29,7 @@ public class SqlTestingTests
 		MockSet mockSet = new();
 
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		string testsFolderPath = @"C:/DB/Tests/";
 
@@ -87,7 +87,7 @@ public class SqlTestingTests
 		MockSet mockSet = new();
 
 		string projectPath = @"C:/DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		string testsFolderPath = projectPath.CombineWith("Tests");
 

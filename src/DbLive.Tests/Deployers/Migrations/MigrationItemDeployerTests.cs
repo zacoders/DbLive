@@ -30,7 +30,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, 1, migrationItem);
+		deploy.MarkAsSkipped(1, migrationItem);
 
 
 		// Assert
@@ -76,7 +76,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.MarkAsSkipped(false, 1, migrationItem);
+		deploy.MarkAsSkipped(1, migrationItem);
 
 
 		// Assert
@@ -94,36 +94,6 @@ public class MigrationItemDeployerTests
 		Assert.Equal(utcNow, savedDto.CreatedUtc);
 		Assert.Null(savedDto.ExecutionTimeMs);
 	}
-
-
-	[Fact]
-	public void MarkAsSkipped_MigrationItem_SelfDeploy()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = new FileData
-			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql",
-				FilePath = "c:/db/migrations/001.demo/m.1.sql"
-			}
-		};
-
-		// Act
-		deploy.MarkAsSkipped(true, 1, migrationItem);
-
-
-		// Assert
-		mockSet.DbLiveDA.DidNotReceive()
-			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
-	}
-
 
 	[Fact]
 	public void DeployMigrationItem_Migration()
@@ -154,7 +124,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, 1, migrationItem);
+		deploy.DeployMigrationItem(1, migrationItem);
 
 
 		// Assert
@@ -213,7 +183,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(false, 1, undoItem);
+		deploy.DeployMigrationItem(1, undoItem);
 
 
 		// Assert
@@ -240,44 +210,5 @@ public class MigrationItemDeployerTests
 		Assert.Equal(1715229887, savedDto.ContentHash);
 		Assert.Equal(utcNow3, savedDto.CreatedUtc);
 		Assert.Equal(2000, savedDto.ExecutionTimeMs);
-	}
-
-
-	[Fact]
-	public void DeployMigrationItem_SelfDeploy()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = new FileData
-			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql",
-				FilePath = "c:/db/migrations/001.demo/m.1.sql"
-			}
-		};
-
-		// Act
-		deploy.DeployMigrationItem(true, 1, migrationItem);
-
-
-		// Assert
-		//mockSet.TransactionRunner.Received()
-		//	.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
-
-		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(
-				Arg.Is(migrationItem.FileData.Content),
-				TranIsolationLevel.ReadCommitted,
-				TimeSpan.FromHours(12)
-			);
-
-		mockSet.DbLiveDA.DidNotReceive()
-			.SaveMigrationItemState(Arg.Any<MigrationItemDto>());
 	}
 }

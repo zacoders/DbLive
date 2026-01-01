@@ -36,7 +36,7 @@ public class MyDbLiveTestingMSSQLFixture()
 
 		// or just local sql server
 		//string dbCnnString = "Server=localhost;Database=master;Trusted_Connection=True;".SetRandomDatabaseName();
-		
+
 		return new DbLiveBuilder()
 			.LogToConsole()
 			.SqlServer()

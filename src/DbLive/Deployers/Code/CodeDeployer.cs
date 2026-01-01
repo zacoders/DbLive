@@ -12,7 +12,7 @@ public class CodeDeployer(
 	private readonly IDbLiveProject _project = project;
 	private readonly ICodeItemDeployer _codeItemDeployer = codeItemDeployer;
 
-	public void DeployCode(bool isSelfDeploy, DeployParameters parameters)
+	public void DeployCode(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -23,13 +23,13 @@ public class CodeDeployer(
 
 		foreach (CodeGroup group in _project.GetCodeGroups())
 		{
-			DeployGroup(group.Path, group.CodeItems, isSelfDeploy, parameters);
+			DeployGroup(group.Path, group.CodeItems, parameters);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
 	}
 
-	internal void DeployGroup(string groupPath, IReadOnlyCollection<CodeItem> codeItems, bool isSelfDeploy, DeployParameters parameters)
+	internal void DeployGroup(string groupPath, IReadOnlyCollection<CodeItem> codeItems, DeployParameters parameters)
 	{
 		var cts = new CancellationTokenSource();
 
@@ -49,7 +49,7 @@ public class CodeDeployer(
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorker(isSelfDeploy, parameters.MaxCodeDeployRetries, queue, retryCounters, cts)
+				=> CreateWorker(parameters.MaxCodeDeployRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
@@ -68,7 +68,6 @@ public class CodeDeployer(
 	}
 
 	internal Exception? CreateWorker(
-		bool isSelfDeploy,
 		int maxRetries,
 		ConcurrentQueue<CodeItem> queue,
 		ConcurrentDictionary<string, int> retryCounters,
@@ -86,7 +85,7 @@ public class CodeDeployer(
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
-			CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(isSelfDeploy, codeItem);
+			CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(codeItem);
 
 			if (result.IsSuccess)
 			{

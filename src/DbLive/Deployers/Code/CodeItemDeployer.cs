@@ -11,23 +11,20 @@ public class CodeItemDeployer(
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	/// <inheritdoc/>
-	public CodeItemDeployResult DeployCodeItem(bool isSelfDeploy, CodeItem codeItem)
+	public CodeItemDeployResult DeployCodeItem(CodeItem codeItem)
 	{
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{
-			if (!isSelfDeploy)
-			{
-				CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
+			CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
 
-				if (codeItemDto != null
-					&& codeItemDto.ContentHash == codeItem.FileData.Crc32Hash
-					&& codeItemDto.Status == CodeItemStatus.Applied)
-				{
-					_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
-					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
-					return CodeItemDeployResult.Success();
-				}
+			if (codeItemDto != null
+				&& codeItemDto.ContentHash == codeItem.FileData.Crc32Hash
+				&& codeItemDto.Status == CodeItemStatus.Applied)
+			{
+				_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+				_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
+				return CodeItemDeployResult.Success();
 			}
 
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
@@ -41,19 +38,16 @@ public class CodeItemDeployer(
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
 
-			if (!isSelfDeploy)
+			_da.SaveCodeItem(new CodeItemDto()
 			{
-				_da.SaveCodeItem(new CodeItemDto()
-				{
-					RelativePath = codeItem.FileData.RelativePath,
-					Status = CodeItemStatus.Applied,
-					ContentHash = codeItem.FileData.Crc32Hash,
-					AppliedUtc = appliedUtc,
-					ExecutionTimeMs = executionTimeMs,
-					CreatedUtc = _timeProvider.UtcNow(),
-					ErrorMessage = ""
-				});
-			}
+				RelativePath = codeItem.FileData.RelativePath,
+				Status = CodeItemStatus.Applied,
+				ContentHash = codeItem.FileData.Crc32Hash,
+				AppliedUtc = appliedUtc,
+				ExecutionTimeMs = executionTimeMs,
+				CreatedUtc = _timeProvider.UtcNow(),
+				ErrorMessage = ""
+			});
 
 			return CodeItemDeployResult.Success();
 		}

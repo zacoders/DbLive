@@ -9,7 +9,7 @@ public class MigrationsDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 
-	public void DeployMigrations(bool isSelfDeploy, DeployParameters parameters)
+	public void DeployMigrations(DeployParameters parameters)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -18,7 +18,7 @@ public class MigrationsDeployer(
 
 		_logger.Information("Deploying migrations.");
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(isSelfDeploy, parameters);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(parameters);
 
 		if (migrationsToApply.Count() == 0)
 		{
@@ -28,34 +28,21 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationVersionDeployer.DeployMigration(isSelfDeploy, migration, parameters);
+			_migrationVersionDeployer.DeployMigration(migration, parameters);
 		}
 	}
 
-	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(bool isSelfDeploy, DeployParameters parameters)
+	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(DeployParameters parameters)
 	{
 		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
-		if (_da.DbLiveInstalled())
-		{
-			if (isSelfDeploy)
-			{
-				int appliedVersion = _da.GetDbLiveVersion();
-				migrationsToApply = migrationsToApply
-					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-					.Where(m => m.Version > appliedVersion);
-			}
-			else
-			{
-				var appliedVersion = _da.GetCurrentMigrationVersion();
+		var appliedVersion = _da.GetCurrentMigrationVersion();
 
-				_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
+		_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
 
-				migrationsToApply = migrationsToApply
-					.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-					.Where(m => m.Version > appliedVersion); 
-			}
-		}
+		migrationsToApply = migrationsToApply
+			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
+			.Where(m => m.Version > appliedVersion);
 
 		return migrationsToApply.OrderBy(m => m.Version);
 	}

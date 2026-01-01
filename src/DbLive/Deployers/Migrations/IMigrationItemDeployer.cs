@@ -2,6 +2,6 @@
 
 public interface IMigrationItemDeployer
 {
-	void DeployMigrationItem(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem);
-	void MarkAsSkipped(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem);
+	void DeployMigrationItem(int migrationVersion, MigrationItem migrationItem);
+	void MarkAsSkipped(int migrationVersion, MigrationItem migrationItem);
 }

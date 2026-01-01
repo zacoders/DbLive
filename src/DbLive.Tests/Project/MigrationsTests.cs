@@ -10,7 +10,7 @@ public class MigrationsTests
 
 		string projectPath = @"C:/DB/";
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		mockSet.FileSystem.EnumerateFiles(
 			projectPath.CombineWith("Migrations"),
@@ -38,7 +38,7 @@ public class MigrationsTests
 	public void TestReadingOfMigrations_Duplicate()
 	{
 		MockSet mockSet = new();
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -56,7 +56,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -72,7 +72,7 @@ public class MigrationsTests
 	public void GetMigrationsToApply()
 	{
 		MockSet mockSet = new();
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -98,7 +98,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -121,7 +121,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -145,7 +145,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -189,7 +189,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -208,7 +208,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -220,5 +220,24 @@ public class MigrationsTests
 				@"C:/DB/Migrations/003.breaking.sql"
 			]);
 		Assert.Throws<UnknownMigrationItemTypeException>(sqlProject.GetMigrations);
+	}
+
+	[Fact]
+	public void GetMigrations_Throws_when_migration_item_is_missing()
+	{
+		// arrange
+		MockSet mockSet = new();
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+
+		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
+			.Returns([
+				@"C:/DB/Migrations/005.undo.sql",
+			@"C:/DB/Migrations/005.breaking.sql"
+			]);
+
+		// act + assert
+		Assert.Throws<MigrationItemMustExistsException>(sqlProject.GetMigrations);
 	}
 }

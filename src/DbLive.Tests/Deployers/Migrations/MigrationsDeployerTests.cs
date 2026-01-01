@@ -31,7 +31,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetCurrentMigrationVersion()
 			.Returns(2);
 
-		var migrations = deploy.GetMigrationsToApply(false, DeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply(DeployParameters.Default).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
@@ -63,93 +63,11 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 		deployParams.MaxVersionToDeploy = 3;
 
-		var migrations = deploy.GetMigrationsToApply(false, deployParams).ToArray();
+		var migrations = deploy.GetMigrationsToApply(deployParams).ToArray();
 
 		Assert.Single(migrations);
 
 		Assert.Equal(3, migrations[0].Version);
-	}
-
-	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_DbLiveIsNotInstalled()
-	{
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
-
-		mockSet.DbLiveProject.GetMigrations()
-			.Returns(
-			[
-				NewMigration(1),
-				NewMigration(2),
-				NewMigration(2),
-				NewMigration(3)
-			]);
-
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
-
-		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
-
-		Assert.Equal(4, migrations.Length);
-	}
-
-	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_DbLiveInstalled()
-	{
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
-
-		mockSet.DbLiveProject.GetMigrations()
-			.Returns(
-			[
-				NewMigration(1),
-				NewMigration(2),
-				NewMigration(2),
-				NewMigration(3)
-			]);
-
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
-
-		var migrations = deploy.GetMigrationsToApply(true, DeployParameters.Default).ToArray();
-
-		Assert.Equal(3, migrations.Length);
-
-		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal(2, migrations[1].Version);
-		Assert.Equal(3, migrations[2].Version);
-	}
-
-
-	[Fact]
-	public void GetMigrationsToApply_SelfDeploy_DbLiveInstalled_MaxVersionToDeploySpecified()
-	{
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
-
-		mockSet.DbLiveProject.GetMigrations()
-			.Returns(
-			[
-				NewMigration(1),
-				NewMigration(2),
-				NewMigration(2),
-				NewMigration(3)
-			]);
-
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
-
-		var deployParams = DeployParameters.Default;
-		deployParams.MaxVersionToDeploy = 2;
-
-		var migrations = deploy.GetMigrationsToApply(true, deployParams).ToArray();
-
-		Assert.Equal(2, migrations.Length);
-		Assert.Equal(2, migrations[0].Version);
-		Assert.Equal(2, migrations[1].Version);
 	}
 
 
@@ -177,11 +95,11 @@ public class MigrationsDeployerTests
 		deployParams.MaxVersionToDeploy = 2;
 
 		// Act
-		deploy.DeployMigrations(false, deployParams);
+		deploy.DeployMigrations(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.Received(3)
-			.DeployMigration(Arg.Is(false), Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -202,12 +120,12 @@ public class MigrationsDeployerTests
 		deployParams.MaxVersionToDeploy = 2;
 
 		// Act
-		deploy.DeployMigrations(false, deployParams);
+		deploy.DeployMigrations(deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Is(false), Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -235,10 +153,10 @@ public class MigrationsDeployerTests
 		deployParams.DeployMigrations = false;
 
 		// Act
-		deploy.DeployMigrations(false, deployParams);
+		deploy.DeployMigrations(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Any<bool>(), Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 }

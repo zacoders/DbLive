@@ -17,7 +17,7 @@ public class MigrationVersionDeployerTests
 		};
 
 		Assert.Throws<InvalidOperationException>(
-			() => deploy.DeployMigration(false, migration, DeployParameters.Default)
+			() => deploy.DeployMigration(migration, DeployParameters.Default)
 		);
 	}
 
@@ -43,10 +43,10 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(false, migration, DeployParameters.Default);
+		deploy.DeployMigration(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
+			.DeployMigrationItem( 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -86,58 +86,14 @@ public class MigrationVersionDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
 		// Act
-		deploy.DeployMigration(false, migration, DeployParameters.Default);
+		deploy.DeployMigration(migration, DeployParameters.Default);
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
-	}
-
-	[Fact]
-	public void DeployMigration_SelfDeployTest()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		Migration migration = new()
-		{
-			Version = 1,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
-			{
-				[MigrationItemType.Migration] = new()
-				{
-					MigrationItemType = MigrationItemType.Migration,
-					FileData = GetFileData("item1.sql")
-				},
-				[MigrationItemType.Undo] = new()
-				{
-					MigrationItemType = MigrationItemType.Undo,
-					FileData = GetFileData("undo.sql")
-				},
-				[MigrationItemType.Breaking] = new()
-				{
-					MigrationItemType = MigrationItemType.Breaking,
-					FileData = GetFileData("breaking.sql")
-				}
-			}
-		};
-
-		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
-
-		// Act
-		deploy.DeployMigration(true, migration, DeployParameters.Default);
-
-		// Assert
-		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
-
-		mockSet.DbLiveDA.Received()
-			.SetDbLiveVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	private static FileData GetFileData(string relativePath, string content = "-- default item content")
@@ -186,10 +142,10 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(false, migration, DeployParameters.Default);
+		deploy.DeployMigration(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(Arg.Any<bool>(), 1, Arg.Any<MigrationItem>());
+			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));

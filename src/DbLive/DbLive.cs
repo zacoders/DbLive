@@ -1,9 +1,12 @@
+using DbLive.Deployers;
+using DbLive.SelfDeployer;
+
 namespace DbLive;
 
 public class DbLive(
 		IDbLiveDA _da,
 		ILogger _logger,
-		IDbLiveInternalDeployer _internalDeployer,
+		IDbLiveDeployer _internalDeployer,
 		IDbLiveSelfDeployer _selfDeployer
 	) : IDbLive
 {
@@ -22,7 +25,7 @@ public class DbLive(
 		_selfDeployer.Deploy();
 
 		// Deploy actual project
-		_internalDeployer.Deploy(false, parameters);
+		_internalDeployer.Deploy(parameters);
 	}
 
 	public void DropDatabase(bool skipIfNotExists = true)
