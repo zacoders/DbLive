@@ -62,13 +62,15 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 	: IClassFixture<MyDbLiveTestingMSSQLFixture>
 {
 	[Theory]
-	[InlineData(false, false)]
-	[InlineData(true, false)]
-	[InlineData(false, true)]
-	[InlineData(true, true)]
-	public async Task Deploy(bool breaking, bool undoTesting)
+	[InlineData(false, UndoTestMode.None)]
+	[InlineData(true, UndoTestMode.None)]
+	[InlineData(false, UndoTestMode.MigrationUndoMigration)]
+	[InlineData(true, UndoTestMode.MigrationUndoMigration)]
+	[InlineData(false, UndoTestMode.MigrationBreakingUndoMigration)]
+	[InlineData(true, UndoTestMode.MigrationBreakingUndoMigration)]
+	public async Task Deploy(bool breaking, UndoTestMode undoTestingMode)
 	{
-		_output.WriteLine($"Deploying with breaking={breaking}, undoTesting={undoTesting}");
+		_output.WriteLine($"Deploying with breaking={breaking}, undoTestingMode={undoTestingMode}");
 
 		DbLiveBuilder builder = await fixture.GetBuilderAsync();
 		builder.LogToXUnitOutput(_output);
@@ -81,7 +83,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 			DeployCode = true,
 			DeployMigrations = true,
 			RunTests = true,
-			UndoTestDeployment = undoTesting
+			UndoTestDeployment = undoTestingMode
 		});
 	}
 }

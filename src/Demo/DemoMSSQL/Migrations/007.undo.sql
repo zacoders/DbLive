@@ -18,12 +18,15 @@ begin tran
 		add PhoneNumber varchar(32) null 
 
 		-- reverting data back
-		update p
-		set PhoneNumber = pp.PhoneNumber
-		  , ModifiedUtc = sysutcdatetime()
-		from dbo.Person p 
-			join dbo.PersonPhones pp on pp.PersonId = p.PersonId
-									and pp.IsPrimary = 1
+		-- dynamics sql used to avoid 'Invalid column name PhoneNumber' error.
+		exec('
+			update p
+			set PhoneNumber = pp.PhoneNumber
+			  , ModifiedUtc = sysutcdatetime()
+			from dbo.Person p 
+				join dbo.PersonPhones pp on pp.PersonId = p.PersonId
+										and pp.IsPrimary = 1
+		')
 	end
 
 	-- dropping new objects

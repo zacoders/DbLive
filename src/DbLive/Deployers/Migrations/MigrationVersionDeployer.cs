@@ -43,22 +43,34 @@ public class MigrationVersionDeployer(
 	{
 		migration.Items.TryGetValue(MigrationItemType.Migration, out var migrationItem);
 		migration.Items.TryGetValue(MigrationItemType.Undo, out var undoItem);
+		migration.Items.TryGetValue(MigrationItemType.Breaking, out var breakingItem);
 
 		if (migrationItem is null)
 		{
 			throw new InternalException("Migration item must be specified.");
 		}
 
-		if (parameters.UndoTestDeployment && undoItem is not null)
+		if (undoItem is not null)
 		{
-			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
-			_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
-			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
+			{
+				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+			}
+
+			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
+			{
+				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+				if (breakingItem is not null)
+				{
+					_migrationItemDeployer.DeployMigrationItem(migration.Version, breakingItem);
+				}
+				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+			}			
+
 		}
-		else
-		{
-			_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
-		}
+
+		_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
