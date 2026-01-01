@@ -1,4 +1,3 @@
-using DbLive.SelfDeployer;
 
 namespace DbLive.Tests.Deployers;
 

@@ -47,9 +47,9 @@ public class MigrationVersionDeployer(
 
 		if (migrationItem is null)
 		{
-			throw new InternalException("Migration item must be specified.");	
+			throw new InternalException("Migration item must be specified.");
 		}
-		
+
 		if (parameters.UndoTestDeployment && undoItem is not null)
 		{
 			_migrationItemDeployer.DeployMigrationItem(isSelfDeploy, migration.Version, migrationItem);

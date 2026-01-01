@@ -7,7 +7,7 @@ public interface IProjectPath
 }
 
 
-public class ProjectPath(string projectPath): IProjectPath
+public class ProjectPath(string projectPath) : IProjectPath
 {
 	public string Path => projectPath;
 }

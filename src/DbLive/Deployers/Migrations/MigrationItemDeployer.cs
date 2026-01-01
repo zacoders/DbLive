@@ -42,7 +42,7 @@ public class MigrationItemDeployer(
 		{
 			if (!isSelfDeploy)
 			{
-				DateTime migrationEndTime = _timeProvider.UtcNow();				
+				DateTime migrationEndTime = _timeProvider.UtcNow();
 				MigrationItemDto dto = new()
 				{
 					Version = migrationVersion,

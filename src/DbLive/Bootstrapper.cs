@@ -12,8 +12,6 @@ public static class Bootstrapper
 		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
 		container.AddSingleton<IFileSystem, FileSystem>();
 		container.AddSingleton<IDbLiveProject, DbLiveProject>();
-		//container.AddSingleton<IProjectPath, ProjectPath>(); ???
-		//container.AddSingleton<IInternalProjectPath, InternalProjectPath>(); ???
 		container.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>();
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
 		container.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();

@@ -11,7 +11,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
 {
 	public const string SqlProjectName = "AdventureWorks.Database";
-	
+
 	private static readonly MsSqlContainer _dockerContainer
 		= new MsSqlBuilder()
 			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")

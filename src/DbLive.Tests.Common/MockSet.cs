@@ -13,7 +13,7 @@ public class MockSet
 	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
 	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
 	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
-	public readonly IDbLivePaths DbLivePaths = Substitute.For<IDbLivePaths>();
+	public readonly IInternalProjectPath DbLivePaths = Substitute.For<IInternalProjectPath>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
 	public readonly IVsProjectPathAccessor VsProjectPathAccessor = Substitute.For<IVsProjectPathAccessor>();
 	public readonly IProjectPath ProjectPath = Substitute.For<IProjectPath>();

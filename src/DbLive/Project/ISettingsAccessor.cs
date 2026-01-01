@@ -2,5 +2,5 @@
 
 public interface ISettingsAccessor
 {
-	DbLiveSettings ProjectSettings { get;}
+	DbLiveSettings ProjectSettings { get; }
 }

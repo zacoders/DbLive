@@ -1,7 +1,4 @@
-
-using DbLive.Deployers;
-
-namespace DbLive;
+namespace DbLive.Deployers;
 
 public class DbLiveDeployer(
 		ICodeDeployer _codeDeployer,

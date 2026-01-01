@@ -1,31 +1,26 @@
 ﻿
-
 namespace DbLive.SelfDeployer;
 
 internal class InternalDbLiveProject(
-		IDbLivePaths projectPath,
-		IFileSystem _fileSystem		
+		IInternalProjectPath _projectPath,
+		IFileSystem _fileSystem
 	) : IInternalDbLiveProject
 {
-	private readonly string _projectPath = projectPath.GetPathToDbLiveSelfProject();
-
 	public IReadOnlyList<Migration> GetMigrations()
 	{
-		string migrationsPath = _projectPath;
-
-		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, "*.sql", subfolders: true);
+		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(_projectPath.Path, "*.sql", subfolders: true);
 
 		List<Migration> migrations = [];
 
 		foreach (string filePath in migrationFiles)
 		{
 			MigrationItemInfo info = MigrationFileNameParser.GetMigrationInfo(filePath);
-			
+
 			MigrationItem migrationItem = new()
 			{
 				MigrationItemType = info.MigrationItemType,
 				Name = info.Name,
-				FileData = _fileSystem.ReadFileData(info.FilePath, _projectPath)
+				FileData = _fileSystem.ReadFileData(info.FilePath, _projectPath.Path)
 			};
 
 			Migration migration = new()
