@@ -8,10 +8,12 @@ namespace DbLive.xunit;
 
 public static class DbLiveBuilderExtensions
 {
-	public static IDbLiveBuilder LogToXUnitOutput(this IDbLiveBuilder builder, ITestOutputHelper output)
+	public static DbLiveBuilder LogToXUnitOutput(this DbLiveBuilder builder, ITestOutputHelper output)
 	{
-		builder.Container.AddXUnitLogger(output);
-		return builder;
+		return builder.ConfigureServices(services =>
+		{
+			services.AddXUnitLogger(output);
+		});
 	}
 
 	private static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)

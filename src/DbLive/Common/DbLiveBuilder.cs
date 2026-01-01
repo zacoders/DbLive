@@ -1,33 +1,46 @@
-﻿using DbLive.Deployers;
+﻿namespace DbLive.Common;
 
-namespace DbLive.Common;
-
-public class DbLiveBuilder : IDbLiveBuilder
+public sealed class DbLiveBuilder
 {
-	public IServiceCollection Container { get; }
+	private readonly List<Action<IServiceCollection>> _registrations = [];
 
 	public DbLiveBuilder()
 	{
-		Container = new ServiceCollection();
-		Container.AddSingleton<IDbLiveBuilder>(this);
-		Container.InitializeDbLive();
+		_registrations.Add(services =>
+		{
+			services.AddSingleton<ILogger>(Serilog.Core.Logger.None);
+			services.InitializeDbLive();
+		});
 	}
 
-	public IDbLiveBuilder CloneBuilder()
+	
+	public DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
 	{
-		DbLiveBuilder newBuilder = new();
+		_registrations.Add(configure);
+		return this;
+	}
 
-		foreach (var serviceDescriptor in Container)
+	private ServiceProvider BuildServiceProvider()
+	{
+		var services = new ServiceCollection();
+
+		foreach (var registration in _registrations)
 		{
-			newBuilder.Container.Add(serviceDescriptor);
+			registration(services);
 		}
 
-		return newBuilder;
+		return services.BuildServiceProvider();
 	}
 
-	internal IDbLiveDeployer CreateInternalDeployer()
-	{
-		var serviceProvider = Container.BuildServiceProvider();
-		return serviceProvider.GetService<IDbLiveDeployer>()!;
-	}
+	public IDbLive CreateDeployer()
+		=> BuildServiceProvider().GetRequiredService<IDbLive>();
+
+	public IDbLiveDA CreateDbLiveDA()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveDA>();
+
+	public IDbLiveTester CreateTester()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveTester>();
+
+	public IDbLiveProject CreateProject()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveProject>();
 }

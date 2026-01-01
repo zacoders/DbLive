@@ -4,5 +4,5 @@
 public class CodeGroup
 {
 	public required string Path { get; set; }
-	public IReadOnlyCollection<CodeItem> CodeItems { get; set; } = new List<CodeItem>();
+	public IReadOnlyCollection<CodeItem> CodeItems { get; set; } = [];
 }

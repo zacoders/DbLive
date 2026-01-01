@@ -4,10 +4,11 @@ namespace DbLive.MSSQL;
 
 public static class DbLiveBuilderExtensions
 {
-	public static IDbLiveBuilder SqlServer(this IDbLiveBuilder builder)
+	public static DbLiveBuilder SqlServer(this DbLiveBuilder builder)
 	{
-		builder.Container.InitializeMSSQL();
-
-		return builder;
+		return builder.ConfigureServices(services =>
+		{
+			services.InitializeMSSQL();
+		});
 	}
 }

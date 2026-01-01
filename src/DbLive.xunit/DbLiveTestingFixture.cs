@@ -11,11 +11,11 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public abstract Task<IDbLiveBuilder> GetBuilderAsync();
+	public abstract Task<DbLiveBuilder> GetBuilderAsync();
 
 	public async Task InitializeAsync()
 	{
-		IDbLiveBuilder builder = await GetBuilderAsync();
+		DbLiveBuilder builder = await GetBuilderAsync();
 
 		_deployer = builder.CreateDeployer();
 
@@ -31,10 +31,13 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 		Tester = builder.CreateTester();
 	}
 
-	public Task DisposeAsync()
+	public async Task DisposeAsync()
 	{
-		if (dropDatabaseOnComplete) _deployer!.DropDatabase();
-
-		return Task.CompletedTask;
+		if (dropDatabaseOnComplete)
+		{
+			DbLiveBuilder builder = await GetBuilderAsync();
+			var da = builder.CreateDbLiveDA();
+			da.DropDB();
+		}
 	}
 }

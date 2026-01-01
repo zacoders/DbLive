@@ -1,13 +1,16 @@
-﻿namespace DbLive.Deployers.Testing;
+﻿
+namespace DbLive.Deployers.Testing;
 
 public class UnitTestsRunner(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IUnitTestItemRunner _unitTestItemRunner
+		IUnitTestItemRunner _unitTestItemRunner,
+		ISettingsAccessor settingsAccessor
 	) : IUnitTestsRunner
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
+	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
 
 	public void RunAllTests(DeployParameters parameters)
 	{
@@ -22,7 +25,7 @@ public class UnitTestsRunner(
 
 		TestsRunResults runResults = new();
 
-		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = parameters.NumberOfThreadsForTestsRun };
+		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = _projectSettings.NumberOfThreadsForTestsRun };
 
 		Parallel.ForEach(tests, parallelOptions, test =>
 		{

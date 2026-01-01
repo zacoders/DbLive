@@ -3,21 +3,6 @@ namespace DbLive.Tests.Deployers;
 public class DbLiveTests
 {
 	[Fact]
-	public void DropDatabase()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
-
-		// Act
-		dbLive.DropDatabase();
-
-		// Assert
-		mockSet.DbLiveDA.Received().DropDB();
-	}
-
-	[Fact]
 	public void Deploy()
 	{
 		// Arrange

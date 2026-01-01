@@ -18,7 +18,7 @@ public class MigrationsDeployer(
 
 		_logger.Information("Deploying migrations.");
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply(parameters);
+		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply();
 
 		if (migrationsToApply.Count() == 0)
 		{
@@ -32,7 +32,7 @@ public class MigrationsDeployer(
 		}
 	}
 
-	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply(DeployParameters parameters)
+	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply()
 	{
 		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
@@ -40,9 +40,7 @@ public class MigrationsDeployer(
 
 		_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
 
-		migrationsToApply = migrationsToApply
-			.Where(m => m.Version <= (parameters.MaxVersionToDeploy ?? int.MaxValue))
-			.Where(m => m.Version > appliedVersion);
+		migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 
 		return migrationsToApply.OrderBy(m => m.Version);
 	}

@@ -30,14 +30,6 @@ public record DeployParameters
 		RunTests = true
 	};
 
-	/// <summary>
-	/// The migration version to deploy. 
-	/// If version is specified, Code (SPs/Function) cannot be deployed. Tests cannot be run. 
-	/// Since there is no guarantee that Code and Tests are compatible with the deployed version.
-	/// NULL value -> latest version.
-	/// </summary>
-	public int? MaxVersionToDeploy { get; set; }
-
 	public bool DeployCode { get; set; } = true;
 
 	public bool DeployMigrations { get; set; } = true;
@@ -45,11 +37,6 @@ public record DeployParameters
 	public bool RunTests { get; set; } = true;
 
 	public bool DeployBreaking { get; set; } = false;
-
-	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
-	public int MaxCodeDeployRetries { get; set; } = 5;
-
-	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
 	public bool CreateDbIfNotExists { get; set; } = true;
 

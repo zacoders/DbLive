@@ -1,3 +1,4 @@
+using DotNet.Testcontainers.Containers;
 using Testcontainers.PostgreSql;
 
 namespace DbLive.PostgreSQL.Tests;
@@ -12,7 +13,7 @@ public class PostgreSqlFixture : IAsyncLifetime
 			//.WithReuse(true)
 			.Build();
 
-	private static readonly string TestDbNamePrefix = "dblive--";
+	//private static readonly string TestDbNamePrefix = "dblive--";
 
 	public string PostgresDBConnectionString =>
 		_postgresDbConnectionString ?? throw new Exception("Connection string is not found or container is not initialized yet.");
@@ -21,17 +22,11 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		string? configuredConnectionString = new TestConfig().GetSqlServerConnectionString();
-
-		if (string.IsNullOrWhiteSpace(configuredConnectionString))
+		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
 			await _dockerContainer.StartAsync();
-			_postgresDbConnectionString = _dockerContainer.GetConnectionString();
 		}
-		else
-		{
-			_postgresDbConnectionString = configuredConnectionString;
-		}
+		_postgresDbConnectionString = _dockerContainer.GetConnectionString();
 	}
 
 	public async Task DisposeAsync()
