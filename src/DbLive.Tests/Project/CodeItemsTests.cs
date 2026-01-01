@@ -49,7 +49,7 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
 		{
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});

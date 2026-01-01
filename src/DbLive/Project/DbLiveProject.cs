@@ -1,22 +1,23 @@
 
 namespace DbLive.Project;
 
-public class DbLiveProject(
-	IProjectPathAccessor projectPath,
+public class DbLiveProjectBase(
+	IProjectPath projectPath,
 	IFileSystem _fileSystem,
-	ISettingsAccessor _settingsAccessor
-) : IDbLiveProject
+	ISettingsAccessor settingsAccessor,
+	IProjectPathAccessor vsProjectPathAccessor
+) : IDbLiveProjectBase
 {
-	private readonly string _projectPath = projectPath.ProjectPath;
+	private readonly string _projectPath = projectPath.Path;
+	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
 
 	public IEnumerable<CodeGroup> GetCodeGroups()
 	{
-		var settings = _settingsAccessor.ProjectSettings;
-		string codePath = _projectPath.CombineWith(settings.CodeFolder);
+		string codePath = _projectPath.CombineWith(_projectSettings.CodeFolder);
 
-		var subPaths = settings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
+		var subPaths = _projectSettings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
 
-		List<string> codeFiles = _fileSystem.EnumerateFiles(codePath, ["*.sql"], settings.TestFilePatterns, true).ToList();
+		List<string> codeFiles = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _projectSettings.TestFilePatterns, true).ToList();
 
 		foreach (string subPath in subPaths)
 		{
@@ -52,8 +53,7 @@ public class DbLiveProject(
 
 	public IReadOnlyList<Migration> GetMigrations()
 	{
-		var settings = _settingsAccessor.ProjectSettings;
-		string migrationsPath = _projectPath.CombineWith(settings.MigrationsFolder);
+		string migrationsPath = _projectPath.CombineWith(_projectSettings.MigrationsFolder);
 
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 
@@ -109,10 +109,8 @@ public class DbLiveProject(
 
 	public IReadOnlyCollection<TestItem> GetTests()
 	{
-		var settings = _settingsAccessor.ProjectSettings;
-
-		string testsPath = _projectPath.CombineWith(settings.TestsFolder);
-		string codePath = _projectPath.CombineWith(settings.CodeFolder);
+		string testsPath = _projectPath.CombineWith(_projectSettings.TestsFolder);
+		string codePath = _projectPath.CombineWith(_projectSettings.CodeFolder);
 
 		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
 
@@ -139,7 +137,7 @@ public class DbLiveProject(
 			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(folderPath, _settingsAccessor.ProjectSettings.TestFilePatterns, subfolders: false);
+		var testFiles = _fileSystem.EnumerateFiles(folderPath, _projectSettings.TestFilePatterns, subfolders: false);
 
 		foreach (string testFilePath in testFiles)
 		{
@@ -161,12 +159,10 @@ public class DbLiveProject(
 	{
 		Dictionary<string, GenericItem> items = [];
 
-		var settings = _settingsAccessor.ProjectSettings;
-
 		string folderPath = projectFolder switch
 		{
-			ProjectFolder.BeforeDeploy => settings.BeforeDeployFolder,
-			ProjectFolder.AfterDeploy => settings.AfterDeployFolder,
+			ProjectFolder.BeforeDeploy => _projectSettings.BeforeDeployFolder,
+			ProjectFolder.AfterDeploy => _projectSettings.AfterDeployFolder,
 			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
@@ -190,6 +186,6 @@ public class DbLiveProject(
 	[ExcludeFromCodeCoverage]
 	public string GetVisualStudioProjectPath()
 	{
-		return projectPath.VisualStudioProjectPath;
+		return vsProjectPathAccessor.VisualStudioProjectPath;
 	}
 }

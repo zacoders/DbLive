@@ -9,7 +9,7 @@ public class MockSet
 
 	public readonly ILogger Logger = Substitute.For<ILogger>();
 	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
-	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
+	public readonly UserDbLiveProject DbLiveProject = Substitute.For<UserDbLiveProject>();
 	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
 	public readonly IDbLivePaths DbLivePaths = Substitute.For<IDbLivePaths>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();

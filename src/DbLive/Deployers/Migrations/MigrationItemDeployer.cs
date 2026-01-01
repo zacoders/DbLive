@@ -1,4 +1,3 @@
-using DbLive.Project;
 
 namespace DbLive.Deployers.Migrations;
 
@@ -6,7 +5,6 @@ public class MigrationItemDeployer(
 		ILogger _logger,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
-		ITransactionRunner _transactionRunner,
 		ISettingsAccessor _projectSettingsAccessor
 	) : IMigrationItemDeployer
 {

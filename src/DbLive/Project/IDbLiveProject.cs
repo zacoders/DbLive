@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public interface IDbLiveProject
+public interface IDbLiveProjectBase
 {
 	/// <summary>
 	/// Gets a read-only list of all available migrations in the current context. Migrations are ordered by their version number in ascending order.
@@ -19,5 +19,6 @@ public interface IDbLiveProject
 	/// <param name="projectFolder"></param>
 	/// <returns>Read only list of items. Items sorted by full file path.</returns>
 	ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder);
+
 	string GetVisualStudioProjectPath();
 }

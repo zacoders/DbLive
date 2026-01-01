@@ -24,13 +24,13 @@ public class SettingsTests
 
 		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = settingsAccessor.ProjectSettings;
+		var settings = settingsAccessor.GetProjectSettings;
 
 		Assert.NotNull(settings);
 		Assert.Equal(TransactionWrapLevel.None, settings.TransactionWrapLevel);
 
 
-		Assert.Equal(settings, settingsAccessor.ProjectSettings);
+		Assert.Equal(settings, settingsAccessor.GetProjectSettings);
 	}
 
 	[Fact]
@@ -47,7 +47,7 @@ public class SettingsTests
 
 		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = settingsAccessor.ProjectSettings;
+		var settings = settingsAccessor.GetProjectSettings;
 
 		Assert.NotNull(settings);
 	}

@@ -8,7 +8,10 @@ public static class Bootstrapper
 	{
 		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
 		container.AddSingleton<IFileSystem, FileSystem>();
-		container.AddSingleton<IDbLiveProject, DbLiveProject>();
+		container.AddSingleton<UserDbLiveProject>();
+		container.AddSingleton<UserProjectPath>();
+		container.AddSingleton<InternalDbLiveProject>();
+		container.AddSingleton<InternalProjectPath>();
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
 		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>();

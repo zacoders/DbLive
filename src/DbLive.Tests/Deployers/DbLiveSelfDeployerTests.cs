@@ -8,7 +8,7 @@ public class DbLiveSelfDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
 		{
 			LogSelfDeploy = true
 		});
@@ -42,7 +42,7 @@ public class DbLiveSelfDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
 		{
 			LogSelfDeploy = false
 		});

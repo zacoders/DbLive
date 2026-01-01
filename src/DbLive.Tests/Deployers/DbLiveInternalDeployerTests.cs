@@ -10,7 +10,7 @@ public class DbLiveInternalDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
 		{
 			TransactionWrapLevel = TransactionWrapLevel.Deployment,
 			TransactionIsolationLevel = TranIsolationLevel.RepeatableRead,
@@ -41,7 +41,7 @@ public class DbLiveInternalDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
 		{
 			TransactionWrapLevel = TransactionWrapLevel.Migration,
 			TransactionIsolationLevel = TranIsolationLevel.Chaos,

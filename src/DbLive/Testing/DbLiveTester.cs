@@ -7,7 +7,7 @@ namespace DbLive.Testing;
 /// <param name="_project"></param>
 /// <param name="_unitTestItemRunner"></param>
 public class DbLiveTester(
-		IDbLiveProject _project,
+		UserDbLiveProject _project,
 		IUnitTestItemRunner _unitTestItemRunner
 	) : IDbLiveTester
 {
