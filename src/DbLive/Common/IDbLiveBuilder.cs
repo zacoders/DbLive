@@ -3,5 +3,4 @@
 public interface IDbLiveBuilder
 {
 	IServiceCollection Container { get; }
-	IDbLiveBuilder CloneBuilder();
 }

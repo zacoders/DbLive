@@ -1,5 +1,4 @@
-﻿using DbLive.Deployers;
-
+﻿
 namespace DbLive.Common;
 
 public class DbLiveBuilder : IDbLiveBuilder
@@ -9,25 +8,8 @@ public class DbLiveBuilder : IDbLiveBuilder
 	public DbLiveBuilder()
 	{
 		Container = new ServiceCollection();
-		Container.AddSingleton<IDbLiveBuilder>(this);
+		Container.AddSingleton<IDbLiveBuilder>(this);		
+		Container.AddSingleton<ILogger>(Serilog.Core.Logger.None); // empty logger by default
 		Container.InitializeDbLive();
-	}
-
-	public IDbLiveBuilder CloneBuilder()
-	{
-		DbLiveBuilder newBuilder = new();
-
-		foreach (var serviceDescriptor in Container)
-		{
-			newBuilder.Container.Add(serviceDescriptor);
-		}
-
-		return newBuilder;
-	}
-
-	internal IDbLiveDeployer CreateInternalDeployer()
-	{
-		var serviceProvider = Container.BuildServiceProvider();
-		return serviceProvider.GetService<IDbLiveDeployer>()!;
 	}
 }

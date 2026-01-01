@@ -6,7 +6,7 @@ namespace DbLive;
 public class DbLive(
 		IDbLiveDA _da,
 		ILogger _logger,
-		IDbLiveDeployer _internalDeployer,
+		IDbLiveDeployer _deployer,
 		IDbLiveSelfDeployer _selfDeployer
 	) : IDbLive
 {
@@ -25,12 +25,6 @@ public class DbLive(
 		_selfDeployer.Deploy();
 
 		// Deploy actual project
-		_internalDeployer.Deploy(parameters);
-	}
-
-	public void DropDatabase(bool skipIfNotExists = true)
-	{
-		// todo: I think this is not a good idea to have drop database method.
-		_da.DropDB(skipIfNotExists);
+		_deployer.Deploy(parameters);
 	}
 }
