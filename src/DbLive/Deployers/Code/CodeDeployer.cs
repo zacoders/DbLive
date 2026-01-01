@@ -5,11 +5,13 @@ namespace DbLive.Deployers.Code;
 public class CodeDeployer(
 	ILogger logger,
 	IDbLiveProject _project,
-	ICodeItemDeployer _codeItemDeployer
+	ICodeItemDeployer _codeItemDeployer,
+	ISettingsAccessor settingsAccessor
 ) : ICodeDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
-	
+	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));	
+	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
+
 	public void DeployCode(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
@@ -41,13 +43,13 @@ public class CodeDeployer(
 		}
 
 		// Limit the number of workers to the number of code items to avoid creating unnecessary threads
-		int workersCount = Math.Min(parameters.NumberOfThreadsForCodeDeploy, codeItems.Count);
+		int workersCount = Math.Min(_projectSettings.NumberOfThreadsForCodeDeploy, codeItems.Count);
 
 		Task<Exception?>[] workers = new Task<Exception?>[workersCount];
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorker(parameters.MaxCodeDeployRetries, queue, retryCounters, cts)
+				=> CreateWorker(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
@@ -59,7 +61,7 @@ public class CodeDeployer(
 		if (exceptions.Count > 0)
 		{
 			throw new CodeDeploymentAggregateException(
-				$"Code deployment failed after {parameters.MaxCodeDeployRetries} attempts.",
+				$"Code deployment failed after {_projectSettings.MaxCodeDeployRetries} attempts.",
 				exceptions
 			);
 		}

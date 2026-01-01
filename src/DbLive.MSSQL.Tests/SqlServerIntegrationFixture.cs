@@ -36,6 +36,6 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 
 	public async Task DisposeAsync()
 	{
-		//await _dockerContainer.DisposeAsync().AsTask();
+		await _dockerContainer.DisposeAsync().AsTask();
 	}
 }

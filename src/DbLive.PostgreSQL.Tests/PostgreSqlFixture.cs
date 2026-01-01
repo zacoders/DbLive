@@ -12,7 +12,7 @@ public class PostgreSqlFixture : IAsyncLifetime
 			//.WithReuse(true)
 			.Build();
 
-	private static readonly string TestDbNamePrefix = "dblive--";
+	//private static readonly string TestDbNamePrefix = "dblive--";
 
 	public string PostgresDBConnectionString =>
 		_postgresDbConnectionString ?? throw new Exception("Connection string is not found or container is not initialized yet.");
@@ -21,7 +21,7 @@ public class PostgreSqlFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		string? configuredConnectionString = new TestConfig().GetSqlServerConnectionString();
+		string? configuredConnectionString = new TestConfig().GetPostgresConnectionString();
 
 		if (string.IsNullOrWhiteSpace(configuredConnectionString))
 		{

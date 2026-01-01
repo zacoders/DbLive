@@ -2,6 +2,7 @@
 
 namespace DbLive.Tests.Common;
 
+// todo: do we need test config class?
 public class TestConfig
 {
 	readonly IConfigurationRoot config;

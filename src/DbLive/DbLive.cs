@@ -16,8 +16,6 @@ public class DbLive(
 	{
 		_logger.Information("Starting deployment.");
 
-		parameters.Check();
-
 		if (parameters.CreateDbIfNotExists)
 			_da.CreateDB(true);
 

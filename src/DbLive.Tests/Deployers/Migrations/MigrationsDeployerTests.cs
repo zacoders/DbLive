@@ -31,43 +31,11 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetCurrentMigrationVersion()
 			.Returns(2);
 
-		var migrations = deploy.GetMigrationsToApply(DeployParameters.Default).ToArray();
+		var migrations = deploy.GetMigrationsToApply().ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
 		Assert.Equal(4, migrations[1].Version);
-	}
-
-
-	[Fact]
-	public void GetMigrationsToApply_MaxVersionToDeploy_Specified()
-	{
-		MockSet mockSet = new();
-
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
-
-		mockSet.DbLiveProject.GetMigrations()
-			.Returns(
-			[
-				NewMigration(1),
-				NewMigration(2),
-				NewMigration(3),
-				NewMigration(4)
-			]);
-
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-
-		mockSet.DbLiveDA.GetCurrentMigrationVersion()
-			.Returns(2);
-
-		var deployParams = DeployParameters.Default;
-		deployParams.MaxVersionToDeploy = 3;
-
-		var migrations = deploy.GetMigrationsToApply(deployParams).ToArray();
-
-		Assert.Single(migrations);
-
-		Assert.Equal(3, migrations[0].Version);
 	}
 
 
@@ -84,7 +52,6 @@ public class MigrationsDeployerTests
 			[
 				NewMigration(1),
 				NewMigration(2),
-				NewMigration(2),
 				NewMigration(3)
 			]);
 
@@ -92,7 +59,6 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
-		deployParams.MaxVersionToDeploy = 2;
 
 		// Act
 		deploy.DeployMigrations(deployParams);
@@ -117,7 +83,6 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		var deployParams = DeployParameters.Default;
-		deployParams.MaxVersionToDeploy = 2;
 
 		// Act
 		deploy.DeployMigrations(deployParams);
