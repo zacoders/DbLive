@@ -6,7 +6,7 @@ public class InternalDbLiveProjectTests
 	[Fact]
 	public void GetMigrations_returns_migrations_sorted_by_version()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
@@ -28,10 +28,10 @@ public class InternalDbLiveProjectTests
 
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
-		// act
+		// Act
 		var result = project.GetMigrations();
 
-		// assert
+		// Assert
 		Assert.Equal(2, result.Count);
 		Assert.Equal(1, result[0].Version);
 		Assert.Equal(2, result[1].Version);
@@ -40,7 +40,7 @@ public class InternalDbLiveProjectTests
 	[Fact]
 	public void GetMigrations_creates_single_migration_item_with_expected_properties()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
@@ -61,10 +61,10 @@ public class InternalDbLiveProjectTests
 
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
-		// act
+		// Act
 		var result = project.GetMigrations();
 
-		// assert
+		// Assert
 		Assert.Single(result);
 
 		var migration = result[0];
@@ -76,7 +76,7 @@ public class InternalDbLiveProjectTests
 	[Fact]
 	public void GetMigrations_reads_file_data_for_each_migration_file()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
@@ -98,10 +98,10 @@ public class InternalDbLiveProjectTests
 
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
-		// act
+		// Act
 		project.GetMigrations();
 
-		// assert
+		// Assert
 		mockSet.FileSystem.Received(2)
 			.ReadFileData(Arg.Any<string>(), @"C:/Project");
 	}

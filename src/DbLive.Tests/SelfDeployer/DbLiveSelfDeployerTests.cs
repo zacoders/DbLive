@@ -6,7 +6,7 @@ public class DbLiveSelfDeployerTests
 	[Fact]
 	public void Deploy_logs_start_and_finish_when_logging_enabled()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
@@ -20,10 +20,10 @@ public class DbLiveSelfDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
-		// act
+		// Act
 		deployer.Deploy();
 
-		// assert
+		// Assert
 		mockSet.Logger.Received(1).Information("Starting self deploy.");
 		mockSet.Logger.Received(1).Information("Self deploy completed.");
 	}
@@ -31,7 +31,7 @@ public class DbLiveSelfDeployerTests
 	[Fact]
 	public void Deploy_does_not_log_when_logging_disabled()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
@@ -45,17 +45,17 @@ public class DbLiveSelfDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
-		// act
+		// Act
 		deployer.Deploy();
 
-		// assert
+		// Assert
 		mockSet.Logger.DidNotReceive().Information(Arg.Any<string>());
 	}
 
 	[Fact]
 	public void Deploy_executes_all_migrations_when_dblive_not_installed()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
@@ -72,10 +72,10 @@ public class DbLiveSelfDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
-		// act
+		// Act
 		deployer.Deploy();
 
-		// assert
+		// Assert
 		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
 		mockSet.DbLiveDA.Received(1).SetDbLiveVersion(1, Arg.Any<DateTime>());
 		mockSet.DbLiveDA.Received(1).SetDbLiveVersion(2, Arg.Any<DateTime>());
@@ -84,7 +84,7 @@ public class DbLiveSelfDeployerTests
 	[Fact]
 	public void Deploy_applies_only_migrations_greater_than_current_version()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
@@ -103,10 +103,10 @@ public class DbLiveSelfDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
-		// act
+		// Act
 		deployer.Deploy();
 
-		// assert
+		// Assert
 		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
 
 		mockSet.DbLiveDA.DidNotReceive()
@@ -123,7 +123,7 @@ public class DbLiveSelfDeployerTests
 	[Fact]
 	public void Deploy_executes_sql_from_internal_migration_file_data()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
@@ -137,10 +137,10 @@ public class DbLiveSelfDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
-		// act
+		// Act
 		deployer.Deploy();
 
-		// assert
+		// Assert
 		mockSet.DbLiveDA.Received(1).ExecuteNonQuery("-- exact sql");
 	}
 
