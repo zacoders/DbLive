@@ -116,7 +116,7 @@ public class BreakingChangesDeployerTests
 	[Fact]
 	public void Applies_all_new_breaking_items_in_version_order()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 
 		mockSet.DbLiveDA.GetMigrations().Returns([]);
@@ -151,10 +151,10 @@ public class BreakingChangesDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		// act
+		// Act
 		deployer.DeployBreakingChanges(DeployParameters.Breaking);
 
-		// assert
+		// Assert
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer

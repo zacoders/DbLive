@@ -41,8 +41,9 @@ public record DeployParameters
 	public bool CreateDbIfNotExists { get; set; } = true;
 
 	/// <summary>
-	/// This should be set to true only for testing purposes and should not be used for production.
-	/// This will deploy the database changes and then undo and changes again to test undo scripts.
+	/// This should be enabled only for testing purposes and should not be used for production.
+	/// This will deploy the database changes with undo and changes again to test undo scripts.
+	/// This is not what production deployment should do.
 	/// </summary>
-	public bool UndoTestDeployment { get; set; } = false;
+	public UndoTestMode UndoTestDeployment { get; set; } = UndoTestMode.None;
 }

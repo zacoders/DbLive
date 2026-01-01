@@ -225,7 +225,7 @@ public class MigrationsTests
 	[Fact]
 	public void GetMigrations_Throws_when_migration_item_is_missing()
 	{
-		// arrange
+		// Arrange
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
@@ -237,7 +237,10 @@ public class MigrationsTests
 			@"C:/DB/Migrations/005.breaking.sql"
 			]);
 
-		// act + assert
-		Assert.Throws<MigrationItemMustExistsException>(sqlProject.GetMigrations);
+		// Act
+		void act() => sqlProject.GetMigrations();
+
+		// assert
+		Assert.Throws<MigrationItemMustExistsException>(act);
 	}
 }

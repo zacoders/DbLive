@@ -49,7 +49,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 				DeployBreaking = false,
 				DeployCode = true,
 				DeployMigrations = true,
-				RunTests = false
+				RunTests = true
 			}
 		);
 	}
