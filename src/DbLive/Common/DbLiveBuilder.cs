@@ -1,4 +1,6 @@
-﻿namespace DbLive.Common;
+﻿using DbLive.Deployers;
+
+namespace DbLive.Common;
 
 public class DbLiveBuilder : IDbLiveBuilder
 {
@@ -23,9 +25,9 @@ public class DbLiveBuilder : IDbLiveBuilder
 		return newBuilder;
 	}
 
-	internal IDbLiveInternalDeployer CreateInternalDeployer()
+	internal IDbLiveDeployer CreateInternalDeployer()
 	{
 		var serviceProvider = Container.BuildServiceProvider();
-		return serviceProvider.GetService<IDbLiveInternalDeployer>()!;
+		return serviceProvider.GetService<IDbLiveDeployer>()!;
 	}
 }

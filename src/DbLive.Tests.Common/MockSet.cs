@@ -1,5 +1,7 @@
 ﻿
+using DbLive.Deployers;
 using DbLive.Deployers.Folder;
+using DbLive.SelfDeployer;
 
 namespace DbLive.Tests.Common;
 
@@ -28,7 +30,7 @@ public class MockSet
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IDbLiveBuilder DbLiveBuilder = Substitute.For<IDbLiveBuilder>();
-	public readonly IDbLiveInternalDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveInternalDeployer>();
+	public readonly IDbLiveDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveDeployer>();
 	public readonly IDbLiveSelfDeployer DbLiveSelfDeployer = Substitute.For<IDbLiveSelfDeployer>();
 	public readonly IUnitTestResultChecker UnitTestResultChecker = Substitute.For<IUnitTestResultChecker>();
 

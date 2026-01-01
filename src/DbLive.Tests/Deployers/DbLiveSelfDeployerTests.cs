@@ -1,3 +1,5 @@
+using DbLive.SelfDeployer;
+
 namespace DbLive.Tests.Deployers;
 
 public class DbLiveSelfDeployerTests

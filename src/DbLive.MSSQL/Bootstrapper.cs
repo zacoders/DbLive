@@ -1,5 +1,4 @@
 ﻿using DbLive.Adapter;
-
 namespace DbLive.MSSQL;
 
 public static class Bootstrapper

@@ -1,4 +1,5 @@
 ﻿
+using DbLive.Deployers;
 using DbLive.SelfDeployer;
 
 namespace DbLive;
@@ -11,9 +12,9 @@ public static class Bootstrapper
 		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
 		container.AddSingleton<IFileSystem, FileSystem>();
 		container.AddSingleton<IDbLiveProject, DbLiveProject>();
-		container.AddSingleton<IProjectPath, ProjectPath>();
+		//container.AddSingleton<IProjectPath, ProjectPath>(); ???
+		//container.AddSingleton<IInternalProjectPath, InternalProjectPath>(); ???
 		container.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>();
-		container.AddSingleton<InternalProjectPath>();
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
 		container.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>();
@@ -28,7 +29,7 @@ public static class Bootstrapper
 		container.AddSingleton<IDbLiveTester, DbLiveTester>();
 		container.AddSingleton<IDbLive, DbLive>();
 		container.AddSingleton<ITransactionRunner, TransactionRunner>();
-		container.AddSingleton<IDbLiveInternalDeployer, DbLiveInternalDeployer>();
+		container.AddSingleton<IDbLiveDeployer, DbLiveDeployer>();
 		container.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>();
 		container.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>();
 	}

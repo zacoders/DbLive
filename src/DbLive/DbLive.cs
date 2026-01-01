@@ -1,9 +1,12 @@
+using DbLive.Deployers;
+using DbLive.SelfDeployer;
+
 namespace DbLive;
 
 public class DbLive(
 		IDbLiveDA _da,
 		ILogger _logger,
-		IDbLiveInternalDeployer _internalDeployer,
+		IDbLiveDeployer _internalDeployer,
 		IDbLiveSelfDeployer _selfDeployer
 	) : IDbLive
 {

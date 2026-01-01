@@ -17,7 +17,7 @@ public class DbLiveInternalDeployerTests
 			DeploymentTimeout = TimeSpan.FromHours(5)
 		});
 
-		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		bool isSelfDeploy = true;
 
@@ -48,7 +48,7 @@ public class DbLiveInternalDeployerTests
 			DeploymentTimeout = TimeSpan.FromHours(15)
 		});
 
-		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		bool isSelfDeploy = true;
 
@@ -81,7 +81,7 @@ public class DbLiveInternalDeployerTests
 			RunTests = true
 		};
 
-		var dbLive = mockSet.CreateUsingMocks<DbLiveInternalDeployer>();
+		var dbLive = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		bool isSelfDeploy = true;
 
