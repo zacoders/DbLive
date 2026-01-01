@@ -1,15 +1,46 @@
-﻿
-namespace DbLive.Common;
+﻿namespace DbLive.Common;
 
-public class DbLiveBuilder : IDbLiveBuilder
+public sealed class DbLiveBuilder
 {
-	public IServiceCollection Container { get; }
+	private readonly List<Action<IServiceCollection>> _registrations = [];
 
 	public DbLiveBuilder()
 	{
-		Container = new ServiceCollection();
-		Container.AddSingleton<IDbLiveBuilder>(this);		
-		Container.AddSingleton<ILogger>(Serilog.Core.Logger.None); // empty logger by default
-		Container.InitializeDbLive();
+		_registrations.Add(services =>
+		{
+			services.AddSingleton<ILogger>(Serilog.Core.Logger.None);
+			services.InitializeDbLive();
+		});
 	}
+
+	
+	public DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
+	{
+		_registrations.Add(configure);
+		return this;
+	}
+
+	private IServiceProvider BuildServiceProvider()
+	{
+		var services = new ServiceCollection();
+
+		foreach (var registration in _registrations)
+		{
+			registration(services);
+		}
+
+		return services.BuildServiceProvider();
+	}
+
+	public IDbLive CreateDeployer()
+		=> BuildServiceProvider().GetRequiredService<IDbLive>();
+
+	public IDbLiveDA CreateDbLiveDA()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveDA>();
+
+	public IDbLiveTester CreateTester()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveTester>();
+
+	public IDbLiveProject CreateProject()
+		=> BuildServiceProvider().GetRequiredService<IDbLiveProject>();
 }

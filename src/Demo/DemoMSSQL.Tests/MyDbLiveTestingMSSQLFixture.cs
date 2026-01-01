@@ -24,7 +24,7 @@ public class MyDbLiveTestingMSSQLFixture()
 				//.WithReuse(true)
 				.Build();
 
-	public async override Task<IDbLiveBuilder> GetBuilderAsync()
+	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
 		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
@@ -38,7 +38,6 @@ public class MyDbLiveTestingMSSQLFixture()
 		//string dbCnnString = "Server=localhost;Database=master;Trusted_Connection=True;".SetRandomDatabaseName();
 
 		return new DbLiveBuilder()
-			.LogToConsole()
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(Path.GetFullPath(SqlProjectName));
@@ -71,7 +70,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 	{
 		_output.WriteLine($"Deploying with breaking={breaking}, undoTesting={undoTesting}");
 
-		IDbLiveBuilder builder = await fixture.GetBuilderAsync();
+		DbLiveBuilder builder = await fixture.GetBuilderAsync();
 		builder.LogToXUnitOutput(_output);
 		IDbLive deployer = builder.CreateDeployer();
 
