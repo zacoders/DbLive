@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Project;
 
-public class SettingsAccessor(UserProjectPath projectPath, IFileSystem _fileSystem)
+public class SettingsAccessor(IProjectPath projectPath, IFileSystem _fileSystem)
 	: ISettingsAccessor
 {
 	readonly string _projectPath = projectPath.Path;

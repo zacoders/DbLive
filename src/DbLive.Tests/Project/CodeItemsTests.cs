@@ -8,7 +8,7 @@ public class CodeItemsTests
 		MockSet mockSet = new();
 
 		string projectPath = @"C:/DB";
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
+		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		string codePath = projectPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);
@@ -49,14 +49,14 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.GetProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
 		{
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
 
 		string projekt = @"C:/DB";
 		string projektPath = projekt;
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projektPath);
+		mockSet.ProjectPath.Path.Returns(projektPath);
 
 		string codePath = projektPath.CombineWith("Code");
 		mockSet.FileSystem.PathExists(codePath).Returns(true);

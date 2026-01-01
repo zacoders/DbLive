@@ -1,4 +1,6 @@
 ﻿
+using DbLive.SelfDeployer;
+
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
@@ -8,12 +10,12 @@ public static class Bootstrapper
 	{
 		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
 		container.AddSingleton<IFileSystem, FileSystem>();
-		container.AddSingleton<UserDbLiveProject>();
-		container.AddSingleton<UserProjectPath>();
-		container.AddSingleton<InternalDbLiveProject>();
+		container.AddSingleton<IDbLiveProject, DbLiveProject>();
+		container.AddSingleton<IProjectPath, ProjectPath>();
+		container.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>();
 		container.AddSingleton<InternalProjectPath>();
 		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
-		container.AddSingleton<IProjectPathAccessor, ProjectPathAccessor>();
+		container.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();
 		container.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>();
 		container.AddSingleton<ICodeItemDeployer, CodeItemDeployer>();
 		container.AddSingleton<ICodeDeployer, CodeDeployer>();

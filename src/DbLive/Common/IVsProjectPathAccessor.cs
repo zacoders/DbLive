@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public interface IProjectPathAccessor
+public interface IVsProjectPathAccessor
 {
 	string VisualStudioProjectPath { get; }
 }

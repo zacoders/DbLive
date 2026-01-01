@@ -2,7 +2,7 @@ namespace DbLive.Deployers.Folder;
 
 public class FolderDeployer(
 		ILogger _logger,
-		IDbLiveProjectBase _project,
+		IDbLiveProject _project,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor

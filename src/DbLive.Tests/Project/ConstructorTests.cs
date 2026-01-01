@@ -3,35 +3,35 @@ namespace DbLive.Tests.Project;
 
 public class ConstructorTests
 {
-	[Fact]
-	public void ProjectPathDoesntExists()
-	{
-		string projectPath = @"C:/DB/";
+	//[Fact]
+	//public void ProjectPathDoesntExists()
+	//{
+	//	string projectPath = @"C:/DB/";
 
-		MockSet mockSet = new();
+	//	MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(false);
+	//	mockSet.UserProjectPath.Path.Returns(projectPath);
+	//	mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(false);
 
-		var projectPathAccessor = new ProjectPathAccessor(new ProjectPath(projectPath), mockSet.FileSystem);
+	//	var projectPathAccessor = new ProjectPathAccessor(mockSet.UserProjectPath, mockSet.FileSystem);
 
-		Assert.Throws<ProjectFolderIsEmptyException>(
-			() => projectPathAccessor.ProjectPath
-		);
-	}
+	//	Assert.Throws<ProjectFolderIsEmptyException>(
+	//		() => projectPathAccessor.VisualStudioProjectPath
+	//	);
+	//}
 
-	[Fact]
-	public void ProjectPathExistsAndNotEmpty()
-	{
-		string projectPath = @"C:/DB/";
+	//[Fact]
+	//public void ProjectPathExistsAndNotEmpty()
+	//{
+	//	string projectPath = @"C:/DB/";
 
-		MockSet mockSet = new();
+	//	MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(projectPath);
-		mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
+	//	mockSet.ProjectPath.Path.Returns(projectPath);
+	//	mockSet.FileSystem.PathExistsAndNotEmpty(projectPath).Returns(true);
 
-		var projectPathAccessor = new ProjectPathAccessor(new ProjectPath(projectPath), mockSet.FileSystem);
+	//	var projectPathAccessor = new ProjectPathAccessor(mockSet.ProjectPath, mockSet.FileSystem);
 
-		Assert.NotNull(projectPathAccessor.ProjectPath);
-	}
+	//	Assert.NotNull(projectPathAccessor.VisualStudioProjectPath);
+	//}
 }

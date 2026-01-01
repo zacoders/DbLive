@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public interface IDbLiveProjectBase
+public interface IDbLiveProject
 {
 	/// <summary>
 	/// Gets a read-only list of all available migrations in the current context. Migrations are ordered by their version number in ascending order.

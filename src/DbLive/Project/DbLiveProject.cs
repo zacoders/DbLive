@@ -1,12 +1,12 @@
 
 namespace DbLive.Project;
 
-public class DbLiveProjectBase(
+public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
 	ISettingsAccessor settingsAccessor,
-	IProjectPathAccessor vsProjectPathAccessor
-) : IDbLiveProjectBase
+	IVsProjectPathAccessor vsProjectPathAccessor
+) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
 	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;

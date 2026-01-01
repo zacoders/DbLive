@@ -7,12 +7,16 @@ public interface IProjectPath
 }
 
 
-public class UserProjectPath(string projectPath): IProjectPath
+public class ProjectPath(string projectPath): IProjectPath
 {
 	public string Path => projectPath;
 }
 
-public class InternalProjectPath(string projectPath): IProjectPath
+internal interface IInternalProjectPath : IProjectPath
+{
+}
+
+public class InternalProjectPath(string projectPath): IInternalProjectPath
 {
 	public string Path => projectPath;
 }

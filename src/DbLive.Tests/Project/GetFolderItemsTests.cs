@@ -7,7 +7,7 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -38,7 +38,7 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPathAccessor.ProjectPath.Returns(@"C:/DB/");
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 

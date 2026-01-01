@@ -2,7 +2,7 @@ namespace DbLive.Deployers.Migrations;
 
 public class BreakingChangesDeployer(
 		ILogger _logger,
-		IDbLiveProjectBase _project,
+		IDbLiveProject _project,
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer
 	) : IBreakingChangesDeployer

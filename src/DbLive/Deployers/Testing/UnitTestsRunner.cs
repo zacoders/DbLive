@@ -2,7 +2,7 @@
 
 public class UnitTestsRunner(
 		ILogger _logger,
-		UserDbLiveProject _project,
+		IDbLiveProject _project,
 		IDbLiveDA _da,
 		IUnitTestItemRunner _unitTestItemRunner
 	) : IUnitTestsRunner

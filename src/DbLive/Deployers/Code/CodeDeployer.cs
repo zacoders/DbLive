@@ -4,12 +4,12 @@ namespace DbLive.Deployers.Code;
 
 public class CodeDeployer(
 	ILogger logger,
-	IDbLiveProjectBase project,
+	IDbLiveProject project,
 	ICodeItemDeployer codeItemDeployer
 ) : ICodeDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
-	private readonly IDbLiveProjectBase _project = project;
+	private readonly IDbLiveProject _project = project;
 	private readonly ICodeItemDeployer _codeItemDeployer = codeItemDeployer;
 
 	public void DeployCode(bool isSelfDeploy, DeployParameters parameters)

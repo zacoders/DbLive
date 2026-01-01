@@ -1,8 +1,8 @@
 namespace DbLive.SelfDeployer;
 
-public class SelfMigrationsDeployer(
+internal class SelfMigrationsDeployer(
 		ILogger _logger,
-		InternalDbLiveProject _project,
+		IInternalDbLiveProject _project,
 		ITimeProvider _timeProvider,
 		IDbLiveDA _da
 	) : ISelfMigrationsDeployer

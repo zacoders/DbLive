@@ -47,7 +47,7 @@ public static class DbLiveBuilderExtensions
 
 	public static void SetProjectPath(this IServiceCollection serviceCollection, string projectPath)
 	{
-		var path = new UserProjectPath(projectPath);
+		var path = new ProjectPath(projectPath);
 		serviceCollection.AddSingleton<IProjectPath>(path);
 	}
 
@@ -69,9 +69,9 @@ public static class DbLiveBuilderExtensions
 		return serviceProvider.GetService<IDbLiveTester>()!;
 	}
 
-	public static IDbLiveProjectBase CreateProject(this IDbLiveBuilder builder)
+	public static IDbLiveProject CreateProject(this IDbLiveBuilder builder)
 	{
 		var serviceProvider = builder.Container.BuildServiceProvider();
-		return serviceProvider.GetService<IDbLiveProjectBase>()!;
+		return serviceProvider.GetService<IDbLiveProject>()!;
 	}
 }
