@@ -20,7 +20,7 @@ internal class DbLiveSelfDeployer(
 			_logger.Information("Starting self deploy.");
 		}
 
-		IEnumerable<Migration> migrationsToApply = _internalProject.GetMigrations();
+		IEnumerable<InternalMigration> migrationsToApply = _internalProject.GetMigrations();
 
 		if (_da.DbLiveInstalled())
 		{
@@ -30,8 +30,7 @@ internal class DbLiveSelfDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			var migrationItem = migration.Items[MigrationItemType.Migration];
-			_da.ExecuteNonQuery(migrationItem.FileData.Content);
+			_da.ExecuteNonQuery(migration.FileData.Content);
 			_da.SetDbLiveVersion(migration.Version, _timeProvider.UtcNow());
 		}
 

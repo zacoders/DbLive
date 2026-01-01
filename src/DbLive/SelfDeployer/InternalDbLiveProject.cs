@@ -6,33 +6,24 @@ internal class InternalDbLiveProject(
 		IFileSystem _fileSystem
 	) : IInternalDbLiveProject
 {
-	public IReadOnlyList<Migration> GetMigrations()
+	public IReadOnlyList<InternalMigration> GetMigrations()
 	{
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(_projectPath.Path, "*.sql", subfolders: true);
 
-		List<Migration> migrations = [];
+		List<InternalMigration> migrations = [];
 
 		foreach (string filePath in migrationFiles)
 		{
 			MigrationItemInfo info = MigrationFileNameParser.GetMigrationInfo(filePath);
 
-			MigrationItem migrationItem = new()
+			InternalMigration migrationItem = new()
 			{
-				MigrationItemType = info.MigrationItemType,
+				Version = info.Version,				
 				Name = info.Name,
 				FileData = _fileSystem.ReadFileData(info.FilePath, _projectPath.Path)
 			};
 
-			Migration migration = new()
-			{
-				Version = info.Version,
-				Items = new Dictionary<MigrationItemType, MigrationItem>
-				{
-					{ info.MigrationItemType, migrationItem }
-				}
-			};
-
-			migrations.Add(migration);
+			migrations.Add(migrationItem);
 		}
 
 		// sort by version to ensure stable order
