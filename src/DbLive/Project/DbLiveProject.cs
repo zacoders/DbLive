@@ -17,11 +17,11 @@ public class DbLiveProject(
 
 		var subPaths = _projectSettings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
 
-		List<string> codeFiles = _fileSystem.EnumerateFiles(codePath, ["*.sql"], _projectSettings.TestFilePatterns, true).ToList();
+		List<string> codeFiles = [.. _fileSystem.EnumerateFiles(codePath, ["*.sql"], _projectSettings.TestFilePatterns, true)];
 
 		foreach (string subPath in subPaths)
 		{
-			var files = codeFiles.RemoveWhere(f => f.ToLower().StartsWith(subPath.ToLower() + Path.DirectorySeparatorChar));
+			var files = codeFiles.RemoveWhere(f => f.StartsWith(subPath + Path.DirectorySeparatorChar, StringComparison.CurrentCultureIgnoreCase));
 			yield return new CodeGroup
 			{
 				Path = subPath,

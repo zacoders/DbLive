@@ -4,14 +4,12 @@ namespace DbLive.Deployers.Code;
 
 public class CodeDeployer(
 	ILogger logger,
-	IDbLiveProject project,
-	ICodeItemDeployer codeItemDeployer
+	IDbLiveProject _project,
+	ICodeItemDeployer _codeItemDeployer
 ) : ICodeDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
-	private readonly IDbLiveProject _project = project;
-	private readonly ICodeItemDeployer _codeItemDeployer = codeItemDeployer;
-
+	
 	public void DeployCode(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
@@ -23,13 +21,13 @@ public class CodeDeployer(
 
 		foreach (CodeGroup group in _project.GetCodeGroups())
 		{
-			DeployGroup(group.Path, group.CodeItems, parameters);
+			DeployGroup(group.CodeItems, parameters);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
 	}
 
-	internal void DeployGroup(string groupPath, IReadOnlyCollection<CodeItem> codeItems, DeployParameters parameters)
+	internal void DeployGroup(IReadOnlyCollection<CodeItem> codeItems, DeployParameters parameters)
 	{
 		var cts = new CancellationTokenSource();
 

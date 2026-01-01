@@ -22,9 +22,8 @@ public class MigrationVersionDeployer(
 
 		MigrationSettings migrationSettings = new();
 
-		if (migration.Items.ContainsKey(MigrationItemType.Settings))
+		if (migration.Items.TryGetValue(MigrationItemType.Settings, out MigrationItem? settingsItem))
 		{
-			MigrationItem settingsItem = migration.Items[MigrationItemType.Settings];
 			_logger.Information("Custom settings for migration v{version}", migration.Version);
 			// todo: should we show a custom settings in the log? if yes, should we see global settings in the log?
 			migrationSettings = SettingsTools.GetSettings<MigrationSettings>(settingsItem.FileData.Content);

@@ -20,7 +20,7 @@ public sealed class DbLiveBuilder
 		return this;
 	}
 
-	private IServiceProvider BuildServiceProvider()
+	private ServiceProvider BuildServiceProvider()
 	{
 		var services = new ServiceCollection();
 

@@ -2,12 +2,8 @@
 
 
 [ExcludeFromCodeCoverage]
-public class UnknownMigrationItemTypeException : Exception
+public class UnknownMigrationItemTypeException(string unknownItemType, string fileName) 
+	: Exception($"Unknown migration item type '{unknownItemType}' in {fileName}. Allowed values: {AllowedItemTypes}")
 {
 	public static string AllowedItemTypes = string.Join(", ", Enum.GetNames(typeof(MigrationItemType)));
-
-	public UnknownMigrationItemTypeException(string unknownItemType, string fileName)
-		: base($"Unknown migration item type '{unknownItemType}' in {fileName}. Allowed values: {AllowedItemTypes}")
-	{
-	}
 }
