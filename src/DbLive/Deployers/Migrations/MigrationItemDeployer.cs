@@ -12,7 +12,7 @@ public class MigrationItemDeployer(
 
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigrationItem(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
+	public void DeployMigrationItem(int migrationVersion, MigrationItem migrationItem)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
 		MigrationItemStatus? migrationStatus = null;
@@ -40,33 +40,7 @@ public class MigrationItemDeployer(
 		}
 		finally
 		{
-			if (!isSelfDeploy)
-			{
-				DateTime migrationEndTime = _timeProvider.UtcNow();
-				MigrationItemDto dto = new()
-				{
-					Version = migrationVersion,
-					Name = migrationItem.Name,
-					ItemType = migrationItem.MigrationItemType,
-					ContentHash = migrationItem.FileData.Crc32Hash,
-					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-					Status = migrationStatus!.Value,
-					CreatedUtc = _timeProvider.UtcNow(),
-					AppliedUtc = migrationStatus == MigrationItemStatus.Applied ? migrationEndTime : null,
-					ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
-
-				};
-				_da.SaveMigrationItemState(dto);
-			}
-		}
-	}
-
-	public void MarkAsSkipped(bool isSelfDeploy, int migrationVersion, MigrationItem migrationItem)
-	{
-		//_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
-
-		if (!isSelfDeploy)
-		{
+			DateTime migrationEndTime = _timeProvider.UtcNow();
 			MigrationItemDto dto = new()
 			{
 				Version = migrationVersion,
@@ -74,14 +48,34 @@ public class MigrationItemDeployer(
 				ItemType = migrationItem.MigrationItemType,
 				ContentHash = migrationItem.FileData.Crc32Hash,
 				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-				Status = MigrationItemStatus.Skipped,
+				Status = migrationStatus!.Value,
 				CreatedUtc = _timeProvider.UtcNow(),
-				AppliedUtc = null,
-				ExecutionTimeMs = null
-			};
+				AppliedUtc = migrationStatus == MigrationItemStatus.Applied ? migrationEndTime : null,
+				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
 
+			};
 			_da.SaveMigrationItemState(dto);
 		}
+	}
+
+	public void MarkAsSkipped(int migrationVersion, MigrationItem migrationItem)
+	{
+		//_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
+
+		MigrationItemDto dto = new()
+		{
+			Version = migrationVersion,
+			Name = migrationItem.Name,
+			ItemType = migrationItem.MigrationItemType,
+			ContentHash = migrationItem.FileData.Crc32Hash,
+			Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
+			Status = MigrationItemStatus.Skipped,
+			CreatedUtc = _timeProvider.UtcNow(),
+			AppliedUtc = null,
+			ExecutionTimeMs = null
+		};
+
+		_da.SaveMigrationItemState(dto);
 
 		_logger.Information("Migration v{migrationVersion} {migrationType} skipped.", migrationVersion, migrationItem.MigrationItemType);
 	}

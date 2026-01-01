@@ -13,7 +13,7 @@ public class DbLiveDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
 
-	public void Deploy(bool isSelfDeploy, DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		_logger.Information("Starting project deploy.");
 
@@ -27,9 +27,9 @@ public class DbLiveDeployer(
 			{
 				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
 
-				_migrationsDeployer.DeployMigrations(isSelfDeploy, parameters);
+				_migrationsDeployer.DeployMigrations(parameters);
 
-				_codeDeployer.DeployCode(isSelfDeploy, parameters);
+				_codeDeployer.DeployCode(parameters);
 
 				_breakingChangesDeployer.DeployBreakingChanges(parameters);
 

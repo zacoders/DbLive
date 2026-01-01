@@ -2,5 +2,5 @@
 
 public interface IDbLiveDeployer
 {
-	void Deploy(bool isSelfDeploy, DeployParameters parameters);
+	void Deploy(DeployParameters parameters);
 }

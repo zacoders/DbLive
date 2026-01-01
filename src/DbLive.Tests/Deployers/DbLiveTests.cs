@@ -38,7 +38,7 @@ public class DbLiveTests
 		// Assert
 		mockSet.DbLiveDA.Received().CreateDB();
 		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
 	}
 
 
@@ -61,6 +61,6 @@ public class DbLiveTests
 		// Assert
 		mockSet.DbLiveDA.DidNotReceive().CreateDB();
 		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(false), Arg.Is(parameters));
+		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
 	}
 }
