@@ -111,4 +111,63 @@ public class MigrationItemDeployerTests
 		Assert.Equal(utcNow2, savedDto.AppliedUtc);
 		Assert.Equal(2000, savedDto.ExecutionTimeMs);
 	}
+
+	[Fact]
+	public void Deploy_when_execute_non_query_fails_should_save_failed_state_and_rethrow()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		var deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		DateTime startUtc = DateTime.UtcNow;
+		DateTime endUtc = startUtc.AddSeconds(1);
+
+		mockSet.TimeProvider.UtcNow().Returns(_ => startUtc, _ => endUtc);
+
+		var exception = new InvalidOperationException("sql error");
+
+		mockSet.DbLiveDA
+			.When(d => d.ExecuteNonQuery(
+				Arg.Any<string>(),
+				Arg.Any<TranIsolationLevel>(),
+				Arg.Any<TimeSpan>()))
+			.Do(_ => throw exception);
+
+		MigrationItemStateDto? savedDto = null;
+		mockSet.DbLiveDA.UpdateMigrationState(
+			Arg.Do<MigrationItemStateDto>(dto => savedDto = dto));
+
+		MigrationItem migrationItem = new()
+		{
+			MigrationItemType = MigrationItemType.Migration,
+			Name = "broken-migration",
+			FileData = new FileData
+			{
+				Content = "-- broken sql",
+				RelativePath = "db/migrations/002.m.broken.sql",
+				FilePath = "c:/db/migrations/002.m.broken.sql"
+			}
+		};
+
+		// Act
+		var act = () => deployer.Deploy(2, migrationItem);
+
+		// Assert
+		var ex = Assert.Throws<MigrationDeploymentException>(act);
+		Assert.Contains("Migration file deployment error", ex.Message);
+		Assert.Same(exception, ex.InnerException);
+
+		mockSet.DbLiveDA.Received(1)
+			.UpdateMigrationState(Arg.Any<MigrationItemStateDto>());
+
+		Assert.NotNull(savedDto);
+		Assert.Equal(MigrationItemStatus.Failed, savedDto.Status);
+		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
+		Assert.Equal(2, savedDto.Version);
+		Assert.Equal(endUtc, savedDto.AppliedUtc);
+		Assert.Equal(1000, savedDto.ExecutionTimeMs);
+		Assert.Contains("sql error", savedDto.ErrorMessage);
+	}
+
 }
