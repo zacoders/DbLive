@@ -16,7 +16,7 @@ public class MigrationItemDeployer(
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
 		MigrationItemStatus? migrationStatus = null;
-
+		string? errorMessage = null;
 		try
 		{
 			_logger.Information(
@@ -36,47 +36,22 @@ public class MigrationItemDeployer(
 		catch (Exception ex)
 		{
 			migrationStatus = MigrationItemStatus.Failed;
+			errorMessage = ex.ToString();
 			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
 		}
 		finally
 		{
 			DateTime migrationEndTime = _timeProvider.UtcNow();
-			MigrationItemDto dto = new()
+			MigrationItemStateDto dto = new()
 			{
 				Version = migrationVersion,
-				Name = migrationItem.Name,
 				ItemType = migrationItem.MigrationItemType,
-				ContentHash = migrationItem.FileData.ContentHash,
-				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-				Status = migrationStatus!.Value,
-				CreatedUtc = _timeProvider.UtcNow(),
-				AppliedUtc = migrationStatus == MigrationItemStatus.Applied ? migrationEndTime : null,
-				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
-
+				Status = migrationStatus!.Value,				
+				AppliedUtc = migrationEndTime,
+				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
+				ErrorMessage = errorMessage
 			};
-			_da.SaveMigrationItemState(dto);
+			_da.UpdateMigrationState(dto);
 		}
-	}
-
-	public void MarkAsSkipped(int migrationVersion, MigrationItem migrationItem)
-	{
-		//_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
-
-		MigrationItemDto dto = new()
-		{
-			Version = migrationVersion,
-			Name = migrationItem.Name,
-			ItemType = migrationItem.MigrationItemType,
-			ContentHash = migrationItem.FileData.ContentHash,
-			Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-			Status = MigrationItemStatus.Skipped,
-			CreatedUtc = _timeProvider.UtcNow(),
-			AppliedUtc = null,
-			ExecutionTimeMs = null
-		};
-
-		_da.SaveMigrationItemState(dto);
-
-		_logger.Information("Migration v{migrationVersion} {migrationType} skipped.", migrationVersion, migrationItem.MigrationItemType);
 	}
 }

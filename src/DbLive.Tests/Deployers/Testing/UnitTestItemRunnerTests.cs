@@ -45,7 +45,7 @@ public class UnitTestItemRunnerTests
 		Assert.True(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);
 		Assert.Equal(endUtc, result.CompletedUtc);
-		Assert.Empty(result.ErrorMessage);
+		Assert.Null(result.ErrorMessage);
 		Assert.Equal(999, result.ExecutionTimeMs);
 	}
 
@@ -100,7 +100,7 @@ public class UnitTestItemRunnerTests
 		Assert.True(result.IsSuccess);
 		Assert.Equal(startUtc, result.StartedUtc);
 		Assert.Equal(endUtc, result.CompletedUtc);
-		Assert.Empty(result.ErrorMessage);
+		Assert.Null(result.ErrorMessage);
 		Assert.Equal(999, result.ExecutionTimeMs);
 	}
 

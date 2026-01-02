@@ -4,6 +4,8 @@ namespace DbLive.Adapter;
 public interface IDbLiveDA
 {
 	IReadOnlyCollection<MigrationItemDto> GetMigrations();
+	
+	int? GetMigrationHash(int version, MigrationItemType itemType);
 
 	int GetCurrentMigrationVersion();
 
@@ -39,7 +41,16 @@ public interface IDbLiveDA
 	);
 
 	CodeItemDto? FindCodeItem(string relativePath);
-	void SaveMigrationItemState(MigrationItemDto item);
+	
+	void SaveMigrationItem(MigrationItemSaveDto item);
+
+	/// <summary>
+	/// Updates the migration state for the specified migration item.
+	/// </summary>
+	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
+	void UpdateMigrationState(MigrationItemStateDto item);
+
 	void SaveUnitTestResult(UnitTestItemDto item);
+	
 	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs);
 }

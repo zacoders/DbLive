@@ -11,6 +11,7 @@ create table dblive.migration (
   , created_utc datetime2(7) not null
   , applied_utc datetime2(7) null
   , execution_time_ms int null
+  , error nvarchar(4000) null
 
   , constraint pk_dblive_migration primary key ( version, item_type )
 )

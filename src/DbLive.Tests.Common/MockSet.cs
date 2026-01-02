@@ -29,6 +29,7 @@ public class MockSet
 	public readonly IFolderDeployer FolderDeployer = Substitute.For<IFolderDeployer>();
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
+	public readonly IMigrationsSaver MigrationsSaver = Substitute.For<IMigrationsSaver>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IDbLiveDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveDeployer>();
 	public readonly IDbLiveSelfDeployer DbLiveSelfDeployer = Substitute.For<IDbLiveSelfDeployer>();

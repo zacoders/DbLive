@@ -6,7 +6,7 @@ create or alter proc dblive.save_code_item
   , @applied_utc datetime2(7)
   , @execution_time_ms int
   , @created_utc datetime2(7)
-  , @error_message nvarchar(max)
+  , @error nvarchar(4000)
 as
 
 	set nocount on;
@@ -18,7 +18,7 @@ as
 		  , content_hash = @content_hash
 		  , applied_utc = @applied_utc
 		  , execution_time_ms = @execution_time_ms
-		  , error_message = @error_message
+		  , error = @error
 	when not matched then 
 		insert (
 			relative_path
@@ -27,7 +27,7 @@ as
 		  , applied_utc
 		  , execution_time_ms
 		  , created_utc
-		  , error_message
+		  , error
 		)
 		values (
 			@relative_path
@@ -36,7 +36,7 @@ as
 		  , @applied_utc
 		  , @execution_time_ms
 		  , @created_utc
-		  , @error_message
+		  , @error
 		);
 	
 go
@@ -78,54 +78,6 @@ as
 
 go
 
-
-create or alter proc dblive.save_migration
-	@version int
-  , @name nvarchar(512)
-  , @item_type varchar(32)
-  , @status varchar(32)
-  , @content_hash int
-  , @content nvarchar(max)
-  , @created_utc datetime2(7)
-  , @applied_utc datetime2(7)
-  , @execution_time_ms int
-as
-
-	set nocount on;
-
-	merge into dblive.migration as t
-	using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
-	when matched then update 
-		set status = @status
-		  , content_hash = @content_hash
-		  , content = @content
-		  , applied_utc = @applied_utc
-		  , execution_time_ms = @execution_time_ms
-	when not matched then 
-		insert (
-			version
-		  , name
-		  , item_type
-		  , status
-		  , content_hash
-		  , content
-		  , created_utc
-		  , applied_utc
-		  , execution_time_ms
-		)
-		values (
-			@version
-		  , @name
-		  , @item_type
-		  , @status
-		  , @content_hash
-		  , @content
-		  , @created_utc
-		  , @applied_utc
-		  , @execution_time_ms
-		);
-
-go
 
 
 create or alter proc dblive.save_unit_test_result

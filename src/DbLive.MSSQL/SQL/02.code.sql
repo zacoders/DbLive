@@ -6,15 +6,15 @@ create table dblive.code (
   , applied_utc datetime2(7) null
   , created_utc datetime2(7) not null  
   , verified_utc datetime2(7) null
-  , error_message nvarchar(max) null
+  , error nvarchar(4000) null
   , content_hash int not null
 
   , constraint pk_dblive_code primary key ( relative_path )
 )
 go
 
-exec sys.sp_tableoption
-	@TableNamePattern = 'dblive.code'
-  , @OptionName = 'large value types out of row'
-  , @OptionValue = '1'
-go
+--exec sys.sp_tableoption
+--	@TableNamePattern = 'dblive.code'
+--  , @OptionName = 'large value types out of row'
+--  , @OptionValue = '1'
+--go

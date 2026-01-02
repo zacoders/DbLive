@@ -51,20 +51,7 @@ public class MigrationVersionDeployer(
 		}
 
 		if (undoItem is not null)
-		{
-			_da.SaveMigrationItemState(new MigrationItemDto
-			{
-				Version = migration.Version,
-				ItemType = MigrationItemType.Undo,
-				Name = undoItem.Name,
-				Status = MigrationItemStatus.None,
-				Content = undoItem.FileData.Content,
-				ContentHash = undoItem.FileData.ContentHash,
-				CreatedUtc = _timeProvider.UtcNow(),
-				AppliedUtc = null,
-				ExecutionTimeMs = null
-			});
-
+		{			
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
 			{
 				_migrationItemDeployer.Deploy(migration.Version, migrationItem);

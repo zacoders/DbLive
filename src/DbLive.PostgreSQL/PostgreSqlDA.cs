@@ -184,4 +184,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	public int GetCurrentMigrationVersion() => throw new NotImplementedException();
+	public int? GetMigrationHash(int version, MigrationItemType itemType) => throw new NotImplementedException();
+	public void SaveMigrationItem(MigrationItemSaveDto item) => throw new NotImplementedException();
+	public void UpdateMigrationState(MigrationItemStateDto item) => throw new NotImplementedException();
 }
