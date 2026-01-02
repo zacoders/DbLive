@@ -25,15 +25,15 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			() =>
 			{
-				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
+				_folderDeployer.Deploy(ProjectFolder.BeforeDeploy, parameters);
 
 				_migrationsDeployer.Deploy(parameters);
 
-				_codeDeployer.DeployCode(parameters);
+				_codeDeployer.Deploy(parameters);
 
-				_breakingChangesDeployer.DeployBreakingChanges(parameters);
+				_breakingChangesDeployer.Deploy(parameters);
 
-				_folderDeployer.DeployFolder(ProjectFolder.AfterDeploy, parameters);
+				_folderDeployer.Deploy(ProjectFolder.AfterDeploy, parameters);
 			}
 		);
 

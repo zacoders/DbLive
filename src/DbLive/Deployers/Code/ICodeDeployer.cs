@@ -2,5 +2,5 @@
 
 public interface ICodeDeployer
 {
-	void DeployCode(DeployParameters parameters);
+	void Deploy(DeployParameters parameters);
 }

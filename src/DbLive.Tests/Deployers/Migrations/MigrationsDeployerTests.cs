@@ -188,9 +188,9 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(2, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
 		});
 
 		mockSet.DbLiveDA.Received(1)
@@ -244,10 +244,10 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, breakingItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(3, breakingItem);
+			mockSet.MigrationItemDeployer.Deploy(3, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
 		});
 	}
 
@@ -291,9 +291,9 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(4, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
 		});
 	}
 

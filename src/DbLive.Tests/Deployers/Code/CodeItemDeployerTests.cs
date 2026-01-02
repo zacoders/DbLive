@@ -28,7 +28,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.DeployCodeItem(codeItem);
+		var res = deployer.Deploy(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -64,7 +64,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.DeployCodeItem(codeItem);
+		var res = deployer.Deploy(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -86,7 +86,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.DeployCodeItem(codeItem);
+		var res = deployer.Deploy(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -111,7 +111,7 @@ public class CodeItemDeployerTests
 			.Do(x => throw new Exception("some exception"));
 
 		// Act
-		var res = deployer.DeployCodeItem(codeItem);
+		var res = deployer.Deploy(codeItem);
 
 		// Assert
 		Assert.False(res.IsSuccess);

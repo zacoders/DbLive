@@ -67,23 +67,23 @@ public class MigrationVersionDeployer(
 
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
 			{
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
+				_migrationItemDeployer.Deploy(migration.Version, undoItem);
 			}
 
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
 			{
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
 				if (breakingItem is not null)
 				{
-					_migrationItemDeployer.DeployMigrationItem(migration.Version, breakingItem);
+					_migrationItemDeployer.Deploy(migration.Version, breakingItem);
 				}
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+				_migrationItemDeployer.Deploy(migration.Version, undoItem);
 			}
 
 		}
 
-		_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+		_migrationItemDeployer.Deploy(migration.Version, migrationItem);
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 

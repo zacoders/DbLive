@@ -12,7 +12,7 @@ public class CodeDeployer(
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));	
 	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
 
-	public void DeployCode(DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -85,7 +85,7 @@ public class CodeDeployer(
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
-			CodeItemDeployResult result = _codeItemDeployer.DeployCodeItem(codeItem);
+			CodeItemDeployResult result = _codeItemDeployer.Deploy(codeItem);
 
 			if (result.IsSuccess)
 			{

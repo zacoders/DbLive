@@ -46,7 +46,7 @@ public class MigrationVersionDeployerTests
 		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem( 1, Arg.Any<MigrationItem>());
+			.Deploy( 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -90,7 +90,7 @@ public class MigrationVersionDeployerTests
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
+			.Deploy(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
@@ -145,7 +145,7 @@ public class MigrationVersionDeployerTests
 		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
+			.Deploy(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
 			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));

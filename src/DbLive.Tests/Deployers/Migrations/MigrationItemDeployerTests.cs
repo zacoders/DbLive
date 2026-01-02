@@ -124,7 +124,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(1, migrationItem);
+		deploy.Deploy(1, migrationItem);
 
 
 		// Assert
@@ -183,7 +183,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.DeployMigrationItem(1, undoItem);
+		deploy.Deploy(1, undoItem);
 
 
 		// Assert

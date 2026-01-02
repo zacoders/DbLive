@@ -12,7 +12,7 @@ public class MigrationItemDeployer(
 
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigrationItem(int migrationVersion, MigrationItem migrationItem)
+	public void Deploy(int migrationVersion, MigrationItem migrationItem)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
 		MigrationItemStatus? migrationStatus = null;

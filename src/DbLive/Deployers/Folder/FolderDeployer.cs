@@ -11,7 +11,7 @@ public class FolderDeployer(
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void DeployFolder(ProjectFolder projectFolder, DeployParameters parameters)
+	public void Deploy(ProjectFolder projectFolder, DeployParameters parameters)
 	{
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 

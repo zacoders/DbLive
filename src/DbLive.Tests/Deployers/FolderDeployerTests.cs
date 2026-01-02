@@ -19,7 +19,7 @@ public class FolderDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		deploy.DeployFolder(projectFolder, DeployParameters.Default);
+		deploy.Deploy(projectFolder, DeployParameters.Default);
 
 		mockSet.DbLiveDA.Received(3)
 			.ExecuteNonQuery(
@@ -45,7 +45,7 @@ public class FolderDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		deploy.DeployFolder(projectFolder, DeployParameters.Default);
+		deploy.Deploy(projectFolder, DeployParameters.Default);
 
 		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(
@@ -84,7 +84,7 @@ public class FolderDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		deploy.DeployFolder(projectFolder, DeployParameters.Default);
+		deploy.Deploy(projectFolder, DeployParameters.Default);
 
 		mockSet.DbLiveDA.DidNotReceive().ExecuteNonQuery(Arg.Any<string>());
 	}
@@ -102,6 +102,6 @@ public class FolderDeployerTests
 
 		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => deploy.DeployFolder(projectFolder, DeployParameters.Default));
+		Assert.Throws<ArgumentOutOfRangeException>(() => deploy.Deploy(projectFolder, DeployParameters.Default));
 	}
 }

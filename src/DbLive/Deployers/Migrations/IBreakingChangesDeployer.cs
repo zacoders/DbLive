@@ -2,5 +2,5 @@
 
 public interface IBreakingChangesDeployer
 {
-	void DeployBreakingChanges(DeployParameters parameters);
+	void Deploy(DeployParameters parameters);
 }
