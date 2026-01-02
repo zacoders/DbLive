@@ -455,6 +455,24 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
+	public string? GetMigrationContent(int version, MigrationItemType migrationType)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		string? content = cnn.QueryFirstOrDefault<string?>("""
+			select content
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+			new
+			{
+				version,
+				item_type = migrationType.ToString().ToLower()
+			}
+		);
+		return content;
+	}
+
 	public void SaveUnitTestResult(UnitTestItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
