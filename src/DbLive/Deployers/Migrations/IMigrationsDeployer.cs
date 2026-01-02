@@ -2,5 +2,5 @@
 
 public interface IMigrationsDeployer
 {
-	void DeployMigrations(DeployParameters parameters);
+	void Deploy(DeployParameters parameters);
 }

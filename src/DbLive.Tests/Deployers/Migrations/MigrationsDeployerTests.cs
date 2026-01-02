@@ -61,11 +61,11 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.Received(3)
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -85,12 +85,12 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -118,11 +118,11 @@ public class MigrationsDeployerTests
 		deployParams.DeployMigrations = false;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 

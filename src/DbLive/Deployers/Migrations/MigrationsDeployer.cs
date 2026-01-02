@@ -9,7 +9,7 @@ public class MigrationsDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 
-	public void DeployMigrations(DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -28,7 +28,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationVersionDeployer.DeployMigration(migration, parameters);
+			_migrationVersionDeployer.Deploy(migration, parameters);
 		}
 	}
 

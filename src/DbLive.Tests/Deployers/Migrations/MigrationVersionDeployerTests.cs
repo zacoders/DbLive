@@ -17,7 +17,7 @@ public class MigrationVersionDeployerTests
 		};
 
 		Assert.Throws<InvalidOperationException>(
-			() => deploy.DeployMigration(migration, DeployParameters.Default)
+			() => deploy.Deploy(migration, DeployParameters.Default)
 		);
 	}
 
@@ -43,7 +43,7 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
 			.DeployMigrationItem( 1, Arg.Any<MigrationItem>());
@@ -86,7 +86,7 @@ public class MigrationVersionDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
 		// Act
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received()
@@ -142,7 +142,7 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
 			.DeployMigrationItem(1, Arg.Any<MigrationItem>());

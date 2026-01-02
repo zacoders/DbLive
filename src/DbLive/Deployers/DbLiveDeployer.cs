@@ -27,7 +27,7 @@ public class DbLiveDeployer(
 			{
 				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
 
-				_migrationsDeployer.DeployMigrations(parameters);
+				_migrationsDeployer.Deploy(parameters);
 
 				_codeDeployer.DeployCode(parameters);
 
