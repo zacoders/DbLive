@@ -13,7 +13,7 @@ internal class MigrationsSaver(
 		// By default saving all migrations, skip content for all except UNDO.
 		// Options can be added to control what to save
 
-		_logger.Information("Saving migration undo items.");
+		_logger.Information("Saving migration items.");
 
 		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
 
@@ -23,10 +23,19 @@ internal class MigrationsSaver(
 			{
 				int? hash = _da.GetMigrationHash(migration.Version, migrationItem.MigrationItemType);
 
-				if (hash.HasValue && hash.Value == migrationItem.FileData.ContentHash)
+				if (hash.HasValue)
 				{
-					// skip save, already saved
-					continue;
+					if (hash.Value == migrationItem.FileData.ContentHash)
+					{
+						// skip save, already saved
+						continue;
+					}
+					else
+					{
+						// todo: Throw exception or just log warning? Overwriting migration item is not a good practice.
+						//		 Need to analyze use cases where this can happen.
+						_logger.Warning("Migration item '{MigrationItemType}' for version {Version} has changed, saving new version.", migrationItem.MigrationItemType, migration.Version);
+					}
 				}
 
 				_da.SaveMigrationItem(new MigrationItemSaveDto
