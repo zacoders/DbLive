@@ -19,7 +19,7 @@ public class CodeItemDeployer(
 			CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
 
 			if (codeItemDto != null
-				&& codeItemDto.ContentHash == codeItem.FileData.Crc32Hash
+				&& codeItemDto.ContentHash == codeItem.FileData.ContentHash
 				&& codeItemDto.Status == CodeItemStatus.Applied)
 			{
 				_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
@@ -42,7 +42,7 @@ public class CodeItemDeployer(
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Applied,
-				ContentHash = codeItem.FileData.Crc32Hash,
+				ContentHash = codeItem.FileData.ContentHash,
 				AppliedUtc = appliedUtc,
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),
@@ -61,7 +61,7 @@ public class CodeItemDeployer(
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Error,
-				ContentHash = codeItem.FileData.Crc32Hash,
+				ContentHash = codeItem.FileData.ContentHash,
 				AppliedUtc = appliedUtc,
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),

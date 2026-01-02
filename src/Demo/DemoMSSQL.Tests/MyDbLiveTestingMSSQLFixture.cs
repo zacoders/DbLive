@@ -18,8 +18,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	public const string DockerImage = "mcr.microsoft.com/mssql/server:2025-latest";
 
 	private static readonly MsSqlContainer _dockerContainer
-		= new MsSqlBuilder()
-				.WithImage(DockerImage)
+		= new MsSqlBuilder(DockerImage)
 				.WithName("DbLive.DemoMSSQL")
 				//.WithReuse(true)
 				.Build();
@@ -85,5 +84,33 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 			RunTests = true,
 			UndoTestDeployment = undoTestingMode
 		});
+	}
+
+
+	[Fact]
+	[Trait("Category", "LocalOnly")]
+	public async Task DeployToLocalSqlServerAsync()
+	{
+		string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
+		string projectPath = Path.GetFullPath(MyDbLiveTestingMSSQLFixture.SqlProjectName);
+
+		DbLiveBuilder builder = new DbLiveBuilder()
+			.LogToXUnitOutput(_output)
+			.SqlServer()
+			.SetDbConnection(dbCnnString)
+			.SetProjectPath(projectPath);
+
+		var deployer = builder.CreateDeployer();
+
+		deployer.Deploy(
+			new DeployParameters
+			{
+				CreateDbIfNotExists = true,
+				DeployBreaking = false,
+				DeployCode = true,
+				DeployMigrations = true,
+				RunTests = true
+			}
+		);
 	}
 }

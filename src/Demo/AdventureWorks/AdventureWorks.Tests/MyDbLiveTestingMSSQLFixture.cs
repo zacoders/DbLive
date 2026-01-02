@@ -13,8 +13,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	public const string SqlProjectName = "AdventureWorks.Database";
 
 	private static readonly MsSqlContainer _dockerContainer
-		= new MsSqlBuilder()
-			.WithImage("mcr.microsoft.com/mssql/server:2025-latest")
+		= new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
 			.WithName("DbLive.AdventureWorks")
 			//.WithReuse(true)
 			.Build();

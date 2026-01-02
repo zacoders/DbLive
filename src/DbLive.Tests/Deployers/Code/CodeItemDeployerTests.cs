@@ -13,7 +13,7 @@ public class CodeItemDeployerTests
 
 		CodeItemDto codeItemDto = new()
 		{
-			ContentHash = codeItem.FileData.Crc32Hash, // same hash
+			ContentHash = codeItem.FileData.ContentHash, // same hash
 			AppliedUtc = new DateTime(2023, 1, 1),
 			ExecutionTimeMs = 5,
 			RelativePath = codeItem.FileData.RelativePath,
@@ -45,7 +45,7 @@ public class CodeItemDeployerTests
 
 		CodeItem codeItem = GetCodeItem();
 
-		int differentHash = codeItem.FileData.Crc32Hash + 123;
+		int differentHash = codeItem.FileData.ContentHash + 123;
 
 		CodeItemDto codeItemDto = new()
 		{

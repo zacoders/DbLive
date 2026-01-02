@@ -7,8 +7,7 @@ namespace DbLive.PostgreSQL.Tests;
 public class PostgreSqlFixture : IAsyncLifetime
 {
 	private static readonly PostgreSqlContainer _dockerContainer
-		= new PostgreSqlBuilder()
-			.WithImage("postgres:latest")
+		= new PostgreSqlBuilder("postgres:latest")
 			.WithName("DbLive.PostgreSQL.Tests")
 			//.WithReuse(true)
 			.Build();
