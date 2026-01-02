@@ -194,7 +194,7 @@ public class MigrationsDeployerTests
 		});
 
 		mockSet.DbLiveDA.Received(1)
-			.SaveCurrentMigrationVersion(2, Arg.Any<DateTime>());
+			.SetCurrentMigrationVersion(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -327,7 +327,7 @@ public class MigrationsDeployerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1)
-			.SaveCurrentMigrationVersion(5, now);
+			.SetCurrentMigrationVersion(5, now);
 	}
 
 

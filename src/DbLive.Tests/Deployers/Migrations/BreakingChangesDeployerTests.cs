@@ -67,7 +67,8 @@ public class BreakingChangesDeployerTests
 				Name = "breaking-v2",
 				ItemType = MigrationItemType.Breaking,
 				Status = MigrationItemStatus.Applied,
-				ContentHash = "-- content 2".Crc32HashCode()
+				ContentHash = "-- content 2".Crc32HashCode(),
+				RelativePath = "migrations/2.breaking.sql"
 			}
 		]);
 

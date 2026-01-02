@@ -122,7 +122,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
+	public void SetCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"

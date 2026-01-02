@@ -16,7 +16,7 @@ public interface IDbLiveDA
 	void SetDbLiveVersion(int version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
+	void SetCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
 	void SaveCodeItem(CodeItemDto item);

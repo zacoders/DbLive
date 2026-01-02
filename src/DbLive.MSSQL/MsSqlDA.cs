@@ -20,6 +20,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			select version
 				 , name
 				 , item_type
+				 , relative_path
 				 , status
 				 , content_hash
 				 , created_utc
@@ -85,7 +86,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
-	public void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
+	public void SetCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
 	{
 		const string query = @"
 			update dblive.dbversion
@@ -392,11 +393,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				set status = @status
 				  , content_hash = @content_hash
 				  , content = @content
+				  , relative_path = @relative_path
 			when not matched then 
 				insert (
 					version
 				  , name
 				  , item_type
+				  , relative_path
 				  , status
 				  , content_hash
 				  , content
@@ -406,6 +409,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					@version
 				  , @name
 				  , @item_type
+				  , @relative_path
 				  , @status
 				  , @content_hash
 				  , @content
@@ -417,6 +421,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version = item.Version,
 				name = item.Name,
 				item_type = item.ItemType.ToString().ToLower(),
+				relative_path = item.RelativePath,
 				content_hash = item.ContentHash,
 				content = item.Content,
 				status = item.Status.ToString().ToLower(),

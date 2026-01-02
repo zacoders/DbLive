@@ -7,7 +7,8 @@ public class DowngradeDeployer(
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITransactionRunner _transactionRunner,
-		ISettingsAccessor projectSettingsAccessor
+		ISettingsAccessor projectSettingsAccessor,
+		ITimeProvider _timeProvider
 	) : IDowngradeDeployer
 {
 
@@ -102,7 +103,7 @@ public class DowngradeDeployer(
 						FileData = new FileData { 
 							Content = undoContents[undoDto.Version], 
 							FilePath = "", 
-							RelativePath = "" // todo: fill paths, required for logging.
+							RelativePath = undoDto.RelativePath
 						},
 						Name = undoDto.Name
 					};
@@ -111,6 +112,9 @@ public class DowngradeDeployer(
 
 					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
 				}
+
+				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
+				_da.SetCurrentMigrationVersion(projectVersion, migrationCompletedUtc);
 			}
 		);
 	}

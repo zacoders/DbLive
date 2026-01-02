@@ -43,6 +43,7 @@ internal class MigrationsSaver(
 					Version = migration.Version,
 					ItemType = migrationItem.MigrationItemType,
 					Name = migrationItem.Name,
+					RelativePath = migrationItem.FileData.RelativePath,
 					Status = MigrationItemStatus.None,
 					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : null,
 					ContentHash = migrationItem.FileData.ContentHash,

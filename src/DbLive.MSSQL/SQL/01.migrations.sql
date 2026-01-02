@@ -5,6 +5,7 @@ create table dblive.migration (
 	version int not null
   , item_type varchar(32) not null
   , name nvarchar(512) not null
+  , relative_path nvarchar(4000) not null
   , status varchar(32) not null
   , content_hash int not null
   , content nvarchar(max) null
