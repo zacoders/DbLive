@@ -50,6 +50,8 @@ public interface IDbLiveDA
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
 	void UpdateMigrationState(MigrationItemStateDto item);
 
+	bool MigrationItemExists(int version, MigrationItemType ItemType);
+
 	string? GetMigrationContent(int version, MigrationItemType undo);
 
 	void SaveUnitTestResult(UnitTestItemDto item);

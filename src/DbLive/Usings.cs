@@ -5,7 +5,6 @@ global using DbLive.Deployers.Code;
 global using DbLive.Deployers.Folder;
 global using DbLive.Deployers.Migrations;
 global using DbLive.Deployers.Testing;
-global using DbLive.Exceptions;
 global using DbLive.Project;
 global using DbLive.Project.Exceptions;
 global using DbLive.Testing;

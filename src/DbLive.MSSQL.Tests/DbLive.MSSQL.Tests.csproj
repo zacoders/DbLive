@@ -28,6 +28,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj" />
     <ProjectReference Include="..\Demo\DemoMSSQL\DemoMSSQL.csproj" />
     <ProjectReference Include="..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
     <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />

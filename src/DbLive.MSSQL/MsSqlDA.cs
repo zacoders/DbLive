@@ -460,6 +460,24 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
+	public bool MigrationItemExists(int version, MigrationItemType ItemType)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		int? exists = cnn.QueryFirstOrDefault<int?>("""
+			select 1
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+			new
+			{
+				version,
+				item_type = ItemType.ToString().ToLower()
+			}
+		);
+		return exists is not null;
+	}
+
 	public string? GetMigrationContent(int version, MigrationItemType migrationType)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);

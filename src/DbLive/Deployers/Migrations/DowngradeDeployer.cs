@@ -41,9 +41,11 @@ public class DowngradeDeployer(
 			projectVersion, databaseVersion
 		);
 
+		IReadOnlyCollection<MigrationItemDto> allMigrations = _da.GetMigrations();
+
 		// get undo migrations
 		List<MigrationItemDto> undoMigrations = 
-			_da.GetMigrations()
+				allMigrations
 				.Where(m => m.ItemType == MigrationItemType.Undo)
 				.Where(m => m.Version > projectVersion)
 				.OrderByDescending(m => m.Version)
@@ -71,8 +73,6 @@ public class DowngradeDeployer(
 		// deploy undo migrations
 		foreach (MigrationItemDto undoDto in undoMigrations)
 		{
-			_logger.Information("Undoing migration version {version}", undoDto.Version);
-
 			string? undoContent = _da.GetMigrationContent(undoDto.Version, MigrationItemType.Undo);
 
 			if (undoContent is null)
