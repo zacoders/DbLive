@@ -151,7 +151,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		var act = () => deployer.Deploy(2, migrationItem);
+		void act() => deployer.Deploy(2, migrationItem);
 
 		// Assert
 		var ex = Assert.Throws<MigrationDeploymentException>(act);
