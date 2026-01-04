@@ -1,5 +1,7 @@
 mode: Mainline
-branches: {}
+branches:
+  main:
+    tag: preview
 ignore:
   sha: []
 merge-message-formats: {}

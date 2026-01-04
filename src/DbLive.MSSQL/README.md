@@ -1,0 +1,2 @@
+﻿
+# DbLive.MSSQL Placeholder

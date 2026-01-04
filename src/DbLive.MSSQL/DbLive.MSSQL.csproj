@@ -1,37 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Version>0.0.0</Version>
-  </PropertyGroup>
+	<PropertyGroup>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <Version>0.0.0-placeholder</Version>
+        <Deterministic>true</Deterministic>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" />
-    <PackageReference Include="Microsoft.Data.SqlClient" />
-    <PackageReference Include="Dapper" />
-  </ItemGroup>
+        <PackageId>DbLive.MSSQL</PackageId>
+        <Authors>ZACoders</Authors>
+        <Company>DbLive</Company>
+        <Description>Database Deployment and Testing Framework for MSSQL and .NET</Description>
+
+        <PackageProjectUrl>https://github.com/zacoders/DbLive</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/zacoders/DbLive</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>database migration testing sql devops mssql</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" />
+        <PackageReference Include="Microsoft.Data.SqlClient" />
+        <PackageReference Include="Dapper" />
+    </ItemGroup>
   
-  <!-- For development -->
-  <ItemGroup>
-    <None Include="SQL\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-    </None>
-  </ItemGroup>
+    <!-- For development -->
+    <ItemGroup>
+        <None Include="SQL\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+        </None>
+    </ItemGroup>
 
-  <!-- For nuget -->
-  <ItemGroup>
-    <None Include="SQL\**" Pack="true">
-      <PackagePath>src\$(AssemblyName)</PackagePath>
-    </None>
-  </ItemGroup>
+    <!-- For nuget -->
+    <ItemGroup>
+        <None Include="SQL\**" Pack="true">
+            <PackagePath>src\$(AssemblyName)</PackagePath>
+        </None>
+    </ItemGroup>
     
+    <ItemGroup>
+	    <ProjectReference Include="..\DbLive\DbLive.csproj" />
+    </ItemGroup>
+
 	<ItemGroup>
-	  <ProjectReference Include="..\DbLive\DbLive.csproj" />
+		<None Include="README.md" Pack="true" PackagePath="/" />
 	</ItemGroup>
-	
 </Project>
