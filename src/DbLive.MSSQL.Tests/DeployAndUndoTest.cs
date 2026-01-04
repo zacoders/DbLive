@@ -10,8 +10,8 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 	//: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString),
 	: IAssemblyFixture<SqlServerIntegrationFixture>
 {
-	//string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
-	readonly string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL_UNDO;Trusted_Connection=True;";
+	string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
+	//readonly string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL_UNDO;Trusted_Connection=True;";
 
 	[Fact]
 	public async Task Deploy_MSSQL_demo_and_undo_to_empty_database()
