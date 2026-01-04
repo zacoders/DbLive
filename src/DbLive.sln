@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DbLive", "DbLive\DbLive.csproj", "{A5ADAD33-E29F-4335-AFD9-027F42B784F2}"
 EndProject
@@ -25,6 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DbLive.PostgreSQL.Tests", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DBC8694E-701B-4E4E-A99C-CE85134BC45A}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		build-nuget-local.ps1 = build-nuget-local.ps1
 		Directory.Packages.props = Directory.Packages.props
 		nuget.config = nuget.config
@@ -42,6 +43,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdventureWorks.Database", "Demo\AdventureWorks\AdventureWorks.Database\AdventureWorks.Database.csproj", "{1C4F3B32-0A90-B562-3138-CED61A03BF9E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdventureWorks.Tests", "Demo\AdventureWorks\AdventureWorks.Tests\AdventureWorks.Tests.csproj", "{DCD7799A-1034-36CF-FE0C-CA076CC71815}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemoMSSQLEmpty", "Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj", "{63D9A9C5-E2EF-4298-8D60-B888613FC0F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -105,6 +108,10 @@ Global
 		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCD7799A-1034-36CF-FE0C-CA076CC71815}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63D9A9C5-E2EF-4298-8D60-B888613FC0F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63D9A9C5-E2EF-4298-8D60-B888613FC0F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63D9A9C5-E2EF-4298-8D60-B888613FC0F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63D9A9C5-E2EF-4298-8D60-B888613FC0F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,6 +126,7 @@ Global
 		{BE9594BE-8D31-4A82-8CE9-048DEA29E798} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{1C4F3B32-0A90-B562-3138-CED61A03BF9E} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 		{DCD7799A-1034-36CF-FE0C-CA076CC71815} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
+		{63D9A9C5-E2EF-4298-8D60-B888613FC0F2} = {DD98917C-07E2-4102-AAD1-3AD1E16C75E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3BEF8A41-AC0C-4AC0-BADB-6AD40534D8A2}

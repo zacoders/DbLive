@@ -12,13 +12,13 @@ public class BreakingChangesDeployerTests
 		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployBreakingChanges(new DeployParameters { DeployBreaking = false });
+		deployer.Deploy(new DeployParameters { DeployBreaking = false });
 
 		// Assert
 		mockSet.DbLiveDA.DidNotReceive().GetMigrations();
 		mockSet.DbLiveProject.DidNotReceive().GetMigrations();
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -47,11 +47,11 @@ public class BreakingChangesDeployerTests
 		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployBreakingChanges(DeployParameters.Breaking);
+		deployer.Deploy(DeployParameters.Breaking);
 
 		// Assert
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -68,7 +68,7 @@ public class BreakingChangesDeployerTests
 				ItemType = MigrationItemType.Breaking,
 				Status = MigrationItemStatus.Applied,
 				ContentHash = "-- content 2".Crc32HashCode(),
-				Content = "-- content 2"
+				RelativePath = "migrations/2.breaking.sql"
 			}
 		]);
 
@@ -103,14 +103,14 @@ public class BreakingChangesDeployerTests
 		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployBreakingChanges(DeployParameters.Breaking);
+		deployer.Deploy(DeployParameters.Breaking);
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(3, migration3.Items[MigrationItemType.Breaking]);
+			.Deploy(3, migration3.Items[MigrationItemType.Breaking]);
 
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployMigrationItem(2, Arg.Any<MigrationItem>());
+			.Deploy(2, Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -152,16 +152,16 @@ public class BreakingChangesDeployerTests
 		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployBreakingChanges(DeployParameters.Breaking);
+		deployer.Deploy(DeployParameters.Breaking);
 
 		// Assert
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer
-				.DeployMigrationItem(1, migration1.Items[MigrationItemType.Breaking]);
+				.Deploy(1, migration1.Items[MigrationItemType.Breaking]);
 
 			mockSet.MigrationItemDeployer
-				.DeployMigrationItem(2, migration2.Items[MigrationItemType.Breaking]);
+				.Deploy(2, migration2.Items[MigrationItemType.Breaking]);
 		});
 	}
 

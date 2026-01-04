@@ -122,7 +122,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		throw new NotImplementedException();
 	}
 
-	public void SaveCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
+	public void SetCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"
@@ -184,4 +184,9 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	public int GetCurrentMigrationVersion() => throw new NotImplementedException();
+	public int? GetMigrationHash(int version, MigrationItemType itemType) => throw new NotImplementedException();
+	public void SaveMigrationItem(MigrationItemSaveDto item) => throw new NotImplementedException();
+	public void UpdateMigrationState(MigrationItemStateDto item) => throw new NotImplementedException();
+	public string? GetMigrationContent(int version, MigrationItemType undo) => throw new NotImplementedException();
+	public bool MigrationItemExists(int version, MigrationItemType ItemType) => throw new NotImplementedException();
 }

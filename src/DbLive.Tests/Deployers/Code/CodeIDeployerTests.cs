@@ -10,7 +10,7 @@ public class CodeDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.DeployCode(DeployParameters.Default);
+		deployer.Deploy(DeployParameters.Default);
 	}
 
 	[Fact]
@@ -20,7 +20,7 @@ public class CodeDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.DeployCode(new DeployParameters { DeployCode = false });
+		deployer.Deploy(new DeployParameters { DeployCode = false });
 	}
 
 	[Fact]
@@ -41,13 +41,13 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
+		mockSet.CodeItemDeployer.Deploy(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.DeployCode(DeployParameters.Default);
+		deployer.Deploy(DeployParameters.Default);
 
-		mockSet.CodeItemDeployer.Received(5).DeployCodeItem(Arg.Any<CodeItem>());
+		mockSet.CodeItemDeployer.Received(5).Deploy(Arg.Any<CodeItem>());
 	}
 
 
@@ -64,16 +64,16 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.DeployCodeItem(Arg.Any<CodeItem>())
+		mockSet.CodeItemDeployer.Deploy(Arg.Any<CodeItem>())
 			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		Assert.Throws<CodeDeploymentAggregateException>(
-			() => deployer.DeployCode(DeployParameters.Default)
+			() => deployer.Deploy(DeployParameters.Default)
 		);
 
-		mockSet.CodeItemDeployer.Received().DeployCodeItem(Arg.Any<CodeItem>());
+		mockSet.CodeItemDeployer.Received().Deploy(Arg.Any<CodeItem>());
 	}
 
 	private static CodeItem GetCodeItem(string name)

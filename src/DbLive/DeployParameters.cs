@@ -30,6 +30,8 @@ public record DeployParameters
 		RunTests = true
 	};
 
+	internal bool RecreateDatabase { get; set; } = false;
+
 	public bool DeployCode { get; set; } = true;
 
 	public bool DeployMigrations { get; set; } = true;
@@ -46,4 +48,10 @@ public record DeployParameters
 	/// This is not what production deployment should do.
 	/// </summary>
 	public UndoTestMode UndoTestDeployment { get; set; } = UndoTestMode.None;
+
+	/// <summary>
+	/// If true, allows downgrading the database to an earlier version.
+	/// It will apply UNDO up to the current version.
+	/// </summary>
+	public bool AllowDatabaseDowngrade { get; set; } = false;
 }

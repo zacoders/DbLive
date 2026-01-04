@@ -20,9 +20,9 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			select version
 				 , name
 				 , item_type
+				 , relative_path
 				 , status
 				 , content_hash
-				 , content
 				 , created_utc
 				 , applied_utc
 				 , execution_time_ms
@@ -31,6 +31,18 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		return cnn.Query<MigrationItemDto>(query).ToList();
+	}
+
+	public int? GetMigrationHash(int version, MigrationItemType itemType)
+	{
+		const string query = @"
+			select content_hash
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+		";
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		return cnn.QueryFirstOrDefault<int?>(query, new { version, item_type = itemType.ToString() });
 	}
 
 	public bool DbLiveInstalled()
@@ -74,7 +86,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Query(query, new { version, applied_utc = migrationDateTime });
 	}
 
-	public void SaveCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
+	public void SetCurrentMigrationVersion(int version, DateTime migrationCompletedUtc)
 	{
 		const string query = @"
 			update dblive.dbversion
@@ -335,7 +347,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				created_utc = item.CreatedUtc,
-				error_message = item.ErrorMessage
+				error = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
 		);
@@ -362,7 +374,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc
 				 , execution_time_ms
 				 , verified_utc
-				 , error_message
+				 , error as error_message
 			     , status			  
 			from dblive.code
 			where relative_path = @relative_path
@@ -371,25 +383,117 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		);
 	}
 
-	public void SaveMigrationItemState(MigrationItemDto item)
+	public void SaveMigrationItem(MigrationItemSaveDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		cnn.Query(
-			"dblive.save_migration",
+		cnn.Query("""
+			merge into dblive.migration as t
+			using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
+			when matched then update 
+				set status = @status
+				  , content_hash = @content_hash
+				  , content = @content
+				  , relative_path = @relative_path
+			when not matched then 
+				insert (
+					version
+				  , name
+				  , item_type
+				  , relative_path
+				  , status
+				  , content_hash
+				  , content
+				  , created_utc
+				)
+				values (
+					@version
+				  , @name
+				  , @item_type
+				  , @relative_path
+				  , @status
+				  , @content_hash
+				  , @content
+				  , @created_utc
+				);
+			""",
 			new
 			{
 				version = item.Version,
 				name = item.Name,
 				item_type = item.ItemType.ToString().ToLower(),
+				relative_path = item.RelativePath,
 				content_hash = item.ContentHash,
 				content = item.Content,
 				status = item.Status.ToString().ToLower(),
-				created_utc = item.CreatedUtc,
-				applied_utc = item.AppliedUtc,
-				execution_time_ms = item.ExecutionTimeMs
-			},
-			commandType: CommandType.StoredProcedure
+				created_utc = item.CreatedUtc
+			}
 		);
+	}
+
+	public void UpdateMigrationState(MigrationItemStateDto item)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		int? ver = cnn.QueryFirstOrDefault<int?>("""
+			update dblive.migration
+			set status = @status
+			  , applied_utc = @applied_utc
+			  , execution_time_ms = @execution_time_ms
+			  , error = @error
+			output inserted.version
+			where version = @version
+			  and item_type = @item_type
+			""",
+			new
+			{
+				version = item.Version,
+				item_type = item.ItemType.ToString().ToLower(),
+				status = item.Status.ToString().ToLower(),
+				applied_utc = item.AppliedUtc,
+				execution_time_ms = item.ExecutionTimeMs,
+				error = item.ErrorMessage
+			}
+		);
+
+		if(ver is null)
+		{
+			throw new DbLiveMigrationItemMissedSqlException($"Migration item not found. Version: {item.Version}, Type: {item.ItemType}");
+		}
+	}
+
+	public bool MigrationItemExists(int version, MigrationItemType ItemType)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		int? exists = cnn.QueryFirstOrDefault<int?>("""
+			select 1
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+			new
+			{
+				version,
+				item_type = ItemType.ToString().ToLower()
+			}
+		);
+		return exists is not null;
+	}
+
+	public string? GetMigrationContent(int version, MigrationItemType migrationType)
+	{
+		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		string? content = cnn.QueryFirstOrDefault<string?>("""
+			select content
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+			new
+			{
+				version,
+				item_type = migrationType.ToString().ToLower()
+			}
+		);
+		return content;
 	}
 
 	public void SaveUnitTestResult(UnitTestItemDto item)

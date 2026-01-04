@@ -9,7 +9,7 @@ public class BreakingChangesDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
-	public void DeployBreakingChanges(DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		if (!parameters.DeployBreaking)
 		{
@@ -45,7 +45,7 @@ public class BreakingChangesDeployer(
 
 		foreach (var breaking in breakingToApply)
 		{
-			_migrationItemDeployer.DeployMigrationItem(breaking.Version, breaking.Item);
+			_migrationItemDeployer.Deploy(breaking.Version, breaking.Item);
 		}
 	}
 }

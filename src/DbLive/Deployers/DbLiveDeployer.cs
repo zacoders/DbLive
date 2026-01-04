@@ -8,7 +8,8 @@ public class DbLiveDeployer(
 		IUnitTestsRunner _unitTestsRunner,
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
-		ITransactionRunner _transactionRunner
+		ITransactionRunner _transactionRunner,
+		IDowngradeDeployer _downgradeDeployer
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
@@ -25,15 +26,17 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			() =>
 			{
-				_folderDeployer.DeployFolder(ProjectFolder.BeforeDeploy, parameters);
+				_downgradeDeployer.Deploy(parameters);
 
-				_migrationsDeployer.DeployMigrations(parameters);
+				_folderDeployer.Deploy(ProjectFolder.BeforeDeploy, parameters);
 
-				_codeDeployer.DeployCode(parameters);
+				_migrationsDeployer.Deploy(parameters);
 
-				_breakingChangesDeployer.DeployBreakingChanges(parameters);
+				_codeDeployer.Deploy(parameters);
 
-				_folderDeployer.DeployFolder(ProjectFolder.AfterDeploy, parameters);
+				_breakingChangesDeployer.Deploy(parameters);
+
+				_folderDeployer.Deploy(ProjectFolder.AfterDeploy, parameters);
 			}
 		);
 

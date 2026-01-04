@@ -17,7 +17,7 @@ public class MigrationVersionDeployerTests
 		};
 
 		Assert.Throws<InvalidOperationException>(
-			() => deploy.DeployMigration(migration, DeployParameters.Default)
+			() => deploy.Deploy(migration, DeployParameters.Default)
 		);
 	}
 
@@ -43,13 +43,13 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem( 1, Arg.Any<MigrationItem>());
+			.Deploy( 1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
@@ -86,14 +86,14 @@ public class MigrationVersionDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
 		// Act
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received()
-			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
+			.Deploy(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	private static FileData GetFileData(string relativePath, string content = "-- default item content")
@@ -142,13 +142,13 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.DeployMigration(migration, DeployParameters.Default);
+		deploy.Deploy(migration, DeployParameters.Default);
 
 		mockSet.MigrationItemDeployer.Received(1)
-			.DeployMigrationItem(1, Arg.Any<MigrationItem>());
+			.Deploy(1, Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.Received()
-			.SaveCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
 
 		mockSet.TransactionRunner.Received(1)
 			.ExecuteWithinTransaction(

@@ -4,12 +4,13 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationVersionDeployer _migrationVersionDeployer
+		IMigrationVersionDeployer _migrationVersionDeployer,
+		IMigrationsSaver _migrationsSaver
 	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 
-	public void DeployMigrations(DeployParameters parameters)
+	public void Deploy(DeployParameters parameters)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -18,9 +19,12 @@ public class MigrationsDeployer(
 
 		_logger.Information("Deploying migrations.");
 
+		// saving migrations before deploying
+		_migrationsSaver.Save();
+
 		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply();
 
-		if (migrationsToApply.Count() == 0)
+		if (!migrationsToApply.Any())
 		{
 			_logger.Information("No migrations to apply.");
 			return;
@@ -28,7 +32,7 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationVersionDeployer.DeployMigration(migration, parameters);
+			_migrationVersionDeployer.Deploy(migration, parameters);
 		}
 	}
 

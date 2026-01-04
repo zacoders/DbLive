@@ -11,7 +11,7 @@ public class CodeItemDeployer(
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	/// <inheritdoc/>
-	public CodeItemDeployResult DeployCodeItem(CodeItem codeItem)
+	public CodeItemDeployResult Deploy(CodeItem codeItem)
 	{
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try

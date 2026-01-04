@@ -61,11 +61,11 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.Received(3)
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -85,12 +85,12 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -118,11 +118,11 @@ public class MigrationsDeployerTests
 		deployParams.DeployMigrations = false;
 
 		// Act
-		deploy.DeployMigrations(deployParams);
+		deploy.Deploy(deployParams);
 
 		// Assert
 		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployMigration(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
@@ -188,13 +188,13 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(2, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(2, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
 		});
 
 		mockSet.DbLiveDA.Received(1)
-			.SaveCurrentMigrationVersion(2, Arg.Any<DateTime>());
+			.SetCurrentMigrationVersion(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -244,10 +244,10 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, breakingItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(3, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(3, breakingItem);
+			mockSet.MigrationItemDeployer.Deploy(3, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
 		});
 	}
 
@@ -291,9 +291,9 @@ public class MigrationsDeployerTests
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, migrationItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, undoItem);
-			mockSet.MigrationItemDeployer.DeployMigrationItem(4, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
+			mockSet.MigrationItemDeployer.Deploy(4, undoItem);
+			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
 		});
 	}
 
@@ -327,7 +327,7 @@ public class MigrationsDeployerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1)
-			.SaveCurrentMigrationVersion(5, now);
+			.SetCurrentMigrationVersion(5, now);
 	}
 
 

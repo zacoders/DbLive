@@ -107,19 +107,30 @@ public class DbLiveProject(
 		string testsPath = _projectPath.CombineWith(_projectSettings.TestsFolder);
 		string codePath = _projectPath.CombineWith(_projectSettings.CodeFolder);
 
-		var testFolders = _fileSystem.EnumerateDirectories([codePath, testsPath], "*", SearchOption.AllDirectories);
-
 		List<TestItem> testGroups = [];
 
-		foreach (var folderPath in testFolders.Union([codePath, testsPath]))
+		if (_fileSystem.PathExists(testsPath))
 		{
-			testGroups.AddRange(GetFolderTests(folderPath));
+			var testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
+			foreach (var folderPath in testInTestFolder.Union([testsPath]))
+			{
+				testGroups.AddRange(GetFolderTests(folderPath, true));
+			}
+		}
+
+		if (_fileSystem.PathExists(codePath))
+		{
+			var testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
+			foreach (var folderPath in testsInCodeFolder.Union([codePath]))
+			{
+				testGroups.AddRange(GetFolderTests(folderPath, false));
+			}
 		}
 
 		return testGroups.AsReadOnly();
 	}
 
-	internal List<TestItem> GetFolderTests(string folderPath)
+	internal List<TestItem> GetFolderTests(string folderPath, bool isTestsFolder)
 	{
 		if (!_fileSystem.PathExists(folderPath)) return [];
 
@@ -132,7 +143,13 @@ public class DbLiveProject(
 			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
 		}
 
-		var testFiles = _fileSystem.EnumerateFiles(folderPath, _projectSettings.TestFilePatterns, subfolders: false);
+		// in Tests folder, any .sql file is considered as a test (except 'init.sql').
+		var testFiles = _fileSystem.EnumerateFiles(
+			folderPath,
+			isTestsFolder ? ["*.sql"] : _projectSettings.TestFilePatterns, 
+			["init.sql"], 
+			subfolders: false
+		);
 
 		foreach (string testFilePath in testFiles)
 		{

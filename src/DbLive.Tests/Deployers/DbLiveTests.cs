@@ -48,4 +48,30 @@ public class DbLiveTests
 		mockSet.DbLiveSelfDeployer.Received().Deploy();
 		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
 	}
+
+
+	[Fact]
+	public void Deploy_with_RecreateDatabase()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
+
+		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		DeployParameters parameters = new()
+		{
+			RecreateDatabase = true
+		};
+
+		// Act
+		dbLive.Deploy(parameters);
+
+		// Assert
+		mockSet.DbLiveDA.Received().DropDB();
+		mockSet.DbLiveDA.Received().CreateDB();
+		mockSet.DbLiveSelfDeployer.Received().Deploy();
+		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+	}
 }

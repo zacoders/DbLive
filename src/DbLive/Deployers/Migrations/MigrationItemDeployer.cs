@@ -12,11 +12,10 @@ public class MigrationItemDeployer(
 
 	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigrationItem(int migrationVersion, MigrationItem migrationItem)
+	public void Deploy(int migrationVersion, MigrationItem migrationItem)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
-		MigrationItemStatus? migrationStatus = null;
-
+		
 		try
 		{
 			_logger.Information(
@@ -31,52 +30,82 @@ public class MigrationItemDeployer(
 				_projectSettings.MigrationTimeout
 			);
 
-			migrationStatus = MigrationItemStatus.Applied;
+			DateTime migrationEndTime = _timeProvider.UtcNow();
+			MigrationItemStateDto dto = new()
+			{
+				Version = migrationVersion,
+				ItemType = migrationItem.MigrationItemType,
+				Status = MigrationItemStatus.Applied,
+				AppliedUtc = migrationEndTime,
+				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
+				ErrorMessage = null
+			};
+			_da.UpdateMigrationState(dto);
+
+			if (migrationItem.MigrationItemType == MigrationItemType.Undo)
+			{
+				UpdateDateForRevertedMigrations(migrationVersion);
+			}
+
+			if (migrationItem.MigrationItemType == MigrationItemType.Migration)
+			{
+				if (_da.MigrationItemExists(migrationVersion, MigrationItemType.Undo))
+				{
+					MigrationItemStateDto breakingDto = new()
+					{
+						Version = migrationVersion,
+						ItemType = MigrationItemType.Undo,
+						Status = MigrationItemStatus.None,
+						AppliedUtc = null,
+						ExecutionTimeMs = null,
+						ErrorMessage = null
+					};
+					_da.UpdateMigrationState(breakingDto);
+				}
+			}
 		}
 		catch (Exception ex)
 		{
-			migrationStatus = MigrationItemStatus.Failed;
-			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
-		}
-		finally
-		{
 			DateTime migrationEndTime = _timeProvider.UtcNow();
-			MigrationItemDto dto = new()
+			MigrationItemStateDto dto = new()
 			{
 				Version = migrationVersion,
-				Name = migrationItem.Name,
 				ItemType = migrationItem.MigrationItemType,
-				ContentHash = migrationItem.FileData.ContentHash,
-				Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-				Status = migrationStatus!.Value,
-				CreatedUtc = _timeProvider.UtcNow(),
-				AppliedUtc = migrationStatus == MigrationItemStatus.Applied ? migrationEndTime : null,
-				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
-
+				Status = MigrationItemStatus.Failed,
+				AppliedUtc = migrationEndTime,
+				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
+				ErrorMessage = ex.ToString()
 			};
-			_da.SaveMigrationItemState(dto);
+			_da.UpdateMigrationState(dto); // todo: it will be missed if external transaction fail.
+			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
 		}
 	}
 
-	public void MarkAsSkipped(int migrationVersion, MigrationItem migrationItem)
+	private void UpdateDateForRevertedMigrations(int migrationVersion)
 	{
-		//_logger.Information("Migration {migrationType}", migrationItem.MigrationItemType);
-
-		MigrationItemDto dto = new()
+		MigrationItemStateDto migrationDto = new()
 		{
 			Version = migrationVersion,
-			Name = migrationItem.Name,
-			ItemType = migrationItem.MigrationItemType,
-			ContentHash = migrationItem.FileData.ContentHash,
-			Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : "",
-			Status = MigrationItemStatus.Skipped,
-			CreatedUtc = _timeProvider.UtcNow(),
+			ItemType = MigrationItemType.Migration,
+			Status = MigrationItemStatus.Reverted,
 			AppliedUtc = null,
-			ExecutionTimeMs = null
+			ExecutionTimeMs = null,
+			ErrorMessage = null
 		};
+		_da.UpdateMigrationState(migrationDto);
 
-		_da.SaveMigrationItemState(dto);
-
-		_logger.Information("Migration v{migrationVersion} {migrationType} skipped.", migrationVersion, migrationItem.MigrationItemType);
+		if (_da.MigrationItemExists(migrationVersion, MigrationItemType.Breaking))
+		{
+			MigrationItemStateDto breakingDto = new()
+			{
+				Version = migrationVersion,
+				ItemType = MigrationItemType.Breaking,
+				Status = MigrationItemStatus.Reverted,
+				AppliedUtc = null,
+				ExecutionTimeMs = null,
+				ErrorMessage = null
+			};
+			_da.UpdateMigrationState(breakingDto);
+		}		
 	}
 }

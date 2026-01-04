@@ -5,5 +5,6 @@ public enum MigrationItemStatus
 	None,
 	Skipped,
 	Applied,
-	Failed
+	Failed,
+	Reverted
 }

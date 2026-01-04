@@ -13,7 +13,7 @@ public class MigrationVersionDeployer(
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationVersionDeployer));
 	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
-	public void DeployMigration(Migration migration, DeployParameters parameters)
+	public void Deploy(Migration migration, DeployParameters parameters)
 	{
 		if (migration.Items.Count == 0)
 		{
@@ -51,29 +51,29 @@ public class MigrationVersionDeployer(
 		}
 
 		if (undoItem is not null)
-		{
+		{			
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
 			{
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
+				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
+				_migrationItemDeployer.Deploy(migration.Version, undoItem);
 			}
 
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
 			{
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
 				if (breakingItem is not null)
 				{
-					_migrationItemDeployer.DeployMigrationItem(migration.Version, breakingItem);
+					_migrationItemDeployer.Deploy(migration.Version, breakingItem);
 				}
-				_migrationItemDeployer.DeployMigrationItem(migration.Version, undoItem);
-			}			
+				_migrationItemDeployer.Deploy(migration.Version, undoItem);
+			}
 
 		}
 
-		_migrationItemDeployer.DeployMigrationItem(migration.Version, migrationItem);
+		_migrationItemDeployer.Deploy(migration.Version, migrationItem);
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
-		_da.SaveCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
+		_da.SetCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
 	}
 }

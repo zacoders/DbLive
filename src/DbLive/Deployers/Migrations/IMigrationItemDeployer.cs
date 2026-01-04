@@ -2,6 +2,5 @@
 
 public interface IMigrationItemDeployer
 {
-	void DeployMigrationItem(int migrationVersion, MigrationItem migrationItem);
-	void MarkAsSkipped(int migrationVersion, MigrationItem migrationItem);
+	void Deploy(int migrationVersion, MigrationItem migrationItem);
 }

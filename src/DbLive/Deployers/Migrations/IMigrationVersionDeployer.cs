@@ -2,5 +2,5 @@
 
 public interface IMigrationVersionDeployer
 {
-	void DeployMigration(Migration migration, DeployParameters parameters);
+	void Deploy(Migration migration, DeployParameters parameters);
 }
