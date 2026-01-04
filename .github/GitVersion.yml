@@ -1,5 +1,11 @@
 mode: Mainline
-branches: {}
+
+branches:
+  main:
+    tag: preview
+    increment: Inherit
+
+commit-message-incrementing: Enabled
+
 ignore:
   sha: []
-merge-message-formats: {}
