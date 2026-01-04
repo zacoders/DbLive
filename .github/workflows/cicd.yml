@@ -79,7 +79,7 @@ jobs:
       run: |
         dotnet nuget push **/bin/Release/*.nupkg \
           --source https://api.nuget.org/v3/index.json \
-          --api-key ${{NUGET_ORG_AUTH_TOKEN}} \
+          --api-key $NUGET_ORG_AUTH_TOKEN \
           --skip-duplicate
 
     - name: Configure git
