@@ -35,7 +35,7 @@ public class SqlTestingTests
 
 		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
-		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
+		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
 				@"C:/DB/Tests/order.test.sql",
 				@"C:/DB/Tests/user.test.sql"
@@ -84,6 +84,7 @@ public class SqlTestingTests
 	[Fact]
 	public void GetFolderTests_With_InitFile()
 	{
+		// Arrange
 		MockSet mockSet = new();
 
 		string projectPath = @"C:/DB";
@@ -93,7 +94,7 @@ public class SqlTestingTests
 
 		mockSet.FileSystem.PathExists(testsFolderPath).Returns(true);
 
-		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), subfolders: false)
+		mockSet.FileSystem.EnumerateFiles(testsFolderPath, Arg.Any<IEnumerable<string>>(), Arg.Any<IEnumerable<string>>(), subfolders: false)
 			.Returns([
 				testsFolderPath.CombineWith("order.test.sql"),
 				testsFolderPath.CombineWith("user.test.sql")
@@ -120,8 +121,10 @@ public class SqlTestingTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
+		// Act
 		var tests = sqlProject.GetFolderTests(testsFolderPath, false);
 
+		// Assert
 		Assert.NotNull(tests);
 		Assert.Equal(2, tests.Count);
 		foreach (var test in tests)
