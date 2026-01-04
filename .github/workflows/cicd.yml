@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NUGET_AUTH_TOKEN: ${{secrets.NUGET_PUBLISH_TOKEN}}
+      NUGET_ORG_AUTH_TOKEN: ${{secrets.NUGET_ORG_AUTH_TOKEN}}
       SOLUTION_PATH: 'src/DbLive.sln'
 
     steps:
@@ -30,8 +30,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
-        source-url: https://nuget.pkg.github.com/zatuliveter/index.json # nuget publish url
+        dotnet-version: 9.0.x        
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0
@@ -57,23 +56,38 @@ jobs:
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-restore --no-build --verbosity normal
 
     - name: Create DbLive package
-      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release
+      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --no-build --configuration Release
 
     - name: Create DbLive.MSSQL package
-      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release
+      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --no-build --configuration Release
 
     - name: Create DbLive.xunit package
-      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --no-build --configuration Release
+
+    - name: Verify NuGet packages
+      run: dotnet package verify **/bin/Release/*.nupkg
+
 
     - name: Publish packages
-      run: dotnet nuget push **/bin/Release/*.nupkg
-     
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        dotnet nuget push **/bin/Release/*.nupkg \
+          --source https://api.nuget.org/v3/index.json \
+          --api-key ${{NUGET_ORG_AUTH_TOKEN}} \
+          --skip-duplicate
+
+    - name: Configure git
+      if: github.ref == 'refs/heads/main'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+      
     - name: Create git tag
       if: github.ref == 'refs/heads/main'
       run: git tag $GitVersion_SemVer
