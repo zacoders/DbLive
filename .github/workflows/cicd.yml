@@ -56,7 +56,7 @@ jobs:
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true --configuration Release
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-restore --no-build --verbosity normal
