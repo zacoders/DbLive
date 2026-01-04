@@ -70,7 +70,7 @@ jobs:
       run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Publish packages
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main'
       run: |
         dotnet nuget push **/bin/Release/*.nupkg \
           --source https://api.nuget.org/v3/index.json \
