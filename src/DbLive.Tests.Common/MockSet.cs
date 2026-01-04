@@ -27,6 +27,7 @@ public class MockSet
 	public readonly IUnitTestItemRunner UnitTestItemRunner = Substitute.For<IUnitTestItemRunner>();
 	public readonly ICodeDeployer CodeDeployer = Substitute.For<ICodeDeployer>();
 	public readonly IFolderDeployer FolderDeployer = Substitute.For<IFolderDeployer>();
+	public readonly IDowngradeDeployer DowngradeDeployer = Substitute.For<IDowngradeDeployer>();
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IMigrationsSaver MigrationsSaver = Substitute.For<IMigrationsSaver>();
