@@ -56,19 +56,19 @@ jobs:
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true --configuration Release
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true
 
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-restore --no-build --verbosity normal
 
     - name: Create DbLive package
-      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --no-build --configuration Release
+      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release
 
     - name: Create DbLive.MSSQL package
-      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --no-build --configuration Release
+      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release
 
     - name: Create DbLive.xunit package
-      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --no-build --configuration Release
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release
 
     - name: Publish packages
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
