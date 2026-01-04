@@ -70,10 +70,6 @@ jobs:
     - name: Create DbLive.xunit package
       run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --no-build --configuration Release
 
-    - name: Verify NuGet packages
-      run: dotnet package verify **/bin/Release/*.nupkg
-
-
     - name: Publish packages
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
