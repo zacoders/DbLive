@@ -30,6 +30,8 @@ public record DeployParameters
 		RunTests = true
 	};
 
+	internal bool RecreateDatabase { get; set; } = false;
+
 	public bool DeployCode { get; set; } = true;
 
 	public bool DeployMigrations { get; set; } = true;

@@ -59,7 +59,7 @@ public class MigrationItemDeployerTests
 
 
 	[Fact]
-	public void DeployMigrationItem_Undo()
+	public void Deploying_Undo__Migration_And_Breaking_Should_Be_Reverted()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -71,12 +71,84 @@ public class MigrationItemDeployerTests
 		DateTime utcNow3 = utcNow.AddSeconds(3);
 		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
 
-		MigrationItemStateDto? savedDto = null;
-		mockSet.DbLiveDA.UpdateMigrationState(Arg.Do<MigrationItemStateDto>(dto => savedDto = dto));
-
+		mockSet.DbLiveDA.MigrationItemExists(1, MigrationItemType.Breaking).Returns(true);
+		
 		MigrationItem undoItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
+			Name = "some-undo",
+			FileData = new FileData
+			{
+				Content = $"-- some sql migration",
+				RelativePath = "db/migrations/001.demo/u.1.sql",
+				FilePath = "c:/db/migrations/001.demo/u.1.sql"
+			}
+		};
+
+		// Act
+		deploy.Deploy(1, undoItem);
+
+
+		// Assert
+		mockSet.DbLiveDA.Received()
+			.ExecuteNonQuery(
+				Arg.Is(undoItem.FileData.Content),
+				TranIsolationLevel.ReadCommitted,
+				TimeSpan.FromHours(12)
+			);
+
+		mockSet.DbLiveDA.Received()
+			.UpdateMigrationState(Arg.Is<MigrationItemStateDto>(
+				dbo => 
+					dbo.ItemType == MigrationItemType.Undo
+					&& dbo.Status == MigrationItemStatus.Applied
+					&& dbo.AppliedUtc == utcNow2
+					&& dbo.ExecutionTimeMs == 2000
+					&& dbo.ErrorMessage == null
+				)
+			);
+
+		mockSet.DbLiveDA.Received()
+			.UpdateMigrationState(Arg.Is<MigrationItemStateDto>(
+				dbo =>
+					dbo.ItemType == MigrationItemType.Migration
+					&& dbo.Status == MigrationItemStatus.Reverted
+					&& dbo.AppliedUtc == null
+					&& dbo.ExecutionTimeMs == null
+				)
+			);
+
+		mockSet.DbLiveDA.Received()
+			.UpdateMigrationState(Arg.Is<MigrationItemStateDto>(
+				dbo =>
+					dbo.ItemType == MigrationItemType.Breaking
+					&& dbo.Status == MigrationItemStatus.Reverted
+					&& dbo.AppliedUtc == null
+					&& dbo.ExecutionTimeMs == null
+				)
+			);
+	}
+
+
+
+	[Fact]
+	public void Deploying_Migration__Undo_Should_Be_Reverted()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		DateTime utcNow = DateTime.UtcNow;
+		DateTime utcNow2 = utcNow.AddSeconds(2);
+		DateTime utcNow3 = utcNow.AddSeconds(3);
+		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
+
+		mockSet.DbLiveDA.MigrationItemExists(1, MigrationItemType.Undo).Returns(true);
+
+		MigrationItem undoItem = new()
+		{
+			MigrationItemType = MigrationItemType.Migration,
 			Name = "some-migration",
 			FileData = new FileData
 			{
@@ -91,9 +163,6 @@ public class MigrationItemDeployerTests
 
 
 		// Assert
-		//mockSet.TransactionRunner.Received()
-		//	.ExecuteWithinTransaction(Arg.Is(false), Arg.Is(TranIsolationLevel.ReadCommitted), Arg.Is(TimeSpan.FromHours(12)), Arg.Any<Action>());
-
 		mockSet.DbLiveDA.Received()
 			.ExecuteNonQuery(
 				Arg.Is(undoItem.FileData.Content),
@@ -102,15 +171,28 @@ public class MigrationItemDeployerTests
 			);
 
 		mockSet.DbLiveDA.Received()
-			.UpdateMigrationState(Arg.Any<MigrationItemStateDto>());
+			.UpdateMigrationState(Arg.Is<MigrationItemStateDto>(
+				dbo =>
+					dbo.ItemType == MigrationItemType.Migration
+					&& dbo.Status == MigrationItemStatus.Applied
+					&& dbo.AppliedUtc == utcNow2
+					&& dbo.ExecutionTimeMs == 2000
+					&& dbo.ErrorMessage == null
+				)
+			);
 
-
-		Assert.NotNull(savedDto);
-		Assert.Equal(MigrationItemStatus.Applied, savedDto.Status);
-		Assert.Equal(MigrationItemType.Undo, savedDto.ItemType);
-		Assert.Equal(utcNow2, savedDto.AppliedUtc);
-		Assert.Equal(2000, savedDto.ExecutionTimeMs);
+		mockSet.DbLiveDA.Received()
+			.UpdateMigrationState(Arg.Is<MigrationItemStateDto>(
+				dbo =>
+					dbo.ItemType == MigrationItemType.Undo
+					&& dbo.Status == MigrationItemStatus.None
+					&& dbo.AppliedUtc == null
+					&& dbo.ExecutionTimeMs == null
+				)
+			);
 	}
+
+
 
 	[Fact]
 	public void Deploy_when_execute_non_query_fails_should_save_failed_state_and_rethrow()

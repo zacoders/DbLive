@@ -52,7 +52,7 @@ public class SqlTestingTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var tests = sqlProject.GetFolderTests(testsFolderPath);
+		var tests = sqlProject.GetFolderTests(testsFolderPath, false);
 
 		Assert.NotNull(tests);
 		Assert.Equal(2, tests.Count);
@@ -74,7 +74,7 @@ public class SqlTestingTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var tests = sqlProject.GetFolderTests(testsFolderPath);
+		var tests = sqlProject.GetFolderTests(testsFolderPath, false);
 
 		Assert.NotNull(tests);
 		Assert.Empty(tests);
@@ -120,7 +120,7 @@ public class SqlTestingTests
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var tests = sqlProject.GetFolderTests(testsFolderPath);
+		var tests = sqlProject.GetFolderTests(testsFolderPath, false);
 
 		Assert.NotNull(tests);
 		Assert.Equal(2, tests.Count);
