@@ -42,6 +42,11 @@
 		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts" />
 		<None Include="DbLive.MSSQL.targets" Pack="true" PackagePath="buildTransitive\" />
 	</ItemGroup>
+
+	<!-- Disable false positive nuget warning in github action -->
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);NU5129</NoWarn>
+	</PropertyGroup>
 	
     <ItemGroup>
 	    <ProjectReference Include="..\DbLive\DbLive.csproj" />
