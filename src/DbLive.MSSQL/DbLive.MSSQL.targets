@@ -1,10 +1,18 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<ItemGroup>
-		<_MySqlFiles Include="$(MSBuildThisFileDirectory)..\scripts\$(MSBuildProjectName)\**\*.*" />
+﻿<Project>
 
-		<ContentWithTargetPath Include="@(_MySqlFiles)">
-			<TargetPath>DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</ContentWithTargetPath>
-	</ItemGroup>
+	<Target Name="CopyDbLiveMssqlScripts"
+			AfterTargets="Build">
+
+		<ItemGroup>
+			<_DbLiveSqlFiles
+			  Include="$(MSBuildThisFileDirectory)..\scripts\**\*.sql" />
+		</ItemGroup>
+
+		<Copy
+		  SourceFiles="@(_DbLiveSqlFiles)"
+		  DestinationFiles="@(_DbLiveSqlFiles->'$(OutDir)DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)')"
+		  SkipUnchangedFiles="true" />
+
+	</Target>
+
 </Project>
