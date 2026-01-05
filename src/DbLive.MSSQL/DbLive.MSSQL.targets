@@ -1,9 +1,9 @@
 ﻿<Project>
 	<ItemGroup>
-		<Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\DbLive.MSSQL\**\*"
-				 Visible="false"
-				 Link="DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)">
+		<None Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\DbLive.MSSQL\**\*"
+			  Link="DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)"
+			  Visible="false">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
+		</None>
 	</ItemGroup>
 </Project>
