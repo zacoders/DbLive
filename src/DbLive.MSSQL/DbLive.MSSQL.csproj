@@ -45,7 +45,11 @@
 
 		<None Include="DbLive.MSSQL.targets"
 			  Pack="true"
-			  PackagePath="buildTransitive\" />
+			  PackagePath="buildTransitive/" />
+		
+		<None Include="DbLive.MSSQL.targets"
+	          Pack="true"
+	          PackagePath="build/" />
 	</ItemGroup>
 	
     <ItemGroup>
