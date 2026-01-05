@@ -39,17 +39,9 @@
 
 	<!-- For nuget -->
 	<ItemGroup>
-		<None Include="SQL\**\*.sql"
-			  Pack="true"
-			  PackagePath="contentFiles\any\any\DbLive.MSSQL\" />
-
-		<None Include="DbLive.MSSQL.targets"
-			  Pack="true"
-			  PackagePath="buildTransitive/" />
-		
-		<None Include="DbLive.MSSQL.targets"
-	          Pack="true"
-	          PackagePath="build/" />
+		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts\$(AssemblyName)" />
+		<None Include="$(AssemblyName).targets" Pack="true" PackagePath="buildTransitive/" />
+		<None Include="$(AssemblyName).targets" Pack="true" PackagePath="build/" />
 	</ItemGroup>
 	
     <ItemGroup>

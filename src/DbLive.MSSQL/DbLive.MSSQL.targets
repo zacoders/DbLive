@@ -1,9 +1,10 @@
-﻿<Project>
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<ItemGroup>
-		<None Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\DbLive.MSSQL\**\*"
-			  Link="DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)"
-			  Visible="false">
+		<_MySqlFiles Include="$(MSBuildThisFileDirectory)..\scripts\$(MSBuildProjectName)\**\*.*" />
+
+		<ContentWithTargetPath Include="@(_MySqlFiles)">
+			<TargetPath>DbLive.MSSQL\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
+		</ContentWithTargetPath>
 	</ItemGroup>
 </Project>
