@@ -37,13 +37,17 @@
         </None>
     </ItemGroup>
 
-    <!-- For nuget -->
-    <ItemGroup>
-        <None Include="SQL\**" Pack="true">
-            <PackagePath>src\$(AssemblyName)</PackagePath>
-        </None>
-    </ItemGroup>
-    
+	<!-- For nuget -->
+	<ItemGroup>
+		<None Include="SQL\**\*.sql"
+			  Pack="true"
+			  PackagePath="contentFiles\any\any\DbLive.MSSQL\" />
+
+		<None Include="DbLive.MSSQL.targets"
+			  Pack="true"
+			  PackagePath="buildTransitive\" />
+	</ItemGroup>
+	
     <ItemGroup>
 	    <ProjectReference Include="..\DbLive\DbLive.csproj" />
     </ItemGroup>
