@@ -1,6 +1,4 @@
 ﻿
-using MoreLinq.Extensions;
-
 namespace DbLive.Deployers.Testing;
 
 public static class AssertTypeExtensions

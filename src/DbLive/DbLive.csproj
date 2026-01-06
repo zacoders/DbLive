@@ -24,7 +24,6 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-        <PackageReference Include="morelinq" />
         <PackageReference Include="Polly" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Sinks.Console" />

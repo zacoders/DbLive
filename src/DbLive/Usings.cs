@@ -9,7 +9,6 @@ global using DbLive.Project;
 global using DbLive.Project.Exceptions;
 global using DbLive.Testing;
 global using Microsoft.Extensions.DependencyInjection;
-global using MoreLinq;
 global using Serilog;
 global using System.Collections.Concurrent;
 global using System.Collections.ObjectModel;
