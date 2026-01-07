@@ -20,8 +20,9 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>database migration testing sql devops xunit</PackageTags>
+		<PackageIcon>dblive-icon.png</PackageIcon>
     </PropertyGroup>
-  
+
     <ItemGroup>
         <PackageReference Include="xunit.extensibility.core" />
         <PackageReference Include="xunit.extensibility.execution" />
@@ -33,7 +34,11 @@
     </ItemGroup>
 
 	<ItemGroup>
+		<None Include="..\dblive-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
 	</ItemGroup>
-	
+
 </Project>
