@@ -19,7 +19,7 @@
 
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>database migration testing sql devops mssql</PackageTags>
+		<PackageTags>sql mssql sqlserver sql-server database deployment migration rollback testing devops cicd db-deployment sql-deployment</PackageTags>
 		<PackageIcon>dblive-icon.png</PackageIcon>
 	</PropertyGroup>
 
