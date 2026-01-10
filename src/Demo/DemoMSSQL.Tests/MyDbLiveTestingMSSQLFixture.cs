@@ -5,7 +5,6 @@ using DbLive.MSSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.MsSql;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;

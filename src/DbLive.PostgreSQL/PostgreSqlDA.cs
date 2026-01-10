@@ -12,6 +12,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
 
+	private NpgsqlConnection CreateConnection() => new(_cnn.ConnectionString);
+
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
 		const string query = """
@@ -26,8 +28,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			     , execution_time_ms
 			from dblive.migration
 		""";
-		
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+
+		using NpgsqlConnection cnn = CreateConnection();
 		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
@@ -40,7 +42,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and item_type = @item_type
 		""";
 
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new
 		{
 			version,
@@ -57,7 +59,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and table_name = 'version'
 		""";
 
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>(query).ConfigureAwait(false);
 		return exists is not null;
 	}
@@ -65,14 +67,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task<int> GetCurrentMigrationVersionAsync()
 	{
 		const string query = "select version from dblive.dbversion;";
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
 	public async Task<int> GetDbLiveVersionAsync()
 	{
 		const string query = "select version from dblive.version;";
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
@@ -84,7 +86,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			    applied_utc = @applied_utc;
 		""";
 
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync(query, new
 		{
 			version,
@@ -100,7 +102,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			    applied_utc = @applied_utc;
 		""";
 
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync(query, new
 		{
 			version,
@@ -116,7 +118,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		try
 		{
-			using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+			using NpgsqlConnection cnn = CreateConnection();
 			await cnn.OpenAsync().ConfigureAwait(false);
 
 			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
@@ -159,7 +161,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		try
 		{
-			using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+			using NpgsqlConnection cnn = CreateConnection();
 			await cnn.OpenAsync().ConfigureAwait(false);
 
 			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
@@ -191,17 +193,13 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader)
 	{
-		DataTable? schema = await reader.GetSchemaTableAsync().ConfigureAwait(false);
-		if (schema is null || schema.Rows.Count == 0) return null;
+		if (!reader.HasRows && reader.FieldCount == 0) return null;
 
-		List<SqlColumn> columns = [];
-		foreach (DataRow row in schema.Rows)
-		{
-			columns.Add(new SqlColumn(
-				ColumnName: (string)row["ColumnName"],
-				DataType: ((string)row["DataTypeName"]).ToLower()
-			));
-		}
+		var columns = Enumerable.Range(0, reader.FieldCount)
+			.Select(i => new SqlColumn(
+				ColumnName: reader.GetName(i),
+				DataType: reader.GetDataTypeName(i).ToLowerInvariant()
+			)).ToList();
 
 		List<SqlRow> rows = [];
 		while (await reader.ReadAsync().ConfigureAwait(false))
@@ -220,11 +218,11 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task CreateDBAsync(bool skipIfExists = true)
 	{
-		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+		var builder = new NpgsqlConnectionStringBuilder(_cnn.ConnectionString);
 		string? dbName = builder.Database;
-		builder.Database = "postgres";
+		builder.Database = "postgres"; // Connect to maintenance DB
 
-		using NpgsqlConnection cnn = new(builder.ConnectionString);
+		using var cnn = new NpgsqlConnection(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
 		bool exists = await cnn.ExecuteScalarAsync<bool>(
@@ -234,7 +232,11 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (exists && skipIfExists) return;
 
-		_ = await cnn.ExecuteAsync($"create database \"{dbName}\";").ConfigureAwait(false);
+		// Use a command builder to safely quote the identifier
+		using var cmd = cnn.CreateCommand();
+		var quotedDbName = new NpgsqlCommandBuilder().QuoteIdentifier(dbName!);
+		cmd.CommandText = $"CREATE DATABASE {quotedDbName};";
+		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
 	public async Task DropDBAsync(bool skipIfNotExists = true)
@@ -267,7 +269,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 				insert into dblive.code (
 					relative_path, status, content_hash, applied_utc,
@@ -283,7 +285,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					applied_utc = excluded.applied_utc,
 					execution_time_ms = excluded.execution_time_ms,
 					error = excluded.error;
-			""", 
+			""",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -299,7 +301,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
 			update dblive.code
@@ -311,7 +313,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
 			"""
 			select relative_path
@@ -330,7 +332,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 			insert into dblive.migration (
 				version, name, item_type, relative_path,
@@ -360,7 +362,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 
 		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
 			update dblive.migration
@@ -391,7 +393,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
 			select 1
 			from dblive.migration
@@ -408,7 +410,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task<string?> GetMigrationContentAsync(int version, MigrationItemType migrationType)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.QueryFirstOrDefaultAsync<string?>("""
 			select content
 			from dblive.migration
@@ -423,7 +425,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 			insert into dblive.unit_test_run (
 				relative_path, content_hash, run_utc,
@@ -459,7 +461,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		long contentHash
 	)
 	{
-		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 			insert into dblive.folder_items (
 				folder_type, relative_path, created_utc,

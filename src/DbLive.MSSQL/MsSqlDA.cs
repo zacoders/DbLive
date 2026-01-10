@@ -1,7 +1,6 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
-using System.Collections.Specialized;
 using System.Data;
 
 namespace DbLive.MSSQL;
