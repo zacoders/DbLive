@@ -18,12 +18,12 @@ public class DbLive(
 
 		if (parameters.RecreateDatabase)
 		{
-			_da.DropDB();
-			_da.CreateDB();
+			await _da.DropDBAsync();
+			await _da.CreateDBAsync();
 		}
 
 		if (parameters.CreateDbIfNotExists)
-			_da.CreateDB(true);
+			await _da.CreateDBAsync(true);
 
 		// Self deploy. Deploying DbLive to the database
 		await _selfDeployer.DeployAsync();

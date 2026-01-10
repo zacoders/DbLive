@@ -15,7 +15,7 @@ public class BreakingChangesDeployerTests
 		deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive().GetMigrations();
+		mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
 		mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 		mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
@@ -27,7 +27,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
 			new Migration
@@ -60,7 +60,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			new MigrationItemDto
 			{
 				Version = 2,
@@ -119,7 +119,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		Migration migration1 = new()
 		{

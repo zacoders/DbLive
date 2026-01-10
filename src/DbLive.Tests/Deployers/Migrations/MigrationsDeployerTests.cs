@@ -28,9 +28,9 @@ public class MigrationsDeployerTests
 				NewMigration(4)
 			]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 
-		mockSet.DbLiveDA.GetCurrentMigrationVersion()
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync()
 			.Returns(2);
 
 		var migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
@@ -57,8 +57,8 @@ public class MigrationsDeployerTests
 				NewMigration(3)
 			]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 
@@ -81,8 +81,8 @@ public class MigrationsDeployerTests
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 
@@ -113,8 +113,8 @@ public class MigrationsDeployerTests
 				NewMigration(3)
 			]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
 		var deployParams = DeployParameters.Default;
 		deployParams.DeployMigrations = false;
@@ -196,11 +196,11 @@ public class MigrationsDeployerTests
 		});
 
 		mockSet.DbLiveDA.Received(1)
-			.SetCurrentMigrationVersion(2, Arg.Any<DateTime>());
+			.SetCurrentMigrationVersionAsync(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
-	public void DeployInternal_migration_breaking_undo_migration()
+	public async Task DeployInternal_migration_breaking_undo_migration()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -241,7 +241,7 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternalAsync(migration, parameters);
+		await deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
@@ -329,7 +329,7 @@ public class MigrationsDeployerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1)
-			.SetCurrentMigrationVersion(5, now);
+			.SetCurrentMigrationVersionAsync(5, now);
 	}
 
 

@@ -75,6 +75,6 @@ public class MigrationVersionDeployer(
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
-		_da.SetCurrentMigrationVersion(migration.Version, migrationCompletedUtc);
+		await _da.SetCurrentMigrationVersionAsync(migration.Version, migrationCompletedUtc);
 	}
 }

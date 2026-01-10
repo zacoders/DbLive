@@ -1,5 +1,4 @@
 using DbLive.Deployers.Folder;
-using System.Threading.Tasks;
 
 namespace DbLive.Tests.Deployers;
 
@@ -22,15 +21,15 @@ public class FolderDeployerTests
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
-		mockSet.DbLiveDA.Received(3)
-			.ExecuteNonQuery(
+		await mockSet.DbLiveDA.Received(3)
+			.ExecuteNonQueryAsync(
 				Arg.Any<string>(),
 				TranIsolationLevel.ReadCommitted,
 				TimeSpan.FromHours(6)
 			);
 
-		mockSet.DbLiveDA.Received(3)
-			.MarkItemAsApplied(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
+		await mockSet.DbLiveDA.Received(3)
+			.MarkItemAsAppliedAsync(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	[Fact]
@@ -48,15 +47,15 @@ public class FolderDeployerTests
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
-		mockSet.DbLiveDA.Received()
-			.ExecuteNonQuery(
+		await mockSet.DbLiveDA.Received()
+			.ExecuteNonQueryAsync(
 				"Content of file1.sql",
 				TranIsolationLevel.ReadCommitted,
 				TimeSpan.FromHours(6)
 			);
 
-		mockSet.DbLiveDA.Received()
-			.MarkItemAsApplied(projectFolder, @"folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
+		await mockSet.DbLiveDA.Received()
+			.MarkItemAsAppliedAsync(projectFolder, @"folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
 	}
 
 	private static GenericItem GetGenericItem(string fileName)
@@ -87,7 +86,7 @@ public class FolderDeployerTests
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
-		mockSet.DbLiveDA.DidNotReceive().ExecuteNonQuery(Arg.Any<string>());
+		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>());
 	}
 
 	[Fact]

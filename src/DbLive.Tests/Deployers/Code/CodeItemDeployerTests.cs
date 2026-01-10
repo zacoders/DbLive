@@ -22,7 +22,7 @@ public class CodeItemDeployerTests
 			VerifiedUtc = new DateTime(2023, 1, 2)
 		};
 
-		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).Returns(codeItemDto);
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
 
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -32,8 +32,8 @@ public class CodeItemDeployerTests
 		// Assert
 		Assert.True(res.IsSuccess);
 
-		mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItem(Arg.Any<CodeItemDto>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(Arg.Any<CodeItemDto>());
 	}
 
 	[Fact]
@@ -58,7 +58,7 @@ public class CodeItemDeployerTests
 			VerifiedUtc = new DateTime(2023, 1, 2)
 		};
 
-		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).Returns(codeItemDto);
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
 
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -67,8 +67,8 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.True(res.IsSuccess);
-		mockSet.DbLiveDA.Received().ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		mockSet.DbLiveDA.Received().SaveCodeItem(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
+		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
 	}
 
 
@@ -80,7 +80,7 @@ public class CodeItemDeployerTests
 
 		CodeItem codeItem = GetCodeItem();
 
-		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).ReturnsNull();
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -89,8 +89,8 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.True(res.IsSuccess);
-		mockSet.DbLiveDA.Received().ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		mockSet.DbLiveDA.Received().SaveCodeItem(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
+		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
 	}
 
 	[Fact]
@@ -101,12 +101,12 @@ public class CodeItemDeployerTests
 
 		CodeItem codeItem = GetCodeItem();
 
-		mockSet.DbLiveDA.FindCodeItem(codeItem.FileData.RelativePath).ReturnsNull();
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		mockSet.DbLiveDA
-			.When(x => x.ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
+			.When(x => x.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
 			.Do(x => throw new Exception("some exception"));
 
 		// Act
@@ -114,8 +114,8 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.False(res.IsSuccess);
-		mockSet.DbLiveDA.Received().ExecuteNonQuery(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		mockSet.DbLiveDA.Received().SaveCodeItem(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
+		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
 	}
 
 	private static CodeItem GetCodeItem()

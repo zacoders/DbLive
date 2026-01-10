@@ -21,7 +21,7 @@ public class DbLiveTests
 		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.Received().CreateDB();
+		mockSet.DbLiveDA.Received().CreateDBAsync();
 		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
@@ -44,7 +44,7 @@ public class DbLiveTests
 		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive().CreateDB();
+		mockSet.DbLiveDA.DidNotReceive().CreateDBAsync();
 		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
@@ -69,8 +69,8 @@ public class DbLiveTests
 		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.Received().DropDB();
-		mockSet.DbLiveDA.Received().CreateDB();
+		mockSet.DbLiveDA.Received().DropDBAsync();
+		mockSet.DbLiveDA.Received().CreateDBAsync();
 		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}

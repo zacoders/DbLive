@@ -16,7 +16,7 @@ public class DowngradeDeployer(
 	{
 		// verify downgrade needed/allowed
 
-		int databaseVersion = _da.GetCurrentMigrationVersion();
+		int databaseVersion = await _da.GetCurrentMigrationVersionAsync();
 
 		int projectVersion = (await _project.GetMigrationsAsync()).Max(m => m.Version);
 
@@ -39,7 +39,7 @@ public class DowngradeDeployer(
 			projectVersion, databaseVersion
 		);
 
-		IReadOnlyCollection<MigrationItemDto> allMigrations = _da.GetMigrations();
+		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync();
 
 		// get undo migrations
 		List<MigrationItemDto> undoMigrations = 
@@ -71,7 +71,7 @@ public class DowngradeDeployer(
 		// deploy undo migrations
 		foreach (MigrationItemDto undoDto in undoMigrations)
 		{
-			string? undoContent = _da.GetMigrationContent(undoDto.Version, MigrationItemType.Undo);
+			string? undoContent = await _da.GetMigrationContentAsync(undoDto.Version, MigrationItemType.Undo);
 
 			if (undoContent is null)
 			{
@@ -114,7 +114,7 @@ public class DowngradeDeployer(
 				}
 
 				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-				_da.SetCurrentMigrationVersion(projectVersion, migrationCompletedUtc);
+				await _da.SetCurrentMigrationVersionAsync(projectVersion, migrationCompletedUtc);
 			}
 		);
 	}

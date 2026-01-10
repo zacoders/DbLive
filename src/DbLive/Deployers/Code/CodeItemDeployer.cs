@@ -16,20 +16,20 @@ public class CodeItemDeployer(
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{
-			CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
+			CodeItemDto? codeItemDto = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath);
 
 			if (codeItemDto != null
 				&& codeItemDto.ContentHash == codeItem.FileData.ContentHash
 				&& codeItemDto.Status == CodeItemStatus.Applied)
 			{
-				_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+				await _da.MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
 				_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
 				return CodeItemDeployResult.Success();
 			}
 
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
-			_da.ExecuteNonQuery(
+			await _da.ExecuteNonQueryAsync(
 				codeItem.FileData.Content,
 				_projectSettings.TransactionIsolationLevel,
 				_projectSettings.CodeItemTimeout
@@ -38,7 +38,7 @@ public class CodeItemDeployer(
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
 
-			_da.SaveCodeItem(new CodeItemDto()
+			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Applied,
@@ -57,7 +57,7 @@ public class CodeItemDeployer(
 
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
-			_da.SaveCodeItem(new CodeItemDto()
+			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Error,

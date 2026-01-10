@@ -10,7 +10,7 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 	//: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString),
 	: IAssemblyFixture<SqlServerIntegrationFixture>
 {
-	string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
+	private readonly string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
 	//readonly string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL_UNDO;Trusted_Connection=True;";
 
 	[Fact]

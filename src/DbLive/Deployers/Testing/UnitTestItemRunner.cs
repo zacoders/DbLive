@@ -28,14 +28,14 @@ public class UnitTestItemRunner(
 
 			if (test.InitFileData is not null)
 			{
-				_da.ExecuteNonQuery(
+				await _da.ExecuteNonQueryAsync(
 					test.InitFileData.Content,
 					TranIsolationLevel.Serializable,
 					projectSettings.UnitTestItemTimeout
 				);
 			}
 
-			List<SqlResult> resutls = _da.ExecuteQueryMultiple(
+			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
 				test.FileData.Content,
 				TranIsolationLevel.Serializable,
 				projectSettings.UnitTestItemTimeout

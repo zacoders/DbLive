@@ -21,7 +21,7 @@ internal class MigrationsSaver(
 		{
 			foreach ((var _, MigrationItem migrationItem) in migration.Items)
 			{
-				int? hash = _da.GetMigrationHash(migration.Version, migrationItem.MigrationItemType);
+				int? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType);
 
 				if (hash.HasValue)
 				{
@@ -38,7 +38,7 @@ internal class MigrationsSaver(
 					}
 				}
 
-				_da.SaveMigrationItem(new MigrationItemSaveDto
+				await _da.SaveMigrationItemAsync(new MigrationItemSaveDto
 				{
 					Version = migration.Version,
 					ItemType = migrationItem.MigrationItemType,

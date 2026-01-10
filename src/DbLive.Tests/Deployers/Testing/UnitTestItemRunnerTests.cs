@@ -34,7 +34,7 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+		await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 			Arg.Is(testItem.FileData.Content),
 			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)
@@ -84,12 +84,12 @@ public class UnitTestItemRunnerTests
 
 		Received.InOrder(() =>
 		{
-			mockSet.DbLiveDA.Received().ExecuteNonQuery(
+			mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(
 				Arg.Is(testItem.InitFileData.Content),
 				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
 			);
-			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+			mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 				Arg.Is(testItem.FileData.Content),
 				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
@@ -120,7 +120,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.DbLiveDA
-			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>(), TranIsolationLevel.Serializable, Arg.Any<TimeSpan>()))
+			.When(fake => fake.ExecuteQueryMultipleAsync(Arg.Any<string>(), TranIsolationLevel.Serializable, Arg.Any<TimeSpan>()))
 			.Throw<Exception>();
 
 		TestItem testItem = new()
@@ -136,7 +136,7 @@ public class UnitTestItemRunnerTests
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+		await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 			Arg.Is(testItem.FileData.Content),
 			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)

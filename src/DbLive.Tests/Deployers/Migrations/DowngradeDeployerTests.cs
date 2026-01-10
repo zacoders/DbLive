@@ -11,7 +11,7 @@ public class DowngradeDeployerTests
 		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		// database is ahead of project
-		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
@@ -30,10 +30,10 @@ public class DowngradeDeployerTests
 			Status = MigrationItemStatus.None
 		};
 
-		mockSet.DbLiveDA.GetMigrations().Returns([undoDto]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([undoDto]);
 
 		mockSet.DbLiveDA
-			.GetMigrationContent(3, MigrationItemType.Undo)
+			.GetMigrationContentAsync(3, MigrationItemType.Undo)
 			.Returns("-- undo sql");
 
 		DateTime completedUtc = DateTime.UtcNow;
@@ -63,8 +63,8 @@ public class DowngradeDeployerTests
 			)
 		);
 
-		mockSet.DbLiveDA.Received(1)
-			.SetCurrentMigrationVersion(2, completedUtc);
+		await mockSet.DbLiveDA.Received(1)
+			.SetCurrentMigrationVersionAsync(2, completedUtc);
 	}
 
 	[Fact]
@@ -75,7 +75,7 @@ public class DowngradeDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
-		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(2);
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(2);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
@@ -104,8 +104,8 @@ public class DowngradeDeployerTests
 		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 
-		mockSet.DbLiveDA.DidNotReceive()
-			.SetCurrentMigrationVersion(Arg.Any<int>(), Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SetCurrentMigrationVersionAsync(Arg.Any<int>(), Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -116,7 +116,7 @@ public class DowngradeDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
-		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
@@ -156,7 +156,7 @@ public class DowngradeDeployerTests
 
 		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
-		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(4);
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(4);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
@@ -166,7 +166,7 @@ public class DowngradeDeployerTests
 		);
 
 		// only undo for version 4, missing version 3
-		mockSet.DbLiveDA.GetMigrations().Returns(
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns(
 			[
 				new MigrationItemDto
 				{
@@ -213,7 +213,7 @@ public class DowngradeDeployerTests
 		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		// database ahead of project
-		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
+		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
@@ -232,11 +232,11 @@ public class DowngradeDeployerTests
 			ContentHash = 123456
 		};
 
-		mockSet.DbLiveDA.GetMigrations().Returns([undoDto]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([undoDto]);
 
 		// critical part: undo script content is missing
 		mockSet.DbLiveDA
-			.GetMigrationContent(3, MigrationItemType.Undo)
+			.GetMigrationContentAsync(3, MigrationItemType.Undo)
 			.Returns((string?)null);
 
 		var parameters = DeployParameters.Default with
@@ -262,8 +262,8 @@ public class DowngradeDeployerTests
 		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 
-		mockSet.DbLiveDA.DidNotReceive()
-			.SetCurrentMigrationVersion(Arg.Any<int>(), Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SetCurrentMigrationVersionAsync(Arg.Any<int>(), Arg.Any<DateTime>());
 	}
 
 }

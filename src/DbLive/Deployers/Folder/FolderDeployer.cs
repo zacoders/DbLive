@@ -39,7 +39,7 @@ public class FolderDeployer(
 		
 		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
 
-		_da.ExecuteNonQuery(
+		await _da.ExecuteNonQueryAsync(
 			item.FileData.Content,
 			projectSettings.TransactionIsolationLevel,
 			projectFolder switch
@@ -52,6 +52,6 @@ public class FolderDeployer(
 
 		DateTime completedUtc = _timeProvider.UtcNow();
 
-		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);
+		await _da.MarkItemAsAppliedAsync(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);
 	}
 }

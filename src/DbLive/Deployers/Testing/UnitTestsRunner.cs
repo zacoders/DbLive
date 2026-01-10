@@ -43,7 +43,7 @@ public class UnitTestsRunner(
 				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
-			_da.SaveUnitTestResult(
+			await _da.SaveUnitTestResultAsync(
 				new UnitTestItemDto
 				{
 					RelativePath = test.FileData.RelativePath,

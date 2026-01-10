@@ -7,7 +7,7 @@ namespace DbLive.PostgreSQL;
 
 public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
-	public void CreateDB(bool skipIfExists = true)
+	public async Task CreateDBAsync(bool skipIfExists = true)
 	{
 		NpgsqlConnectionStringBuilder cnnBuilder = new(_cnn.ConnectionString);
 
@@ -21,7 +21,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		var cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from pg_catalog.pg_database where lower(datname) = lower(:name)";
 		cmd.Parameters.AddWithValue("name", databaseToCreate);
-		bool dbExists = (int?)cmd.ExecuteScalar() == 1;
+		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;
 
 		if (dbExists && skipIfExists) return;
 
@@ -29,17 +29,17 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		cnn.Close();
 	}
 
-	public bool DbLiveInstalled()
+	public async Task<bool> DbLiveInstalledAsync()
 	{
 		const string query = @"
 			select exists ( select * from pg_tables where schemaname = 'DbLive' and tablename = 'Migrations'
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return cnn.ExecuteScalar<bool>(query);
+		return await cnn.ExecuteScalarAsync<bool>(query);
 	}
 
-	public void ExecuteNonQuery(
+	public async Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
@@ -53,12 +53,12 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				timeoutSeconds = (int)timeout.Value.TotalSeconds;
 			}
 			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-			cnn.Open();
+			await cnn.OpenAsync();
 			// todo: apply transaction isolation level
 			var cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = timeoutSeconds;
 			cmd.CommandText = sqlStatement;
-			cmd.ExecuteNonQuery();
+			await cmd.ExecuteNonQueryAsync();
 		}
 		catch (Exception e)
 		{
@@ -67,16 +67,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public List<SqlResult> ExecuteQueryMultiple(
-		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
-	)
-	{
-		throw new NotImplementedException();
-	}
-
-	public int GetDbLiveVersion()
+	public async Task<int> GetDbLiveVersionAsync()
 	{
 		const string query = @"
 			select version
@@ -84,10 +75,10 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return cnn.ExecuteScalar<int?>(query) ?? 0;
+		return await cnn.ExecuteScalarAsync<int?>(query) ?? 0;
 	}
 
-	public IReadOnlyCollection<MigrationItemDto> GetMigrations()
+	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
 		const string query = @"
 			select version
@@ -102,27 +93,20 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.migration
 		";
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return cnn.Query<MigrationItemDto>(query).ToList();
+		return (await cnn.QueryAsync<MigrationItemDto>(query)).ToList();
 	}
 
-	public CodeItemDto? FindCodeItem(string relativePath)
+	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
 	{
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return cnn.QueryFirstOrDefault<CodeItemDto>(
+		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
 			"dblive.get_code_item",
 			new { relative_path = relativePath },
 			commandType: CommandType.StoredProcedure
 		);
 	}
 
-	public void SaveCodeItem(CodeItemDto item) => throw new NotImplementedException();
-
-	public void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc)
-	{
-		throw new NotImplementedException();
-	}
-
-	public void SetCurrentMigrationVersion(int migrationVersion, DateTime migrationCompletedUtc)
+	public async Task SetCurrentMigrationVersionAsync(int migrationVersion, DateTime migrationCompletedUtc)
 	{
 		//todo: refactor table name and column names for postgres.
 		string query = @"
@@ -140,24 +124,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new
+		await cnn.QueryAsync(query, new
 		{
 			migrationVersion,
 			migrationCompletedUtc
 		});
 	}
 
-	public void SaveMigrationItemState(MigrationItemDto item)
-	{
-		throw new NotImplementedException();
-	}
-
-	public void SaveUnitTestResult(UnitTestItemDto item)
-	{
-		throw new NotImplementedException();
-	}
-
-	public void SetDbLiveVersion(int version, DateTime migrationDateTime)
+	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			merge into dblive.version as t
@@ -170,23 +144,19 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		cnn.Query(query, new { version, migrationDateTime });
+		await cnn.QueryAsync(query, new { version, migrationDateTime });
 	}
 
-	public void DropDB(bool skipIfNotExists = true)
-	{
-		throw new NotImplementedException();
-	}
-
-	public void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
-	{
-		throw new NotImplementedException();
-	}
-
-	public int GetCurrentMigrationVersion() => throw new NotImplementedException();
-	public int? GetMigrationHash(int version, MigrationItemType itemType) => throw new NotImplementedException();
-	public void SaveMigrationItem(MigrationItemSaveDto item) => throw new NotImplementedException();
-	public void UpdateMigrationState(MigrationItemStateDto item) => throw new NotImplementedException();
-	public string? GetMigrationContent(int version, MigrationItemType undo) => throw new NotImplementedException();
-	public bool MigrationItemExists(int version, MigrationItemType ItemType) => throw new NotImplementedException();
+	public Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
+	public Task<int> GetCurrentMigrationVersionAsync() => throw new NotImplementedException();
+	public Task SaveCodeItemAsync(CodeItemDto item) => throw new NotImplementedException();
+	public Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc) => throw new NotImplementedException();
+	public Task DropDBAsync(bool skipIfNotExists = true) => throw new NotImplementedException();
+	public Task<List<SqlResult>> ExecuteQueryMultipleAsync(string sqlStatement, TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, TimeSpan? timeout = null) => throw new NotImplementedException();
+	public Task SaveMigrationItemAsync(MigrationItemSaveDto item) => throw new NotImplementedException();
+	public Task UpdateMigrationStateAsync(MigrationItemStateDto item) => throw new NotImplementedException();
+	public Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
+	public Task<string?> GetMigrationContentAsync(int version, MigrationItemType undo) => throw new NotImplementedException();
+	public Task SaveUnitTestResultAsync(UnitTestItemDto item) => throw new NotImplementedException();
+	public Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs) => throw new NotImplementedException();
 }

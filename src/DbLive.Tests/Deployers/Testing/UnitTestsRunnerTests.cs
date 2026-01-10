@@ -61,7 +61,7 @@ public class UnitTestsRunnerTests
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
-		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
 	}
 
 
@@ -103,18 +103,18 @@ public class UnitTestsRunnerTests
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
 
-		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
 
-		mockSet.DbLiveDA.Received()
-			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
 				dto.Crc32Hash == testItem1.FileData.ContentHash &&
 				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
 
-		mockSet.DbLiveDA.Received()
-			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
 				dto.Crc32Hash == testItem2.FileData.ContentHash &&
 				dto.IsSuccess == true &&
@@ -172,18 +172,18 @@ public class UnitTestsRunnerTests
 
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
 
-		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
+		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
 
-		mockSet.DbLiveDA.Received()
-			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
 				dto.Crc32Hash == testItem1.FileData.ContentHash &&
 				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
 
-		mockSet.DbLiveDA.Received()
-			.SaveUnitTestResult(Arg.Is<UnitTestItemDto>(dto =>
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
 				dto.Crc32Hash == testItem2.FileData.ContentHash &&
 				dto.IsSuccess == false &&

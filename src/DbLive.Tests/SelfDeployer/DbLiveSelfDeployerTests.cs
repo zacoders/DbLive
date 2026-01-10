@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace DbLive.Tests.SelfDeployer;
+﻿namespace DbLive.Tests.SelfDeployer;
 
 
 public class DbLiveSelfDeployerTests
@@ -18,7 +16,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
@@ -43,7 +41,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([]);
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
@@ -62,7 +60,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
@@ -78,9 +76,9 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
-		mockSet.DbLiveDA.Received(1).SetDbLiveVersion(1, Arg.Any<DateTime>());
-		mockSet.DbLiveDA.Received(1).SetDbLiveVersion(2, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
+		await mockSet.DbLiveDA.Received(1).SetDbLiveVersionAsync(1, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(1).SetDbLiveVersionAsync(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -91,8 +89,8 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
@@ -109,16 +107,16 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
+		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
 
-		mockSet.DbLiveDA.DidNotReceive()
-			.SetDbLiveVersion(1, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SetDbLiveVersionAsync(1, Arg.Any<DateTime>());
 
-		mockSet.DbLiveDA.Received(1)
-			.SetDbLiveVersion(2, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(1)
+			.SetDbLiveVersionAsync(2, Arg.Any<DateTime>());
 
-		mockSet.DbLiveDA.Received(1)
-			.SetDbLiveVersion(3, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(1)
+			.SetDbLiveVersionAsync(3, Arg.Any<DateTime>());
 	}
 
 
@@ -130,7 +128,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
-		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
 		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
 		[
@@ -143,7 +141,7 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		mockSet.DbLiveDA.Received(1).ExecuteNonQuery("-- exact sql");
+		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync("-- exact sql");
 	}
 
 

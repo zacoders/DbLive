@@ -20,7 +20,7 @@ public class BreakingChangesDeployer(
 		_logger.Information("Deploying breaking changes.");
 
 		var latestAppliedBreakingVersion =
-			_da.GetMigrations()
+			(await _da.GetMigrationsAsync())
 				.Where(m => m.Status == MigrationItemStatus.Applied)
 				.Where(m => m.ItemType == MigrationItemType.Breaking)
 				.Select(m => m.Version)

@@ -21,16 +21,16 @@ internal class DbLiveSelfDeployer(
 
 		IEnumerable<InternalMigration> migrationsToApply = await _internalProject.GetMigrationsAsync();
 
-		if (_da.DbLiveInstalled())
+		if (await _da.DbLiveInstalledAsync())
 		{
-			int appliedVersion = _da.GetDbLiveVersion();
+			int appliedVersion = await _da.GetDbLiveVersionAsync();
 			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 		}
 
 		foreach (var migration in migrationsToApply)
 		{
-			_da.ExecuteNonQuery(migration.FileData.Content);
-			_da.SetDbLiveVersion(migration.Version, _timeProvider.UtcNow());
+			await _da.ExecuteNonQueryAsync(migration.FileData.Content);
+			await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow());
 		}
 
 		if (projectSettings.LogSelfDeploy)

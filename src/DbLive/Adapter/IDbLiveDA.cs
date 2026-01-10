@@ -3,58 +3,64 @@ namespace DbLive.Adapter;
 
 public interface IDbLiveDA
 {
-	IReadOnlyCollection<MigrationItemDto> GetMigrations();
-	
-	int? GetMigrationHash(int version, MigrationItemType itemType);
+	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
-	int GetCurrentMigrationVersion();
+	Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType);
 
-	bool DbLiveInstalled();
+	Task<int> GetCurrentMigrationVersionAsync();
 
-	int GetDbLiveVersion();
+	Task<bool> DbLiveInstalledAsync();
 
-	void SetDbLiveVersion(int version, DateTime migrationDatetime);
+	Task<int> GetDbLiveVersionAsync();
 
-	/// <exception cref="DbLiveSqlException"/>
-	void SetCurrentMigrationVersion(int version, DateTime migrationCompletedUtc);
+	Task SetDbLiveVersionAsync(int version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void SaveCodeItem(CodeItemDto item);
-
-	void MarkCodeAsVerified(string relativePath, DateTime verifiedUtc);
-
-	void CreateDB(bool skipIfExists = true);
-
-	void DropDB(bool skipIfNotExists = true);
+	Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc);
 
 	/// <exception cref="DbLiveSqlException"/>
-	void ExecuteNonQuery(
+	Task SaveCodeItemAsync(CodeItemDto item);
+
+	Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc);
+
+	Task CreateDBAsync(bool skipIfExists = true);
+
+	Task DropDBAsync(bool skipIfNotExists = true);
+
+	/// <exception cref="DbLiveSqlException"/>
+	Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	);
 
-	List<SqlResult> ExecuteQueryMultiple(
+	Task<List<SqlResult>> ExecuteQueryMultipleAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
 	);
 
-	CodeItemDto? FindCodeItem(string relativePath);
-	
-	void SaveMigrationItem(MigrationItemSaveDto item);
+	Task<CodeItemDto?> FindCodeItemAsync(string relativePath);
+
+	Task SaveMigrationItemAsync(MigrationItemSaveDto item);
 
 	/// <summary>
 	/// Updates the migration state for the specified migration item.
 	/// </summary>
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
-	void UpdateMigrationState(MigrationItemStateDto item);
+	Task UpdateMigrationStateAsync(MigrationItemStateDto item);
 
-	bool MigrationItemExists(int version, MigrationItemType ItemType);
+	Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType);
 
-	string? GetMigrationContent(int version, MigrationItemType undo);
+	Task<string?> GetMigrationContentAsync(int version, MigrationItemType undo);
 
-	void SaveUnitTestResult(UnitTestItemDto item);
-	
-	void MarkItemAsApplied(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs);
+	Task SaveUnitTestResultAsync(UnitTestItemDto item);
+
+	Task MarkItemAsAppliedAsync(
+		ProjectFolder projectFolder,
+		string relativePath,
+		DateTime startedUtc,
+		DateTime completedUtc,
+		long executionTimeMs
+	);
 }

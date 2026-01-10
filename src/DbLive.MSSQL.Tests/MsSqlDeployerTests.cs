@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
@@ -22,7 +23,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		_da = GetService<IDbLiveDA>();
 
-		_da.CreateDB(skipIfExists: true);
+		_da.CreateDBAsync(skipIfExists: true);
 	}
 
 	[Fact]
@@ -32,7 +33,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(sql);
+		_da.ExecuteNonQueryAsync(sql);
 
 		tran.Complete();
 	}
@@ -42,15 +43,15 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		var sql = "select 1 as col";
 
-		_da.ExecuteNonQuery(sql);
+		_da.ExecuteNonQueryAsync(sql);
 	}
 
 	[Fact]
-	public void DbLiveSqlException_Expected()
+	public async Task DbLiveSqlException_Expected()
 	{
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<DbLiveSqlException>(() => _da.ExecuteNonQuery(sql));
+		await Assert.ThrowsAsync<DbLiveSqlException>(() => _da.ExecuteNonQueryAsync(sql));
 	}
 
 	[Fact]
@@ -64,7 +65,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 3 as col
 		";
 
-		_da.ExecuteNonQuery(sql);
+		_da.ExecuteNonQueryAsync(sql);
 	}
 
 	[Fact]
@@ -72,11 +73,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			drop table if exists dbo.Test
 		");
 
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			create table dbo.Test (
 				Id int identity
 			  , Name nvarchar(128) not null
@@ -85,18 +86,18 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			)
 		");
 
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			insert into dbo.Test ( Name )
 			values ( 'Test1' ), ( 'Test2')
 		");
 
 
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			select *
 			from dbo.Test
 		");
 
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			drop table if exists dbo.Test
 		");
 
@@ -106,7 +107,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	[Fact]
 	public void TransactionTest()
 	{
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			drop table if exists dbo.TestTran1;
 		
 			create table dbo.TestTran1 (
@@ -120,12 +121,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				insert into dbo.TestTran1 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				if ( select count(*) from dbo.TestTran1 ) != 3
 					raiserror('Three rows in the tables is expected!', 16, 1);
 			
@@ -138,7 +139,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				if ( select count(*) from dbo.TestTran1 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -149,14 +150,14 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			tran2.Complete();
 		}
 
-		_da.ExecuteNonQuery("drop table if exists dbo.TestTran1;");
+		_da.ExecuteNonQueryAsync("drop table if exists dbo.TestTran1;");
 	}
 
 
 	[Fact]
 	public void TransactionTest_RollbackOnException()
 	{
-		_da.ExecuteNonQuery(@"
+		_da.ExecuteNonQueryAsync(@"
 			drop table if exists dbo.TestTran2;
 		
 			create table dbo.TestTran2 (
@@ -172,12 +173,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		{
 			using var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 4, 'Test4' !! syntax error !! )
 			");
@@ -189,7 +190,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			_da.ExecuteNonQuery(@"
+			_da.ExecuteNonQueryAsync(@"
 				if ( select count(*) from dbo.TestTran2 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -199,11 +200,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			tran2.Complete();
 		}
 
-		_da.ExecuteNonQuery("drop table if exists dbo.TestTran2;");
+		_da.ExecuteNonQueryAsync("drop table if exists dbo.TestTran2;");
 	}
 
 	[Fact]
-	public void ExecuteQuery()
+	public async Task ExecuteQuery()
 	{
 		var sql = @"
 			select 10 as UserId, 'TestUser10' as Name
@@ -212,20 +213,20 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 11 as UserId, 'TestUser11' as Name
 		";
 
-		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
+		List<SqlResult> results = await _da.ExecuteQueryMultipleAsync(sql);
 
 		Assert.Equal(3, results.Count);
 	}
 
 	[Fact]
-	public void ExecuteQuery_NoResult()
+	public async Task ExecuteQuery_NoResult()
 	{
 		var sql = @"
 			if not exists ( select 1 )
 				throw 50001, 'Admin user must exists.', 0;
 		";
 
-		List<SqlResult> results = _da.ExecuteQueryMultiple(sql);
+		List<SqlResult> results = await _da.ExecuteQueryMultipleAsync(sql);
 
 		Assert.Empty(results);
 	}

@@ -40,7 +40,7 @@ public class MigrationsDeployer(
 	{
 		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync();
 
-		var appliedVersion = _da.GetCurrentMigrationVersion();
+		int appliedVersion = await _da.GetCurrentMigrationVersionAsync();
 
 		_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
 
