@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.Project;
 using System.Collections.Specialized;
 using System.Data;
+using System.Security.Policy;
 
 namespace DbLive.MSSQL;
 
@@ -33,7 +34,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType)
+	public async Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType)
 	{
 		const string query = @"
 			select content_hash
@@ -42,7 +43,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and item_type = @item_type
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return await cnn.QueryFirstOrDefaultAsync<int?>(query, new { version, item_type = itemType.ToString() }).ConfigureAwait(false);
+		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString() }).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -338,7 +339,35 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		_ = await cnn.ExecuteAsync("dblive.save_code_item",
+		_ = await cnn.ExecuteAsync("""
+			merge into dblive.code as t
+			using ( select 1 ) s(c) on t.relative_path = @relative_path
+			when matched then update 
+				set status = @status
+					, content_hash = @content_hash
+					, applied_utc = @applied_utc
+					, execution_time_ms = @execution_time_ms
+					, error = @error
+			when not matched then 
+				insert (
+					relative_path
+					, status
+					, content_hash
+					, applied_utc
+					, execution_time_ms
+					, created_utc
+					, error
+				)
+				values (
+					@relative_path
+					, @status
+					, @content_hash
+					, @applied_utc
+					, @execution_time_ms
+					, @created_utc
+					, @error
+				);
+			""",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -348,8 +377,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms = item.ExecutionTimeMs,
 				created_utc = item.CreatedUtc,
 				error = item.ErrorMessage
-			},
-			commandType: CommandType.StoredProcedure
+			}
 		).ConfigureAwait(false);
 	}
 
@@ -357,9 +385,12 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		_ = await cnn.ExecuteAsync(
-			"dblive.update_code_state",
-			new { relative_path = relativePath, verified_utc = verifiedUtc },
-			commandType: CommandType.StoredProcedure
+			"""
+			update dblive.code
+			set verified_utc = @verified_utc
+			where relative_path = @relative_path
+			""",
+			new { relative_path = relativePath, verified_utc = verifiedUtc }			
 		).ConfigureAwait(false);
 	}
 
@@ -386,35 +417,35 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		_= await cnn.ExecuteAsync("""
+		_ = await cnn.ExecuteAsync("""
 			merge into dblive.migration as t
 			using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
 			when matched then update 
-				set status = @status
-				  , content_hash = @content_hash
-				  , content = @content
-				  , relative_path = @relative_path
+			set status = @status
+				, content_hash = @content_hash
+				, content = @content
+				, relative_path = @relative_path
 			when not matched then 
-				insert (
-					version
-				  , name
-				  , item_type
-				  , relative_path
-				  , status
-				  , content_hash
-				  , content
-				  , created_utc
-				)
-				values (
-					@version
-				  , @name
-				  , @item_type
-				  , @relative_path
-				  , @status
-				  , @content_hash
-				  , @content
-				  , @created_utc
-				);
+			insert (
+				version
+				, name
+				, item_type
+				, relative_path
+				, status
+				, content_hash
+				, content
+				, created_utc
+			)
+			values (
+				@version
+				, @name
+				, @item_type
+				, @relative_path
+				, @status
+				, @content_hash
+				, @content
+				, @created_utc
+			);
 			""",
 			new
 			{
@@ -500,34 +531,87 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		_ = await cnn.ExecuteAsync(
-			"dblive.save_unit_test_result",
+			"""			
+			merge into dblive.unit_test_run as t
+			using ( select 1 ) s(c) on t.relative_path = @relative_path
+			when matched then update 
+				set content_hash = @content_hash
+				  , run_utc = @run_utc
+				  , execution_time_ms = @execution_time_ms
+				  , pass = @pass
+				  , error = @error
+			when not matched then 
+				insert (
+					relative_path
+				  , content_hash
+				  , run_utc
+				  , execution_time_ms
+				  , pass
+				  , error
+				)
+				values (
+					@relative_path
+				  , @content_hash
+				  , @run_utc
+				  , @execution_time_ms
+				  , @pass
+				  , @error
+				);
+			""",
 			new
 			{
 				relative_path = item.RelativePath,
-				content_hash = item.Crc32Hash,
+				content_hash = item.ContentHash,
 				run_utc = item.StartedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				pass = item.IsSuccess,
 				error = item.ErrorMessage
-			},
-			commandType: CommandType.StoredProcedure
+			}
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
+	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
 		_ = await cnn.ExecuteAsync(
-			"dblive.save_folder_item",
+			"""
+			merge into dblive.folder_items as t
+			using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = @relative_path
+			when matched then 
+				update set 
+					started_utc = @started_utc,
+					completed_utc = @completed_utc,
+					execution_time_ms = @execution_time_ms,
+					content_hash = @content_hash
+			when not matched then 
+				insert (
+					  folder_type
+					, relative_path
+					, created_utc
+					, started_utc
+					, completed_utc
+					, execution_time_ms
+					, content_hash
+				)
+				values (
+					  @folder_type
+					, @relative_path
+					, sysutcdatetime()
+					, @started_utc
+					, @completed_utc
+					, @execution_time_ms
+					, @content_hash
+				);
+			""",
 			new
 			{
 				folder_type = projectFolder.ToString(),
 				relative_path = relativePath,
 				started_utc = startedUtc,
 				completed_utc = completedUtc,
-				execution_time_ms = executionTimeMs
-			},
-			commandType: CommandType.StoredProcedure
+				execution_time_ms = executionTimeMs,
+				content_hash = contentHash
+			}
 		).ConfigureAwait(false);
 	}
 }

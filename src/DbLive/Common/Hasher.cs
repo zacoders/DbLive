@@ -1,13 +1,13 @@
-﻿using Force.Crc32;
+﻿using System.IO.Hashing;
 using System.Text;
 
 namespace DbLive.Common;
 
-public static class Hasher
+public static class HashExtensions
 {
-	public static int Crc32HashCode(this string input)
+	public static long ComputeFileHash(this string input)
 	{
 		byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-		return (int)Crc32Algorithm.Compute(inputBytes);
+		return unchecked((long)XxHash64.HashToUInt64(inputBytes));
 	}
 }

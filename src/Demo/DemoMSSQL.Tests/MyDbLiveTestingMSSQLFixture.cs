@@ -111,7 +111,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 				DeployBreaking = false,
 				DeployCode = true,
 				DeployMigrations = true,
-				RunTests = true
+				RunTests = true				
 			}
 		);
 	}

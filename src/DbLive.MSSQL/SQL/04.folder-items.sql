@@ -1,8 +1,10 @@
 ﻿
 create table dblive.folder_items (
 	folder_type varchar(32) not null
-  , relative_path nvarchar(4000) not null
+  , relative_path nvarchar(4000) not null  
   
+  , content_hash bigint not null
+
   , created_utc datetime2(7) not null
   , started_utc datetime2(7) not null
   , completed_utc datetime2(7) not null

@@ -8,7 +8,7 @@ public class MigrationItemDto
 	public required string RelativePath { get; init; }
 	public required MigrationItemType ItemType { get; init; }
 	public required MigrationItemStatus Status { get; init; }
-	public required int ContentHash { get; init; }
+	public required long ContentHash { get; init; }
 	public DateTime CreatedUtc { get; init; }
 	public DateTime? AppliedUtc { get; set; }
 	public long? ExecutionTimeMs { get; set; }

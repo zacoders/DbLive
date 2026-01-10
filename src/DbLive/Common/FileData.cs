@@ -9,12 +9,12 @@ public class FileData
 		get => _content;
 		init
 		{
-			ContentHash = value.Crc32HashCode();
+			ContentHash = value.ComputeFileHash();
 			_content = value;
 		}
 	}
 
-	public int ContentHash { get; private set; }
+	public long ContentHash { get; private set; }
 
 	public required string FilePath { get; init; }
 	public required string RelativePath { get; init; }

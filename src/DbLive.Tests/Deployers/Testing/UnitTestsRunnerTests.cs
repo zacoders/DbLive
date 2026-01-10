@@ -107,7 +107,7 @@ public class UnitTestsRunnerTests
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
-				dto.Crc32Hash == testItem1.FileData.ContentHash &&
+				dto.ContentHash == testItem1.FileData.ContentHash &&
 				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
@@ -115,7 +115,7 @@ public class UnitTestsRunnerTests
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
-				dto.Crc32Hash == testItem2.FileData.ContentHash &&
+				dto.ContentHash == testItem2.FileData.ContentHash &&
 				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
@@ -176,7 +176,7 @@ public class UnitTestsRunnerTests
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem1.FileData.RelativePath &&
-				dto.Crc32Hash == testItem1.FileData.ContentHash &&
+				dto.ContentHash == testItem1.FileData.ContentHash &&
 				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
@@ -184,7 +184,7 @@ public class UnitTestsRunnerTests
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
 				dto.RelativePath == testItem2.FileData.RelativePath &&
-				dto.Crc32Hash == testItem2.FileData.ContentHash &&
+				dto.ContentHash == testItem2.FileData.ContentHash &&
 				dto.IsSuccess == false &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));

@@ -44,7 +44,7 @@ public class CodeItemDeployerTests
 
 		CodeItem codeItem = GetCodeItem();
 
-		int differentHash = codeItem.FileData.ContentHash + 123;
+		long differentHash = codeItem.FileData.ContentHash + 123;
 
 		CodeItemDto codeItemDto = new()
 		{

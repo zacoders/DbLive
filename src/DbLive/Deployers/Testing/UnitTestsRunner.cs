@@ -51,7 +51,7 @@ public class UnitTestsRunner(
 				new UnitTestItemDto
 				{
 					RelativePath = test.FileData.RelativePath,
-					Crc32Hash = test.FileData.ContentHash,
+					ContentHash = test.FileData.ContentHash,
 					StartedUtc = testResult.StartedUtc,
 					ExecutionTimeMs = testResult.ExecutionTimeMs,
 					IsSuccess = testResult.IsSuccess,
