@@ -5,7 +5,7 @@ public interface IDbLiveDA
 {
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
-	Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType);
+	Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType);
 
 	Task<int> GetCurrentMigrationVersionAsync();
 
@@ -61,6 +61,7 @@ public interface IDbLiveDA
 		string relativePath,
 		DateTime startedUtc,
 		DateTime completedUtc,
-		long executionTimeMs
+		long executionTimeMs,
+		long contentHash
 	);
 }

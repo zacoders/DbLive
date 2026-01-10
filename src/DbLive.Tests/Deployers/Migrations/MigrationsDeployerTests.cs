@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests

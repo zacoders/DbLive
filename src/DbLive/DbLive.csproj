@@ -31,7 +31,7 @@
         </PackageReference>
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Sinks.Console" />
-        <PackageReference Include="Crc32.NET" />
+        <PackageReference Include="System.IO.Hashing" />
     </ItemGroup>
   
     <ItemGroup>

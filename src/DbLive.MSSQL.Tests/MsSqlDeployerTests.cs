@@ -1,7 +1,6 @@
 ﻿using DbLive.Adapter;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
 

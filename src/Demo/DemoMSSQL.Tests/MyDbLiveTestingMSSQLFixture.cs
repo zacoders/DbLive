@@ -72,7 +72,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 		_output.WriteLine($"Deploying with breaking={breaking}, undoTestingMode={undoTestingMode}");
 
 		DbLiveBuilder builder = await fixture.GetBuilderAsync();
-		
+
 		IDbLive deployer = builder
 			.LogToXUnitOutput(_output)
 			.CreateDeployer();

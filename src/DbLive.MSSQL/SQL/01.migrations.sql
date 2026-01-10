@@ -7,7 +7,7 @@ create table dblive.migration (
   , name nvarchar(512) not null
   , relative_path nvarchar(4000) not null
   , status varchar(32) not null
-  , content_hash int not null
+  , content_hash bigint not null
   , content nvarchar(max) null
   , created_utc datetime2(7) not null
   , applied_utc datetime2(7) null

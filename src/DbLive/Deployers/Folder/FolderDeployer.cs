@@ -52,6 +52,13 @@ public class FolderDeployer(
 
 		DateTime completedUtc = _timeProvider.UtcNow();
 
-		await _da.MarkItemAsAppliedAsync(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds).ConfigureAwait(false);
+		await _da.MarkItemAsAppliedAsync(
+			projectFolder,
+			item.FileData.RelativePath,
+			startedUtc,
+			completedUtc,
+			(long)(completedUtc - startedUtc).TotalMilliseconds,
+			item.FileData.ContentHash
+		).ConfigureAwait(false);
 	}
 }

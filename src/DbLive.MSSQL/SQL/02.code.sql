@@ -7,7 +7,7 @@ create table dblive.code (
   , created_utc datetime2(7) not null  
   , verified_utc datetime2(7) null
   , error nvarchar(4000) null
-  , content_hash int not null
+  , content_hash bigint not null
 
   , constraint pk_dblive_code primary key ( relative_path )
 )

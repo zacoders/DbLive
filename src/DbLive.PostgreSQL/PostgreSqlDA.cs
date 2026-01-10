@@ -147,7 +147,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { version, migrationDateTime }).ConfigureAwait(false);
 	}
 
-	public Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
+	public Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
 	public Task<int> GetCurrentMigrationVersionAsync() => throw new NotImplementedException();
 	public Task SaveCodeItemAsync(CodeItemDto item) => throw new NotImplementedException();
 	public Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc) => throw new NotImplementedException();
@@ -158,5 +158,5 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
 	public Task<string?> GetMigrationContentAsync(int version, MigrationItemType undo) => throw new NotImplementedException();
 	public Task SaveUnitTestResultAsync(UnitTestItemDto item) => throw new NotImplementedException();
-	public Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs) => throw new NotImplementedException();
+	public Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash) => throw new NotImplementedException();
 }

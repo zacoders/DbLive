@@ -1,10 +1,9 @@
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class BreakingChangesDeployerTests
 {
 	[Fact]
-	public void Does_nothing_when_deploy_breaking_is_disabled()
+	public async Task Does_nothing_when_deploy_breaking_is_disabled()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -12,17 +11,17 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
+		await deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
-		mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
-		mockSet.MigrationItemDeployer.DidNotReceive()
+		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
+		await mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
+		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
-	public void Logs_and_returns_when_no_breaking_items_exist()
+	public async Task Logs_and_returns_when_no_breaking_items_exist()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -47,15 +46,15 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
-		mockSet.MigrationItemDeployer.DidNotReceive()
+		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
-	public void Applies_only_breaking_migrations_newer_than_latest_applied()
+	public async Task Applies_only_breaking_migrations_newer_than_latest_applied()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -67,7 +66,7 @@ public class BreakingChangesDeployerTests
 				Name = "breaking-v2",
 				ItemType = MigrationItemType.Breaking,
 				Status = MigrationItemStatus.Applied,
-				ContentHash = "-- content 2".Crc32HashCode(),
+				ContentHash = "-- content 2".ComputeFileHash(),
 				RelativePath = "migrations/2.breaking.sql"
 			}
 		]);
@@ -103,18 +102,18 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
-		mockSet.MigrationItemDeployer.Received(1)
+		await mockSet.MigrationItemDeployer.Received(1)
 			.DeployAsync(3, migration3.Items[MigrationItemType.Breaking]);
 
-		mockSet.MigrationItemDeployer.DidNotReceive()
+		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(2, Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
-	public void Applies_all_new_breaking_items_in_version_order()
+	public async Task Applies_all_new_breaking_items_in_version_order()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -152,7 +151,7 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
 		Received.InOrder(() =>

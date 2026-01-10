@@ -15,25 +15,25 @@ public class FileSystem : IFileSystem
 		}).Distinct();
 	}
 
-	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, bool subfolders) =>
-		Directory.EnumerateFiles(path, searchPattern, subfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, bool subFolders) =>
+		Directory.EnumerateFiles(path, searchPattern, subFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
-	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, bool subfolders) =>
+	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, bool subFolders) =>
 		searchPatterns.SelectMany(searchPattern =>
-			Directory.EnumerateFiles(path, searchPattern, subfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+			Directory.EnumerateFiles(path, searchPattern, subFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
 		).Distinct();
 
-	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders)
+	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subFolders)
 	{
-		IEnumerable<string> files = EnumerateFiles(path, searchPatterns, subfolders);
-		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePatterns, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPatterns, subFolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePatterns, subFolders);
 		return files.Except(excludeFiles);
 	}
 
-	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subfolders)
+	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subFolders)
 	{
-		IEnumerable<string> files = EnumerateFiles(path, searchPattern, subfolders);
-		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePattern, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPattern, subFolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePattern, subFolders);
 		return files.Except(excludeFiles);
 	}
 

@@ -29,7 +29,7 @@ public class FolderDeployerTests
 			);
 
 		await mockSet.DbLiveDA.Received(3)
-			.MarkItemAsAppliedAsync(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
+			.MarkItemAsAppliedAsync(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>(), Arg.Any<long>());
 	}
 
 	[Fact]
@@ -55,7 +55,7 @@ public class FolderDeployerTests
 			);
 
 		await mockSet.DbLiveDA.Received()
-			.MarkItemAsAppliedAsync(projectFolder, @"folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>());
+			.MarkItemAsAppliedAsync(projectFolder, @"folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>(), Arg.Any<long>());
 	}
 
 	private static GenericItem GetGenericItem(string fileName)

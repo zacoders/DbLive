@@ -10,12 +10,12 @@ public static class TransactionScopeManager
 			Timeout = timeOut
 		};
 		return new TransactionScope(
-			TransactionScopeOption.Required, 
-			_options, 
+			TransactionScopeOption.Required,
+			_options,
 			TransactionScopeAsyncFlowOption.Enabled
 		);
 	}
 
-	public static TransactionScope Create() 
+	public static TransactionScope Create()
 		=> Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 }

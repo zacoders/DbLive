@@ -27,7 +27,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 	{
 		await _da.CreateDBAsync().ConfigureAwait(false);
 	}
-	
+
 	public Task DisposeAsync()
 	{
 		return Task.CompletedTask;

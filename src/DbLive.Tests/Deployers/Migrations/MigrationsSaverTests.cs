@@ -4,7 +4,7 @@ namespace DbLive.Tests.Deployers.Migrations;
 public class MigrationsSaverTests
 {
 	[Fact]
-	public void Save_logs_start_message()
+	public async Task Save_logs_start_message()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -13,7 +13,7 @@ public class MigrationsSaverTests
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		// Act
-		saver.SaveAsync();
+		await saver.SaveAsync();
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -21,7 +21,7 @@ public class MigrationsSaverTests
 	}
 
 	[Fact]
-	public void Save_skips_item_when_hash_matches()
+	public async Task Save_skips_item_when_hash_matches()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -42,10 +42,10 @@ public class MigrationsSaverTests
 			.Returns(fileData.ContentHash);
 
 		// Act
-		saver.SaveAsync();
+		await saver.SaveAsync();
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive()
+		await mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
 
 		mockSet.Logger.DidNotReceive()
@@ -53,7 +53,7 @@ public class MigrationsSaverTests
 	}
 
 	[Fact]
-	public void Save_logs_warning_and_saves_when_hash_differs()
+	public async Task Save_logs_warning_and_saves_when_hash_differs()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -78,7 +78,7 @@ public class MigrationsSaverTests
 		mockSet.TimeProvider.UtcNow().Returns(now);
 
 		// Act
-		saver.SaveAsync();
+		await saver.SaveAsync();
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -88,7 +88,7 @@ public class MigrationsSaverTests
 				2
 			);
 
-		mockSet.DbLiveDA.Received(1)
+		await mockSet.DbLiveDA.Received(1)
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
 				dto.Version == 2 &&
 				dto.ItemType == MigrationItemType.Migration &&
@@ -99,7 +99,7 @@ public class MigrationsSaverTests
 	}
 
 	[Fact]
-	public void Save_saves_content_only_for_undo_items()
+	public async Task Save_saves_content_only_for_undo_items()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -123,19 +123,19 @@ public class MigrationsSaverTests
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 		mockSet.DbLiveDA.GetMigrationHashAsync(Arg.Any<int>(), Arg.Any<MigrationItemType>())
-			.Returns((int?)null);
+			.Returns((long?)null);
 
 		// Act
-		saver.SaveAsync();
+		await saver.SaveAsync();
 
 		// Assert
-		mockSet.DbLiveDA.Received(1)
+		await mockSet.DbLiveDA.Received(1)
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
 				dto.ItemType == MigrationItemType.Undo &&
 				dto.Content == "undo content"
 			));
 
-		mockSet.DbLiveDA.Received(1)
+		await mockSet.DbLiveDA.Received(1)
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
 				dto.ItemType == MigrationItemType.Migration &&
 				dto.Content == null
