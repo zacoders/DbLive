@@ -6,8 +6,7 @@ minor-version-bump-message: '^feat(\(.+\))?:'
 patch-version-bump-message: '^fix(\(.+\))?:'
 
 branches:
-  main:
-    tag: preview
+  main: {}
 
 ignore:
   sha: []
