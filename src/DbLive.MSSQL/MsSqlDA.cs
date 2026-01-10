@@ -188,7 +188,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private static async Task<SqlResult?> ReadResultAsync(SqlDataReader reader)
 	{
-		DataTable schemaTable = reader.GetSchemaTable();
+		DataTable? schemaTable = await reader.GetSchemaTableAsync().ConfigureAwait(false);
 
 		List<SqlColumn> sqlColumns = [];
 		if (schemaTable != null)
@@ -204,7 +204,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		List<SqlRow> rows = [];
 		while (await reader.ReadAsync().ConfigureAwait(false))
 		{
-			SqlRow row = new();
+			SqlRow row = [];
 			for (int i = 0; i < reader.FieldCount; i++)
 			{
 				row.Add(reader.GetValue(i));
@@ -327,10 +327,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 
 		ServerConnection serverCnn = new(cnn);
-		_ = serverCnn.ExecuteNonQuery(new StringCollection {
+		_ = serverCnn.ExecuteNonQuery([
 			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
 			$"drop database [{databaseToDrop}];"
-		});
+		]);
 
 		serverCnn.Disconnect();
 	}

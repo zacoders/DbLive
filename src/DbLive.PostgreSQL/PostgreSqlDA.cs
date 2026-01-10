@@ -7,36 +7,105 @@ namespace DbLive.PostgreSQL;
 
 public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
-	public async Task CreateDBAsync(bool skipIfExists = true)
+	static PostgreSqlDA()
 	{
-		NpgsqlConnectionStringBuilder cnnBuilder = new(_cnn.ConnectionString);
+		DefaultTypeMap.MatchNamesWithUnderscores = true;
+	}
 
-		string? databaseToCreate = cnnBuilder.Database ?? throw new ArgumentException("Database must be specified in connection string.");
+	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
+	{
+		const string query = """
+			select version
+			     , name
+			     , item_type
+			     , relative_path
+			     , status
+			     , content_hash
+			     , created_utc
+			     , applied_utc
+			     , execution_time_ms
+			from dblive.migration
+		""";
+		
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
+	}
 
-		cnnBuilder.Database = "postgres";
+	public async Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType)
+	{
+		const string query = """
+			select content_hash
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+		""";
 
-		var cnn = new NpgsqlConnection(cnnBuilder.ConnectionString);
-		await cnn.OpenAsync().ConfigureAwait(false);
-
-		NpgsqlCommand cmd = cnn.CreateCommand();
-		cmd.CommandText = "select 1 from pg_catalog.pg_database where lower(datname) = lower(:name)";
-		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
-		bool dbExists = (int?)await cmd.ExecuteScalarAsync().ConfigureAwait(false) == 1;
-
-		if (dbExists && skipIfExists) return;
-
-		_ = cnn.Execute($"""create database "{databaseToCreate}" """);
-		await cnn.CloseAsync().ConfigureAwait(false);
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new
+		{
+			version,
+			item_type = itemType.ToString().ToLower()
+		}).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
 	{
-		const string query = @"
-			select exists ( select * from pg_tables where schemaname = 'DbLive' and tablename = 'Migrations'
-		";
+		const string query = """
+			select 1
+			from information_schema.tables
+			where table_schema = 'dblive'
+			  and table_name = 'version'
+		""";
 
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return await cnn.ExecuteScalarAsync<bool>(query).ConfigureAwait(false);
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>(query).ConfigureAwait(false);
+		return exists is not null;
+	}
+
+	public async Task<int> GetCurrentMigrationVersionAsync()
+	{
+		const string query = "select version from dblive.dbversion;";
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+	}
+
+	public async Task<int> GetDbLiveVersionAsync()
+	{
+		const string query = "select version from dblive.version;";
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+	}
+
+	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
+	{
+		const string query = """
+			update dblive.version
+			set version = @version,
+			    applied_utc = @applied_utc;
+		""";
+
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync(query, new
+		{
+			version,
+			applied_utc = migrationDateTime
+		}).ConfigureAwait(false);
+	}
+
+	public async Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc)
+	{
+		const string query = """
+			update dblive.dbversion
+			set version = @version,
+			    applied_utc = @applied_utc;
+		""";
+
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync(query, new
+		{
+			version,
+			applied_utc = migrationCompletedUtc
+		}).ConfigureAwait(false);
 	}
 
 	public async Task ExecuteNonQueryAsync(
@@ -47,116 +116,374 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		try
 		{
-			int timeoutSeconds = 30;
-			if (timeout.HasValue)
-			{
-				timeoutSeconds = (int)timeout.Value.TotalSeconds;
-			}
-			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
+			using NpgsqlConnection cnn = new(_cnn.ConnectionString);
 			await cnn.OpenAsync().ConfigureAwait(false);
-			// todo: apply transaction isolation level
-			NpgsqlCommand cmd = cnn.CreateCommand();
-			cmd.CommandTimeout = timeoutSeconds;
-			cmd.CommandText = sqlStatement;
+
+			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+
+			using NpgsqlCommand cmd = new(sqlStatement, cnn);
+			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
+
 			_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 		}
 		catch (Exception e)
 		{
-			PostgresException? pgException = e.Get<PostgresException>();
-			throw new DbLiveSqlException(pgException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(e.Message, e);
 		}
 	}
 
-	public async Task<int> GetDbLiveVersionAsync()
+	private static async Task SetTransactionIsolationLevelAsync(NpgsqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
-		const string query = @"
-			select version
-			from dblive.version
-		";
+		string isolationLevelSql = isolationLevel switch
+		{
+			TranIsolationLevel.ReadCommitted => "read committed",
+			TranIsolationLevel.RepeatableRead => "repeatable read",
+			TranIsolationLevel.Serializable => "serializable",
+			_ => "read committed"
+		};
 
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+		using NpgsqlCommand cmd = new($"set transaction isolation level {isolationLevelSql};", cnn);
+		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
-	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
+	private static int GetTimeoutSeconds(TimeSpan? timeout)
 	{
-		const string query = @"
-			select version
-				 , name
-				 , item_type
-				 , status
-				 , content_hash
-				 , content
-				 , created_utc
-				 , applied_utc
-				 , execution_time_ms
-			from dblive.migration
-		";
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
+		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
 	}
 
-	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
+	public async Task<List<SqlResult>> ExecuteQueryMultipleAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	)
 	{
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
-			"dblive.get_code_item",
-			new { relative_path = relativePath },
-			commandType: CommandType.StoredProcedure
+		try
+		{
+			using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+			await cnn.OpenAsync().ConfigureAwait(false);
+
+			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+
+			using NpgsqlCommand cmd = new(sqlStatement, cnn);
+			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
+
+			using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+
+			List<SqlResult> results = [];
+
+			do
+			{
+				SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
+				if (r is not null)
+				{
+					results.Add(r);
+				}
+			}
+			while (await reader.NextResultAsync().ConfigureAwait(false));
+
+			return results;
+		}
+		catch (Exception e)
+		{
+			throw new DbLiveSqlException(e.Message, e);
+		}
+	}
+
+	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader)
+	{
+		DataTable? schema = await reader.GetSchemaTableAsync().ConfigureAwait(false);
+		if (schema is null || schema.Rows.Count == 0) return null;
+
+		List<SqlColumn> columns = [];
+		foreach (DataRow row in schema.Rows)
+		{
+			columns.Add(new SqlColumn(
+				ColumnName: (string)row["ColumnName"],
+				DataType: ((string)row["DataTypeName"]).ToLower()
+			));
+		}
+
+		List<SqlRow> rows = [];
+		while (await reader.ReadAsync().ConfigureAwait(false))
+		{
+			SqlRow r = [];
+			for (int i = 0; i < reader.FieldCount; i++)
+			{
+				r.Add(reader.GetValue(i));
+			}
+			rows.Add(r);
+		}
+
+		return new SqlResult(columns, rows);
+	}
+
+
+	public async Task CreateDBAsync(bool skipIfExists = true)
+	{
+		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+		string? dbName = builder.Database;
+		builder.Database = "postgres";
+
+		using NpgsqlConnection cnn = new(builder.ConnectionString);
+		await cnn.OpenAsync().ConfigureAwait(false);
+
+		bool exists = await cnn.ExecuteScalarAsync<bool>(
+			"select exists(select 1 from pg_database where datname = @name);",
+			new { name = dbName }
+		).ConfigureAwait(false);
+
+		if (exists && skipIfExists) return;
+
+		_ = await cnn.ExecuteAsync($"create database \"{dbName}\";").ConfigureAwait(false);
+	}
+
+	public async Task DropDBAsync(bool skipIfNotExists = true)
+	{
+		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+		string? dbName = builder.Database;
+		builder.Database = "postgres";
+
+		using NpgsqlConnection cnn = new(builder.ConnectionString);
+		await cnn.OpenAsync().ConfigureAwait(false);
+
+		bool exists = await cnn.ExecuteScalarAsync<bool>(
+			"select exists(select 1 from pg_database where datname = @name);",
+			new { name = dbName }
+		).ConfigureAwait(false);
+
+		if (!exists)
+		{
+			if (skipIfNotExists) return;
+			throw new Exception($"Database '{dbName}' does not exist.");
+		}
+
+		_ = await cnn.ExecuteAsync($"""
+			revoke connect on database "{dbName}" from public;
+			select pg_terminate_backend(pid) from pg_stat_activity where datname = '{dbName}';
+			drop database "{dbName}";
+		""").ConfigureAwait(false);
+	}
+
+
+	public async Task SaveCodeItemAsync(CodeItemDto item)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync("""
+				insert into dblive.code (
+					relative_path, status, content_hash, applied_utc,
+					execution_time_ms, created_utc, error
+				)
+				values (
+					@relative_path, @status, @content_hash, @applied_utc,
+					@execution_time_ms, @created_utc, @error
+				)
+				on conflict (relative_path) do update set
+					status = excluded.status,
+					content_hash = excluded.content_hash,
+					applied_utc = excluded.applied_utc,
+					execution_time_ms = excluded.execution_time_ms,
+					error = excluded.error;
+			""", 
+			new
+			{
+				relative_path = item.RelativePath,
+				status = item.Status.ToString().ToLower(),
+				content_hash = item.ContentHash,
+				applied_utc = item.AppliedUtc,
+				execution_time_ms = item.ExecutionTimeMs,
+				created_utc = item.CreatedUtc,
+				error = item.ErrorMessage
+			}
 		).ConfigureAwait(false);
 	}
 
-	public async Task SetCurrentMigrationVersionAsync(int migrationVersion, DateTime migrationCompletedUtc)
+	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
 	{
-		//todo: refactor table name and column names for postgres.
-		string query = @"
-			insert into dblive.migration
-			(
-				migrationversion
-			  , migrationstarted
-			  , migrationcompleted
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync(
+			"""
+			update dblive.code
+			set verified_utc = @verified_utc
+			where relative_path = @relative_path
+			""",
+			new { relative_path = relativePath, verified_utc = verifiedUtc }
+		).ConfigureAwait(false);
+	}
+	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
+			"""
+			select relative_path
+				 , content_hash
+				 , applied_utc
+				 , created_utc
+				 , execution_time_ms
+				 , verified_utc
+				 , error as error_message
+				 , status
+			from dblive.code
+			where relative_path = @relative_path
+			""",
+			new { relative_path = relativePath }
+		).ConfigureAwait(false);
+	}
+	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync("""
+			insert into dblive.migration (
+				version, name, item_type, relative_path,
+				status, content_hash, content, created_utc
 			)
 			values (
-				@migrationversion
-			  , @migrationstartedutc
-			  , @migrationcompletedutc
+				@version, @name, @item_type, @relative_path,
+				@status, @content_hash, @content, @created_utc
 			)
-		";
-
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		_ = await cnn.ExecuteAsync(query, new
+			on conflict (version, item_type) do update set
+				status = excluded.status,
+				content_hash = excluded.content_hash,
+				content = excluded.content,
+				relative_path = excluded.relative_path;
+			""",
+		new
 		{
-			migrationVersion,
-			migrationCompletedUtc
+			version = item.Version,
+			name = item.Name,
+			item_type = item.ItemType.ToString().ToLower(),
+			relative_path = item.RelativePath,
+			content_hash = item.ContentHash,
+			content = item.Content,
+			status = item.Status.ToString().ToLower(),
+			created_utc = item.CreatedUtc
+		}).ConfigureAwait(false);
+	}
+	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+
+		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
+			update dblive.migration
+			set status = @status,
+				applied_utc = @applied_utc,
+				execution_time_ms = @execution_time_ms,
+				error = @error
+			where version = @version
+			  and item_type = @item_type
+			returning version;
+			""",
+		new
+		{
+			version = item.Version,
+			item_type = item.ItemType.ToString().ToLower(),
+			status = item.Status.ToString().ToLower(),
+			applied_utc = item.AppliedUtc,
+			execution_time_ms = item.ExecutionTimeMs,
+			error = item.ErrorMessage
+		}).ConfigureAwait(false);
+
+		if (ver is null)
+		{
+			throw new DbLiveMigrationItemMissedSqlException(
+				$"Migration item not found. Version: {item.Version}, Type: {item.ItemType}"
+			);
+		}
+	}
+	public async Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
+			select 1
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+		new
+		{
+			version,
+			item_type = itemType.ToString().ToLower()
+		}).ConfigureAwait(false);
+
+		return exists is not null;
+	}
+	public async Task<string?> GetMigrationContentAsync(int version, MigrationItemType migrationType)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		return await cnn.QueryFirstOrDefaultAsync<string?>("""
+			select content
+			from dblive.migration
+			where version = @version
+			  and item_type = @item_type
+			""",
+		new
+		{
+			version,
+			item_type = migrationType.ToString().ToLower()
+		}).ConfigureAwait(false);
+	}
+	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync("""
+			insert into dblive.unit_test_run (
+				relative_path, content_hash, run_utc,
+				execution_time_ms, pass, error
+			)
+			values (
+				@relative_path, @content_hash, @run_utc,
+				@execution_time_ms, @pass, @error
+			)
+			on conflict (relative_path) do update set
+				content_hash = excluded.content_hash,
+				run_utc = excluded.run_utc,
+				execution_time_ms = excluded.execution_time_ms,
+				pass = excluded.pass,
+				error = excluded.error;
+			""",
+		new
+		{
+			relative_path = item.RelativePath,
+			content_hash = item.ContentHash,
+			run_utc = item.StartedUtc,
+			execution_time_ms = item.ExecutionTimeMs,
+			pass = item.IsSuccess,
+			error = item.ErrorMessage
+		}).ConfigureAwait(false);
+	}
+	public async Task MarkItemAsAppliedAsync(
+		ProjectFolder projectFolder,
+		string relativePath,
+		DateTime startedUtc,
+		DateTime completedUtc,
+		long executionTimeMs,
+		long contentHash
+	)
+	{
+		using NpgsqlConnection cnn = new(_cnn.ConnectionString);
+		_ = await cnn.ExecuteAsync("""
+			insert into dblive.folder_items (
+				folder_type, relative_path, created_utc,
+				started_utc, completed_utc, execution_time_ms, content_hash
+			)
+			values (
+				@folder_type, @relative_path, now(),
+				@started_utc, @completed_utc, @execution_time_ms, @content_hash
+			)
+			on conflict (folder_type, relative_path) do update set
+				started_utc = excluded.started_utc,
+				completed_utc = excluded.completed_utc,
+				execution_time_ms = excluded.execution_time_ms,
+				content_hash = excluded.content_hash;
+			""",
+		new
+		{
+			folder_type = projectFolder.ToString(),
+			relative_path = relativePath,
+			started_utc = startedUtc,
+			completed_utc = completedUtc,
+			execution_time_ms = executionTimeMs,
+			content_hash = contentHash
 		}).ConfigureAwait(false);
 	}
 
-	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
-	{
-		const string query = @"
-			merge into dblive.version as t
-			using ( select 1 ) as s(c) on 1 = 1
-			when not matched then 
-				insert ( version, migrationdatetime ) values ( @version, @migrationDatetime )
-			when matched then update
-				set version = @version
-			      , migrationDatetime = migrationdatetime;
-		";
-
-		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		_ = await cnn.ExecuteAsync(query, new { version, migrationDateTime }).ConfigureAwait(false);
-	}
-
-	public Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
-	public Task<int> GetCurrentMigrationVersionAsync() => throw new NotImplementedException();
-	public Task SaveCodeItemAsync(CodeItemDto item) => throw new NotImplementedException();
-	public Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc) => throw new NotImplementedException();
-	public Task DropDBAsync(bool skipIfNotExists = true) => throw new NotImplementedException();
-	public Task<List<SqlResult>> ExecuteQueryMultipleAsync(string sqlStatement, TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, TimeSpan? timeout = null) => throw new NotImplementedException();
-	public Task SaveMigrationItemAsync(MigrationItemSaveDto item) => throw new NotImplementedException();
-	public Task UpdateMigrationStateAsync(MigrationItemStateDto item) => throw new NotImplementedException();
-	public Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();
-	public Task<string?> GetMigrationContentAsync(int version, MigrationItemType undo) => throw new NotImplementedException();
-	public Task SaveUnitTestResultAsync(UnitTestItemDto item) => throw new NotImplementedException();
-	public Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash) => throw new NotImplementedException();
 }

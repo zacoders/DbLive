@@ -1,0 +1,18 @@
+﻿<Project>
+
+	<Target Name="CopyDbLiveMssqlScripts"
+			AfterTargets="Build">
+
+		<ItemGroup>
+			<_DbLiveSqlFiles
+			  Include="$(MSBuildThisFileDirectory)..\scripts\**\*.sql" />
+		</ItemGroup>
+
+		<Copy
+		  SourceFiles="@(_DbLiveSqlFiles)"
+		  DestinationFiles="@(_DbLiveSqlFiles->'$(OutDir)DbLive.PostgreSQL\%(RecursiveDir)%(Filename)%(Extension)')"
+		  SkipUnchangedFiles="true" />
+
+	</Target>
+
+</Project>

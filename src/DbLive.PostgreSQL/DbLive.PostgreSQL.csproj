@@ -20,13 +20,13 @@
 
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>database migration testing sql devops postgresql</PackageTags>
+		<PackageTags>postgresql postgres sql database deployment migration rollback testing devops cicd db-deployment sql-deployment</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Dapper" />
 		<PackageReference Include="Npgsql" />
@@ -44,20 +44,25 @@
 
 	<!-- For nuget -->
 	<ItemGroup>
-		<None Include="SQL\**" Pack="true">
-			<PackagePath>src\$(AssemblyName)</PackagePath>
-		</None>
-		<Compile Remove="build\**" />
-		<EmbeddedResource Remove="build\**" />
-		<None Remove="build\**" />
+		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts" />
+		<None Include="DbLive.PostgreSQL.targets" Pack="true" PackagePath="buildTransitive\" />
 	</ItemGroup>
+
+	<!-- Disable false positive nuget warning in github action -->
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);NU5129</NoWarn>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbLive\DbLive.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="..\dblive-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
 	</ItemGroup>
-	
+
 </Project>
