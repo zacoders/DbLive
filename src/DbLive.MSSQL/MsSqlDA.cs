@@ -12,6 +12,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
+	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
@@ -28,7 +29,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.migration
 		";
 
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
@@ -40,7 +41,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			where version = @version
 			  and item_type = @item_type
 		";
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString() }).ConfigureAwait(false);
 	}
 
@@ -50,7 +51,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			select iif(object_id('dblive.version', 'U') is null, 0, 1)
 		";
 
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<bool>(query).ConfigureAwait(false);
 	}
 
@@ -60,7 +61,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			select version
 			from dblive.dbversion
 		";
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
@@ -70,7 +71,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			select version
 			from dblive.version
 		";
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
@@ -81,7 +82,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
 	}
 
@@ -92,7 +93,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set version = @version
 			  , applied_utc = @applied_utc;
 		";
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(query, new
 		{
 			version,
@@ -108,7 +109,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		try
 		{
-			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
+			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
 			await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
 			ServerConnection serverConnection = new(sqlConnection)
@@ -152,7 +153,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		try
 		{
-			using SqlConnection cnn = new(_cnn.ConnectionString);
+			using SqlConnection cnn = GetConnection();
 
 			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 
@@ -273,7 +274,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private static T GetValue<T>(object objectValue)
 	{
-		if (objectValue == DBNull.Value) throw new Exception("Expected non null value, but NULL received.");
+		if (objectValue == DBNull.Value) throw new InvalidOperationException("Expected non null value, but NULL received.");
 		return (T)objectValue;
 	}
 
@@ -336,7 +337,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
 			using ( select 1 ) s(c) on t.relative_path = @relative_path
@@ -381,7 +382,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
 			update dblive.code
@@ -394,7 +395,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
 			"""
 			select relative_path
@@ -414,7 +415,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.migration as t
 			using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
@@ -461,7 +462,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
 			update dblive.migration
 			set status = @status
@@ -491,7 +492,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task<bool> MigrationItemExistsAsync(int version, MigrationItemType ItemType)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
 			select 1
 			from dblive.migration
@@ -509,7 +510,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task<string?> GetMigrationContentAsync(int version, MigrationItemType migrationType)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		string? content = await cnn.QueryFirstOrDefaultAsync<string?>("""
 			select content
 			from dblive.migration
@@ -527,7 +528,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
 			"""			
 			merge into dblive.unit_test_run as t
@@ -570,7 +571,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash)
 	{
-		using var cnn = new SqlConnection(_cnn.ConnectionString);
+		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
 			merge into dblive.folder_items as t
