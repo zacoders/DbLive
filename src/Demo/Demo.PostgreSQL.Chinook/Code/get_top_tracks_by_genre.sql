@@ -1,4 +1,6 @@
-create or replace function get_top_tracks_by_genre(
+drop function if exists get_top_tracks_by_genre(int, int);
+
+create function get_top_tracks_by_genre(
     p_genre_id int,
     p_limit int default 10
 )
@@ -23,7 +25,7 @@ begin
         join invoice_line il on il.track_id = t.track_id
     where t.genre_id = p_genre_id
     group by t.track_id, t.name
-    order by sum(il.quantity) desc
+    order by t.track_id, t.name
     limit p_limit;
 end;
 $$;
