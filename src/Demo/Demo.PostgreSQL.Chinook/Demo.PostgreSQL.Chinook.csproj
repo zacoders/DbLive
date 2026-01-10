@@ -28,9 +28,5 @@
 			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Tests\" />
-	</ItemGroup>
 	
 </Project>
