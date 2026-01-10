@@ -1,4 +1,3 @@
-
 namespace DbLive.Deployers.Code;
 
 
@@ -9,10 +8,9 @@ public class CodeDeployer(
 	ISettingsAccessor settingsAccessor
 ) : ICodeDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));	
-	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
+	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -21,16 +19,18 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		foreach (CodeGroup group in _project.GetCodeGroups())
+		foreach (CodeGroup group in await _project.GetCodeGroupsAsync())
 		{
-			DeployGroup(group.CodeItems, parameters);
+			await DeployGroupAsync(group.CodeItems);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
 	}
 
-	internal void DeployGroup(IReadOnlyCollection<CodeItem> codeItems, DeployParameters parameters)
+	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
 	{
+		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+
 		var cts = new CancellationTokenSource();
 
 		var queue = new ConcurrentQueue<CodeItem>();
@@ -67,7 +67,7 @@ public class CodeDeployer(
 		}
 	}
 
-	internal Exception? CreateWorker(
+	internal async Task<Exception?> CreateWorker(
 		int maxRetries,
 		ConcurrentQueue<CodeItem> queue,
 		ConcurrentDictionary<string, int> retryCounters,
@@ -85,7 +85,7 @@ public class CodeDeployer(
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
-			CodeItemDeployResult result = _codeItemDeployer.Deploy(codeItem);
+			CodeItemDeployResult result = await _codeItemDeployer.DeployAsync(codeItem);
 
 			if (result.IsSuccess)
 			{

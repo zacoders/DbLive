@@ -10,9 +10,9 @@ public class DeploySqlIntegrationFullRepeatTest(SqlServerIntegrationFixture _fix
 	[Fact]
 	public void DeployProject_Full_And_Repeat()
 	{
-		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
 		//repeat, so code should be deployed again
-		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.DeployAsync(DeployParameters.Default);
 	}
 }

@@ -15,7 +15,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 	{
 		var deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,
@@ -42,7 +42,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 
 		var deployer = builder.CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,

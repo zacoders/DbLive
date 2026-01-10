@@ -10,7 +10,7 @@ public class MigrationsDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		if (!parameters.DeployMigrations)
 		{
@@ -20,9 +20,9 @@ public class MigrationsDeployer(
 		_logger.Information("Deploying migrations.");
 
 		// saving migrations before deploying
-		_migrationsSaver.Save();
+		await _migrationsSaver.SaveAsync();
 
-		IOrderedEnumerable<Migration> migrationsToApply = GetMigrationsToApply();
+		IOrderedEnumerable<Migration> migrationsToApply = await GetMigrationsToApplyAsync();
 
 		if (!migrationsToApply.Any())
 		{
@@ -32,13 +32,13 @@ public class MigrationsDeployer(
 
 		foreach (var migration in migrationsToApply)
 		{
-			_migrationVersionDeployer.Deploy(migration, parameters);
+			await _migrationVersionDeployer.DeployAsync(migration, parameters);
 		}
 	}
 
-	internal protected IOrderedEnumerable<Migration> GetMigrationsToApply()
+	internal protected async Task<IOrderedEnumerable<Migration>> GetMigrationsToApplyAsync()
 	{
-		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
+		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync();
 
 		var appliedVersion = _da.GetCurrentMigrationVersion();
 

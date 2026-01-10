@@ -13,14 +13,14 @@ public class DeploySqlIntegrationFullMultiRedeployTest(
 	[Fact]
 	public void DeployProject_Full_Plus_Breaking()
 	{
-		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
-		DbLiveDeployer.Deploy(DeployParameters.Breaking);
+		DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 
 		// Redeploy again
 
-		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
-		DbLiveDeployer.Deploy(DeployParameters.Breaking);
+		DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 	}
 }

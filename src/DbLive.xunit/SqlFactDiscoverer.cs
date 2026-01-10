@@ -27,8 +27,18 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.SetProjectPath(projectPath)
 			.CreateProject();
 
-		string root = project.GetVisualStudioProjectPath();
-		foreach (Project.TestItem testItem in project.GetTests())
+		
+		string root = project
+			.GetVisualStudioProjectPathAsync()
+			.GetAwaiter()
+			.GetResult();
+
+		var tests = project
+			.GetTestsAsync()
+			.GetAwaiter()
+			.GetResult();
+
+		foreach (Project.TestItem testItem in tests)
 		{
 			yield return new SqlXunitTestCase(
 				DiagnosticMessageSink,

@@ -1,4 +1,3 @@
-
 namespace DbLive.SelfDeployer;
 
 internal class DbLiveSelfDeployer(
@@ -11,16 +10,16 @@ internal class DbLiveSelfDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
 
-	public void Deploy()
+	public async Task DeployAsync()
 	{
-		DbLiveSettings projectSettings = _projectSettings.ProjectSettings;
+		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync();
 
 		if (projectSettings.LogSelfDeploy)
 		{
 			_logger.Information("Starting self deploy.");
 		}
 
-		IEnumerable<InternalMigration> migrationsToApply = _internalProject.GetMigrations();
+		IEnumerable<InternalMigration> migrationsToApply = await _internalProject.GetMigrationsAsync();
 
 		if (_da.DbLiveInstalled())
 		{

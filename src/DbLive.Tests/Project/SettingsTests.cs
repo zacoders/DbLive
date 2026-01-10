@@ -1,9 +1,11 @@
+using System.Threading.Tasks;
+
 namespace DbLive.Tests.Project;
 
 public class SettingsTests
 {
 	[Fact]
-	public void LoadSettings()
+	public async Task LoadSettings()
 	{
 		MockSet mockSet = new();
 
@@ -14,7 +16,7 @@ public class SettingsTests
 
 		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
 
-		mockSet.FileSystem.FileReadAllText(settingsPath)
+		mockSet.FileSystem.FileReadAllTextAsync(settingsPath)
 			.Returns("""
 				{
 					"TransactionWrapLevel": "None"
@@ -24,17 +26,17 @@ public class SettingsTests
 
 		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = settingsAccessor.ProjectSettings;
+		var settings = await settingsAccessor.GetProjectSettingsAsync();
 
 		Assert.NotNull(settings);
 		Assert.Equal(TransactionWrapLevel.None, settings.TransactionWrapLevel);
 
 
-		Assert.Equal(settings, settingsAccessor.ProjectSettings);
+		Assert.Equal(settings, await settingsAccessor.GetProjectSettingsAsync());
 	}
 
 	[Fact]
-	public void DefaultSettings()
+	public async Task DefaultSettings()
 	{
 		MockSet mockSet = new();
 
@@ -47,7 +49,7 @@ public class SettingsTests
 
 		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = settingsAccessor.ProjectSettings;
+		var settings = await settingsAccessor.GetProjectSettingsAsync();
 
 		Assert.NotNull(settings);
 	}

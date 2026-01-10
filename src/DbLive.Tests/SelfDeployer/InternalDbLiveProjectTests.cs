@@ -1,10 +1,12 @@
-﻿namespace DbLive.Tests.SelfDeployer;
+﻿using System.Threading.Tasks;
+
+namespace DbLive.Tests.SelfDeployer;
 
 
 public class InternalDbLiveProjectTests
 {
 	[Fact]
-	public void GetMigrations_returns_migrations_sorted_by_version()
+	public async Task GetMigrations_returns_migrations_sorted_by_version()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -18,7 +20,7 @@ public class InternalDbLiveProjectTests
 				@"C:/Project/Migrations/001.migration.first.sql"
 			]);
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), @"C:/Project")
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
 			.Returns(new FileData
 			{
 				Content = $"-- some sql migration",
@@ -29,7 +31,7 @@ public class InternalDbLiveProjectTests
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		var result = project.GetMigrations();
+		var result = await project.GetMigrationsAsync();
 
 		// Assert
 		Assert.Equal(2, result.Count);
@@ -38,7 +40,7 @@ public class InternalDbLiveProjectTests
 	}
 
 	[Fact]
-	public void GetMigrations_creates_single_migration_item_with_expected_properties()
+	public async Task GetMigrations_creates_single_migration_item_with_expected_properties()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -51,7 +53,7 @@ public class InternalDbLiveProjectTests
 				@"C:/Project/Migrations/001.migration.create_table.sql"
 			]);
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), @"C:/Project")
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
 			.Returns(new FileData
 			{
 				Content = "-- create table",
@@ -62,7 +64,7 @@ public class InternalDbLiveProjectTests
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		var result = project.GetMigrations();
+		var result = await project.GetMigrationsAsync();
 
 		// Assert
 		Assert.Single(result);
@@ -74,7 +76,7 @@ public class InternalDbLiveProjectTests
 	}
 
 	[Fact]
-	public void GetMigrations_reads_file_data_for_each_migration_file()
+	public async Task GetMigrations_reads_file_data_for_each_migration_file()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -88,7 +90,7 @@ public class InternalDbLiveProjectTests
 			@"C:/Project/Migrations/002.migration.second.sql"
 			]);
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), @"C:/Project")
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
 			.Returns(new FileData
 			{
 				Content = "-- sql",
@@ -99,11 +101,11 @@ public class InternalDbLiveProjectTests
 		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		project.GetMigrations();
+		await project.GetMigrationsAsync();
 
 		// Assert
-		mockSet.FileSystem.Received(2)
-			.ReadFileData(Arg.Any<string>(), @"C:/Project");
+		await mockSet.FileSystem.Received(2)
+			.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project");
 	}
 
 }

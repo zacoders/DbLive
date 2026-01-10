@@ -3,7 +3,7 @@ namespace DbLive.Tests.Project;
 public class GetFolderItemsTests
 {
 	[Fact]
-	public void BeforeDeployItemsTest()
+	public async Task BeforeDeployItemsTest()
 	{
 		MockSet mockSet = new();
 
@@ -23,7 +23,7 @@ public class GetFolderItemsTests
 				folderPath.CombineWith("file3.sql")
 			]);
 
-		GenericItem[] items = sqlProject.GetFolderItems(ProjectFolder.BeforeDeploy).ToArray();
+		GenericItem[] items = (await sqlProject.GetFolderItemsAsync(ProjectFolder.BeforeDeploy)).ToArray();
 
 		Assert.Equal(3, items.Length);
 
@@ -34,7 +34,7 @@ public class GetFolderItemsTests
 	}
 
 	[Fact]
-	public void AfterDeploy_Empty()
+	public async Task AfterDeploy_Empty()
 	{
 		MockSet mockSet = new();
 
@@ -46,7 +46,7 @@ public class GetFolderItemsTests
 
 		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
-		GenericItem[] items = sqlProject.GetFolderItems(ProjectFolder.AfterDeploy).ToArray();
+		GenericItem[] items = (await sqlProject.GetFolderItemsAsync(ProjectFolder.AfterDeploy)).ToArray();
 
 		Assert.Empty(items);
 
@@ -55,12 +55,12 @@ public class GetFolderItemsTests
 	}
 
 	[Fact]
-	public void GetFolderItems_With_NonExistedFolder()
+	public async Task GetFolderItems_With_NonExistedFolder()
 	{
 		MockSet mockSet = new();
 
 		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => sqlProject.GetFolderItems((ProjectFolder)999));
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sqlProject.GetFolderItemsAsync((ProjectFolder)999));
 	}
 }

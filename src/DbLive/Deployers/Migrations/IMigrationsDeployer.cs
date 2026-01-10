@@ -2,5 +2,5 @@
 
 public interface IMigrationsDeployer
 {
-	void Deploy(DeployParameters parameters);
+	Task DeployAsync(DeployParameters parameters);
 }

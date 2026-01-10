@@ -1,4 +1,6 @@
 
+using System.Threading.Tasks;
+
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests
@@ -11,13 +13,13 @@ public class MigrationsDeployerTests
 		};
 
 	[Fact]
-	public void GetMigrationsToApply()
+	public async Task GetMigrationsToApply()
 	{
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
 			[
 				NewMigration(1),
@@ -31,7 +33,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetCurrentMigrationVersion()
 			.Returns(2);
 
-		var migrations = deploy.GetMigrationsToApply().ToArray();
+		var migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
@@ -40,14 +42,14 @@ public class MigrationsDeployerTests
 
 
 	[Fact]
-	public void DeployMigrations()
+	public async Task DeployMigrations()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
 			[
 				NewMigration(1),
@@ -61,23 +63,23 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.Deploy(deployParams);
+		await deploy.DeployAsync(deployParams);
 
 		// Assert
-		mockSet.MigrationVersionDeployer.Received(3)
-			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+		await mockSet.MigrationVersionDeployer.Received(3)
+			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
 	[Fact]
-	public void DeployMigrations_Empty_Migrations_Folder()
+	public async Task DeployMigrations_Empty_Migrations_Folder()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrations().Returns([]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
@@ -85,24 +87,24 @@ public class MigrationsDeployerTests
 		var deployParams = DeployParameters.Default;
 
 		// Act
-		deploy.Deploy(deployParams);
+		await deploy.DeployAsync(deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
-		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+		await mockSet.MigrationVersionDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
 	[Fact]
-	public void DeployMigrations_DoNotDeployMigrations()
+	public async Task DeployMigrations_DoNotDeployMigrations()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
 		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrations()
+		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
 			[
 				NewMigration(1),
@@ -118,16 +120,16 @@ public class MigrationsDeployerTests
 		deployParams.DeployMigrations = false;
 
 		// Act
-		deploy.Deploy(deployParams);
+		await deploy.DeployAsync(deployParams);
 
 		// Assert
-		mockSet.MigrationVersionDeployer.DidNotReceive()
-			.Deploy(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+		await mockSet.MigrationVersionDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
 	}
 
 
 	[Fact]
-	public void DeployInternal_throws_when_migration_item_is_missing()
+	public async Task DeployInternal_throws_when_migration_item_is_missing()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -140,10 +142,10 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		void act() => deployer.DeployInternal(migration, DeployParameters.Default);
+		Task act() => deployer.DeployInternalAsync(migration, DeployParameters.Default);
 
 		// Assert
-		Assert.Throws<InternalException>(act);
+		await Assert.ThrowsAsync<InternalException>(act);
 	}
 
 	[Fact]
@@ -183,14 +185,14 @@ public class MigrationsDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
 		// Act
-		deployer.DeployInternal(migration, parameters);
+		deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
-			mockSet.MigrationItemDeployer.Deploy(2, undoItem);
-			mockSet.MigrationItemDeployer.Deploy(2, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(2, undoItem);
+			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
 		});
 
 		mockSet.DbLiveDA.Received(1)
@@ -239,15 +241,15 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternal(migration, parameters);
+		deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
-			mockSet.MigrationItemDeployer.Deploy(3, breakingItem);
-			mockSet.MigrationItemDeployer.Deploy(3, undoItem);
-			mockSet.MigrationItemDeployer.Deploy(3, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem);
+			mockSet.MigrationItemDeployer.DeployAsync(3, undoItem);
+			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem);
 		});
 	}
 
@@ -286,14 +288,14 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternal(migration, parameters);
+		deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
 		{
-			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
-			mockSet.MigrationItemDeployer.Deploy(4, undoItem);
-			mockSet.MigrationItemDeployer.Deploy(4, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem);
+			mockSet.MigrationItemDeployer.DeployAsync(4, undoItem);
+			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem);
 		});
 	}
 
@@ -323,7 +325,7 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternal(migration, DeployParameters.Default);
+		deployer.DeployInternalAsync(migration, DeployParameters.Default);
 
 		// Assert
 		mockSet.DbLiveDA.Received(1)

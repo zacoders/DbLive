@@ -1,10 +1,9 @@
-
 namespace DbLive.Tests.Deployers.Code;
 
 public class CodeItemDeployerTests
 {
 	[Fact]
-	public void DeployCodeItem_Redeploy_CodeItem_Success()
+	public async Task DeployCodeItem_Redeploy_CodeItem_Success()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -28,7 +27,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.Deploy(codeItem);
+		var res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -38,7 +37,7 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
-	public void DeployCodeItem_DifferentHash()
+	public async Task DeployCodeItem_DifferentHash()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -64,7 +63,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.Deploy(codeItem);
+		var res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -74,7 +73,7 @@ public class CodeItemDeployerTests
 
 
 	[Fact]
-	public void Deploy_New_CodeItem_Success()
+	public async Task Deploy_New_CodeItem_Success()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -86,7 +85,7 @@ public class CodeItemDeployerTests
 		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = deployer.Deploy(codeItem);
+		var res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -95,7 +94,7 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
-	public void DeployCodeItem_Execute_Throws_Exception()
+	public async Task DeployCodeItem_Execute_Throws_Exception()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -111,7 +110,7 @@ public class CodeItemDeployerTests
 			.Do(x => throw new Exception("some exception"));
 
 		// Act
-		var res = deployer.Deploy(codeItem);
+		var res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.False(res.IsSuccess);
@@ -123,7 +122,6 @@ public class CodeItemDeployerTests
 	{
 		string relativePath = "/path-to/some-code-item.sql";
 		string content = "select * from table";
-		int hashCode = content.Crc32HashCode();
 
 		CodeItem codeItem = new()
 		{

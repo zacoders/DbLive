@@ -1,4 +1,5 @@
 using Microsoft.IdentityModel.Tokens;
+using System.Threading.Tasks;
 using Xunit.Sdk;
 
 namespace DbLive.Tests.Deployers.Testing;
@@ -6,7 +7,7 @@ namespace DbLive.Tests.Deployers.Testing;
 public class UnitTestsRunnerTests
 {
 	[Fact]
-	public void RunTest_Tests_Disabled()
+	public async Task RunTest_Tests_Disabled()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -16,15 +17,15 @@ public class UnitTestsRunnerTests
 		DeployParameters parameters = new() { RunTests = false };
 
 		// Act
-		runner.RunAllTests(parameters);
+		await runner.RunAllTestsAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveProject.DidNotReceive().GetTests();
+		await mockSet.DbLiveProject.DidNotReceive().GetTestsAsync();
 	}
 
 
 	[Fact]
-	public void RunTest_Simple_Success()
+	public async Task RunTest_Simple_Success()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -44,28 +45,28 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.DbLiveProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
 			testItem1,
 			testItem2
 		]);
 
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
 		DeployParameters parameters = new() { RunTests = true };
 
 		// Act
-		runner.RunAllTests(parameters);
+		await runner.RunAllTestsAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveProject.Received().GetTests();
+		await mockSet.DbLiveProject.Received().GetTestsAsync();
 		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 	}
 
 
 	[Fact]
-	public void RunTest()
+	public async Task RunTest()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -85,22 +86,22 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.DbLiveProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
 			testItem1,
 			testItem2
 		]);
 
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
 		DeployParameters parameters = new() { RunTests = true };
 
 		// Act
-		runner.RunAllTests(parameters);
+		await runner.RunAllTestsAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveProject.Received().GetTests();
+		await mockSet.DbLiveProject.Received().GetTestsAsync();
 
 		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 
@@ -130,7 +131,7 @@ public class UnitTestsRunnerTests
 
 
 	[Fact]
-	public void RunTest_OneTestFailed()
+	public async Task RunTest_OneTestFailed()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -150,26 +151,26 @@ public class UnitTestsRunnerTests
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.DbLiveProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
 			testItem1,
 			testItem2
 		]);
 
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Is(testItem1))
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Is(testItem1))
 			.Returns(new TestRunResult() { IsSuccess = true });
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Is(testItem2))
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Is(testItem2))
 			.Returns(new TestRunResult() { IsSuccess = false });
 
 		DeployParameters parameters = new() { RunTests = true };
 
 		// Act
-		Assert.Throws<DbLiveSqlException>(() => runner.RunAllTests(parameters));
+		await Assert.ThrowsAsync<DbLiveSqlException>(() => runner.RunAllTestsAsync(parameters));
 
 		// Assert
 
-		mockSet.DbLiveProject.Received().GetTests();
+		await mockSet.DbLiveProject.Received().GetTestsAsync();
 
 		mockSet.DbLiveDA.Received(2).SaveUnitTestResult(Arg.Any<UnitTestItemDto>());
 

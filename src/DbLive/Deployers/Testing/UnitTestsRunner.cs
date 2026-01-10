@@ -10,10 +10,11 @@ public class UnitTestsRunner(
 	) : IUnitTestsRunner
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
-	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
 
-	public void RunAllTests(DeployParameters parameters)
+	public async Task RunAllTestsAsync(DeployParameters parameters)
 	{
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+
 		if (!parameters.RunTests)
 		{
 			return;
@@ -21,15 +22,15 @@ public class UnitTestsRunner(
 
 		_logger.Information("Running Tests.");
 
-		var tests = _project.GetTests();
+		var tests = await _project.GetTestsAsync();
 
 		TestsRunResults runResults = new();
 
-		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = _projectSettings.NumberOfThreadsForTestsRun };
+		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = projectSettings.NumberOfThreadsForTestsRun };
 
-		Parallel.ForEach(tests, parallelOptions, test =>
+		Parallel.ForEach(tests, parallelOptions, async test =>
 		{
-			var testResult = _unitTestItemRunner.RunTest(test);
+			var testResult = await _unitTestItemRunner.RunTestAsync(test);
 
 			if (testResult.IsSuccess)
 			{

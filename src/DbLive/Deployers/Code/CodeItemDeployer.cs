@@ -8,11 +8,11 @@ public class CodeItemDeployer(
 	) : ICodeItemDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
-	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	/// <inheritdoc/>
-	public CodeItemDeployResult Deploy(CodeItem codeItem)
+	public async Task<CodeItemDeployResult> DeployAsync(CodeItem codeItem)
 	{
+		DbLiveSettings _projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{

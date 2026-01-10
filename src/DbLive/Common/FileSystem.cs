@@ -1,4 +1,6 @@
-﻿namespace DbLive.Common;
+﻿using System.Threading.Tasks;
+
+namespace DbLive.Common;
 
 public class FileSystem : IFileSystem
 {
@@ -52,14 +54,14 @@ public class FileSystem : IFileSystem
 		return !IsDirectoryEmpty(path);
 	}
 
-	public string FileReadAllText(string path) => File.ReadAllText(path);
-	public string[] FileReadAllLines(string path) => File.ReadAllLines(path);
+	public Task<string> FileReadAllTextAsync(string path) => File.ReadAllTextAsync(path);
+	public Task<string[]> FileReadAllLinesAsync(string path) => File.ReadAllLinesAsync(path);
 
-	public FileData ReadFileData(string path, string rootPath)
+	public async Task<FileData> ReadFileDataAsync(string path, string rootPath)
 	{
 		return new FileData
 		{
-			Content = File.ReadAllText(path),
+			Content = await File.ReadAllTextAsync(path),
 			FilePath = path,
 			RelativePath = path.GetRelativePath(rootPath)
 		};

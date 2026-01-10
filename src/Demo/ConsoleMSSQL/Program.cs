@@ -12,6 +12,6 @@ var sqlDeploy = new DbLiveBuilder()
 	.LogToConsole()
 	.CreateDeployer();
 
-sqlDeploy.Deploy(parameters: DeployParameters.Default);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.Default);
 
-sqlDeploy.Deploy(parameters: DeployParameters.BreakingAndTests);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.BreakingAndTests);

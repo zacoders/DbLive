@@ -10,6 +10,6 @@ public class DeploySqlIntegrationFullTest(SqlServerIntegrationFixture _fixture, 
 	[Fact]
 	public void DeployProject_Full()
 	{
-		DbLiveDeployer.Deploy(DeployParameters.Default);
+		DbLiveDeployer.DeployAsync(DeployParameters.Default);
 	}
 }

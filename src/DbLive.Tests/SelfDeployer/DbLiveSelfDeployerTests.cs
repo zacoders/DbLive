@@ -1,27 +1,29 @@
-﻿namespace DbLive.Tests.SelfDeployer;
+﻿using System.Threading.Tasks;
+
+namespace DbLive.Tests.SelfDeployer;
 
 
 public class DbLiveSelfDeployerTests
 {
 	[Fact]
-	public void Deploy_logs_start_and_finish_when_logging_enabled()
+	public async Task Deploy_logs_start_and_finish_when_logging_enabled()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
 			LogSelfDeploy = true
 		});
 
-		mockSet.IInternalDbLiveProject.GetMigrations().Returns([]);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
-		deployer.Deploy();
+		await deployer.DeployAsync();
 
 		// Assert
 		mockSet.Logger.Received(1).Information("Starting self deploy.");
@@ -29,42 +31,42 @@ public class DbLiveSelfDeployerTests
 	}
 
 	[Fact]
-	public void Deploy_does_not_log_when_logging_disabled()
+	public async Task Deploy_does_not_log_when_logging_disabled()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
 			LogSelfDeploy = false
 		});
 
-		mockSet.IInternalDbLiveProject.GetMigrations().Returns([]);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
 
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
-		deployer.Deploy();
+		await deployer.DeployAsync();
 
 		// Assert
 		mockSet.Logger.DidNotReceive().Information(Arg.Any<string>());
 	}
 
 	[Fact]
-	public void Deploy_executes_all_migrations_when_dblive_not_installed()
+	public async Task Deploy_executes_all_migrations_when_dblive_not_installed()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
-		mockSet.IInternalDbLiveProject.GetMigrations().Returns(
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
 		[
 			CreateMigration(1, "-- migration 1"),
 			CreateMigration(2, "-- migration 2")
@@ -73,7 +75,7 @@ public class DbLiveSelfDeployerTests
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
-		deployer.Deploy();
+		await deployer.DeployAsync();
 
 		// Assert
 		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
@@ -82,19 +84,19 @@ public class DbLiveSelfDeployerTests
 	}
 
 	[Fact]
-	public void Deploy_applies_only_migrations_greater_than_current_version()
+	public async Task Deploy_applies_only_migrations_greater_than_current_version()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersion().Returns(1);
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
-		mockSet.IInternalDbLiveProject.GetMigrations().Returns(
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
 		[
 			CreateMigration(1, "-- migration 1"),
 		CreateMigration(2, "-- migration 2"),
@@ -104,7 +106,7 @@ public class DbLiveSelfDeployerTests
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
-		deployer.Deploy();
+		await deployer.DeployAsync();
 
 		// Assert
 		mockSet.DbLiveDA.Received(2).ExecuteNonQuery(Arg.Any<string>());
@@ -121,16 +123,16 @@ public class DbLiveSelfDeployerTests
 
 
 	[Fact]
-	public void Deploy_executes_sql_from_internal_migration_file_data()
+	public async Task Deploy_executes_sql_from_internal_migration_file_data()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
 		mockSet.DbLiveDA.DbLiveInstalled().Returns(false);
 
-		mockSet.IInternalDbLiveProject.GetMigrations().Returns(
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
 		[
 			CreateMigration(1, "-- exact sql")
 		]);
@@ -138,7 +140,7 @@ public class DbLiveSelfDeployerTests
 		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
-		deployer.Deploy();
+		await deployer.DeployAsync();
 
 		// Assert
 		mockSet.DbLiveDA.Received(1).ExecuteNonQuery("-- exact sql");

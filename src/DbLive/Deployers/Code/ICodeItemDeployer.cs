@@ -8,5 +8,5 @@ public interface ICodeItemDeployer
 	/// </summary>
 	/// <param name="codeItem"></param>
 	/// <returns>Returns false if there was any error during deployment.</returns>
-	CodeItemDeployResult Deploy(CodeItem codeItem);
+	Task<CodeItemDeployResult> DeployAsync(CodeItem codeItem);
 }

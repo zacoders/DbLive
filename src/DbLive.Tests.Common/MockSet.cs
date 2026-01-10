@@ -2,6 +2,8 @@
 using DbLive.Deployers;
 using DbLive.Deployers.Folder;
 using DbLive.SelfDeployer;
+using System;
+using System.Net.Sockets;
 
 namespace DbLive.Tests.Common;
 
@@ -38,14 +40,16 @@ public class MockSet
 
 	public MockSet()
 	{
-		SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
+		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
 
-		TransactionRunner.ExecuteWithinTransaction(
-			Arg.Any<bool>(),
-			Arg.Any<TranIsolationLevel>(),
-			Arg.Any<TimeSpan>(),
-			Arg.Invoke()
-		);
+		TransactionRunner
+			.ExecuteWithinTransactionAsync(
+				Arg.Any<bool>(),
+				Arg.Any<TranIsolationLevel>(),
+				Arg.Any<TimeSpan>(),
+				Arg.Any<Func<Task>>()
+			)
+			.Returns(ci => ci.Arg<Func<Task>>()());
 
 		foreach (var fld in GetType().GetFields().Where(fld => !fld.IsPrivate))
 		{

@@ -1,4 +1,3 @@
-
 namespace DbLive.Deployers.Migrations;
 
 public class MigrationItemDeployer(
@@ -10,12 +9,10 @@ public class MigrationItemDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
-
-	public void Deploy(int migrationVersion, MigrationItem migrationItem)
+	public async Task DeployAsync(int migrationVersion, MigrationItem migrationItem)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
-		
+
 		try
 		{
 			_logger.Information(
@@ -24,10 +21,12 @@ public class MigrationItemDeployer(
 				migrationItem.MigrationItemType
 			);
 
+			DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
+
 			_da.ExecuteNonQuery(
 				migrationItem.FileData.Content,
-				_projectSettings.TransactionIsolationLevel,
-				_projectSettings.MigrationTimeout
+				projectSettings.TransactionIsolationLevel,
+				projectSettings.MigrationTimeout
 			);
 
 			DateTime migrationEndTime = _timeProvider.UtcNow();
@@ -106,6 +105,6 @@ public class MigrationItemDeployer(
 				ErrorMessage = null
 			};
 			_da.UpdateMigrationState(breakingDto);
-		}		
+		}
 	}
 }

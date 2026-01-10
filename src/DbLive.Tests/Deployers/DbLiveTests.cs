@@ -18,12 +18,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
 		mockSet.DbLiveDA.Received().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 
 
@@ -41,12 +41,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
 		mockSet.DbLiveDA.DidNotReceive().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 
 
@@ -66,12 +66,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
 		mockSet.DbLiveDA.Received().DropDB();
 		mockSet.DbLiveDA.Received().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 }

@@ -7,18 +7,18 @@ public interface IDbLiveProject
 	/// </summary>
 	/// <returns>A read-only list of <see cref="Migration"/> objects representing the available migrations. The list is empty if no
 	/// migrations are found.</returns>
-	IReadOnlyList<Migration> GetMigrations();
+	Task<IReadOnlyList<Migration>> GetMigrationsAsync();
 
-	IEnumerable<CodeGroup> GetCodeGroups();
+	Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync();
 
-	IReadOnlyCollection<TestItem> GetTests();
+	Task<IReadOnlyCollection<TestItem>> GetTestsAsync();
 
 	/// <summary>
 	/// Gets list of items from the folder. Items ordered alphabetically by the path.
 	/// </summary>
 	/// <param name="projectFolder"></param>
 	/// <returns>Read only list of items. Items sorted by full file path.</returns>
-	ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder);
+	Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder);
 
-	string GetVisualStudioProjectPath();
+	Task<string> GetVisualStudioProjectPathAsync();
 }

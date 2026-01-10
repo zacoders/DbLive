@@ -9,51 +9,74 @@ public class DbLiveProject(
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
-	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
-
-	public IEnumerable<CodeGroup> GetCodeGroups()
+	
+	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
-		string codePath = _projectPath.CombineWith(_projectSettings.CodeFolder);
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		
+		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
+				
+		var subPaths = projectSettings.CodeSubFoldersDeploymentOrder
+			.Select(codePath.CombineWith)
+			.ToList();
 
-		var subPaths = _projectSettings.CodeSubFoldersDeploymentOrder.Select(codePath.CombineWith).ToList();
+		List<string> codeFiles =
+		[
+			.. _fileSystem.EnumerateFiles(
+					codePath,
+					["*.sql"],
+					projectSettings.TestFilePatterns,
+					true
+				)
+		];
 
-		List<string> codeFiles = [.. _fileSystem.EnumerateFiles(codePath, ["*.sql"], _projectSettings.TestFilePatterns, true)];
+		var result = new List<CodeGroup>();
 
 		foreach (string subPath in subPaths)
 		{
-			var files = codeFiles.RemoveWhere(f => f.StartsWith(subPath + Path.DirectorySeparatorChar, StringComparison.CurrentCultureIgnoreCase));
-			yield return new CodeGroup
+			var files = codeFiles
+				.RemoveWhere(f =>
+					f.StartsWith(
+						subPath + Path.DirectorySeparatorChar,
+						StringComparison.OrdinalIgnoreCase
+					));
+
+			result.Add(new CodeGroup
 			{
 				Path = subPath,
-				CodeItems = GetCodeGroupItems(files)
-			};
+				CodeItems = await GetCodeGroupItemsAsync(files)
+			});
 		}
 
-		// everything else as a separate group.
-		yield return new CodeGroup
+		// everything else as a separate group
+		result.Add(new CodeGroup
 		{
 			Path = codePath,
-			CodeItems = GetCodeGroupItems(codeFiles)
-		};
+			CodeItems = await GetCodeGroupItemsAsync(codeFiles)
+		});
+
+		return result;
 	}
 
-	internal List<CodeItem> GetCodeGroupItems(List<string> codeFiles)
+	internal async Task<List<CodeItem>> GetCodeGroupItemsAsync(List<string> codeFiles)
 	{
 		List<CodeItem> codeItems = [];
 
 		foreach (string filePath in codeFiles)
 		{
 			string fileName = Path.GetFileName(filePath);
-			var codeItem = new CodeItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+			var codeItem = new CodeItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath) };
 			codeItems.Add(codeItem);
 		}
 
 		return codeItems;
 	}
 
-	public IReadOnlyList<Migration> GetMigrations()
+	public async Task<IReadOnlyList<Migration>> GetMigrationsAsync()
 	{
-		string migrationsPath = _projectPath.CombineWith(_projectSettings.MigrationsFolder);
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		
+		string migrationsPath = _projectPath.CombineWith(projectSettings.MigrationsFolder);
 
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 
@@ -80,7 +103,7 @@ public class DbLiveProject(
 				{
 					MigrationItemType = item.MigrationItemType,
 					Name = item.Name,
-					FileData = _fileSystem.ReadFileData(item.FilePath, _projectPath)
+					FileData = await _fileSystem.ReadFileDataAsync(item.FilePath, _projectPath)
 				};
 				items.Add(item.MigrationItemType, migrationItem);
 			}
@@ -102,10 +125,12 @@ public class DbLiveProject(
 		return migrations.OrderBy(m => m.Version).ToList().AsReadOnly();
 	}
 
-	public IReadOnlyCollection<TestItem> GetTests()
+	public async Task<IReadOnlyCollection<TestItem>> GetTestsAsync()
 	{
-		string testsPath = _projectPath.CombineWith(_projectSettings.TestsFolder);
-		string codePath = _projectPath.CombineWith(_projectSettings.CodeFolder);
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		
+		string testsPath = _projectPath.CombineWith(projectSettings.TestsFolder);
+		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
 
 		List<TestItem> testGroups = [];
 
@@ -114,7 +139,7 @@ public class DbLiveProject(
 			var testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testInTestFolder.Union([testsPath]))
 			{
-				testGroups.AddRange(GetFolderTests(folderPath, true));
+				testGroups.AddRange(await GetFolderTestsAsync(folderPath, true));
 			}
 		}
 
@@ -123,15 +148,17 @@ public class DbLiveProject(
 			var testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testsInCodeFolder.Union([codePath]))
 			{
-				testGroups.AddRange(GetFolderTests(folderPath, false));
+				testGroups.AddRange(await GetFolderTestsAsync(folderPath, false));
 			}
 		}
 
 		return testGroups.AsReadOnly();
 	}
 
-	internal List<TestItem> GetFolderTests(string folderPath, bool isTestsFolder)
+	internal async Task<List<TestItem>> GetFolderTestsAsync(string folderPath, bool isTestsFolder)
 	{
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		
 		if (!_fileSystem.PathExists(folderPath)) return [];
 
 		List<TestItem> tests = [];
@@ -140,14 +167,14 @@ public class DbLiveProject(
 		string initializeFilePath = folderPath.CombineWith("init.sql");
 		if (_fileSystem.FileExists(initializeFilePath))
 		{
-			initFileData = _fileSystem.ReadFileData(initializeFilePath, _projectPath);
+			initFileData = await _fileSystem.ReadFileDataAsync(initializeFilePath, _projectPath);
 		}
 
 		// in Tests folder, any .sql file is considered as a test (except 'init.sql').
 		var testFiles = _fileSystem.EnumerateFiles(
 			folderPath,
-			isTestsFolder ? ["*.sql"] : _projectSettings.TestFilePatterns, 
-			["init.sql"], 
+			isTestsFolder ? ["*.sql"] : projectSettings.TestFilePatterns,
+			["init.sql"],
 			subfolders: false
 		);
 
@@ -156,7 +183,7 @@ public class DbLiveProject(
 			TestItem testItem = new()
 			{
 				Name = Path.GetFileName(testFilePath),
-				FileData = _fileSystem.ReadFileData(testFilePath, _projectPath),
+				FileData = await _fileSystem.ReadFileDataAsync(testFilePath, _projectPath),
 				InitFileData = initFileData
 			};
 
@@ -167,14 +194,16 @@ public class DbLiveProject(
 	}
 
 	/// <inheritdoc/>
-	public ReadOnlyCollection<GenericItem> GetFolderItems(ProjectFolder projectFolder)
+	public async Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder)
 	{
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		
 		Dictionary<string, GenericItem> items = [];
 
 		string folderPath = projectFolder switch
 		{
-			ProjectFolder.BeforeDeploy => _projectSettings.BeforeDeployFolder,
-			ProjectFolder.AfterDeploy => _projectSettings.AfterDeployFolder,
+			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolder,
+			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolder,
 			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
@@ -186,7 +215,7 @@ public class DbLiveProject(
 			foreach (string filePath in files)
 			{
 				string fileName = Path.GetFileName(filePath);
-				var item = new GenericItem { Name = fileName, FileData = _fileSystem.ReadFileData(filePath, _projectPath) };
+				var item = new GenericItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath) };
 				items.Add(filePath, item);
 			}
 		}
@@ -196,8 +225,9 @@ public class DbLiveProject(
 	}
 
 	[ExcludeFromCodeCoverage]
-	public string GetVisualStudioProjectPath()
+	public async Task<string> GetVisualStudioProjectPathAsync()
 	{
-		return vsProjectPathAccessor.VisualStudioProjectPath;
+		return await vsProjectPathAccessor.GetVisualStudioProjectPathAsync();
 	}
+
 }

@@ -8,14 +8,14 @@ internal class MigrationsSaver(
 		ITimeProvider _timeProvider
 	) : IMigrationsSaver
 {
-	public void Save()
+	public async Task SaveAsync()
 	{
 		// By default saving all migrations, skip content for all except UNDO.
 		// Options can be added to control what to save
 
 		_logger.Information("Saving migration items.");
 
-		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
+		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync();
 
 		foreach (Migration migration in migrationsToApply)
 		{

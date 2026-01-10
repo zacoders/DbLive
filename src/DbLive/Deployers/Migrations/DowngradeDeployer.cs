@@ -12,15 +12,13 @@ public class DowngradeDeployer(
 	) : IDowngradeDeployer
 {
 
-	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
-
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		// verify downgrade needed/allowed
 
 		int databaseVersion = _da.GetCurrentMigrationVersion();
 
-		int projectVersion = _project.GetMigrations().Max(m => m.Version);
+		int projectVersion = (await _project.GetMigrationsAsync()).Max(m => m.Version);
 
 		if (databaseVersion <= projectVersion)
 		{
@@ -88,13 +86,15 @@ public class DowngradeDeployer(
 			projectVersion,
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
-
+		
+		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync();
+		
 		// all or nothing. online downgrades is not required.
-		_transactionRunner.ExecuteWithinTransaction(
+		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
-			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.DowngradeTimeout,
-			() => {
+			projectSettings.TransactionIsolationLevel,
+			projectSettings.DowngradeTimeout,
+			async () => {
 				foreach (MigrationItemDto undoDto in undoMigrations)
 				{
 					MigrationItem undoItem = new()
@@ -108,7 +108,7 @@ public class DowngradeDeployer(
 						Name = undoDto.Name
 					};
 
-					_migrationItemDeployer.Deploy(undoDto.Version, undoItem);
+					await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem);
 
 					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
 				}

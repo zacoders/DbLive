@@ -1,34 +1,36 @@
 
+using System.Threading.Tasks;
+
 namespace DbLive.Tests.Deployers.Code;
 
 public class CodeDeployerTests
 {
 	[Fact]
-	public void DeployCode_NoCodeGroups()
+	public async Task DeployCode_NoCodeGroups()
 	{
 		MockSet mockSet = new();
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.Deploy(DeployParameters.Default);
+		await deployer.DeployAsync(DeployParameters.Default);
 	}
 
 	[Fact]
-	public void DeployCode_SkipDeployment()
+	public async Task DeployCode_SkipDeployment()
 	{
 		MockSet mockSet = new();
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.Deploy(new DeployParameters { DeployCode = false });
+		await deployer.DeployAsync(new DeployParameters { DeployCode = false });
 	}
 
 	[Fact]
-	public void DeployCode()
+	public async Task DeployCode()
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroups().Returns([
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
 			new CodeGroup
 			{
 				Path = "Code1",
@@ -41,22 +43,22 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.Deploy(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		deployer.Deploy(DeployParameters.Default);
+		await deployer.DeployAsync(DeployParameters.Default);
 
-		mockSet.CodeItemDeployer.Received(5).Deploy(Arg.Any<CodeItem>());
+		await mockSet.CodeItemDeployer.Received(5).DeployAsync(Arg.Any<CodeItem>());
 	}
 
 
 	[Fact]
-	public void DeployCode_FailedCodeItems()
+	public async Task DeployCode_FailedCodeItems()
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroups().Returns([
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
 			new CodeGroup
 			{
 				Path = "Code2",
@@ -64,16 +66,16 @@ public class CodeDeployerTests
 			}
 		]);
 
-		mockSet.CodeItemDeployer.Deploy(Arg.Any<CodeItem>())
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>())
 			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
 
 		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		Assert.Throws<CodeDeploymentAggregateException>(
-			() => deployer.Deploy(DeployParameters.Default)
+		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			async () => await deployer.DeployAsync(DeployParameters.Default)
 		);
 
-		mockSet.CodeItemDeployer.Received().Deploy(Arg.Any<CodeItem>());
+		await mockSet.CodeItemDeployer.Received().DeployAsync(Arg.Any<CodeItem>());
 	}
 
 	private static CodeItem GetCodeItem(string name)

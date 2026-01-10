@@ -1,10 +1,9 @@
-
 namespace DbLive.Tests.Deployers.Testing;
 
 public class UnitTestItemRunnerTests
 {
 	[Fact]
-	public void RunTest()
+	public async Task RunTest()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -30,7 +29,7 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert
@@ -51,7 +50,7 @@ public class UnitTestItemRunnerTests
 
 
 	[Fact]
-	public void RunTest_With_InitFileData()
+	public async Task RunTest_With_InitFileData()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -77,7 +76,7 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert
@@ -105,7 +104,7 @@ public class UnitTestItemRunnerTests
 	}
 
 	[Fact]
-	public void RunTest_TestFailed_Exception()
+	public async Task RunTest_TestFailed_Exception()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -132,7 +131,7 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert

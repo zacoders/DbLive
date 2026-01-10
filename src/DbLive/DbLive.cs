@@ -12,7 +12,7 @@ public class DbLive(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLive));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting deployment.");
 
@@ -26,9 +26,9 @@ public class DbLive(
 			_da.CreateDB(true);
 
 		// Self deploy. Deploying DbLive to the database
-		_selfDeployer.Deploy();
+		await _selfDeployer.DeployAsync();
 
 		// Deploy actual project
-		_deployer.Deploy(parameters);
+		await _deployer.DeployAsync(parameters);
 	}
 }

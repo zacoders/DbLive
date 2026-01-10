@@ -2,5 +2,5 @@
 
 public interface IDbLiveDeployer
 {
-	void Deploy(DeployParameters parameters);
+	Task DeployAsync(DeployParameters parameters);
 }

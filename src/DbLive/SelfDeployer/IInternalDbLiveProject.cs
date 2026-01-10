@@ -4,5 +4,5 @@ namespace DbLive.SelfDeployer;
 
 public interface IInternalDbLiveProject
 {
-	IReadOnlyList<InternalMigration> GetMigrations();
+	Task<IReadOnlyList<InternalMigration>> GetMigrationsAsync();
 }

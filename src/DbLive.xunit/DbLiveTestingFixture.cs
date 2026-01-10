@@ -19,7 +19,7 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 
 		_deployer = builder.CreateDeployer();
 
-		_deployer.Deploy(new DeployParameters
+		await _deployer.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,

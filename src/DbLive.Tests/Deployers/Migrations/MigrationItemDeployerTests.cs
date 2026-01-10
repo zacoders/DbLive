@@ -1,10 +1,12 @@
 
+using System.Threading.Tasks;
+
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationItemDeployerTests
 {
 	[Fact]
-	public void DeployMigrationItem_Migration()
+	public async Task DeployMigrationItem_Migration()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -32,7 +34,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.Deploy(1, migrationItem);
+		await deploy.DeployAsync(1, migrationItem);
 
 
 		// Assert
@@ -59,7 +61,7 @@ public class MigrationItemDeployerTests
 
 
 	[Fact]
-	public void Deploying_Undo__Migration_And_Breaking_Should_Be_Reverted()
+	public async Task Deploying_Undo__Migration_And_Breaking_Should_Be_Reverted()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -86,7 +88,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.Deploy(1, undoItem);
+		await deploy.DeployAsync(1, undoItem);
 
 
 		// Assert
@@ -132,7 +134,7 @@ public class MigrationItemDeployerTests
 
 
 	[Fact]
-	public void Deploying_Migration__Undo_Should_Be_Reverted()
+	public async Task Deploying_Migration__Undo_Should_Be_Reverted()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -159,7 +161,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		deploy.Deploy(1, undoItem);
+		await deploy.DeployAsync(1, undoItem);
 
 
 		// Assert
@@ -195,7 +197,7 @@ public class MigrationItemDeployerTests
 
 
 	[Fact]
-	public void Deploy_when_execute_non_query_fails_should_save_failed_state_and_rethrow()
+	public async Task Deploy_when_execute_non_query_fails_should_save_failed_state_and_rethrow()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -233,10 +235,10 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		void act() => deployer.Deploy(2, migrationItem);
+		Task act() => deployer.DeployAsync(2, migrationItem);
 
 		// Assert
-		var ex = Assert.Throws<MigrationDeploymentException>(act);
+		var ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
 		Assert.Contains("Migration file deployment error", ex.Message);
 		Assert.Same(exception, ex.InnerException);
 

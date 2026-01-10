@@ -6,7 +6,7 @@ internal class InternalDbLiveProject(
 		IFileSystem _fileSystem
 	) : IInternalDbLiveProject
 {
-	public IReadOnlyList<InternalMigration> GetMigrations()
+	public async Task<IReadOnlyList<InternalMigration>> GetMigrationsAsync()
 	{
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(_projectPath.Path, "*.sql", subfolders: true);
 
@@ -20,7 +20,7 @@ internal class InternalDbLiveProject(
 			{
 				Version = info.Version,				
 				Name = info.Name,
-				FileData = _fileSystem.ReadFileData(info.FilePath, _projectPath.Path)
+				FileData = await _fileSystem.ReadFileDataAsync(info.FilePath, _projectPath.Path)
 			};
 
 			migrations.Add(migrationItem);

@@ -4,6 +4,7 @@ using DbLive.Deployers.Testing;
 using DbLive.MSSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
+using System.Threading.Tasks;
 using Testcontainers.MsSql;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,9 +50,9 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	// TODO: if there are a lot of tests they will be in the same place
 	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
 	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
-	public void Sql(string testFileRelativePath)
+	public async Task Sql(string testFileRelativePath)
 	{
-		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, testFileRelativePath);
+		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }
@@ -75,7 +76,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 		builder.LogToXUnitOutput(_output);
 		IDbLive deployer = builder.CreateDeployer();
 
-		deployer.Deploy(new DeployParameters
+		await deployer.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = breaking,
@@ -102,7 +103,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 
 		var deployer = builder.CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,

@@ -11,9 +11,8 @@ public class MigrationVersionDeployer(
 {
 
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationVersionDeployer));
-	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
 
-	public void Deploy(Migration migration, DeployParameters parameters)
+	public async Task DeployAsync(Migration migration, DeployParameters parameters)
 	{
 		if (migration.Items.Count == 0)
 		{
@@ -29,17 +28,19 @@ public class MigrationVersionDeployer(
 			migrationSettings = SettingsTools.GetSettings<MigrationSettings>(settingsItem.FileData.Content);
 		}
 
+		DbLiveSettings _projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync();
+
 		migrationSettings = _projectSettings.GetMigrationSettings(migrationSettings);
 
-		_transactionRunner.ExecuteWithinTransaction(
+		await _transactionRunner.ExecuteWithinTransactionAsync(
 			migrationSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
 			migrationSettings.TransactionIsolationLevel!.Value,
 			migrationSettings.MigrationTimeout!.Value,
-			() => DeployInternal(migration, parameters)
+			() => DeployInternalAsync(migration, parameters)
 		);
 	}
 
-	internal void DeployInternal(Migration migration, DeployParameters parameters)
+	internal async Task DeployInternalAsync(Migration migration, DeployParameters parameters)
 	{
 		migration.Items.TryGetValue(MigrationItemType.Migration, out var migrationItem);
 		migration.Items.TryGetValue(MigrationItemType.Undo, out var undoItem);
@@ -51,26 +52,26 @@ public class MigrationVersionDeployer(
 		}
 
 		if (undoItem is not null)
-		{			
+		{
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
 			{
-				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
-				_migrationItemDeployer.Deploy(migration.Version, undoItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem);
 			}
 
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
 			{
-				_migrationItemDeployer.Deploy(migration.Version, migrationItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
 				if (breakingItem is not null)
 				{
-					_migrationItemDeployer.Deploy(migration.Version, breakingItem);
+					await _migrationItemDeployer.DeployAsync(migration.Version, breakingItem);
 				}
-				_migrationItemDeployer.Deploy(migration.Version, undoItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem);
 			}
 
 		}
 
-		_migrationItemDeployer.Deploy(migration.Version, migrationItem);
+		await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 

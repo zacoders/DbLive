@@ -10,10 +10,10 @@ public class MigrationsSaverTests
 		MockSet mockSet = new();
 		var saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
-		mockSet.DbLiveProject.GetMigrations().Returns([]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		// Act
-		saver.Save();
+		saver.SaveAsync();
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -37,12 +37,12 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrations().Returns([migration]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 		mockSet.DbLiveDA.GetMigrationHash(1, MigrationItemType.Migration)
 			.Returns(fileData.ContentHash);
 
 		// Act
-		saver.Save();
+		saver.SaveAsync();
 
 		// Assert
 		mockSet.DbLiveDA.DidNotReceive()
@@ -69,7 +69,7 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrations().Returns([migration]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 
 		mockSet.DbLiveDA.GetMigrationHash(2, MigrationItemType.Migration)
 			.Returns(fileData.ContentHash + 123); // different hash
@@ -78,7 +78,7 @@ public class MigrationsSaverTests
 		mockSet.TimeProvider.UtcNow().Returns(now);
 
 		// Act
-		saver.Save();
+		saver.SaveAsync();
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -121,12 +121,12 @@ public class MigrationsSaverTests
 
 		var migration = NewMigration(1, undoItem, migrationItem);
 
-		mockSet.DbLiveProject.GetMigrations().Returns([migration]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 		mockSet.DbLiveDA.GetMigrationHash(Arg.Any<int>(), Arg.Any<MigrationItemType>())
 			.Returns((int?)null);
 
 		// Act
-		saver.Save();
+		saver.SaveAsync();
 
 		// Assert
 		mockSet.DbLiveDA.Received(1)

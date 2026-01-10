@@ -1,10 +1,9 @@
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class DowngradeDeployerTests
 {
 	[Fact]
-	public void Deploy_downgrade_allowed_executes_undo_and_updates_version()
+	public async Task Deploy_downgrade_allowed_executes_undo_and_updates_version()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -14,7 +13,7 @@ public class DowngradeDeployerTests
 		// database is ahead of project
 		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
 
-		mockSet.DbLiveProject.GetMigrations().Returns(
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
 				new Migration { Version = 1, Items = [] },
 				new Migration { Version = 2, Items = [] }
@@ -46,17 +45,17 @@ public class DowngradeDeployerTests
 		};
 
 		// Act
-		deployer.Deploy(parameters);
+		await deployer.DeployAsync(parameters);
 
 		// Assert
-		mockSet.TransactionRunner.Received(1).ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.Received(1).ExecuteWithinTransactionAsync(
 			true,
 			TranIsolationLevel.ReadCommitted,
 			Arg.Any<TimeSpan>(),
-			Arg.Any<Action>()
+			Arg.Any<Func<Task>>()
 		);
 
-		mockSet.MigrationItemDeployer.Received(1).Deploy(
+		await mockSet.MigrationItemDeployer.Received(1).DeployAsync(
 			3,
 			Arg.Is<MigrationItem>(m =>
 				m.MigrationItemType == MigrationItemType.Undo &&
@@ -69,7 +68,7 @@ public class DowngradeDeployerTests
 	}
 
 	[Fact]
-	public void Deploy_database_version_not_higher_than_project_version_does_nothing()
+	public async Task Deploy_database_version_not_higher_than_project_version_does_nothing()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -78,7 +77,7 @@ public class DowngradeDeployerTests
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(2);
 
-		mockSet.DbLiveProject.GetMigrations().Returns(
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
 				new Migration { Version = 1, Items = [] },
 				new Migration { Version = 2, Items = [] }
@@ -91,26 +90,26 @@ public class DowngradeDeployerTests
 		};
 
 		// Act
-		deployer.Deploy(parameters);
+		await deployer.DeployAsync(parameters);
 
 		// Assert
-		mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.DidNotReceive()
+			.ExecuteWithinTransactionAsync(
 				Arg.Any<bool>(),
 				Arg.Any<TranIsolationLevel>(),
 				Arg.Any<TimeSpan>(),
-				Arg.Any<Action>()
+				Arg.Any<Func<Task>>()
 			);
 
-		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.DidNotReceive()
 			.SetCurrentMigrationVersion(Arg.Any<int>(), Arg.Any<DateTime>());
 	}
 
 	[Fact]
-	public void Deploy_downgrade_detected_but_not_allowed_throws()
+	public async Task Deploy_downgrade_detected_but_not_allowed_throws()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -119,7 +118,7 @@ public class DowngradeDeployerTests
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
 
-		mockSet.DbLiveProject.GetMigrations().Returns(
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
 				new Migration { Version = 1, Items = [] },
 			new Migration { Version = 2, Items = [] }
@@ -132,25 +131,25 @@ public class DowngradeDeployerTests
 		};
 
 		// Act
-		void act() => deployer.Deploy(parameters);
+		Task act() => deployer.DeployAsync(parameters);
 
 		// Assert
-		Assert.Throws<DowngradeNotAllowedException>(act);
+		await Assert.ThrowsAsync<DowngradeNotAllowedException>(act);
 
-		mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.DidNotReceive()
+			.ExecuteWithinTransactionAsync(
 				Arg.Any<bool>(),
 				Arg.Any<TranIsolationLevel>(),
 				Arg.Any<TimeSpan>(),
-				Arg.Any<Action>()
+				Arg.Any<Func<Task>>()
 			);
 
-		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
-	public void Deploy_missing_undo_scripts_throws_downgrade_impossible()
+	public async Task Deploy_missing_undo_scripts_throws_downgrade_impossible()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -159,7 +158,7 @@ public class DowngradeDeployerTests
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(4);
 
-		mockSet.DbLiveProject.GetMigrations().Returns(
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
 				new Migration { Version = 1, Items = [] },
 			new Migration { Version = 2, Items = [] }
@@ -187,26 +186,26 @@ public class DowngradeDeployerTests
 		};
 
 		// Act
-		void act() => deployer.Deploy(parameters);
+		Task act() => deployer.DeployAsync(parameters);
 
 		// Assert
-		var ex = Assert.Throws<DowngradeImpossibleException>(act);
+		var ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Cannot perform downgrade due to missing undo scripts.", ex.Message);
 
-		mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.DidNotReceive()
+			.ExecuteWithinTransactionAsync(
 				Arg.Any<bool>(),
 				Arg.Any<TranIsolationLevel>(),
 				Arg.Any<TimeSpan>(),
-				Arg.Any<Action>()
+				Arg.Any<Func<Task>>()
 			);
 
-		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
-	public void Deploy_undo_content_missing_throws_downgrade_impossible_exception()
+	public async Task Deploy_undo_content_missing_throws_downgrade_impossible_exception()
 	{
 		// arrange
 		MockSet mockSet = new();
@@ -216,7 +215,7 @@ public class DowngradeDeployerTests
 		// database ahead of project
 		mockSet.DbLiveDA.GetCurrentMigrationVersion().Returns(3);
 
-		mockSet.DbLiveProject.GetMigrations().Returns(
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
 			[
 				new Migration { Version = 1, Items = [] },
 			new Migration { Version = 2, Items = [] }
@@ -246,22 +245,22 @@ public class DowngradeDeployerTests
 		};
 
 		// act
-		void act() => deployer.Deploy(parameters);
+		Task act() => deployer.DeployAsync(parameters);
 
 		// assert
-		var ex = Assert.Throws<DowngradeImpossibleException>(act);
+		var ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Undo content for migration version 3 is missing", ex.Message);
 
-		mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.DidNotReceive()
+			.ExecuteWithinTransactionAsync(
 				Arg.Any<bool>(),
 				Arg.Any<TranIsolationLevel>(),
 				Arg.Any<TimeSpan>(),
-				Arg.Any<Action>()
+				Arg.Any<Func<Task>>()
 			);
 
-		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 
 		mockSet.DbLiveDA.DidNotReceive()
 			.SetCurrentMigrationVersion(Arg.Any<int>(), Arg.Any<DateTime>());
