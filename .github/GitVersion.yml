@@ -16,6 +16,9 @@ branches:
     mode: ContinuousDeployment
     tag: preview
     increment: inherit
+    is-mainline: false
+    source-branches:
+      - main
 
 ignore:
   sha: []
