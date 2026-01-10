@@ -18,7 +18,7 @@ internal class InternalDbLiveProject(
 
 			InternalMigration migrationItem = new()
 			{
-				Version = info.Version,				
+				Version = info.Version,
 				Name = info.Name,
 				FileData = await _fileSystem.ReadFileDataAsync(info.FilePath, _projectPath.Path)
 			};

@@ -1,6 +1,3 @@
-
-using System.Threading.Tasks;
-
 namespace DbLive.Tests.Testing;
 
 public class DbLiveTesterTests

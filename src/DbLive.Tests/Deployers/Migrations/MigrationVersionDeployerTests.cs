@@ -1,6 +1,3 @@
-
-using System.Threading.Tasks;
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationVersionDeployerTests
@@ -48,10 +45,10 @@ public class MigrationVersionDeployerTests
 		await deploy.DeployAsync(migration, DeployParameters.Default);
 
 		await mockSet.MigrationItemDeployer.Received(1)
-			.DeployAsync( 1, Arg.Any<MigrationItem>());
+			.DeployAsync(1, Arg.Any<MigrationItem>());
 
-	 	await mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
+		await mockSet.DbLiveDA.Received()
+		   .SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]

@@ -36,7 +36,7 @@ public class FolderDeployer(
 		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
-		
+
 		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
 
 		await _da.ExecuteNonQueryAsync(

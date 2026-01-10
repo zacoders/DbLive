@@ -9,13 +9,13 @@ public class DbLiveProject(
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
-	
+
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
-		
+
 		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
-				
+
 		var subPaths = projectSettings.CodeSubFoldersDeploymentOrder
 			.Select(codePath.CombineWith)
 			.ToList();
@@ -75,7 +75,7 @@ public class DbLiveProject(
 	public async Task<IReadOnlyList<Migration>> GetMigrationsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
-		
+
 		string migrationsPath = _projectPath.CombineWith(projectSettings.MigrationsFolder);
 
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
@@ -128,7 +128,7 @@ public class DbLiveProject(
 	public async Task<IReadOnlyCollection<TestItem>> GetTestsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
-		
+
 		string testsPath = _projectPath.CombineWith(projectSettings.TestsFolder);
 		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
 
@@ -158,7 +158,7 @@ public class DbLiveProject(
 	internal async Task<List<TestItem>> GetFolderTestsAsync(string folderPath, bool isTestsFolder)
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
-		
+
 		if (!_fileSystem.PathExists(folderPath)) return [];
 
 		List<TestItem> tests = [];
@@ -197,7 +197,7 @@ public class DbLiveProject(
 	public async Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder)
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
-		
+
 		Dictionary<string, GenericItem> items = [];
 
 		string folderPath = projectFolder switch

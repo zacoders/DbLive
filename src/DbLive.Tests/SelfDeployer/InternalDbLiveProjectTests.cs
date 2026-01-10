@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace DbLive.Tests.SelfDeployer;
+﻿namespace DbLive.Tests.SelfDeployer;
 
 
 public class InternalDbLiveProjectTests
@@ -70,7 +68,7 @@ public class InternalDbLiveProjectTests
 		Assert.Single(result);
 
 		InternalMigration migration = result[0];
-		Assert.Equal(1, migration.Version);		
+		Assert.Equal(1, migration.Version);
 		Assert.Equal("create_table", migration.Name);
 		Assert.Equal("db/migrations/001.migration.create_table.sql", migration.FileData.RelativePath);
 	}

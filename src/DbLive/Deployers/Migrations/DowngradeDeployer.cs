@@ -42,14 +42,14 @@ public class DowngradeDeployer(
 		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync();
 
 		// get undo migrations
-		List<MigrationItemDto> undoMigrations = 
+		List<MigrationItemDto> undoMigrations =
 				allMigrations
 				.Where(m => m.ItemType == MigrationItemType.Undo)
 				.Where(m => m.Version > projectVersion)
 				.OrderByDescending(m => m.Version)
 				.ToList();
 
-		
+
 		// verify we have undo scripts for all migrations to be undone
 
 		HashSet<int> undoVersions = undoMigrations.Select(u => u.Version).ToHashSet();
@@ -86,23 +86,25 @@ public class DowngradeDeployer(
 			projectVersion,
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
-		
+
 		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync();
-		
+
 		// all or nothing. online downgrades is not required.
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
 			projectSettings.TransactionIsolationLevel,
 			projectSettings.DowngradeTimeout,
-			async () => {
+			async () =>
+			{
 				foreach (MigrationItemDto undoDto in undoMigrations)
 				{
 					MigrationItem undoItem = new()
 					{
 						MigrationItemType = MigrationItemType.Undo,
-						FileData = new FileData { 
-							Content = undoContents[undoDto.Version], 
-							FilePath = "", 
+						FileData = new FileData
+						{
+							Content = undoContents[undoDto.Version],
+							FilePath = "",
 							RelativePath = undoDto.RelativePath
 						},
 						Name = undoDto.Name

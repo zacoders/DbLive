@@ -13,7 +13,7 @@ public sealed class DbLiveBuilder
 		});
 	}
 
-	
+
 	public DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
 	{
 		_registrations.Add(configure);

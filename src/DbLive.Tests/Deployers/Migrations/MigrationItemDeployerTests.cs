@@ -1,6 +1,3 @@
-
-using System.Threading.Tasks;
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationItemDeployerTests
@@ -74,7 +71,7 @@ public class MigrationItemDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
 
 		mockSet.DbLiveDA.MigrationItemExistsAsync(1, MigrationItemType.Breaking).Returns(true);
-		
+
 		MigrationItem undoItem = new()
 		{
 			MigrationItemType = MigrationItemType.Undo,
@@ -101,7 +98,7 @@ public class MigrationItemDeployerTests
 
 		await mockSet.DbLiveDA.Received()
 			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
-				dbo => 
+				dbo =>
 					dbo.ItemType == MigrationItemType.Undo
 					&& dbo.Status == MigrationItemStatus.Applied
 					&& dbo.AppliedUtc == utcNow2

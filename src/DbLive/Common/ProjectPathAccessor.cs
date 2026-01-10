@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem fileSystem) 
+public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem fileSystem)
 	: IVsProjectPathAccessor
 {
 	private const string ProjectDirErrorDetails =

@@ -28,7 +28,7 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.SetProjectPath(projectPath)
 			.CreateProject();
 
-		
+
 		string root = project
 			.GetVisualStudioProjectPathAsync()
 			.GetAwaiter()

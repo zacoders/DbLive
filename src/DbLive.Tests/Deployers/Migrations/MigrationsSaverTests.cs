@@ -26,7 +26,7 @@ public class MigrationsSaverTests
 		// Arrange
 		MockSet mockSet = new();
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
-		
+
 		FileData fileData = GetFileData("/001.migration.sql", "some content");
 		Migration migration = NewMigration(
 			1,

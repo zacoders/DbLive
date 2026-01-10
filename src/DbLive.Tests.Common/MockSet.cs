@@ -2,8 +2,6 @@
 using DbLive.Deployers;
 using DbLive.Deployers.Folder;
 using DbLive.SelfDeployer;
-using System;
-using System.Net.Sockets;
 using System.Reflection;
 
 namespace DbLive.Tests.Common;
