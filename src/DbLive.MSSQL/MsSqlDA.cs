@@ -3,7 +3,6 @@ using DbLive.Common;
 using DbLive.Project;
 using System.Collections.Specialized;
 using System.Data;
-using System.Security.Policy;
 
 namespace DbLive.MSSQL;
 
@@ -390,7 +389,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set verified_utc = @verified_utc
 			where relative_path = @relative_path
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }			
+			new { relative_path = relativePath, verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
 

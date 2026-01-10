@@ -1,6 +1,5 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
-using System.Collections.Specialized;
 
 namespace DbLive.MSSQL.Tests;
 
