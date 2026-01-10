@@ -1,4 +1,7 @@
-create or replace function get_customer_total_spent(p_customer_id int)
+
+drop function if exists get_customer_total_spent(int);
+
+create function get_customer_total_spent(p_customer_id int)
 returns numeric(12,2)
 language plpgsql
 as
