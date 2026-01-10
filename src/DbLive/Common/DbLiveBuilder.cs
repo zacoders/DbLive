@@ -8,8 +8,9 @@ public sealed class DbLiveBuilder
 	{
 		_registrations.Add(services =>
 		{
-			services.AddSingleton<ILogger>(Serilog.Core.Logger.None);
-			services.InitializeDbLive();
+			services
+				.AddSingleton<ILogger>(Serilog.Core.Logger.None)
+				.InitializeDbLive();
 		});
 	}
 

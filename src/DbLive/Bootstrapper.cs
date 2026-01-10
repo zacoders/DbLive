@@ -10,28 +10,29 @@ public static class Bootstrapper
 	public static void InitializeDbLive(this IServiceCollection container)
 	{
 		// ordered alphabetically
-		container.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>();
-		container.AddSingleton<ICodeDeployer, CodeDeployer>();
-		container.AddSingleton<ICodeItemDeployer, CodeItemDeployer>();
-		container.AddSingleton<IDbLive, DbLive>();
-		container.AddSingleton<IDbLiveDeployer, DbLiveDeployer>();
-		container.AddSingleton<IDbLiveProject, DbLiveProject>();
-		container.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>();
-		container.AddSingleton<IDbLiveTester, DbLiveTester>();
-		container.AddSingleton<IDowngradeDeployer, DowngradeDeployer>();
-		container.AddSingleton<IFileSystem, FileSystem>();
-		container.AddSingleton<IFolderDeployer, FolderDeployer>();
-		container.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>();
-		container.AddSingleton<IMigrationItemDeployer, MigrationItemDeployer>();
-		container.AddSingleton<IMigrationsDeployer, MigrationsDeployer>();
-		container.AddSingleton<IMigrationsSaver, MigrationsSaver>();
-		container.AddSingleton<IMigrationVersionDeployer, MigrationVersionDeployer>();
-		container.AddSingleton<ISettingsAccessor, SettingsAccessor>();
-		container.AddSingleton<ITimeProvider, Common.TimeProvider>();
-		container.AddSingleton<ITransactionRunner, TransactionRunner>();
-		container.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>();
-		container.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>();
-		container.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
-		container.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();
+		_ = container
+			.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>()
+			.AddSingleton<ICodeDeployer, CodeDeployer>()
+			.AddSingleton<ICodeItemDeployer, CodeItemDeployer>()
+			.AddSingleton<IDbLive, DbLive>()
+			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
+			.AddSingleton<IDbLiveProject, DbLiveProject>()
+			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
+			.AddSingleton<IDbLiveTester, DbLiveTester>()
+			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
+			.AddSingleton<IFileSystem, FileSystem>()
+			.AddSingleton<IFolderDeployer, FolderDeployer>()
+			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()
+			.AddSingleton<IMigrationItemDeployer, MigrationItemDeployer>()
+			.AddSingleton<IMigrationsDeployer, MigrationsDeployer>()
+			.AddSingleton<IMigrationsSaver, MigrationsSaver>()
+			.AddSingleton<IMigrationVersionDeployer, MigrationVersionDeployer>()
+			.AddSingleton<ISettingsAccessor, SettingsAccessor>()
+			.AddSingleton<ITimeProvider, Common.TimeProvider>()
+			.AddSingleton<ITransactionRunner, TransactionRunner>()
+			.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>()
+			.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>()
+			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>()
+			.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();
 	}
 }

@@ -1,5 +1,6 @@
 using DbLive.Deployers.Testing;
 using DbLive.xunit;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;

@@ -83,7 +83,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(query, new { version, applied_utc = migrationDateTime });
+		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime });
 	}
 
 	public async Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc)
@@ -94,7 +94,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(query, new
+		_ = await cnn.ExecuteAsync(query, new
 		{
 			version,
 			applied_utc = migrationCompletedUtc
@@ -116,7 +116,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				StatementTimeout = GetTimeoutSeconds(timeout)
 			};
-			serverConnection.ExecuteNonQuery(sqlStatement);
+			_ = serverConnection.ExecuteNonQuery(sqlStatement);
 			serverConnection.Disconnect();
 		}
 		catch (Exception e)
@@ -137,7 +137,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			TranIsolationLevel.Snapshot => "SNAPSHOT;",
 			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
 		};
-		await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};");
+		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};");
 	}
 
 	private static int GetTimeoutSeconds(TimeSpan? timeout)
@@ -289,13 +289,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
-		cmd.Parameters.AddWithValue("name", databaseToCreate);
+		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
 		bool dbExists = (int?)(await cmd.ExecuteScalarAsync()) == 1;
 
 		if (dbExists && skipIfExists) return;
 
 		ServerConnection serverCnn = new(cnn);
-		serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
+		_ = serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
 
 		serverCnn.Disconnect();
 	}
@@ -311,7 +311,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
-		cmd.Parameters.AddWithValue("name", databaseToDrop);
+		_ = cmd.Parameters.AddWithValue("name", databaseToDrop);
 		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;
 
 		if (!dbExists)
@@ -327,7 +327,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 
 		ServerConnection serverCnn = new(cnn);
-		serverCnn.ExecuteNonQuery(new StringCollection {
+		_ = serverCnn.ExecuteNonQuery(new StringCollection {
 			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
 			$"drop database [{databaseToDrop}];"
 		});
@@ -338,7 +338,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync("dblive.save_code_item",
+		_ = await cnn.ExecuteAsync("dblive.save_code_item",
 			new
 			{
 				relative_path = item.RelativePath,
@@ -356,7 +356,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(
+		_ = await cnn.ExecuteAsync(
 			"dblive.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
 			commandType: CommandType.StoredProcedure
@@ -386,7 +386,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync("""
+		_= await cnn.ExecuteAsync("""
 			merge into dblive.migration as t
 			using ( select 1 ) s(c) on t.version = @version and t.item_type = @item_type
 			when matched then update 
@@ -499,7 +499,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(
+		_ = await cnn.ExecuteAsync(
 			"dblive.save_unit_test_result",
 			new
 			{
@@ -517,7 +517,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
 	{
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(
+		_ = await cnn.ExecuteAsync(
 			"dblive.save_folder_item",
 			new
 			{

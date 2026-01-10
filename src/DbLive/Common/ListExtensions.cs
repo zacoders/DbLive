@@ -7,7 +7,8 @@ public static class ListExtensions
 		lock (entities)
 		{
 			List<T> removedRecords = entities.Where(predicate).ToList();
-			foreach (T entity in removedRecords) entities.Remove(entity);
+			foreach (T entity in removedRecords)
+				_ = entities.Remove(entity);
 			return removedRecords;
 		}
 	}

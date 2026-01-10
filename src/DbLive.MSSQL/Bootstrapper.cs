@@ -5,7 +5,8 @@ public static class Bootstrapper
 {
 	public static void InitializeMSSQL(this IServiceCollection container)
 	{
-		container.AddSingleton<IDbLiveDA, MsSqlDA>();
-		container.AddSingleton<IInternalProjectPath, MsSqlProjectPath>();
+		_ = container
+			.AddSingleton<IDbLiveDA, MsSqlDA>()
+			.AddSingleton<IInternalProjectPath, MsSqlProjectPath>();
 	}
 }

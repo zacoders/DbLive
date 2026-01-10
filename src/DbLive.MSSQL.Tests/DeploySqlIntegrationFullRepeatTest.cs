@@ -8,11 +8,11 @@ public class DeploySqlIntegrationFullRepeatTest(SqlServerIntegrationFixture _fix
 	: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
-	public void DeployProject_Full_And_Repeat()
+	public async Task DeployProject_Full_And_Repeat()
 	{
-		DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
 		//repeat, so code should be deployed again
-		DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
 	}
 }

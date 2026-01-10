@@ -11,16 +11,16 @@ public class DeploySqlIntegrationFullMultiRedeployTest(
 ) : SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
-	public void DeployProject_Full_Plus_Breaking()
+	public async Task DeployProject_Full_Plus_Breaking()
 	{
-		DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
-		DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 
 		// Redeploy again
 
-		DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
 
-		DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 	}
 }

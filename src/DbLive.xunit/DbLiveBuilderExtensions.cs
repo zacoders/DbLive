@@ -25,6 +25,6 @@ public static class DbLiveBuilderExtensions
 			.WriteTo.TestOutput(output)
 			.CreateLogger();
 
-		serviceCollection.AddSingleton<ILogger>(logger);
+		_ = serviceCollection.AddSingleton<ILogger>(logger);
 	}
 }

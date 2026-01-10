@@ -8,8 +8,8 @@ public class DeploySqlIntegrationFullTest(SqlServerIntegrationFixture _fixture, 
 	: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
-	public void DeployProject_Full()
+	public async Task DeployProject_Full()
 	{
-		DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
 	}
 }

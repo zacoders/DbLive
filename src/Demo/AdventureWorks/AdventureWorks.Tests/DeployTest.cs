@@ -2,6 +2,7 @@ using DbLive;
 using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;

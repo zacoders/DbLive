@@ -20,12 +20,12 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		NpgsqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from pg_catalog.pg_database where lower(datname) = lower(:name)";
-		cmd.Parameters.AddWithValue("name", databaseToCreate);
+		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
 		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;
 
 		if (dbExists && skipIfExists) return;
 
-		cnn.Execute($"""create database "{databaseToCreate}" """);
+		_ = cnn.Execute($"""create database "{databaseToCreate}" """);
 		cnn.Close();
 	}
 
@@ -58,7 +58,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			NpgsqlCommand cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = timeoutSeconds;
 			cmd.CommandText = sqlStatement;
-			await cmd.ExecuteNonQueryAsync();
+			_ = await cmd.ExecuteNonQueryAsync();
 		}
 		catch (Exception e)
 		{
@@ -124,7 +124,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(query, new
+		_ = await cnn.ExecuteAsync(query, new
 		{
 			migrationVersion,
 			migrationCompletedUtc
@@ -144,7 +144,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
-		await cnn.QueryAsync(query, new { version, migrationDateTime });
+		_ = await cnn.ExecuteAsync(query, new { version, migrationDateTime });
 	}
 
 	public Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType) => throw new NotImplementedException();

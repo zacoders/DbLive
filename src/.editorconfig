@@ -1,5 +1,44 @@
+# This is the root .editorconfig file.
+# It tells the compiler and analyzers not to search for other .editorconfig files in parent folders.
 root = true
 
+# Apply these rules to all C# files
 [*.cs]
+
+# IDE0270: Use 'new()' instead of explicit type
+# Disabled because it may reduce readability in some cases and is mostly a style preference.
 dotnet_diagnostic.IDE0270.severity = none
+
+# IDE0305: Collection initialization can be simplified
+# Disabled because automatic simplification is often noisy and not critical for correctness.
 dotnet_diagnostic.IDE0305.severity = none
+
+# CS4014: Because this call is not awaited, execution continues before the call is completed
+# Set to error to forbid "fire-and-forget" async calls.
+# This prevents lost exceptions and hidden race conditions.
+dotnet_diagnostic.CS4014.severity = error
+
+# CS1998: This async method lacks 'await' operators and will run synchronously
+# Set to error to forbid fake-async methods which do not actually await anything.
+# This usually indicates a design or refactoring mistake.
+dotnet_diagnostic.CS1998.severity = error
+
+# IDE0058: Expression value is never used
+# Set to error to catch cases where a method call or expression has no effect.
+# Often this means someone forgot to use the result or forgot to await a task.
+dotnet_diagnostic.IDE0058.severity = error
+
+
+# =========================
+# xUnit-specific analyzers
+# =========================
+
+# xUnit1013: Public method should be marked as test
+# Often appears when async void is used instead of async Task in tests.
+# Set to error to strictly enforce correct test method signatures.
+dotnet_diagnostic.xUnit1013.severity = error
+
+# xUnit1000: Test classes must be public
+# Also helps to detect broken or incorrectly declared tests.
+# Set to error to make test discovery deterministic and strict.
+dotnet_diagnostic.xUnit1000.severity = error

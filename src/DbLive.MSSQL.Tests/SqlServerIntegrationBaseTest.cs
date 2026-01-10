@@ -70,7 +70,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	protected void DropTestingDatabase(string database, bool ifExists = true)
 	{
-		DropTestingDatabases(new[] { database }, ifExists);
+		DropTestingDatabases([database], ifExists);
 	}
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
@@ -89,10 +89,10 @@ public class SqlServerIntegrationBaseTest : IDisposable
 			try
 			{
 				ServerConnection serverCnn = new(cnn);
-				serverCnn.ExecuteNonQuery(new StringCollection {
+				_ = serverCnn.ExecuteNonQuery([
 					$"alter database [{database}] set single_user with rollback immediate;",
 					$"drop database[{ database}];"
-				});
+				]);
 				serverCnn.Disconnect();
 			}
 			catch (ExecutionFailureException e)

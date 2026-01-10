@@ -27,9 +27,12 @@ public class UnitTestsRunner(
 
 		TestsRunResults runResults = new();
 
-		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = projectSettings.NumberOfThreadsForTestsRun };
+		var parallelOptions = new ParallelOptions
+		{
+			MaxDegreeOfParallelism = projectSettings.NumberOfThreadsForTestsRun
+		};
 
-		Parallel.ForEach(tests, parallelOptions, async test =>
+		await Parallel.ForEachAsync(tests, parallelOptions, async (test, ct) =>
 		{
 			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test);
 

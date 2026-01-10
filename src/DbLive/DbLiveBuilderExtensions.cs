@@ -14,7 +14,7 @@ public static class DbLiveBuilderExtensions
 				.WriteTo.Console()
 				.CreateLogger();
 
-			services.AddSingleton<ILogger>(logger);
+			_ = services.AddSingleton<ILogger>(logger);
 		});
 	}
 
@@ -22,7 +22,7 @@ public static class DbLiveBuilderExtensions
 	{
 		return builder.ConfigureServices(services =>
 		{
-			services.AddSingleton<IDbLiveDbConnection>(new DbLiveDbConnection(sqlDbConnectionString));
+			_ = services.AddSingleton<IDbLiveDbConnection>(new DbLiveDbConnection(sqlDbConnectionString));
 		});
 	}
 
@@ -30,7 +30,7 @@ public static class DbLiveBuilderExtensions
 	{
 		return builder.ConfigureServices(services =>
 		{
-			services.AddSingleton<IProjectPath>(new ProjectPath(projectPath));
+			_ = services.AddSingleton<IProjectPath>(new ProjectPath(projectPath));
 		});
 	}
 }
