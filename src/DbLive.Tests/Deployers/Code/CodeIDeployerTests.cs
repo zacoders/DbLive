@@ -69,7 +69,7 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
-			async () => await deployer.DeployAsync(DeployParameters.Default)
+			async () => await deployer.DeployAsync(DeployParameters.Default).ConfigureAwait(false)
 		);
 
 		await mockSet.CodeItemDeployer.Received().DeployAsync(Arg.Any<CodeItem>());

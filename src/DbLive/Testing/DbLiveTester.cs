@@ -9,7 +9,7 @@ public class DbLiveTester : IDbLiveTester
 	private readonly IDbLiveProject _project;
 	private readonly IUnitTestItemRunner _unitTestItemRunner;
 
-	private readonly Lazy<Task<ReadOnlyDictionary<string, TestItem>>> _testsListLazy;
+	private ReadOnlyDictionary<string, TestItem>? _testsList = null;
 
 	public DbLiveTester(
 		IDbLiveProject project,
@@ -17,13 +17,11 @@ public class DbLiveTester : IDbLiveTester
 	{
 		_project = project;
 		_unitTestItemRunner = unitTestItemRunner;
-
-		_testsListLazy = new Lazy<Task<ReadOnlyDictionary<string, TestItem>>>(LoadTestsAsync);
 	}
 
 	private async Task<ReadOnlyDictionary<string, TestItem>> LoadTestsAsync()
 	{
-		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync();
+		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync().ConfigureAwait(false);
 
 		return new ReadOnlyDictionary<string, TestItem>(
 			tests.ToDictionary(
@@ -33,14 +31,19 @@ public class DbLiveTester : IDbLiveTester
 		);
 	}
 
-	private Task<ReadOnlyDictionary<string, TestItem>> GetTestsAsync()
+	private async Task<ReadOnlyDictionary<string, TestItem>> GetTestsAsync()
 	{
-		return _testsListLazy.Value;
+		if (_testsList is null)
+		{
+			_testsList = await LoadTestsAsync().ConfigureAwait(false);
+		}
+
+		return _testsList;
 	}
 
 	public async Task<TestRunResult> RunTestAsync(Action<string> writeLine, string testFileRelativePath)
 	{
-		ReadOnlyDictionary<string, TestItem> testsList = await GetTestsAsync();
+		ReadOnlyDictionary<string, TestItem> testsList = await GetTestsAsync().ConfigureAwait(false);
 
 		TestItem testItem = testsList[testFileRelativePath];
 
@@ -50,7 +53,7 @@ public class DbLiveTester : IDbLiveTester
 			writeLine(initFileTitle);
 		}
 
-		TestRunResult testRunResult = await _unitTestItemRunner.RunTestAsync(testItem);
+		TestRunResult testRunResult = await _unitTestItemRunner.RunTestAsync(testItem).ConfigureAwait(false);
 
 		writeLine(testRunResult.Output);
 

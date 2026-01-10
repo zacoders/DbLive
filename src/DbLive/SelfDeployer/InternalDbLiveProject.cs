@@ -20,7 +20,7 @@ internal class InternalDbLiveProject(
 			{
 				Version = info.Version,
 				Name = info.Name,
-				FileData = await _fileSystem.ReadFileDataAsync(info.FilePath, _projectPath.Path)
+				FileData = await _fileSystem.ReadFileDataAsync(info.FilePath, _projectPath.Path).ConfigureAwait(false)
 			};
 
 			migrations.Add(migrationItem);

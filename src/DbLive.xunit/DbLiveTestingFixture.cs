@@ -16,7 +16,7 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 
 	public async Task InitializeAsync()
 	{
-		DbLiveBuilder builder = await GetBuilderAsync();
+		DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = builder.CreateDeployer();
 
@@ -27,7 +27,7 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 			DeployCode = true,
 			DeployMigrations = true,
 			RunTests = false // do not need to run tests, they will be run in VS UI.
-		});
+		}).ConfigureAwait(false);
 
 		Tester = builder.CreateTester();
 	}
@@ -36,9 +36,9 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 	{
 		if (dropDatabaseOnComplete)
 		{
-			DbLiveBuilder builder = await GetBuilderAsync();
+			DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
 			IDbLiveDA da = builder.CreateDbLiveDA();
-			await da.DropDBAsync();
+			await da.DropDBAsync().ConfigureAwait(false);
 		}
 	}
 }

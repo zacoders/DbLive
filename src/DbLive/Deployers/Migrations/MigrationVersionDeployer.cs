@@ -28,7 +28,7 @@ public class MigrationVersionDeployer(
 			migrationSettings = SettingsTools.GetSettings<MigrationSettings>(settingsItem.FileData.Content);
 		}
 
-		DbLiveSettings _projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings _projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		migrationSettings = _projectSettings.GetMigrationSettings(migrationSettings);
 
@@ -37,7 +37,7 @@ public class MigrationVersionDeployer(
 			migrationSettings.TransactionIsolationLevel!.Value,
 			migrationSettings.MigrationTimeout!.Value,
 			() => DeployInternalAsync(migration, parameters)
-		);
+		).ConfigureAwait(false);
 	}
 
 	internal async Task DeployInternalAsync(Migration migration, DeployParameters parameters)
@@ -55,26 +55,26 @@ public class MigrationVersionDeployer(
 		{
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
 			{
-				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
-				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem).ConfigureAwait(false);
+				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem).ConfigureAwait(false);
 			}
 
 			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
 			{
-				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem).ConfigureAwait(false);
 				if (breakingItem is not null)
 				{
-					await _migrationItemDeployer.DeployAsync(migration.Version, breakingItem);
+					await _migrationItemDeployer.DeployAsync(migration.Version, breakingItem).ConfigureAwait(false);
 				}
-				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem);
+				await _migrationItemDeployer.DeployAsync(migration.Version, undoItem).ConfigureAwait(false);
 			}
 
 		}
 
-		await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem);
+		await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem).ConfigureAwait(false);
 
 		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
 
-		await _da.SetCurrentMigrationVersionAsync(migration.Version, migrationCompletedUtc);
+		await _da.SetCurrentMigrationVersionAsync(migration.Version, migrationCompletedUtc).ConfigureAwait(false);
 	}
 }

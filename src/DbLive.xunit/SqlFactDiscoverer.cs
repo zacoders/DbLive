@@ -29,6 +29,8 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.CreateProject();
 
 
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+
 		string root = project
 			.GetVisualStudioProjectPathAsync()
 			.GetAwaiter()
@@ -38,6 +40,8 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.GetTestsAsync()
 			.GetAwaiter()
 			.GetResult();
+
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
 
 		foreach (Project.TestItem testItem in tests)
 		{

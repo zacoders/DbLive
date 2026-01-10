@@ -21,13 +21,13 @@ public class MigrationItemDeployer(
 				migrationItem.MigrationItemType
 			);
 
-			DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
+			DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 			await _da.ExecuteNonQueryAsync(
 				migrationItem.FileData.Content,
 				projectSettings.TransactionIsolationLevel,
 				projectSettings.MigrationTimeout
-			);
+			).ConfigureAwait(false);
 
 			DateTime migrationEndTime = _timeProvider.UtcNow();
 			MigrationItemStateDto dto = new()
@@ -39,16 +39,16 @@ public class MigrationItemDeployer(
 				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
 				ErrorMessage = null
 			};
-			await _da.UpdateMigrationStateAsync(dto);
+			await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false);
 
 			if (migrationItem.MigrationItemType == MigrationItemType.Undo)
 			{
-				await UpdateDateForRevertedMigrations(migrationVersion);
+				await UpdateDateForRevertedMigrationsAsync(migrationVersion).ConfigureAwait(false);
 			}
 
 			if (migrationItem.MigrationItemType == MigrationItemType.Migration)
 			{
-				if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Undo))
+				if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Undo).ConfigureAwait(false))
 				{
 					MigrationItemStateDto breakingDto = new()
 					{
@@ -59,7 +59,7 @@ public class MigrationItemDeployer(
 						ExecutionTimeMs = null,
 						ErrorMessage = null
 					};
-					await _da.UpdateMigrationStateAsync(breakingDto);
+					await _da.UpdateMigrationStateAsync(breakingDto).ConfigureAwait(false);
 				}
 			}
 		}
@@ -75,12 +75,12 @@ public class MigrationItemDeployer(
 				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
 				ErrorMessage = ex.ToString()
 			};
-			await _da.UpdateMigrationStateAsync(dto); // todo: it will be missed if external transaction fail.
+			await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false); // todo: it will be missed if external transaction fail.
 			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
 		}
 	}
 
-	private async Task UpdateDateForRevertedMigrations(int migrationVersion)
+	private async Task UpdateDateForRevertedMigrationsAsync(int migrationVersion)
 	{
 		MigrationItemStateDto migrationDto = new()
 		{
@@ -91,9 +91,9 @@ public class MigrationItemDeployer(
 			ExecutionTimeMs = null,
 			ErrorMessage = null
 		};
-		await _da.UpdateMigrationStateAsync(migrationDto);
+		await _da.UpdateMigrationStateAsync(migrationDto).ConfigureAwait(false);
 
-		if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Breaking))
+		if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Breaking).ConfigureAwait(false))
 		{
 			MigrationItemStateDto breakingDto = new()
 			{
@@ -104,7 +104,7 @@ public class MigrationItemDeployer(
 				ExecutionTimeMs = null,
 				ErrorMessage = null
 			};
-			await _da.UpdateMigrationStateAsync(breakingDto);
+			await _da.UpdateMigrationStateAsync(breakingDto).ConfigureAwait(false);
 		}
 	}
 }

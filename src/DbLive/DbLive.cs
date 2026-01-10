@@ -18,17 +18,17 @@ public class DbLive(
 
 		if (parameters.RecreateDatabase)
 		{
-			await _da.DropDBAsync();
-			await _da.CreateDBAsync();
+			await _da.DropDBAsync().ConfigureAwait(false);
+			await _da.CreateDBAsync().ConfigureAwait(false);
 		}
 
 		if (parameters.CreateDbIfNotExists)
-			await _da.CreateDBAsync(true);
+			await _da.CreateDBAsync(true).ConfigureAwait(false);
 
 		// Self deploy. Deploying DbLive to the database
-		await _selfDeployer.DeployAsync();
+		await _selfDeployer.DeployAsync().ConfigureAwait(false);
 
 		// Deploy actual project
-		await _deployer.DeployAsync(parameters);
+		await _deployer.DeployAsync(parameters).ConfigureAwait(false);
 	}
 }

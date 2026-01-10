@@ -11,7 +11,7 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
 	public async Task SqlAsync(string testFileRelativePath)
 	{
-		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
+		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath).ConfigureAwait(false);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }

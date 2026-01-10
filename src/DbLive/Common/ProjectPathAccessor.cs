@@ -26,7 +26,7 @@ public class ProjectPathAccessor(IProjectPath projectPath, IFileSystem fileSyste
 			throw new Exception($"The projectdir.user file was not found. {ProjectDirErrorDetails}");
 		}
 
-		var lines = await _fileSystem.FileReadAllLinesAsync(projectDirFile);
+		var lines = await _fileSystem.FileReadAllLinesAsync(projectDirFile).ConfigureAwait(false);
 
 		if (lines.Length == 0 || string.IsNullOrWhiteSpace(lines[0]))
 		{

@@ -14,7 +14,7 @@ public class UnitTestsRunner(
 
 	public async Task RunAllTestsAsync(DeployParameters parameters)
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		if (!parameters.RunTests)
 		{
@@ -23,7 +23,7 @@ public class UnitTestsRunner(
 
 		_logger.Information("Running Tests.");
 
-		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync();
+		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync().ConfigureAwait(false);
 
 		TestsRunResults runResults = new();
 
@@ -34,7 +34,7 @@ public class UnitTestsRunner(
 
 		await Parallel.ForEachAsync(tests, parallelOptions, async (test, ct) =>
 		{
-			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test);
+			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test).ConfigureAwait(false);
 
 			if (testResult.IsSuccess)
 			{
@@ -57,8 +57,8 @@ public class UnitTestsRunner(
 					IsSuccess = testResult.IsSuccess,
 					ErrorMessage = testResult.ErrorMessage
 				}
-			);
-		});
+			).ConfigureAwait(false);
+		}).ConfigureAwait(false);
 
 		_logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
 			runResults.PassedCount, runResults.FailedCount);

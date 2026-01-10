@@ -25,7 +25,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 
 	public async Task InitializeAsync()
 	{
-		await _da.CreateDBAsync();
+		await _da.CreateDBAsync().ConfigureAwait(false);
 	}
 	
 	public Task DisposeAsync()

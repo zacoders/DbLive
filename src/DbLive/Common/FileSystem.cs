@@ -59,7 +59,7 @@ public class FileSystem : IFileSystem
 	{
 		return new FileData
 		{
-			Content = await File.ReadAllTextAsync(path),
+			Content = await File.ReadAllTextAsync(path).ConfigureAwait(false),
 			FilePath = path,
 			RelativePath = path.GetRelativePath(rootPath)
 		};

@@ -21,14 +21,14 @@ public class BreakingChangesDeployer(
 		_logger.Information("Deploying breaking changes.");
 
 		var latestAppliedBreakingVersion =
-			(await _da.GetMigrationsAsync())
+			(await _da.GetMigrationsAsync().ConfigureAwait(false))
 				.Where(m => m.Status == MigrationItemStatus.Applied)
 				.Where(m => m.ItemType == MigrationItemType.Breaking)
 				.Select(m => m.Version)
 				.DefaultIfEmpty(0)
 				.Max();
 
-		IEnumerable<Migration> newMigrations = (await _project.GetMigrationsAsync()).Where(m => m.Version > latestAppliedBreakingVersion);
+		IEnumerable<Migration> newMigrations = (await _project.GetMigrationsAsync().ConfigureAwait(false)).Where(m => m.Version > latestAppliedBreakingVersion);
 
 		List<(int Version, MigrationItem Item)> breakingToApply = [];
 		foreach (Migration? migration in newMigrations)
@@ -47,7 +47,7 @@ public class BreakingChangesDeployer(
 
 		foreach ((int Version, MigrationItem Item) breaking in breakingToApply)
 		{
-			await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item);
+			await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item).ConfigureAwait(false);
 		}
 	}
 }

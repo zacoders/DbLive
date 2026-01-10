@@ -11,12 +11,12 @@ public class TransactionRunner : ITransactionRunner
 	{
 		if (!needTransaction)
 		{
-			await action();
+			await action().ConfigureAwait(false);
 			return;
 		}
 
 		using TransactionScope _transactionScope = TransactionScopeManager.Create(isolationLevel, timeout);
-		await action();
+		await action().ConfigureAwait(false);
 		_transactionScope.Complete();
 	}
 }

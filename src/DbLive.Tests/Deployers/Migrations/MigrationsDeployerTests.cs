@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests
@@ -146,7 +148,7 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public void DeployInternal_migration_undo_migration()
+	public async Task DeployInternal_migration_undo_migration()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -182,7 +184,7 @@ public class MigrationsDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
 		// Act
-		deployer.DeployInternalAsync(migration, parameters);
+		await deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
@@ -192,7 +194,7 @@ public class MigrationsDeployerTests
 			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
 		});
 
-		mockSet.DbLiveDA.Received(1)
+		await mockSet.DbLiveDA.Received(1)
 			.SetCurrentMigrationVersionAsync(2, Arg.Any<DateTime>());
 	}
 
@@ -251,7 +253,7 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public void DeployInternal_breaking_mode_without_breaking_item()
+	public async Task DeployInternal_breaking_mode_without_breaking_item()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -285,7 +287,7 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternalAsync(migration, parameters);
+		await deployer.DeployInternalAsync(migration, parameters);
 
 		// Assert
 		Received.InOrder(() =>
@@ -297,7 +299,7 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public void DeployInternal_saves_current_migration_version()
+	public async Task DeployInternal_saves_current_migration_version()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -322,10 +324,10 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		deployer.DeployInternalAsync(migration, DeployParameters.Default);
+		await deployer.DeployInternalAsync(migration, DeployParameters.Default);
 
 		// Assert
-		mockSet.DbLiveDA.Received(1)
+		await mockSet.DbLiveDA.Received(1)
 			.SetCurrentMigrationVersionAsync(5, now);
 	}
 

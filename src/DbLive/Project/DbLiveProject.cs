@@ -12,7 +12,7 @@ public class DbLiveProject(
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
 
@@ -44,7 +44,7 @@ public class DbLiveProject(
 			result.Add(new CodeGroup
 			{
 				Path = subPath,
-				CodeItems = await GetCodeGroupItemsAsync(files)
+				CodeItems = await GetCodeGroupItemsAsync(files).ConfigureAwait(false)
 			});
 		}
 
@@ -52,7 +52,7 @@ public class DbLiveProject(
 		result.Add(new CodeGroup
 		{
 			Path = codePath,
-			CodeItems = await GetCodeGroupItemsAsync(codeFiles)
+			CodeItems = await GetCodeGroupItemsAsync(codeFiles).ConfigureAwait(false)
 		});
 
 		return result;
@@ -65,7 +65,7 @@ public class DbLiveProject(
 		foreach (string filePath in codeFiles)
 		{
 			string fileName = Path.GetFileName(filePath);
-			var codeItem = new CodeItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath) };
+			var codeItem = new CodeItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath).ConfigureAwait(false) };
 			codeItems.Add(codeItem);
 		}
 
@@ -74,7 +74,7 @@ public class DbLiveProject(
 
 	public async Task<IReadOnlyList<Migration>> GetMigrationsAsync()
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		string migrationsPath = _projectPath.CombineWith(projectSettings.MigrationsFolder);
 
@@ -103,7 +103,7 @@ public class DbLiveProject(
 				{
 					MigrationItemType = item.MigrationItemType,
 					Name = item.Name,
-					FileData = await _fileSystem.ReadFileDataAsync(item.FilePath, _projectPath)
+					FileData = await _fileSystem.ReadFileDataAsync(item.FilePath, _projectPath).ConfigureAwait(false)
 				};
 				items.Add(item.MigrationItemType, migrationItem);
 			}
@@ -127,7 +127,7 @@ public class DbLiveProject(
 
 	public async Task<IReadOnlyCollection<TestItem>> GetTestsAsync()
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		string testsPath = _projectPath.CombineWith(projectSettings.TestsFolder);
 		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
@@ -139,7 +139,7 @@ public class DbLiveProject(
 			IEnumerable<string> testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testInTestFolder.Union([testsPath]))
 			{
-				testGroups.AddRange(await GetFolderTestsAsync(folderPath, true));
+				testGroups.AddRange(await GetFolderTestsAsync(folderPath, true).ConfigureAwait(false));
 			}
 		}
 
@@ -148,7 +148,7 @@ public class DbLiveProject(
 			IEnumerable<string> testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testsInCodeFolder.Union([codePath]))
 			{
-				testGroups.AddRange(await GetFolderTestsAsync(folderPath, false));
+				testGroups.AddRange(await GetFolderTestsAsync(folderPath, false).ConfigureAwait(false));
 			}
 		}
 
@@ -157,7 +157,7 @@ public class DbLiveProject(
 
 	internal async Task<List<TestItem>> GetFolderTestsAsync(string folderPath, bool isTestsFolder)
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		if (!_fileSystem.PathExists(folderPath)) return [];
 
@@ -167,7 +167,7 @@ public class DbLiveProject(
 		string initializeFilePath = folderPath.CombineWith("init.sql");
 		if (_fileSystem.FileExists(initializeFilePath))
 		{
-			initFileData = await _fileSystem.ReadFileDataAsync(initializeFilePath, _projectPath);
+			initFileData = await _fileSystem.ReadFileDataAsync(initializeFilePath, _projectPath).ConfigureAwait(false);
 		}
 
 		// in Tests folder, any .sql file is considered as a test (except 'init.sql').
@@ -183,7 +183,7 @@ public class DbLiveProject(
 			TestItem testItem = new()
 			{
 				Name = Path.GetFileName(testFilePath),
-				FileData = await _fileSystem.ReadFileDataAsync(testFilePath, _projectPath),
+				FileData = await _fileSystem.ReadFileDataAsync(testFilePath, _projectPath).ConfigureAwait(false),
 				InitFileData = initFileData
 			};
 
@@ -196,7 +196,7 @@ public class DbLiveProject(
 	/// <inheritdoc/>
 	public async Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder)
 	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		Dictionary<string, GenericItem> items = [];
 
@@ -215,7 +215,7 @@ public class DbLiveProject(
 			foreach (string filePath in files)
 			{
 				string fileName = Path.GetFileName(filePath);
-				var item = new GenericItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath) };
+				var item = new GenericItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath).ConfigureAwait(false) };
 				items.Add(filePath, item);
 			}
 		}
@@ -227,7 +227,7 @@ public class DbLiveProject(
 	[ExcludeFromCodeCoverage]
 	public async Task<string> GetVisualStudioProjectPathAsync()
 	{
-		return await vsProjectPathAccessor.GetVisualStudioProjectPathAsync();
+		return await vsProjectPathAccessor.GetVisualStudioProjectPathAsync().ConfigureAwait(false);
 	}
 
 }

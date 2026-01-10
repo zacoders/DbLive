@@ -20,9 +20,9 @@ public class MigrationsDeployer(
 		_logger.Information("Deploying migrations.");
 
 		// saving migrations before deploying
-		await _migrationsSaver.SaveAsync();
+		await _migrationsSaver.SaveAsync().ConfigureAwait(false);
 
-		IOrderedEnumerable<Migration> migrationsToApply = await GetMigrationsToApplyAsync();
+		IOrderedEnumerable<Migration> migrationsToApply = await GetMigrationsToApplyAsync().ConfigureAwait(false);
 
 		if (!migrationsToApply.Any())
 		{
@@ -32,15 +32,15 @@ public class MigrationsDeployer(
 
 		foreach (Migration migration in migrationsToApply)
 		{
-			await _migrationVersionDeployer.DeployAsync(migration, parameters);
+			await _migrationVersionDeployer.DeployAsync(migration, parameters).ConfigureAwait(false);
 		}
 	}
 
 	internal protected async Task<IOrderedEnumerable<Migration>> GetMigrationsToApplyAsync()
 	{
-		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync();
+		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
 
-		int appliedVersion = await _da.GetCurrentMigrationVersionAsync();
+		int appliedVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
 
 		_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
 

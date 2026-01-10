@@ -15,13 +15,13 @@ internal class MigrationsSaver(
 
 		_logger.Information("Saving migration items.");
 
-		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync();
+		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
 
 		foreach (Migration migration in migrationsToApply)
 		{
 			foreach ((MigrationItemType _, MigrationItem migrationItem) in migration.Items)
 			{
-				int? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType);
+				int? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType).ConfigureAwait(false);
 
 				if (hash.HasValue)
 				{
@@ -48,7 +48,7 @@ internal class MigrationsSaver(
 					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : null,
 					ContentHash = migrationItem.FileData.ContentHash,
 					CreatedUtc = _timeProvider.UtcNow()
-				});
+				}).ConfigureAwait(false);
 			}
 		}
 	}

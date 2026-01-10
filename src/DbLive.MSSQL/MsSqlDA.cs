@@ -30,7 +30,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return (await cnn.QueryAsync<MigrationItemDto>(query)).ToList();
+		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
 	public async Task<int?> GetMigrationHashAsync(int version, MigrationItemType itemType)
@@ -42,7 +42,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and item_type = @item_type
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return await cnn.QueryFirstOrDefaultAsync<int?>(query, new { version, item_type = itemType.ToString() });
+		return await cnn.QueryFirstOrDefaultAsync<int?>(query, new { version, item_type = itemType.ToString() }).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -52,7 +52,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return await cnn.ExecuteScalarAsync<bool>(query);
+		return await cnn.ExecuteScalarAsync<bool>(query).ConfigureAwait(false);
 	}
 
 	public async Task<int> GetCurrentMigrationVersionAsync()
@@ -62,7 +62,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.dbversion
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return await cnn.ExecuteScalarAsync<int?>(query) ?? 0;
+		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
 	public async Task<int> GetDbLiveVersionAsync()
@@ -72,7 +72,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.version
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		return await cnn.ExecuteScalarAsync<int?>(query) ?? 0;
+		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
 	}
 
 	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
@@ -83,7 +83,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = new SqlConnection(_cnn.ConnectionString);
-		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime });
+		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
 	}
 
 	public async Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc)
@@ -98,7 +98,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			version,
 			applied_utc = migrationCompletedUtc
-		});
+		}).ConfigureAwait(false);
 	}
 
 	public async Task ExecuteNonQueryAsync(
@@ -110,8 +110,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		try
 		{
 			using SqlConnection sqlConnection = new(_cnn.ConnectionString);
-			await sqlConnection.OpenAsync();
-			await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel);
+			await sqlConnection.OpenAsync().ConfigureAwait(false);
+			await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
 			ServerConnection serverConnection = new(sqlConnection)
 			{
 				StatementTimeout = GetTimeoutSeconds(timeout)
@@ -137,7 +137,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			TranIsolationLevel.Snapshot => "SNAPSHOT;",
 			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
 		};
-		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};");
+		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
 	}
 
 	private static int GetTimeoutSeconds(TimeSpan? timeout)
@@ -155,26 +155,26 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			using SqlConnection cnn = new(_cnn.ConnectionString);
 
-			await SetTransactionIsolationLevelAsync(cnn, isolationLevel);
+			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 
 			using SqlCommand cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
 
-			await cnn.OpenAsync();
+			await cnn.OpenAsync().ConfigureAwait(false);
 
-			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo);
+			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
 
 			List<SqlResult> multipleResults = [];
 			do
 			{
-				SqlResult? sqlResult = await ReadResultAsync(reader);
+				SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
 				if (sqlResult is not null)
 				{
 					multipleResults.Add(sqlResult);
 				}
 			}
-			while (await reader.NextResultAsync());
+			while (await reader.NextResultAsync().ConfigureAwait(false));
 
 
 			return multipleResults;
@@ -202,7 +202,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		if (sqlColumns.Count == 0) return null;
 
 		List<SqlRow> rows = [];
-		while (await reader.ReadAsync())
+		while (await reader.ReadAsync().ConfigureAwait(false))
 		{
 			SqlRow row = new();
 			for (int i = 0; i < reader.FieldCount; i++)
@@ -285,12 +285,12 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		builder.InitialCatalog = "master";
 
 		SqlConnection cnn = new(builder.ConnectionString);
-		await cnn.OpenAsync();
+		await cnn.OpenAsync().ConfigureAwait(false);
 
 		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
-		bool dbExists = (int?)(await cmd.ExecuteScalarAsync()) == 1;
+		bool dbExists = (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
 
 		if (dbExists && skipIfExists) return;
 
@@ -307,12 +307,12 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		builder.InitialCatalog = "master";
 
 		SqlConnection cnn = new(builder.ConnectionString);
-		await cnn.OpenAsync();
+		await cnn.OpenAsync().ConfigureAwait(false);
 
 		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		_ = cmd.Parameters.AddWithValue("name", databaseToDrop);
-		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;
+		bool dbExists = (int?)await cmd.ExecuteScalarAsync().ConfigureAwait(false) == 1;
 
 		if (!dbExists)
 		{
@@ -350,7 +350,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				error = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
-		);
+		).ConfigureAwait(false);
 	}
 
 	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
@@ -360,7 +360,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			"dblive.update_code_state",
 			new { relative_path = relativePath, verified_utc = verifiedUtc },
 			commandType: CommandType.StoredProcedure
-		);
+		).ConfigureAwait(false);
 	}
 
 	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
@@ -380,7 +380,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			where relative_path = @relative_path
 			""",
 			new { relative_path = relativePath }
-		);
+		).ConfigureAwait(false);
 	}
 
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
@@ -427,7 +427,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				status = item.Status.ToString().ToLower(),
 				created_utc = item.CreatedUtc
 			}
-		);
+		).ConfigureAwait(false);
 	}
 
 	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
@@ -452,7 +452,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms = item.ExecutionTimeMs,
 				error = item.ErrorMessage
 			}
-		);
+		).ConfigureAwait(false);
 
 		if (ver is null)
 		{
@@ -474,7 +474,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version,
 				item_type = ItemType.ToString().ToLower()
 			}
-		);
+		).ConfigureAwait(false);
 		return exists is not null;
 	}
 
@@ -492,7 +492,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version,
 				item_type = migrationType.ToString().ToLower()
 			}
-		);
+		).ConfigureAwait(false);
 		return content;
 	}
 
@@ -511,7 +511,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				error = item.ErrorMessage
 			},
 			commandType: CommandType.StoredProcedure
-		);
+		).ConfigureAwait(false);
 	}
 
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs)
@@ -528,6 +528,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms = executionTimeMs
 			},
 			commandType: CommandType.StoredProcedure
-		);
+		).ConfigureAwait(false);
 	}
 }

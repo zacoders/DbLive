@@ -12,6 +12,6 @@ IDbLive sqlDeploy = new DbLiveBuilder()
 	.LogToConsole()
 	.CreateDeployer();
 
-await sqlDeploy.DeployAsync(parameters: DeployParameters.Default);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.Default).ConfigureAwait(false);
 
-await sqlDeploy.DeployAsync(parameters: DeployParameters.BreakingAndTests);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.BreakingAndTests).ConfigureAwait(false);

@@ -10,7 +10,7 @@ public class UnitTestItemRunner(
 
 	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
-		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		TestRunResult result = new()
 		{
@@ -32,14 +32,14 @@ public class UnitTestItemRunner(
 					test.InitFileData.Content,
 					TranIsolationLevel.Serializable,
 					projectSettings.UnitTestItemTimeout
-				);
+				).ConfigureAwait(false);
 			}
 
 			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
 				test.FileData.Content,
 				TranIsolationLevel.Serializable,
 				projectSettings.UnitTestItemTimeout
-			);
+			).ConfigureAwait(false);
 
 			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
 			if (!compareResult.IsValid)

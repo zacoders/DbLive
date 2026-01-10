@@ -42,3 +42,7 @@ dotnet_diagnostic.xUnit1013.severity = error
 # Also helps to detect broken or incorrectly declared tests.
 # Set to error to make test discovery deterministic and strict.
 dotnet_diagnostic.xUnit1000.severity = error
+
+# Force ConfigureAwait(false) in libraries
+dotnet_diagnostic.VSTHRD111.severity = error
+dotnet_diagnostic.CA2007.severity = error

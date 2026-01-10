@@ -20,7 +20,7 @@ public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) 
 
 		if (_fileSystem.FileExists(settingsPath))
 		{
-			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath);
+			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath).ConfigureAwait(false);
 
 			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
 				settingsJson,

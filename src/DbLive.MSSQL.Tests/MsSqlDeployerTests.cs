@@ -27,7 +27,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 	public async Task InitializeAsync()
 	{
-		await _da.CreateDBAsync(skipIfExists: true);
+		await _da.CreateDBAsync(skipIfExists: true).ConfigureAwait(false);
 	}
 
 	public Task DisposeAsync()

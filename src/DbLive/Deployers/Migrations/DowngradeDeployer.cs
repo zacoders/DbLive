@@ -16,9 +16,9 @@ public class DowngradeDeployer(
 	{
 		// verify downgrade needed/allowed
 
-		int databaseVersion = await _da.GetCurrentMigrationVersionAsync();
+		int databaseVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
 
-		int projectVersion = (await _project.GetMigrationsAsync()).Max(m => m.Version);
+		int projectVersion = (await _project.GetMigrationsAsync().ConfigureAwait(false)).Max(m => m.Version);
 
 		if (databaseVersion <= projectVersion)
 		{
@@ -39,7 +39,7 @@ public class DowngradeDeployer(
 			projectVersion, databaseVersion
 		);
 
-		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync();
+		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
 		// get undo migrations
 		List<MigrationItemDto> undoMigrations =
@@ -71,7 +71,7 @@ public class DowngradeDeployer(
 		// deploy undo migrations
 		foreach (MigrationItemDto undoDto in undoMigrations)
 		{
-			string? undoContent = await _da.GetMigrationContentAsync(undoDto.Version, MigrationItemType.Undo);
+			string? undoContent = await _da.GetMigrationContentAsync(undoDto.Version, MigrationItemType.Undo).ConfigureAwait(false);
 
 			if (undoContent is null)
 			{
@@ -87,7 +87,7 @@ public class DowngradeDeployer(
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
 
-		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		// all or nothing. online downgrades is not required.
 		await _transactionRunner.ExecuteWithinTransactionAsync(
@@ -110,14 +110,14 @@ public class DowngradeDeployer(
 						Name = undoDto.Name
 					};
 
-					await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem);
+					await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem).ConfigureAwait(false);
 
 					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
 				}
 
 				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-				await _da.SetCurrentMigrationVersionAsync(projectVersion, migrationCompletedUtc);
+				await _da.SetCurrentMigrationVersionAsync(projectVersion, migrationCompletedUtc).ConfigureAwait(false);
 			}
-		);
+		).ConfigureAwait(false);
 	}
 }

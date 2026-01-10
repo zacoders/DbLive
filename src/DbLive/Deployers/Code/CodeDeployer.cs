@@ -19,9 +19,9 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		foreach (CodeGroup group in await _project.GetCodeGroupsAsync())
+		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
 		{
-			await DeployGroupAsync(group.CodeItems);
+			await DeployGroupAsync(group.CodeItems).ConfigureAwait(false);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
@@ -29,7 +29,7 @@ public class CodeDeployer(
 
 	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
 	{
-		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		var cts = new CancellationTokenSource();
 
@@ -49,12 +49,12 @@ public class CodeDeployer(
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorker(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
+				=> CreateWorkerAsync(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
 
-		Task.WaitAll(workers);
+		_ = await Task.WhenAll(workers).ConfigureAwait(false);
 
 		List<Exception> exceptions = [.. workers.Where(w => w.Result is not null).Select(w => w.Result!)];
 
@@ -67,7 +67,7 @@ public class CodeDeployer(
 		}
 	}
 
-	internal async Task<Exception?> CreateWorker(
+	internal async Task<Exception?> CreateWorkerAsync(
 		int maxRetries,
 		ConcurrentQueue<CodeItem> queue,
 		ConcurrentDictionary<string, int> retryCounters,
@@ -85,7 +85,7 @@ public class CodeDeployer(
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
-			CodeItemDeployResult result = await _codeItemDeployer.DeployAsync(codeItem);
+			CodeItemDeployResult result = await _codeItemDeployer.DeployAsync(codeItem).ConfigureAwait(false);
 
 			if (result.IsSuccess)
 			{
@@ -107,7 +107,7 @@ public class CodeDeployer(
 					relativePath, retry
 				);
 
-				cts.Cancel();
+				await cts.CancelAsync().ConfigureAwait(false);
 
 				return result.Exception;
 			}
