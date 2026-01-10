@@ -6,9 +6,16 @@ minor-version-bump-message: '^feat(\(.+\))?:'
 patch-version-bump-message: '^fix(\(.+\))?:'
 
 branches:
-  main: {}
+
+  main:
+    is-release-branch: true
+    is-mainline: true
+
+  dev:
+    mode: ContinuousDeployment
+    tag: preview
+    increment: inherit
 
 ignore:
   sha: []
 
-merge-message-formats: {}
