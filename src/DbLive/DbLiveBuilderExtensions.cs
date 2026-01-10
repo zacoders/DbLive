@@ -1,4 +1,6 @@
 ﻿
+using Serilog.Core;
+
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
@@ -8,7 +10,7 @@ public static class DbLiveBuilderExtensions
 	{
 		return builder.ConfigureServices(services =>
 		{
-			var logger = new LoggerConfiguration()
+			Logger logger = new LoggerConfiguration()
 				.WriteTo.Console()
 				.CreateLogger();
 

@@ -34,7 +34,7 @@ public class DbLiveProject(
 
 		foreach (string subPath in subPaths)
 		{
-			var files = codeFiles
+			List<string> files = codeFiles
 				.RemoveWhere(f =>
 					f.StartsWith(
 						subPath + Path.DirectorySeparatorChar,
@@ -93,7 +93,7 @@ public class DbLiveProject(
 		{
 			int migrationVersion = migrationGroup.Key;
 			Dictionary<MigrationItemType, MigrationItem> items = [];
-			foreach (var item in migrationGroup)
+			foreach (MigrationItemInfo item in migrationGroup)
 			{
 				if (items.ContainsKey(item.MigrationItemType))
 				{
@@ -136,7 +136,7 @@ public class DbLiveProject(
 
 		if (_fileSystem.PathExists(testsPath))
 		{
-			var testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
+			IEnumerable<string> testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testInTestFolder.Union([testsPath]))
 			{
 				testGroups.AddRange(await GetFolderTestsAsync(folderPath, true));
@@ -145,7 +145,7 @@ public class DbLiveProject(
 
 		if (_fileSystem.PathExists(codePath))
 		{
-			var testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
+			IEnumerable<string> testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
 			foreach (var folderPath in testsInCodeFolder.Union([codePath]))
 			{
 				testGroups.AddRange(await GetFolderTestsAsync(folderPath, false));
@@ -171,7 +171,7 @@ public class DbLiveProject(
 		}
 
 		// in Tests folder, any .sql file is considered as a test (except 'init.sql').
-		var testFiles = _fileSystem.EnumerateFiles(
+		IEnumerable<string> testFiles = _fileSystem.EnumerateFiles(
 			folderPath,
 			isTestsFolder ? ["*.sql"] : projectSettings.TestFilePatterns,
 			["init.sql"],
@@ -211,7 +211,7 @@ public class DbLiveProject(
 
 		if (_fileSystem.PathExists(fullPath))
 		{
-			var files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
+			IEnumerable<string> files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
 			foreach (string filePath in files)
 			{
 				string fileName = Path.GetFileName(filePath);

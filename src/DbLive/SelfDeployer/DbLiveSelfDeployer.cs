@@ -27,7 +27,7 @@ internal class DbLiveSelfDeployer(
 			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 		}
 
-		foreach (var migration in migrationsToApply)
+		foreach (InternalMigration migration in migrationsToApply)
 		{
 			await _da.ExecuteNonQueryAsync(migration.FileData.Content);
 			await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow());

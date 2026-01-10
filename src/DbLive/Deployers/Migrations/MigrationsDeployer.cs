@@ -30,7 +30,7 @@ public class MigrationsDeployer(
 			return;
 		}
 
-		foreach (var migration in migrationsToApply)
+		foreach (Migration migration in migrationsToApply)
 		{
 			await _migrationVersionDeployer.DeployAsync(migration, parameters);
 		}

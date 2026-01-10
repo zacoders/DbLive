@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
@@ -31,7 +32,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		var sql = "select 1 as col";
 
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
 		_da.ExecuteNonQueryAsync(sql);
 
@@ -71,7 +72,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	[Fact]
 	public void Complex_WithTransaction()
 	{
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
 		_da.ExecuteNonQueryAsync(@"
 			drop table if exists dbo.Test
@@ -119,7 +120,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			values ( 1, 'Test1' ), ( 2, 'Test2')
 		");
 
-		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		using (TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
 			_da.ExecuteNonQueryAsync(@"
 				insert into dbo.TestTran1 ( id, name )
@@ -137,7 +138,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			tran1.Dispose();
 		}
 
-		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		using (TransactionScope tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
 			_da.ExecuteNonQueryAsync(@"
 				if ( select count(*) from dbo.TestTran1 ) != 2
@@ -171,7 +172,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		try
 		{
-			using var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+			using TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
 			_da.ExecuteNonQueryAsync(@"
 				insert into dbo.TestTran2 ( id, name )
@@ -188,7 +189,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			// just ignoring syntax error exception, expected transaction rollback
 		}
 
-		using (var tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		using (TransactionScope tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
 			_da.ExecuteNonQueryAsync(@"
 				if ( select count(*) from dbo.TestTran2 ) != 2

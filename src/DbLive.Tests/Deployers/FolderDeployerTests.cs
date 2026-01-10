@@ -9,7 +9,7 @@ public class FolderDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var projectFolder = ProjectFolder.BeforeDeploy;
+		ProjectFolder projectFolder = ProjectFolder.BeforeDeploy;
 
 		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
 			GetGenericItem("file1.sql"),
@@ -17,7 +17,7 @@ public class FolderDeployerTests
 			GetGenericItem("file3.sql")
 		}.AsReadOnly());
 
-		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
@@ -37,13 +37,13 @@ public class FolderDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var projectFolder = ProjectFolder.AfterDeploy;
+		ProjectFolder projectFolder = ProjectFolder.AfterDeploy;
 
 		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
-		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
@@ -78,11 +78,11 @@ public class FolderDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var projectFolder = ProjectFolder.BeforeDeploy;
+		ProjectFolder projectFolder = ProjectFolder.BeforeDeploy;
 
 		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(ReadOnlyCollection<GenericItem>.Empty);
 
-		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
 
@@ -100,7 +100,7 @@ public class FolderDeployerTests
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
-		var deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
 			() => deploy.DeployAsync(projectFolder, DeployParameters.Default)

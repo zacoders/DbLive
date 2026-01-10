@@ -13,7 +13,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 	[Fact]
 	public async Task DeployAsync()
 	{
-		var deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
+		IDbLive deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
 
 		await deployer.DeployAsync(
 			new DeployParameters
@@ -40,7 +40,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectPath);
 
-		var deployer = builder.CreateDeployer();
+		IDbLive deployer = builder.CreateDeployer();
 
 		await deployer.DeployAsync(
 			new DeployParameters

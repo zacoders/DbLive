@@ -122,7 +122,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			var sqlException = e.Get<SqlException>();
+			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
 		}
 	}
@@ -182,7 +182,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			var sqlException = e.Get<SqlException>();
+			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
 		}
 	}
@@ -288,7 +288,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync();
 
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		cmd.Parameters.AddWithValue("name", databaseToCreate);
 		bool dbExists = (int?)(await cmd.ExecuteScalarAsync()) == 1;
@@ -310,7 +310,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync();
 
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		cmd.Parameters.AddWithValue("name", databaseToDrop);
 		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;

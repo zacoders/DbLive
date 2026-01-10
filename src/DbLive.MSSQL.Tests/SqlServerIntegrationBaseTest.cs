@@ -50,9 +50,9 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	{
 		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
-		var reader = cmd.ExecuteReader();
+		SqlDataReader reader = cmd.ExecuteReader();
 		List<string> databases = [];
 		while (reader.Read())
 		{
@@ -108,7 +108,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	{
 		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
 		bool exists = cmd.ExecuteScalar() != null;
 		return exists;

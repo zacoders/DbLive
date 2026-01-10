@@ -36,7 +36,7 @@ public class CodeDeployer(
 		var queue = new ConcurrentQueue<CodeItem>();
 		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-		foreach (var item in codeItems)
+		foreach (CodeItem item in codeItems)
 		{
 			queue.Enqueue(item);
 			retryCounters[item.FileData.FilePath] = 0;
@@ -76,7 +76,7 @@ public class CodeDeployer(
 	{
 		while (!cts.IsCancellationRequested)
 		{
-			if (!queue.TryDequeue(out var codeItem))
+			if (!queue.TryDequeue(out CodeItem? codeItem))
 			{
 				break;
 			}

@@ -42,9 +42,9 @@ public class MigrationVersionDeployer(
 
 	internal async Task DeployInternalAsync(Migration migration, DeployParameters parameters)
 	{
-		migration.Items.TryGetValue(MigrationItemType.Migration, out var migrationItem);
-		migration.Items.TryGetValue(MigrationItemType.Undo, out var undoItem);
-		migration.Items.TryGetValue(MigrationItemType.Breaking, out var breakingItem);
+		migration.Items.TryGetValue(MigrationItemType.Migration, out MigrationItem? migrationItem);
+		migration.Items.TryGetValue(MigrationItemType.Undo, out MigrationItem? undoItem);
+		migration.Items.TryGetValue(MigrationItemType.Breaking, out MigrationItem? breakingItem);
 
 		if (migrationItem is null)
 		{

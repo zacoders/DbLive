@@ -1,4 +1,5 @@
-﻿namespace DbLive.Testing;
+﻿
+namespace DbLive.Testing;
 
 /// <summary>
 /// This class used to run unit tests in Visual Studio. Designed for xunit.
@@ -22,7 +23,7 @@ public class DbLiveTester : IDbLiveTester
 
 	private async Task<ReadOnlyDictionary<string, TestItem>> LoadTestsAsync()
 	{
-		var tests = await _project.GetTestsAsync();
+		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync();
 
 		return new ReadOnlyDictionary<string, TestItem>(
 			tests.ToDictionary(
@@ -39,9 +40,9 @@ public class DbLiveTester : IDbLiveTester
 
 	public async Task<TestRunResult> RunTestAsync(Action<string> writeLine, string testFileRelativePath)
 	{
-		var testsList = await GetTestsAsync();
+		ReadOnlyDictionary<string, TestItem> testsList = await GetTestsAsync();
 
-		var testItem = testsList[testFileRelativePath];
+		TestItem testItem = testsList[testFileRelativePath];
 
 		if (testItem.InitFileData is not null)
 		{
@@ -49,7 +50,7 @@ public class DbLiveTester : IDbLiveTester
 			writeLine(initFileTitle);
 		}
 
-		var testRunResult = await _unitTestItemRunner.RunTestAsync(testItem);
+		TestRunResult testRunResult = await _unitTestItemRunner.RunTestAsync(testItem);
 
 		writeLine(testRunResult.Output);
 

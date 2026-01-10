@@ -12,7 +12,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
 		DeployParameters parameters = new() { RunTests = false };
 
@@ -30,7 +30,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
 		TestItem testItem1 = new()
 		{
@@ -71,7 +71,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
 		TestItem testItem1 = new()
 		{
@@ -136,7 +136,7 @@ public class UnitTestsRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
 		TestItem testItem1 = new()
 		{

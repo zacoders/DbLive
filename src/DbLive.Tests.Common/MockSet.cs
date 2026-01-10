@@ -4,6 +4,7 @@ using DbLive.Deployers.Folder;
 using DbLive.SelfDeployer;
 using System;
 using System.Net.Sockets;
+using System.Reflection;
 
 namespace DbLive.Tests.Common;
 
@@ -51,7 +52,7 @@ public class MockSet
 			)
 			.Returns(ci => ci.Arg<Func<Task>>()());
 
-		foreach (var fld in GetType().GetFields().Where(fld => !fld.IsPrivate))
+		foreach (FieldInfo? fld in GetType().GetFields().Where(fld => !fld.IsPrivate))
 		{
 			// this replaces adding all fields to _container:
 			//		_container.AddTransient(_ => SettingsAccessor);
@@ -66,7 +67,7 @@ public class MockSet
 	public TService CreateUsingMocks<TService>() where TService : class
 	{
 		_container.AddTransient<TService>();
-		var serviceProvider = _container.BuildServiceProvider();
+		ServiceProvider serviceProvider = _container.BuildServiceProvider();
 		return serviceProvider.GetService<TService>()
 			?? throw new Exception($"Cannot resolve {typeof(TService).Name}.");
 	}

@@ -1,4 +1,5 @@
 ﻿
+
 namespace DbLive.Deployers.Testing;
 
 public class UnitTestsRunner(
@@ -22,7 +23,7 @@ public class UnitTestsRunner(
 
 		_logger.Information("Running Tests.");
 
-		var tests = await _project.GetTestsAsync();
+		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync();
 
 		TestsRunResults runResults = new();
 
@@ -30,7 +31,7 @@ public class UnitTestsRunner(
 
 		Parallel.ForEach(tests, parallelOptions, async test =>
 		{
-			var testResult = await _unitTestItemRunner.RunTestAsync(test);
+			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test);
 
 			if (testResult.IsSuccess)
 			{

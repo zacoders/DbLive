@@ -8,7 +8,7 @@ public class DowngradeDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		// database is ahead of project
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
@@ -39,7 +39,7 @@ public class DowngradeDeployerTests
 		DateTime completedUtc = DateTime.UtcNow;
 		mockSet.TimeProvider.UtcNow().Returns(completedUtc);
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			AllowDatabaseDowngrade = true
 		};
@@ -73,7 +73,7 @@ public class DowngradeDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(2);
 
@@ -84,7 +84,7 @@ public class DowngradeDeployerTests
 			]
 		);
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			AllowDatabaseDowngrade = true
 		};
@@ -114,7 +114,7 @@ public class DowngradeDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
 
@@ -125,7 +125,7 @@ public class DowngradeDeployerTests
 			]
 		);
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			AllowDatabaseDowngrade = false
 		};
@@ -154,7 +154,7 @@ public class DowngradeDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(4);
 
@@ -180,7 +180,7 @@ public class DowngradeDeployerTests
 			]
 		);
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			AllowDatabaseDowngrade = true
 		};
@@ -189,7 +189,7 @@ public class DowngradeDeployerTests
 		Task act() => deployer.DeployAsync(parameters);
 
 		// Assert
-		var ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
+		DowngradeImpossibleException ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Cannot perform downgrade due to missing undo scripts.", ex.Message);
 
 		await mockSet.TransactionRunner.DidNotReceive()
@@ -210,7 +210,7 @@ public class DowngradeDeployerTests
 		// arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
 
 		// database ahead of project
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync().Returns(3);
@@ -239,7 +239,7 @@ public class DowngradeDeployerTests
 			.GetMigrationContentAsync(3, MigrationItemType.Undo)
 			.Returns((string?)null);
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			AllowDatabaseDowngrade = true
 		};
@@ -248,7 +248,7 @@ public class DowngradeDeployerTests
 		Task act() => deployer.DeployAsync(parameters);
 
 		// assert
-		var ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
+		DowngradeImpossibleException ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Undo content for migration version 3 is missing", ex.Message);
 
 		await mockSet.TransactionRunner.DidNotReceive()

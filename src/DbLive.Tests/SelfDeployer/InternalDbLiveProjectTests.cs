@@ -28,10 +28,10 @@ public class InternalDbLiveProjectTests
 				FilePath = "c:/db/migrations/001.demo.sql"
 			});
 
-		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
+		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		var result = await project.GetMigrationsAsync();
+		IReadOnlyList<InternalMigration> result = await project.GetMigrationsAsync();
 
 		// Assert
 		Assert.Equal(2, result.Count);
@@ -61,15 +61,15 @@ public class InternalDbLiveProjectTests
 				FilePath = "C:/Project/Migrations/001.migration.create_table.sql"
 			});
 
-		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
+		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		var result = await project.GetMigrationsAsync();
+		IReadOnlyList<InternalMigration> result = await project.GetMigrationsAsync();
 
 		// Assert
 		Assert.Single(result);
 
-		var migration = result[0];
+		InternalMigration migration = result[0];
 		Assert.Equal(1, migration.Version);		
 		Assert.Equal("create_table", migration.Name);
 		Assert.Equal("db/migrations/001.migration.create_table.sql", migration.FileData.RelativePath);
@@ -98,7 +98,7 @@ public class InternalDbLiveProjectTests
 				FilePath = "C:/Project/Migrations/test.sql"
 			});
 
-		var project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
+		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
 		await project.GetMigrationsAsync();

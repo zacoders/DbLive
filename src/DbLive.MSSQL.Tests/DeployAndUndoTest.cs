@@ -19,15 +19,15 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 		string projectMSSQL = Path.GetFullPath("DemoMSSQL");
 		string projectMSSQLEmpty = Path.GetFullPath("DemoMSSQLEmpty");
 
-		
-		var deployer = new DbLiveBuilder()
+
+		IDbLive deployer = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectMSSQL)
 			.CreateDeployer();
 
-		var deployerEmptyDb = new DbLiveBuilder()
+		IDbLive deployerEmptyDb = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)

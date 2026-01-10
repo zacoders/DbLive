@@ -9,7 +9,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
 		deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
@@ -44,7 +44,7 @@ public class BreakingChangesDeployerTests
 		}
 		]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
 		deployer.DeployAsync(DeployParameters.Breaking);
@@ -100,7 +100,7 @@ public class BreakingChangesDeployerTests
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration2, migration3]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
 		deployer.DeployAsync(DeployParameters.Breaking);
@@ -149,7 +149,7 @@ public class BreakingChangesDeployerTests
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
 		deployer.DeployAsync(DeployParameters.Breaking);

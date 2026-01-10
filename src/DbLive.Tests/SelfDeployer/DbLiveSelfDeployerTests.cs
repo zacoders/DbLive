@@ -18,7 +18,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
 		await deployer.DeployAsync();
@@ -43,7 +43,7 @@ public class DbLiveSelfDeployerTests
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
 		await deployer.DeployAsync();
@@ -70,7 +70,7 @@ public class DbLiveSelfDeployerTests
 			CreateMigration(2, "-- migration 2")
 		]);
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
 		await deployer.DeployAsync();
@@ -101,7 +101,7 @@ public class DbLiveSelfDeployerTests
 		CreateMigration(3, "-- migration 3")
 		]);
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
 		await deployer.DeployAsync();
@@ -135,7 +135,7 @@ public class DbLiveSelfDeployerTests
 			CreateMigration(1, "-- exact sql")
 		]);
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
 
 		// Act
 		await deployer.DeployAsync();

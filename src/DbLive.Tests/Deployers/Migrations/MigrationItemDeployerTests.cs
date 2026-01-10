@@ -11,7 +11,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+		MigrationItemDeployer deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		DateTime utcNow = DateTime.UtcNow;
 		DateTime utcNow2 = utcNow.AddSeconds(2);
@@ -66,7 +66,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+		MigrationItemDeployer deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		DateTime utcNow = DateTime.UtcNow;
 		DateTime utcNow2 = utcNow.AddSeconds(2);
@@ -139,7 +139,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+		MigrationItemDeployer deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		DateTime utcNow = DateTime.UtcNow;
 		DateTime utcNow2 = utcNow.AddSeconds(2);
@@ -202,7 +202,7 @@ public class MigrationItemDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -238,7 +238,7 @@ public class MigrationItemDeployerTests
 		Task act() => deployer.DeployAsync(2, migrationItem);
 
 		// Assert
-		var ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
+		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
 		Assert.Contains("Migration file deployment error", ex.Message);
 		Assert.Same(exception, ex.InnerException);
 

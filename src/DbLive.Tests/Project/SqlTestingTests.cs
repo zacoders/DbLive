@@ -1,3 +1,4 @@
+
 namespace DbLive.Tests.Project;
 
 public class SqlTestingTests
@@ -59,10 +60,10 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var project = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		var tests = await project.GetTestsAsync();
+		IReadOnlyCollection<TestItem> tests = await project.GetTestsAsync();
 
 		// assert
 		Assert.Equal(2, tests.Count);
@@ -80,10 +81,10 @@ public class SqlTestingTests
 		string folder = @"C:/DB/Tests";
 		mockSet.FileSystem.PathExists(folder).Returns(false);
 
-		var project = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		var tests = await project.GetFolderTestsAsync(folder, true);
+		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
 
 		// assert
 		Assert.NotNull(tests);
@@ -123,10 +124,10 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var project = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		var tests = await project.GetFolderTestsAsync(folder, true);
+		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
 
 		// assert
 		Assert.Equal(3, tests.Count);
@@ -176,10 +177,10 @@ public class SqlTestingTests
 				RelativePath = ""
 			});
 
-		var project = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		var tests = await project.GetFolderTestsAsync(folder, true);
+		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
 
 		// assert
 		Assert.Equal(2, tests.Count);

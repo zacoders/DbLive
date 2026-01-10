@@ -8,7 +8,7 @@ public class DbLiveDeployerTests
 		// arrange
 		MockSet mockSet = new();
 
-		var parameters = DeployParameters.Default;
+		DeployParameters parameters = DeployParameters.Default;
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
@@ -47,7 +47,7 @@ public class DbLiveDeployerTests
 			.When(x => x.RunAllTestsAsync(parameters))
 			.Do(_ => calls.Add("tests"));
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
+		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
 		await deployer.DeployAsync(parameters);
@@ -74,11 +74,11 @@ public class DbLiveDeployerTests
 		// arrange
 		MockSet mockSet = new();
 
-		var parameters = DeployParameters.Default;
+		DeployParameters parameters = DeployParameters.Default;
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
+		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
 		await deployer.DeployAsync(parameters);

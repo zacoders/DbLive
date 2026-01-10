@@ -9,7 +9,7 @@ public class GetFolderItemsTests
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		string folderPath = Path.Combine(@"C:/DB/", "BeforeDeploy");
 
@@ -40,7 +40,7 @@ public class GetFolderItemsTests
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		string folderPath = Path.Combine(@"C:/DB/", "AfterDeploy");
 
@@ -59,7 +59,7 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sqlProject.GetFolderItemsAsync((ProjectFolder)999));
 	}

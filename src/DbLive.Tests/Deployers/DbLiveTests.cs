@@ -10,7 +10,7 @@ public class DbLiveTests
 
 		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -33,7 +33,7 @@ public class DbLiveTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -58,7 +58,7 @@ public class DbLiveTests
 
 		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{

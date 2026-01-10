@@ -24,9 +24,9 @@ public class SettingsTests
 				"""
 			);
 
-		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
 
 		Assert.NotNull(settings);
 		Assert.Equal(TransactionWrapLevel.None, settings.TransactionWrapLevel);
@@ -47,9 +47,9 @@ public class SettingsTests
 
 		mockSet.FileSystem.FileExists(settingsPath).Returns(false);
 
-		var settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
-		var settings = await settingsAccessor.GetProjectSettingsAsync();
+		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
 
 		Assert.NotNull(settings);
 	}

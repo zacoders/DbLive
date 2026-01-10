@@ -1,4 +1,5 @@
-﻿using DbLive.Common;
+﻿using DbLive.Adapter;
+using DbLive.Common;
 using DbLive.Testing;
 using Xunit;
 
@@ -36,7 +37,7 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 		if (dropDatabaseOnComplete)
 		{
 			DbLiveBuilder builder = await GetBuilderAsync();
-			var da = builder.CreateDbLiveDA();
+			IDbLiveDA da = builder.CreateDbLiveDA();
 			await da.DropDBAsync();
 		}
 	}

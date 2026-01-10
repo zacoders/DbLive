@@ -17,7 +17,7 @@ public class MigrationsDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
@@ -33,7 +33,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync()
 			.Returns(2);
 
-		var migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
+		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
@@ -47,7 +47,7 @@ public class MigrationsDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
@@ -60,7 +60,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
-		var deployParams = DeployParameters.Default;
+		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
 		await deploy.DeployAsync(deployParams);
@@ -77,14 +77,14 @@ public class MigrationsDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
-		var deployParams = DeployParameters.Default;
+		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
 		await deploy.DeployAsync(deployParams);
@@ -102,7 +102,7 @@ public class MigrationsDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
+		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync()
 			.Returns(
@@ -116,7 +116,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
 
-		var deployParams = DeployParameters.Default;
+		DeployParameters deployParams = DeployParameters.Default;
 		deployParams.DeployMigrations = false;
 
 		// Act
@@ -133,7 +133,7 @@ public class MigrationsDeployerTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		var migration = new Migration
 		{
@@ -153,7 +153,7 @@ public class MigrationsDeployerTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		MigrationItem migrationItem = new()
 		{
@@ -177,7 +177,7 @@ public class MigrationsDeployerTests
 			}
 		};
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			UndoTestDeployment = UndoTestMode.MigrationUndoMigration
 		};
@@ -204,7 +204,7 @@ public class MigrationsDeployerTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		MigrationItem migrationItem = new()
 		{
@@ -235,7 +235,7 @@ public class MigrationsDeployerTests
 			}
 		};
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
 		};
@@ -258,7 +258,7 @@ public class MigrationsDeployerTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		MigrationItem migrationItem = new()
 		{
@@ -282,7 +282,7 @@ public class MigrationsDeployerTests
 			}
 		};
 
-		var parameters = DeployParameters.Default with
+		DeployParameters parameters = DeployParameters.Default with
 		{
 			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
 		};
@@ -304,7 +304,7 @@ public class MigrationsDeployerTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		DateTime now = new(2025, 2, 1);
 		mockSet.TimeProvider.UtcNow().Returns(now);

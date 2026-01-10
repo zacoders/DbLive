@@ -24,10 +24,10 @@ public class CodeItemDeployerTests
 
 		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
 
-		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = await deployer.DeployAsync(codeItem);
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -60,10 +60,10 @@ public class CodeItemDeployerTests
 
 		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
 
-		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = await deployer.DeployAsync(codeItem);
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -82,10 +82,10 @@ public class CodeItemDeployerTests
 
 		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
-		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
-		var res = await deployer.DeployAsync(codeItem);
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.True(res.IsSuccess);
@@ -103,14 +103,14 @@ public class CodeItemDeployerTests
 
 		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
-		var deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		mockSet.DbLiveDA
 			.When(x => x.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
 			.Do(x => throw new Exception("some exception"));
 
 		// Act
-		var res = await deployer.DeployAsync(codeItem);
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
 
 		// Assert
 		Assert.False(res.IsSuccess);

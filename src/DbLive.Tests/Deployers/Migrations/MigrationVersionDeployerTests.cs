@@ -10,7 +10,7 @@ public class MigrationVersionDeployerTests
 	{
 		var mockSet = new MockSet();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -28,7 +28,7 @@ public class MigrationVersionDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -60,7 +60,7 @@ public class MigrationVersionDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -114,7 +114,7 @@ public class MigrationVersionDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		string settingsJson = """
 		{

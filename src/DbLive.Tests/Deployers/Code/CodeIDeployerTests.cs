@@ -10,7 +10,7 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await deployer.DeployAsync(DeployParameters.Default);
 	}
@@ -20,7 +20,7 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await deployer.DeployAsync(new DeployParameters { DeployCode = false });
 	}
@@ -45,7 +45,7 @@ public class CodeDeployerTests
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
-		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await deployer.DeployAsync(DeployParameters.Default);
 
@@ -69,7 +69,7 @@ public class CodeDeployerTests
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>())
 			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
 
-		var deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
 			async () => await deployer.DeployAsync(DeployParameters.Default)

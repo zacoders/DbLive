@@ -1,4 +1,5 @@
 
+
 namespace DbLive.Deployers.Migrations;
 
 public class BreakingChangesDeployer(
@@ -27,12 +28,12 @@ public class BreakingChangesDeployer(
 				.DefaultIfEmpty(0)
 				.Max();
 
-		var newMigrations = (await _project.GetMigrationsAsync()).Where(m => m.Version > latestAppliedBreakingVersion);
+		IEnumerable<Migration> newMigrations = (await _project.GetMigrationsAsync()).Where(m => m.Version > latestAppliedBreakingVersion);
 
 		List<(int Version, MigrationItem Item)> breakingToApply = [];
-		foreach (var migration in newMigrations)
+		foreach (Migration? migration in newMigrations)
 		{
-			if (migration.Items.TryGetValue(MigrationItemType.Breaking, out var breakingItem))
+			if (migration.Items.TryGetValue(MigrationItemType.Breaking, out MigrationItem? breakingItem))
 			{
 				breakingToApply.Add((migration.Version, breakingItem));
 			}
@@ -44,7 +45,7 @@ public class BreakingChangesDeployer(
 			return;
 		}
 
-		foreach (var breaking in breakingToApply)
+		foreach ((int Version, MigrationItem Item) breaking in breakingToApply)
 		{
 			await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item);
 		}

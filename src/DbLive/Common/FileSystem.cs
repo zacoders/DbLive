@@ -27,15 +27,15 @@ public class FileSystem : IFileSystem
 
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders)
 	{
-		var files = EnumerateFiles(path, searchPatterns, subfolders);
-		var excludeFiles = EnumerateFiles(path, excludePatterns, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPatterns, subfolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePatterns, subfolders);
 		return files.Except(excludeFiles);
 	}
 
 	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subfolders)
 	{
-		var files = EnumerateFiles(path, searchPattern, subfolders);
-		var excludeFiles = EnumerateFiles(path, excludePattern, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPattern, subfolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePattern, subfolders);
 		return files.Except(excludeFiles);
 	}
 

@@ -1,4 +1,5 @@
 ﻿using DbLive.Common;
+using DbLive.Project;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -23,7 +24,7 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 		string assemblyName = attr.GetNamedArgument<string>(nameof(SqlFactAttribute.SqlAssemblyName));
 		string projectPath = Path.GetFullPath(assemblyName);
 
-		var project = new DbLiveBuilder()
+		IDbLiveProject project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)
 			.CreateProject();
 
@@ -33,7 +34,7 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 			.GetAwaiter()
 			.GetResult();
 
-		var tests = project
+		IReadOnlyCollection<TestItem> tests = project
 			.GetTestsAsync()
 			.GetAwaiter()
 			.GetResult();

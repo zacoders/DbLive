@@ -19,7 +19,7 @@ internal class MigrationsSaver(
 
 		foreach (Migration migration in migrationsToApply)
 		{
-			foreach ((var _, MigrationItem migrationItem) in migration.Items)
+			foreach ((MigrationItemType _, MigrationItem migrationItem) in migration.Items)
 			{
 				int? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType);
 

@@ -8,7 +8,7 @@ public class UnitTestItemRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -55,7 +55,7 @@ public class UnitTestItemRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -109,7 +109,7 @@ public class UnitTestItemRunnerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);

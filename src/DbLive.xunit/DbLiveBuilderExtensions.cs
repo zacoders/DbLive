@@ -1,6 +1,7 @@
 ﻿using DbLive.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Serilog.Core;
 using Xunit.Abstractions;
 
 namespace DbLive.xunit;
@@ -18,7 +19,7 @@ public static class DbLiveBuilderExtensions
 
 	private static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)
 	{
-		var logger = new LoggerConfiguration()
+		Logger logger = new LoggerConfiguration()
 			// add the xunit test output sink to the serilog logger
 			// https://github.com/trbenning/serilog-sinks-xunit#serilog-sinks-xunit
 			.WriteTo.TestOutput(output)

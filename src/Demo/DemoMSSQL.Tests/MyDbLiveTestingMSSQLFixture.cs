@@ -101,7 +101,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectPath);
 
-		var deployer = builder.CreateDeployer();
+		IDbLive deployer = builder.CreateDeployer();
 
 		await deployer.DeployAsync(
 			new DeployParameters

@@ -24,7 +24,7 @@ public sealed class DbLiveBuilder
 	{
 		var services = new ServiceCollection();
 
-		foreach (var registration in _registrations)
+		foreach (Action<IServiceCollection> registration in _registrations)
 		{
 			registration(services);
 		}

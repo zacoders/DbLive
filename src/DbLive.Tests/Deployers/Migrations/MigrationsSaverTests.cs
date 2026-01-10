@@ -8,7 +8,7 @@ public class MigrationsSaverTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
@@ -25,10 +25,10 @@ public class MigrationsSaverTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 		
 		FileData fileData = GetFileData("/001.migration.sql", "some content");
-		var migration = NewMigration(
+		Migration migration = NewMigration(
 			1,
 			new MigrationItem
 			{
@@ -57,10 +57,10 @@ public class MigrationsSaverTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
 		FileData fileData = GetFileData("/001.migration.sql", "some content");
-		var migration = NewMigration(
+		Migration migration = NewMigration(
 			2,
 			new MigrationItem
 			{
@@ -103,7 +103,7 @@ public class MigrationsSaverTests
 	{
 		// Arrange
 		MockSet mockSet = new();
-		var saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
 		var undoItem = new MigrationItem
 		{
@@ -119,7 +119,7 @@ public class MigrationsSaverTests
 			FileData = GetFileData("/001.migration.sql", "migration content")
 		};
 
-		var migration = NewMigration(1, undoItem, migrationItem);
+		Migration migration = NewMigration(1, undoItem, migrationItem);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 		mockSet.DbLiveDA.GetMigrationHashAsync(Arg.Any<int>(), Arg.Any<MigrationItemType>())
@@ -148,7 +148,7 @@ public class MigrationsSaverTests
 		params MigrationItem[] items)
 	{
 		var dict = new Dictionary<MigrationItemType, MigrationItem>();
-		foreach (var item in items)
+		foreach (MigrationItem item in items)
 		{
 			dict[item.MigrationItemType] = item;
 		}

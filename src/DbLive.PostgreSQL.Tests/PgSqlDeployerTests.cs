@@ -2,6 +2,7 @@ using DbLive.Adapter;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
@@ -32,7 +33,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 	{
 		var sql = "select 1 as col";
 
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
 		_da.ExecuteNonQueryAsync(sql);
 
@@ -73,7 +74,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 	[Fact]
 	public void Complex_WithTransaction()
 	{
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
 		_da.ExecuteNonQueryAsync(@"
 			drop sequence if exists public.s_test_id;
@@ -130,7 +131,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		");
 
 
-		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		using (TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
 			_da.ExecuteNonQueryAsync(@"
 				update TestTran1

@@ -1,4 +1,6 @@
 ﻿
+using Serilog.Core;
+
 namespace DbLive.Tests.Common;
 
 
@@ -6,7 +8,7 @@ public static class DbLiveBuilderExtensions
 {
 	public static void AddXUnitLogger(this IServiceCollection serviceCollection, ITestOutputHelper output)
 	{
-		var logger = new LoggerConfiguration()
+		Logger logger = new LoggerConfiguration()
 			// add the xunit test output sink to the serilog logger
 			// https://github.com/trbenning/serilog-sinks-xunit#serilog-sinks-xunit
 			.WriteTo.TestOutput(output)

@@ -18,7 +18,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		var cnn = new NpgsqlConnection(cnnBuilder.ConnectionString);
 		cnn.Open();
 
-		var cmd = cnn.CreateCommand();
+		NpgsqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from pg_catalog.pg_database where lower(datname) = lower(:name)";
 		cmd.Parameters.AddWithValue("name", databaseToCreate);
 		bool dbExists = (int?)await cmd.ExecuteScalarAsync() == 1;
@@ -55,14 +55,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using var cnn = new NpgsqlConnection(_cnn.ConnectionString);
 			await cnn.OpenAsync();
 			// todo: apply transaction isolation level
-			var cmd = cnn.CreateCommand();
+			NpgsqlCommand cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = timeoutSeconds;
 			cmd.CommandText = sqlStatement;
 			await cmd.ExecuteNonQueryAsync();
 		}
 		catch (Exception e)
 		{
-			var pgException = e.Get<PostgresException>();
+			PostgresException? pgException = e.Get<PostgresException>();
 			throw new DbLiveSqlException(pgException?.Message ?? e.Message, e);
 		}
 	}

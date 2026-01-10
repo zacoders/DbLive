@@ -18,7 +18,7 @@ public class UnitTestItemRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
-		var stopWatch = _timeProvider.StartNewStopwatch();
+		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		try
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(

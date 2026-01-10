@@ -22,7 +22,7 @@ public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) 
 		{
 			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath);
 
-			var settings = JsonSerializer.Deserialize<DbLiveSettings>(
+			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
 				settingsJson,
 				SettingsTools.JsonSerializerOptions);
 

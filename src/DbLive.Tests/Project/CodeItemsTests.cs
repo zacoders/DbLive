@@ -36,7 +36,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
@@ -86,7 +86,7 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
