@@ -16,7 +16,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		Container.InitializeMSSQL();
 
-		var cnn = new DbLiveDbConnection(_fixture.MasterDbConnectionString.SetRandomDatabaseName());
+		var cnn = new DbLiveDbConnection(_fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName());
 		_ = Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
 		Container.InitializeDbLive();

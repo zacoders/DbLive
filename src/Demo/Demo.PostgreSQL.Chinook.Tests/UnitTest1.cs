@@ -1,27 +1,26 @@
 using DbLive;
 using DbLive.Common;
 using DbLive.Deployers.Testing;
-using DbLive.MSSQL;
+using DbLive.PostgreSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
-using Testcontainers.MsSql;
-using Xunit;
+using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
 
-namespace DemoMSSQL.Tests;
+namespace Demo.PostgreSQL.Chinook.Tests;
 
 
-public class MyDbLiveTestingMSSQLFixture()
+public class MyPostgreSQLFixture()
 	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
 {
-	public const string SqlProjectName = "DemoMSSQL";
+	public const string SqlProjectName = "Demo.PostgreSQL.Chinook";
 	public const string DockerImage = "mcr.microsoft.com/mssql/server:2025-latest";
 
-	private static readonly MsSqlContainer _dockerContainer
-		= new MsSqlBuilder(DockerImage)
-				.WithName("DbLive.DemoMSSQL")
-				//.WithReuse(true)
-				.Build();
+	private static readonly PostgreSqlContainer _dockerContainer
+		= new PostgreSqlBuilder("postgres:latest")
+			.WithName("Demo.PostgreSQL.Chinook")
+			//.WithReuse(true)
+			.Build();
 
 	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
@@ -31,24 +30,22 @@ public class MyDbLiveTestingMSSQLFixture()
 		}
 
 		string masterDbCnnString = _dockerContainer.GetConnectionString();
-		string dbCnnString = masterDbCnnString.SetRandomMsSqlDatabaseName();
+		string dbCnnString = masterDbCnnString.SetRandomPostgreSqlDatabaseName();
 
 		// or just local sql server
-		//string dbCnnString = "Server=localhost;Database=master;Trusted_Connection=True;".SetRandomDatabaseName();
+		//string dbCnnString = "...".SetRandomDatabaseName();
 
 		return new DbLiveBuilder()
-			.SqlServer()
+			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(Path.GetFullPath(SqlProjectName));
 	}
 }
 
-public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fixture)
-	: IClassFixture<MyDbLiveTestingMSSQLFixture>
+public class DBTests(ITestOutputHelper _output, MyPostgreSQLFixture _fixture)
+	: IClassFixture<MyPostgreSQLFixture>
 {
-	// TODO: if there are a lot of tests they will be in the same place
-	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
-	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
+	[SqlFact(SqlAssemblyName = MyPostgreSQLFixture.SqlProjectName)]
 	public async Task Sql(string testFileRelativePath)
 	{
 		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath).ConfigureAwait(false);
@@ -57,8 +54,8 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 }
 
 
-public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture fixture)
-	: IClassFixture<MyDbLiveTestingMSSQLFixture>
+public class DeploymentTests(ITestOutputHelper _output, MyPostgreSQLFixture fixture)
+	: IClassFixture<MyPostgreSQLFixture>
 {
 	[Theory]
 	[InlineData(false, UndoTestMode.None)]
@@ -93,12 +90,12 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 	[Trait("Category", "LocalOnly")]
 	public async Task DeployToLocalSqlServerAsync()
 	{
-		string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
-		string projectPath = Path.GetFullPath(MyDbLiveTestingMSSQLFixture.SqlProjectName);
+		string dbCnnString = "Host=localhost;Port=5433;Database=dblive_chinook;Username=postgres;Password=123123;";
+		string projectPath = Path.GetFullPath(MyPostgreSQLFixture.SqlProjectName);
 
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
-			.SqlServer()
+			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectPath);
 

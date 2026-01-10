@@ -16,6 +16,11 @@ public class DbLiveProject(
 
 		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
 
+		if (!_fileSystem.PathExists(codePath))
+		{
+			return [];
+		}
+
 		var subPaths = projectSettings.CodeSubFoldersDeploymentOrder
 			.Select(codePath.CombineWith)
 			.ToList();
