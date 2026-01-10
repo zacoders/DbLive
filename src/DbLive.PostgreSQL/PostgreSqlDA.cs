@@ -1,7 +1,10 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using Npgsql.Schema;
+using System.Collections.ObjectModel;
 using System.Data;
+using System.Data.Common;
 
 namespace DbLive.PostgreSQL;
 
@@ -169,7 +172,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using NpgsqlCommand cmd = new(sqlStatement, cnn);
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 
-			using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
 
 			List<SqlResult> results = [];
 
@@ -195,11 +198,16 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		if (!reader.HasRows && reader.FieldCount == 0) return null;
 
-		var columns = Enumerable.Range(0, reader.FieldCount)
-			.Select(i => new SqlColumn(
-				ColumnName: reader.GetName(i),
-				DataType: reader.GetDataTypeName(i).ToLowerInvariant()
-			)).ToList();
+		ReadOnlyCollection<DbColumn> columnSchema = await reader.GetColumnSchemaAsync().ConfigureAwait(false);
+
+		List<SqlColumn> sqlColumns = [];
+		foreach (DbColumn col in columnSchema)
+		{
+			sqlColumns.Add(new SqlColumn(
+				ColumnName: col.ColumnName,
+				DataType: GetPostgresTypeName(col)
+			));
+		}
 
 		List<SqlRow> rows = [];
 		while (await reader.ReadAsync().ConfigureAwait(false))
@@ -212,9 +220,54 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			rows.Add(r);
 		}
 
-		return new SqlResult(columns, rows);
+		return new SqlResult(sqlColumns, rows);
 	}
 
+	private static string GetPostgresTypeName(DbColumn colraw)
+	{
+		var col = colraw as NpgsqlDbColumn;
+
+		if (col is null) throw new InvalidOperationException("Expected NpgsqlDbColumn.");
+
+		string typeName = col.DataTypeName?.ToLowerInvariant() ?? "unknown";
+
+		return typeName switch
+		{
+			"varchar" or "character varying" => col.ColumnSize > 0 && col.ColumnSize < int.MaxValue
+				? $"varchar({col.ColumnSize})"
+				: "text",
+
+			"bpchar" or "character" => $"char({col.ColumnSize ?? 1})",
+
+			"numeric" or "decimal" => col.NumericPrecision.HasValue
+				? (col.NumericScale.HasValue ? $"numeric({col.NumericPrecision},{col.NumericScale})" : $"numeric({col.NumericPrecision})")
+				: "numeric",
+
+			"timestamp" or "timestamp without time zone" => col.NumericScale.HasValue
+				? $"timestamp({col.NumericScale})"
+				: "timestamp",
+
+			"timestamptz" or "timestamp with time zone" => col.NumericScale.HasValue
+				? $"timestamptz({col.NumericScale})"
+				: "timestamptz",
+
+			"time" or "time without time zone" => col.NumericScale.HasValue
+				? $"time({col.NumericScale})"
+				: "time",
+
+			"bit" => col.ColumnSize > 1 ? $"bit({col.ColumnSize})" : "bit",
+			"varbit" or "bit varying" => $"varbit({col.ColumnSize})",
+
+			"int4" => "integer",
+			"int8" => "bigint",
+			"int2" => "smallint",
+			"float4" => "real",
+			"float8" => "double precision",
+			"bool" => "boolean",
+
+			_ => typeName
+		};
+	}
 
 	public async Task CreateDBAsync(bool skipIfExists = true)
 	{
@@ -233,7 +286,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		if (exists && skipIfExists) return;
 
 		// Use a command builder to safely quote the identifier
-		using var cmd = cnn.CreateCommand();
+		using NpgsqlCommand cmd = cnn.CreateCommand();
 		var quotedDbName = new NpgsqlCommandBuilder().QuoteIdentifier(dbName!);
 		cmd.CommandText = $"CREATE DATABASE {quotedDbName};";
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
