@@ -9,6 +9,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DbLive\DbLive.csproj" />
+	<PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers">
+	  <PrivateAssets>all</PrivateAssets>
+	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	</PackageReference>
     <PackageReference Include="PowerArgs" />
   </ItemGroup>
 

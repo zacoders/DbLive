@@ -1,17 +1,16 @@
-﻿
-namespace DbLive.Tests.Deployers;
+﻿namespace DbLive.Tests.Deployers;
 
 public class DbLiveDeployerTests
 {
 	[Fact]
-	public void Deploy_executes_all_steps_in_correct_order_and_runs_tests_after_transaction()
+	public async Task Deploy_executes_all_steps_in_correct_order_and_runs_tests_after_transaction()
 	{
 		// arrange
 		MockSet mockSet = new();
 
-		var parameters = DeployParameters.Default;
+		DeployParameters parameters = DeployParameters.Default;
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
 			TransactionWrapLevel = TransactionWrapLevel.Deployment,
 			TransactionIsolationLevel = TranIsolationLevel.ReadCommitted,
@@ -21,37 +20,37 @@ public class DbLiveDeployerTests
 		List<string> calls = [];
 
 		mockSet.DowngradeDeployer
-			.When(x => x.Deploy(parameters))
+			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("downgrade"));
 
 		mockSet.FolderDeployer
-			.When(x => x.Deploy(ProjectFolder.BeforeDeploy, parameters))
+			.When(x => x.DeployAsync(ProjectFolder.BeforeDeploy, parameters))
 			.Do(_ => calls.Add("folder-before"));
 
 		mockSet.MigrationsDeployer
-			.When(x => x.Deploy(parameters))
+			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("migrations"));
 
 		mockSet.CodeDeployer
-			.When(x => x.Deploy(parameters))
+			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("code"));
 
 		mockSet.BreakingChangesDeployer
-			.When(x => x.Deploy(parameters))
+			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("breaking"));
 
 		mockSet.FolderDeployer
-			.When(x => x.Deploy(ProjectFolder.AfterDeploy, parameters))
+			.When(x => x.DeployAsync(ProjectFolder.AfterDeploy, parameters))
 			.Do(_ => calls.Add("folder-after"));
 
 		mockSet.UnitTestsRunner
-			.When(x => x.RunAllTests(parameters))
+			.When(x => x.RunAllTestsAsync(parameters))
 			.Do(_ => calls.Add("tests"));
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
+		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
-		deployer.Deploy(parameters);
+		await deployer.DeployAsync(parameters);
 
 		// assert – exact order
 		Assert.Equal(
@@ -70,19 +69,19 @@ public class DbLiveDeployerTests
 
 
 	[Fact]
-	public void Deploy_logs_start_and_completion()
+	public async Task Deploy_logs_start_and_completion()
 	{
 		// arrange
 		MockSet mockSet = new();
 
-		var parameters = DeployParameters.Default;
+		DeployParameters parameters = DeployParameters.Default;
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings());
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
-		var deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
+		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
-		deployer.Deploy(parameters);
+		await deployer.DeployAsync(parameters);
 
 		// assert
 		mockSet.Logger.Received(1).Information("Starting project deploy.");

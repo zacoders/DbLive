@@ -2,5 +2,5 @@
 
 public interface IDbLiveSelfDeployer
 {
-	void Deploy();
+	Task DeployAsync();
 }

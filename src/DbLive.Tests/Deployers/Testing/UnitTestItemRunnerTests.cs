@@ -1,15 +1,14 @@
-
 namespace DbLive.Tests.Deployers.Testing;
 
 public class UnitTestItemRunnerTests
 {
 	[Fact]
-	public void RunTest()
+	public async Task RunTest()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -30,12 +29,12 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+		await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 			Arg.Is(testItem.FileData.Content),
 			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)
@@ -51,12 +50,12 @@ public class UnitTestItemRunnerTests
 
 
 	[Fact]
-	public void RunTest_With_InitFileData()
+	public async Task RunTest_With_InitFileData()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -77,7 +76,7 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert
@@ -85,12 +84,12 @@ public class UnitTestItemRunnerTests
 
 		Received.InOrder(() =>
 		{
-			mockSet.DbLiveDA.Received().ExecuteNonQuery(
+			mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(
 				Arg.Is(testItem.InitFileData.Content),
 				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
 			);
-			mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+			mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 				Arg.Is(testItem.FileData.Content),
 				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
@@ -105,12 +104,12 @@ public class UnitTestItemRunnerTests
 	}
 
 	[Fact]
-	public void RunTest_TestFailed_Exception()
+	public async Task RunTest_TestFailed_Exception()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		var runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
 
 		DateTime startUtc = DateTime.UtcNow;
 		DateTime endUtc = startUtc.AddSeconds(1);
@@ -121,7 +120,7 @@ public class UnitTestItemRunnerTests
 		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
 
 		mockSet.DbLiveDA
-			.When(fake => fake.ExecuteQueryMultiple(Arg.Any<string>(), TranIsolationLevel.Serializable, Arg.Any<TimeSpan>()))
+			.When(fake => fake.ExecuteQueryMultipleAsync(Arg.Any<string>(), TranIsolationLevel.Serializable, Arg.Any<TimeSpan>()))
 			.Throw<Exception>();
 
 		TestItem testItem = new()
@@ -132,12 +131,12 @@ public class UnitTestItemRunnerTests
 		};
 
 		// Act
-		TestRunResult result = runner.RunTest(testItem);
+		TestRunResult result = await runner.RunTestAsync(testItem);
 
 
 		// Assert
 		mockSet.DbLiveDA.Received(1);
-		mockSet.DbLiveDA.Received().ExecuteQueryMultiple(
+		await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
 			Arg.Is(testItem.FileData.Content),
 			TranIsolationLevel.Serializable,
 			TimeSpan.FromMinutes(1)

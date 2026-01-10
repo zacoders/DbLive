@@ -1,0 +1,35 @@
+﻿<Project>
+	<PropertyGroup>
+
+		<!--
+		Enables built-in .NET (Roslyn) analyzers for all projects in the solution.
+		Without this, many important diagnostics (async, nullability, code quality, etc.) will not run.
+		-->
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+		<!--
+		Sets the analyzer ruleset to the latest available version for the current SDK.
+		This enables new rules automatically when you upgrade .NET SDK.
+		Gives maximum static analysis coverage.
+		-->
+		<AnalysisLevel>latest</AnalysisLevel>
+
+		<!--
+		Treats ALL warnings as build errors.
+		This guarantees that:
+		  - no forgotten async/await slips in
+		  - no ignored return values slip in
+		  - no analyzer warnings are silently ignored
+		This enforces "broken code does not compile" discipline.
+		-->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!--
+		Forces code style analyzers (IDE**** rules) to be enforced during build, not only in IDE.
+		Without this, some rules only show as hints in Visual Studio and do not fail CI/build.
+		This makes formatting and style rules part of the build contract.
+		-->
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+	</PropertyGroup>
+</Project>

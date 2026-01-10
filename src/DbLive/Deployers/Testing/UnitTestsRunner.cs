@@ -1,4 +1,5 @@
 ﻿
+
 namespace DbLive.Deployers.Testing;
 
 public class UnitTestsRunner(
@@ -10,10 +11,11 @@ public class UnitTestsRunner(
 	) : IUnitTestsRunner
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
-	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
 
-	public void RunAllTests(DeployParameters parameters)
+	public async Task RunAllTestsAsync(DeployParameters parameters)
 	{
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
 		if (!parameters.RunTests)
 		{
 			return;
@@ -21,15 +23,18 @@ public class UnitTestsRunner(
 
 		_logger.Information("Running Tests.");
 
-		var tests = _project.GetTests();
+		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync().ConfigureAwait(false);
 
 		TestsRunResults runResults = new();
 
-		var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = _projectSettings.NumberOfThreadsForTestsRun };
-
-		Parallel.ForEach(tests, parallelOptions, test =>
+		var parallelOptions = new ParallelOptions
 		{
-			var testResult = _unitTestItemRunner.RunTest(test);
+			MaxDegreeOfParallelism = projectSettings.NumberOfThreadsForTestsRun
+		};
+
+		await Parallel.ForEachAsync(tests, parallelOptions, async (test, ct) =>
+		{
+			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test).ConfigureAwait(false);
 
 			if (testResult.IsSuccess)
 			{
@@ -42,7 +47,7 @@ public class UnitTestsRunner(
 				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
-			_da.SaveUnitTestResult(
+			await _da.SaveUnitTestResultAsync(
 				new UnitTestItemDto
 				{
 					RelativePath = test.FileData.RelativePath,
@@ -52,8 +57,8 @@ public class UnitTestsRunner(
 					IsSuccess = testResult.IsSuccess,
 					ErrorMessage = testResult.ErrorMessage
 				}
-			);
-		});
+			).ConfigureAwait(false);
+		}).ConfigureAwait(false);
 
 		_logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
 			runResults.PassedCount, runResults.FailedCount);

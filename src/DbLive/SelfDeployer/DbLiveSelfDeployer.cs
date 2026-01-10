@@ -1,4 +1,3 @@
-
 namespace DbLive.SelfDeployer;
 
 internal class DbLiveSelfDeployer(
@@ -11,27 +10,27 @@ internal class DbLiveSelfDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
 
-	public void Deploy()
+	public async Task DeployAsync()
 	{
-		DbLiveSettings projectSettings = _projectSettings.ProjectSettings;
+		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		if (projectSettings.LogSelfDeploy)
 		{
 			_logger.Information("Starting self deploy.");
 		}
 
-		IEnumerable<InternalMigration> migrationsToApply = _internalProject.GetMigrations();
+		IEnumerable<InternalMigration> migrationsToApply = await _internalProject.GetMigrationsAsync().ConfigureAwait(false);
 
-		if (_da.DbLiveInstalled())
+		if (await _da.DbLiveInstalledAsync().ConfigureAwait(false))
 		{
-			int appliedVersion = _da.GetDbLiveVersion();
+			int appliedVersion = await _da.GetDbLiveVersionAsync().ConfigureAwait(false);
 			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 		}
 
-		foreach (var migration in migrationsToApply)
+		foreach (InternalMigration migration in migrationsToApply)
 		{
-			_da.ExecuteNonQuery(migration.FileData.Content);
-			_da.SetDbLiveVersion(migration.Version, _timeProvider.UtcNow());
+			await _da.ExecuteNonQueryAsync(migration.FileData.Content).ConfigureAwait(false);
+			await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
 		}
 
 		if (projectSettings.LogSelfDeploy)

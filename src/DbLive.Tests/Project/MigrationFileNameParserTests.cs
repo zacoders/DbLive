@@ -19,7 +19,7 @@ public class MigrationFileNameParserTests
 	[InlineData("001.b.sql", MigrationItemType.Breaking)]
 	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
 	{
-		var result = MigrationFileNameParser.GetMigrationInfo(file);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
 		Assert.Equal(expectedType, result.MigrationItemType);
@@ -31,7 +31,7 @@ public class MigrationFileNameParserTests
 	[InlineData("001.s.json")]
 	public void Parses_Settings_Json_Correctly(string file)
 	{
-		var result = MigrationFileNameParser.GetMigrationInfo(file);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(MigrationItemType.Settings, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
@@ -62,7 +62,7 @@ public class MigrationFileNameParserTests
 	[Fact]
 	public void Unknown_Type_With_Sql_Defaults_To_Migration()
 	{
-		var result = MigrationFileNameParser.GetMigrationInfo("003.some-random.sql");
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("003.some-random.sql");
 
 		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
 		Assert.Equal("some-random", result.Name);
@@ -86,7 +86,7 @@ public class MigrationFileNameParserTests
 	[Fact]
 	public void Parses_Migration_Name_When_Present()
 	{
-		var result = MigrationFileNameParser.GetMigrationInfo("010.migration.create-users.sql");
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("010.migration.create-users.sql");
 
 		Assert.Equal("create-users", result.Name);
 		Assert.Equal(10, result.Version);

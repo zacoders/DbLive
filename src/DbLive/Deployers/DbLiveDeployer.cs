@@ -1,3 +1,4 @@
+
 namespace DbLive.Deployers;
 
 public class DbLiveDeployer(
@@ -14,33 +15,33 @@ public class DbLiveDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting project deploy.");
 
-		DbLiveSettings projectSettings = _projectSettings.ProjectSettings;
+		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		_transactionRunner.ExecuteWithinTransaction(
+		await _transactionRunner.ExecuteWithinTransactionAsync(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
 			projectSettings.TransactionIsolationLevel,
 			projectSettings.DeploymentTimeout,
-			() =>
+			async () =>
 			{
-				_downgradeDeployer.Deploy(parameters);
+				await _downgradeDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
-				_folderDeployer.Deploy(ProjectFolder.BeforeDeploy, parameters);
+				await _folderDeployer.DeployAsync(ProjectFolder.BeforeDeploy, parameters).ConfigureAwait(false);
 
-				_migrationsDeployer.Deploy(parameters);
+				await _migrationsDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
-				_codeDeployer.Deploy(parameters);
+				await _codeDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
-				_breakingChangesDeployer.Deploy(parameters);
+				await _breakingChangesDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
-				_folderDeployer.Deploy(ProjectFolder.AfterDeploy, parameters);
+				await _folderDeployer.DeployAsync(ProjectFolder.AfterDeploy, parameters).ConfigureAwait(false);
 			}
-		);
+		).ConfigureAwait(false);
 
-		_unitTestsRunner.RunAllTests(parameters);
+		await _unitTestsRunner.RunAllTestsAsync(parameters).ConfigureAwait(false);
 
 		_logger.Information("Project deploy completed.");
 	}

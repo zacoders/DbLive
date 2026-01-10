@@ -27,7 +27,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	{
 		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
-			await _dockerContainer.StartAsync();
+			await _dockerContainer.StartAsync().ConfigureAwait(false);
 		}
 
 		string masterDbCnnString = _dockerContainer.GetConnectionString();
@@ -49,9 +49,9 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	// TODO: if there are a lot of tests they will be in the same place
 	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
 	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
-	public void Sql(string testFileRelativePath)
+	public async Task Sql(string testFileRelativePath)
 	{
-		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, testFileRelativePath);
+		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath).ConfigureAwait(false);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }
@@ -72,10 +72,12 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 		_output.WriteLine($"Deploying with breaking={breaking}, undoTestingMode={undoTestingMode}");
 
 		DbLiveBuilder builder = await fixture.GetBuilderAsync();
-		builder.LogToXUnitOutput(_output);
-		IDbLive deployer = builder.CreateDeployer();
+		
+		IDbLive deployer = builder
+			.LogToXUnitOutput(_output)
+			.CreateDeployer();
 
-		deployer.Deploy(new DeployParameters
+		await deployer.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = breaking,
@@ -100,9 +102,9 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectPath);
 
-		var deployer = builder.CreateDeployer();
+		IDbLive deployer = builder.CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,

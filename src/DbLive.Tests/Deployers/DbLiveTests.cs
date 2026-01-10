@@ -10,7 +10,7 @@ public class DbLiveTests
 
 		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -18,12 +18,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.Received().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveDA.Received().CreateDBAsync();
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 
 
@@ -33,7 +33,7 @@ public class DbLiveTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -41,12 +41,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveDA.DidNotReceive().CreateDBAsync();
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 
 
@@ -58,7 +58,7 @@ public class DbLiveTests
 
 		//mockSet.DbLiveInternalDeployer.SelfDeployProjectInternal();
 
-		var dbLive = mockSet.CreateUsingMocks<DbLive>();
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
 
 		DeployParameters parameters = new()
 		{
@@ -66,12 +66,12 @@ public class DbLiveTests
 		};
 
 		// Act
-		dbLive.Deploy(parameters);
+		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.Received().DropDB();
-		mockSet.DbLiveDA.Received().CreateDB();
-		mockSet.DbLiveSelfDeployer.Received().Deploy();
-		mockSet.DbLiveInternalDeployer.Received().Deploy(Arg.Is(parameters));
+		mockSet.DbLiveDA.Received().DropDBAsync();
+		mockSet.DbLiveDA.Received().CreateDBAsync();
+		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
+		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
 }

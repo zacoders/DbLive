@@ -8,12 +8,13 @@ public sealed class DbLiveBuilder
 	{
 		_registrations.Add(services =>
 		{
-			services.AddSingleton<ILogger>(Serilog.Core.Logger.None);
-			services.InitializeDbLive();
+			services
+				.AddSingleton<ILogger>(Serilog.Core.Logger.None)
+				.InitializeDbLive();
 		});
 	}
 
-	
+
 	public DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
 	{
 		_registrations.Add(configure);
@@ -24,7 +25,7 @@ public sealed class DbLiveBuilder
 	{
 		var services = new ServiceCollection();
 
-		foreach (var registration in _registrations)
+		foreach (Action<IServiceCollection> registration in _registrations)
 		{
 			registration(services);
 		}

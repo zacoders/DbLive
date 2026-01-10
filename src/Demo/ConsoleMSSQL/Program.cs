@@ -5,13 +5,13 @@ using DbLive.MSSQL;
 string connectionString = "Server=.;Database=Test1;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=True;";
 string projectPath = Path.GetFullPath(typeof(Program).Assembly.GetName().Name!);
 
-var sqlDeploy = new DbLiveBuilder()
+IDbLive sqlDeploy = new DbLiveBuilder()
 	.SqlServer()
 	.SetDbConnection(connectionString)
 	.SetProjectPath(projectPath)
 	.LogToConsole()
 	.CreateDeployer();
 
-sqlDeploy.Deploy(parameters: DeployParameters.Default);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.Default).ConfigureAwait(false);
 
-sqlDeploy.Deploy(parameters: DeployParameters.BreakingAndTests);
+await sqlDeploy.DeployAsync(parameters: DeployParameters.BreakingAndTests).ConfigureAwait(false);

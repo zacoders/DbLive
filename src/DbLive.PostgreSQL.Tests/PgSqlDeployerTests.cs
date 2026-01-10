@@ -1,13 +1,14 @@
 using DbLive.Adapter;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
+using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>
+public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
 	private readonly IDbLiveDA _da;
 
@@ -17,45 +18,51 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		Container.InitializeDbLive();
 
 		var cnn = new DbLiveDbConnection(_fixture.PostgresDBConnectionString);
-		Container.AddSingleton<IDbLiveDbConnection>(cnn);
-
+		_ = Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
 		_da = GetService<IDbLiveDA>();
-
-		_da.CreateDB();
 	}
 
+	public async Task InitializeAsync()
+	{
+		await _da.CreateDBAsync().ConfigureAwait(false);
+	}
+	
+	public Task DisposeAsync()
+	{
+		return Task.CompletedTask;
+	}
 
 	[Fact]
-	public void TransactionTest_Simple()
+	public async Task TransactionTest_Simple()
 	{
 		var sql = "select 1 as col";
 
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(sql);
+		await _da.ExecuteNonQueryAsync(sql);
 
 		tran.Complete();
 	}
 
 	[Fact]
-	public void ExecuteNonQuery_Simple()
+	public async Task ExecuteNonQuery_Simple()
 	{
 		var sql = "select 1 as col";
 
-		_da.ExecuteNonQuery(sql);
+		await _da.ExecuteNonQueryAsync(sql);
 	}
 
 	[Fact]
-	public void DbLiveSqlException_Expected()
+	public async Task DbLiveSqlException_Expected()
 	{
 		var sql = "se_le_ct 1 as col";
 
-		Assert.Throws<DbLiveSqlException>(() => _da.ExecuteNonQuery(sql));
+		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => _da.ExecuteNonQueryAsync(sql));
 	}
 
 	[Fact]
-	public void ExecuteNonQuery_MultiStatementMsSql()
+	public async Task ExecuteNonQuery_MultiStatementMsSql()
 	{
 		var sql = @"
 			select 1 as col;
@@ -65,21 +72,21 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 			select 3 as col;
 		";
 
-		_da.ExecuteNonQuery(sql);
+		await _da.ExecuteNonQueryAsync(sql);
 	}
 
 
 	[Fact]
-	public void Complex_WithTransaction()
+	public async Task Complex_WithTransaction()
 	{
-		using var tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
+		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			drop sequence if exists public.s_test_id;
 			drop table if exists Test;
 		");
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			create sequence if not exists public.s_test_id
 			  increment 1
 			  minvalue 1000
@@ -94,18 +101,18 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 			);
 		");
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			insert into Test ( Name )
 			values ( 'Test1' ), ( 'Test2')
 		");
 
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			select *
 			from Test
 		");
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			drop table if exists Test
 		");
 
@@ -114,9 +121,9 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 
 
 	[Fact]
-	public void TransactionTest()
+	public async Task TransactionTest()
 	{
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			drop table if exists TestTran1;
 		
 			create table TestTran1 (
@@ -129,9 +136,9 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		");
 
 
-		using (var tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
+		using (TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			_da.ExecuteNonQuery(@"
+			await _da.ExecuteNonQueryAsync(@"
 				update TestTran1
 				set name = 'new name' 
 			");
@@ -139,7 +146,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 			tran1.Dispose();
 		}
 
-		_da.ExecuteNonQuery(@"
+		await _da.ExecuteNonQueryAsync(@"
 			do $$ begin
 
 				if ( select count(*) from TestTran1 ) != 2 then
@@ -153,6 +160,6 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 			end $$;  
 		");
 
-		_da.ExecuteNonQuery("drop table if exists TestTran1;");
+		await _da.ExecuteNonQueryAsync("drop table if exists TestTran1;");
 	}
 }

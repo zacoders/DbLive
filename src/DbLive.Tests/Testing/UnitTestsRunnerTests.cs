@@ -1,42 +1,41 @@
-
 namespace DbLive.Tests.Testing;
 
 public class DbLiveTesterTests
 {
 	[Fact]
-	public void RunTest()
+	public async Task RunTest()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
 			new TestItem { Name = "first", FileData = GetFileData("/test/first.sql") },
 			new TestItem { Name = "second", FileData = GetFileData("/test/second.sql") },
 			new TestItem { Name = "third", FileData = GetFileData("/test/third.sql") }
 		]);
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult { IsSuccess = true });
 
 		Action<string> writeLine = Console.WriteLine;
 
-		var tester = mockSet.CreateUsingMocks<DbLiveTester>();
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
 
 		// Act
-		tester.RunTest(writeLine, "/test/first.sql");
+		await tester.RunTestAsync(writeLine, "/test/first.sql");
 
 		// Assert
-		mockSet.DbLiveProject.Received().GetTests();
+		await mockSet.DbLiveProject.Received().GetTestsAsync();
 	}
 
 
 	[Fact]
-	public void RunTest_WithInit()
+	public async Task RunTest_WithInit()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetTests().Returns([
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
 			new TestItem
 			{
 				Name = "first",
@@ -47,18 +46,18 @@ public class DbLiveTesterTests
 			new TestItem { Name = "third", FileData = GetFileData("/test/third.sql") }
 		]);
 
-		mockSet.UnitTestItemRunner.RunTest(Arg.Any<TestItem>())
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult { IsSuccess = true });
 
 		Action<string> writeLine = Console.WriteLine;
 
-		var tester = mockSet.CreateUsingMocks<DbLiveTester>();
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
 
 		// Act
-		tester.RunTest(writeLine, "/test/first.sql");
+		await tester.RunTestAsync(writeLine, "/test/first.sql");
 
 		// Assert
-		mockSet.DbLiveProject.Received().GetTests();
+		await mockSet.DbLiveProject.Received().GetTestsAsync();
 	}
 
 	private static FileData GetFileData(string relativePath)

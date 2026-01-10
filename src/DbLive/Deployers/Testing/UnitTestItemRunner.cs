@@ -8,38 +8,38 @@ public class UnitTestItemRunner(
 	) : IUnitTestItemRunner
 {
 
-	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
-
-	public TestRunResult RunTest(TestItem test)
+	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
+		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
 		TestRunResult result = new()
 		{
 			IsSuccess = false,
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
-		var stopWatch = _timeProvider.StartNewStopwatch();
+		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		try
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(
 				TranIsolationLevel.Serializable,
-				_projectSettings.UnitTestItemTimeout
+				projectSettings.UnitTestItemTimeout
 			);
 
 			if (test.InitFileData is not null)
 			{
-				_da.ExecuteNonQuery(
+				await _da.ExecuteNonQueryAsync(
 					test.InitFileData.Content,
 					TranIsolationLevel.Serializable,
-					_projectSettings.UnitTestItemTimeout
-				);
+					projectSettings.UnitTestItemTimeout
+				).ConfigureAwait(false);
 			}
 
-			List<SqlResult> resutls = _da.ExecuteQueryMultiple(
+			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
 				test.FileData.Content,
 				TranIsolationLevel.Serializable,
-				_projectSettings.UnitTestItemTimeout
-			);
+				projectSettings.UnitTestItemTimeout
+			).ConfigureAwait(false);
 
 			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
 			if (!compareResult.IsValid)

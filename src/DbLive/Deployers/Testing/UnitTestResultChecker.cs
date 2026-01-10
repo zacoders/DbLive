@@ -97,7 +97,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 	private TestRunSqlResults GetTestRunResults(List<SqlResult> multiResult)
 	{
-		int? assertResultIndex = GetExpectedResultPosition(multiResult);
+		int? assertResultIndex = UnitTestResultChecker.GetExpectedResultPosition(multiResult);
 
 		if (!assertResultIndex.HasValue)
 		{
@@ -121,11 +121,11 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		return testRunResults;
 	}
 
-	private int? GetExpectedResultPosition(List<SqlResult> multiResult)
+	private static int? GetExpectedResultPosition(List<SqlResult> multiResult)
 	{
 		if (multiResult.Count(r => r.Columns[0].ColumnName == "assert") > 1)
 		{
-			new Exception("Just one 'assert' result set is allowed.");
+			throw new Exception("Just one 'assert' result set is allowed.");
 		}
 
 		for (int i = 0; i < multiResult.Count; i++)

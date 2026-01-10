@@ -1,14 +1,13 @@
-
 namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationVersionDeployerTests
 {
 	[Fact]
-	public void DeployMigration_EmptyMigration()
+	public async Task DeployMigration_EmptyMigration()
 	{
 		var mockSet = new MockSet();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -16,17 +15,17 @@ public class MigrationVersionDeployerTests
 			Items = []
 		};
 
-		Assert.Throws<InvalidOperationException>(
-			() => deploy.Deploy(migration, DeployParameters.Default)
+		await Assert.ThrowsAsync<InvalidOperationException>(
+			() => deploy.DeployAsync(migration, DeployParameters.Default)
 		);
 	}
 
 	[Fact]
-	public void DeployMigration()
+	public async Task DeployMigration()
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -43,22 +42,22 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.Deploy(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration, DeployParameters.Default);
 
-		mockSet.MigrationItemDeployer.Received(1)
-			.Deploy( 1, Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(1, Arg.Any<MigrationItem>());
 
-		mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+		await mockSet.DbLiveDA.Received()
+		   .SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
-	public void DeployMigration_SkipMigrationTypes()
+	public async Task DeployMigration_SkipMigrationTypes()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		Migration migration = new()
 		{
@@ -86,14 +85,14 @@ public class MigrationVersionDeployerTests
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
 		// Act
-		deploy.Deploy(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration, DeployParameters.Default);
 
 		// Assert
-		mockSet.MigrationItemDeployer.Received()
-			.Deploy(1, Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.Received()
+			.DeployAsync(1, Arg.Any<MigrationItem>());
 
-		mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+		await mockSet.DbLiveDA.Received()
+			.SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	private static FileData GetFileData(string relativePath, string content = "-- default item content")
@@ -108,11 +107,11 @@ public class MigrationVersionDeployerTests
 
 
 	[Fact]
-	public void DeployMigration_WithCustomSettings()
+	public async Task DeployMigration_WithCustomSettings()
 	{
 		MockSet mockSet = new();
 
-		var deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
 		string settingsJson = """
 		{
@@ -142,20 +141,20 @@ public class MigrationVersionDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
 
-		deploy.Deploy(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration, DeployParameters.Default);
 
-		mockSet.MigrationItemDeployer.Received(1)
-			.Deploy(1, Arg.Any<MigrationItem>());
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(1, Arg.Any<MigrationItem>());
 
-		mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersion(migration.Version, new DateTime(2024, 1, 1));
+		await mockSet.DbLiveDA.Received()
+			.SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 
-		mockSet.TransactionRunner.Received(1)
-			.ExecuteWithinTransaction(
+		await mockSet.TransactionRunner.Received(1)
+			.ExecuteWithinTransactionAsync(
 				false,
 				TranIsolationLevel.ReadCommitted,
 				TimeSpan.FromHours(2.5),
-				Arg.Any<Action>()
+				Arg.Any<Func<Task>>()
 			);
 	}
 }

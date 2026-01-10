@@ -12,11 +12,11 @@ internal class TestsRunResults
 
 	internal void IncremenFailed()
 	{
-		Interlocked.Increment(ref failedCount);
+		_ = Interlocked.Increment(ref failedCount);
 	}
 
 	internal void IncremenPassed()
 	{
-		Interlocked.Increment(ref passedCount);
+		_ = Interlocked.Increment(ref passedCount);
 	}
 }

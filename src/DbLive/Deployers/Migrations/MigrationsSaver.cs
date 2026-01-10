@@ -8,20 +8,20 @@ internal class MigrationsSaver(
 		ITimeProvider _timeProvider
 	) : IMigrationsSaver
 {
-	public void Save()
+	public async Task SaveAsync()
 	{
 		// By default saving all migrations, skip content for all except UNDO.
 		// Options can be added to control what to save
 
 		_logger.Information("Saving migration items.");
 
-		IEnumerable<Migration> migrationsToApply = _project.GetMigrations();
+		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
 
 		foreach (Migration migration in migrationsToApply)
 		{
-			foreach ((var _, MigrationItem migrationItem) in migration.Items)
+			foreach ((MigrationItemType _, MigrationItem migrationItem) in migration.Items)
 			{
-				int? hash = _da.GetMigrationHash(migration.Version, migrationItem.MigrationItemType);
+				int? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType).ConfigureAwait(false);
 
 				if (hash.HasValue)
 				{
@@ -38,7 +38,7 @@ internal class MigrationsSaver(
 					}
 				}
 
-				_da.SaveMigrationItem(new MigrationItemSaveDto
+				await _da.SaveMigrationItemAsync(new MigrationItemSaveDto
 				{
 					Version = migration.Version,
 					ItemType = migrationItem.MigrationItemType,
@@ -48,7 +48,7 @@ internal class MigrationsSaver(
 					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : null,
 					ContentHash = migrationItem.FileData.ContentHash,
 					CreatedUtc = _timeProvider.UtcNow()
-				});
+				}).ConfigureAwait(false);
 			}
 		}
 	}

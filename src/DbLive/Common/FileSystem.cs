@@ -25,15 +25,15 @@ public class FileSystem : IFileSystem
 
 	public IEnumerable<string> EnumerateFiles(string path, IEnumerable<string> searchPatterns, IEnumerable<string> excludePatterns, bool subfolders)
 	{
-		var files = EnumerateFiles(path, searchPatterns, subfolders);
-		var excludeFiles = EnumerateFiles(path, excludePatterns, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPatterns, subfolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePatterns, subfolders);
 		return files.Except(excludeFiles);
 	}
 
 	public IEnumerable<string> EnumerateFiles(string path, string searchPattern, string excludePattern, bool subfolders)
 	{
-		var files = EnumerateFiles(path, searchPattern, subfolders);
-		var excludeFiles = EnumerateFiles(path, excludePattern, subfolders);
+		IEnumerable<string> files = EnumerateFiles(path, searchPattern, subfolders);
+		IEnumerable<string> excludeFiles = EnumerateFiles(path, excludePattern, subfolders);
 		return files.Except(excludeFiles);
 	}
 
@@ -52,14 +52,14 @@ public class FileSystem : IFileSystem
 		return !IsDirectoryEmpty(path);
 	}
 
-	public string FileReadAllText(string path) => File.ReadAllText(path);
-	public string[] FileReadAllLines(string path) => File.ReadAllLines(path);
+	public Task<string> FileReadAllTextAsync(string path) => File.ReadAllTextAsync(path);
+	public Task<string[]> FileReadAllLinesAsync(string path) => File.ReadAllLinesAsync(path);
 
-	public FileData ReadFileData(string path, string rootPath)
+	public async Task<FileData> ReadFileDataAsync(string path, string rootPath)
 	{
 		return new FileData
 		{
-			Content = File.ReadAllText(path),
+			Content = await File.ReadAllTextAsync(path).ConfigureAwait(false),
 			FilePath = path,
 			RelativePath = path.GetRelativePath(rootPath)
 		};

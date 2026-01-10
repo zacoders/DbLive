@@ -1,4 +1,5 @@
-﻿using DbLive.Common;
+﻿using DbLive.Adapter;
+using DbLive.Common;
 using DbLive.Testing;
 using Xunit;
 
@@ -15,18 +16,18 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 
 	public async Task InitializeAsync()
 	{
-		DbLiveBuilder builder = await GetBuilderAsync();
+		DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = builder.CreateDeployer();
 
-		_deployer.Deploy(new DeployParameters
+		await _deployer.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,
 			DeployCode = true,
 			DeployMigrations = true,
 			RunTests = false // do not need to run tests, they will be run in VS UI.
-		});
+		}).ConfigureAwait(false);
 
 		Tester = builder.CreateTester();
 	}
@@ -35,9 +36,9 @@ public abstract class DbLiveTestingFixture(bool dropDatabaseOnComplete)
 	{
 		if (dropDatabaseOnComplete)
 		{
-			DbLiveBuilder builder = await GetBuilderAsync();
-			var da = builder.CreateDbLiveDA();
-			da.DropDB();
+			DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
+			IDbLiveDA da = builder.CreateDbLiveDA();
+			await da.DropDBAsync().ConfigureAwait(false);
 		}
 	}
 }

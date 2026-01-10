@@ -1,4 +1,3 @@
-using DbLive.xunit;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
 using System.Collections.Specialized;
@@ -50,9 +49,9 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	{
 		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select name from sys.databases where name like '{TestDbNamePrefix}%'";
-		var reader = cmd.ExecuteReader();
+		SqlDataReader reader = cmd.ExecuteReader();
 		List<string> databases = [];
 		while (reader.Read())
 		{
@@ -71,7 +70,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	protected void DropTestingDatabase(string database, bool ifExists = true)
 	{
-		DropTestingDatabases(new[] { database }, ifExists);
+		DropTestingDatabases([database], ifExists);
 	}
 
 	protected void DropTestingDatabases(IEnumerable<string> databases, bool ifExists)
@@ -90,10 +89,10 @@ public class SqlServerIntegrationBaseTest : IDisposable
 			try
 			{
 				ServerConnection serverCnn = new(cnn);
-				serverCnn.ExecuteNonQuery(new StringCollection {
+				_ = serverCnn.ExecuteNonQuery([
 					$"alter database [{database}] set single_user with rollback immediate;",
 					$"drop database[{ database}];"
-				});
+				]);
 				serverCnn.Disconnect();
 			}
 			catch (ExecutionFailureException e)
@@ -108,7 +107,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 	{
 		using SqlConnection cnn = new(_masterDbConnectionString);
 		cnn.Open();
-		var cmd = cnn.CreateCommand();
+		SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = $"select 1 from sys.databases where name = '{database}'";
 		bool exists = cmd.ExecuteScalar() != null;
 		return exists;

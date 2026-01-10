@@ -12,15 +12,13 @@ public class DowngradeDeployer(
 	) : IDowngradeDeployer
 {
 
-	private readonly DbLiveSettings _projectSettings = projectSettingsAccessor.ProjectSettings;
-
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		// verify downgrade needed/allowed
 
-		int databaseVersion = _da.GetCurrentMigrationVersion();
+		int databaseVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
 
-		int projectVersion = _project.GetMigrations().Max(m => m.Version);
+		int projectVersion = (await _project.GetMigrationsAsync().ConfigureAwait(false)).Max(m => m.Version);
 
 		if (databaseVersion <= projectVersion)
 		{
@@ -41,17 +39,17 @@ public class DowngradeDeployer(
 			projectVersion, databaseVersion
 		);
 
-		IReadOnlyCollection<MigrationItemDto> allMigrations = _da.GetMigrations();
+		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
 		// get undo migrations
-		List<MigrationItemDto> undoMigrations = 
+		List<MigrationItemDto> undoMigrations =
 				allMigrations
 				.Where(m => m.ItemType == MigrationItemType.Undo)
 				.Where(m => m.Version > projectVersion)
 				.OrderByDescending(m => m.Version)
 				.ToList();
 
-		
+
 		// verify we have undo scripts for all migrations to be undone
 
 		HashSet<int> undoVersions = undoMigrations.Select(u => u.Version).ToHashSet();
@@ -73,7 +71,7 @@ public class DowngradeDeployer(
 		// deploy undo migrations
 		foreach (MigrationItemDto undoDto in undoMigrations)
 		{
-			string? undoContent = _da.GetMigrationContent(undoDto.Version, MigrationItemType.Undo);
+			string? undoContent = await _da.GetMigrationContentAsync(undoDto.Version, MigrationItemType.Undo).ConfigureAwait(false);
 
 			if (undoContent is null)
 			{
@@ -89,33 +87,37 @@ public class DowngradeDeployer(
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
 
+		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
 		// all or nothing. online downgrades is not required.
-		_transactionRunner.ExecuteWithinTransaction(
+		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
-			_projectSettings.TransactionIsolationLevel,
-			_projectSettings.DowngradeTimeout,
-			() => {
+			projectSettings.TransactionIsolationLevel,
+			projectSettings.DowngradeTimeout,
+			async () =>
+			{
 				foreach (MigrationItemDto undoDto in undoMigrations)
 				{
 					MigrationItem undoItem = new()
 					{
 						MigrationItemType = MigrationItemType.Undo,
-						FileData = new FileData { 
-							Content = undoContents[undoDto.Version], 
-							FilePath = "", 
+						FileData = new FileData
+						{
+							Content = undoContents[undoDto.Version],
+							FilePath = "",
 							RelativePath = undoDto.RelativePath
 						},
 						Name = undoDto.Name
 					};
 
-					_migrationItemDeployer.Deploy(undoDto.Version, undoItem);
+					await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem).ConfigureAwait(false);
 
 					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
 				}
 
 				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-				_da.SetCurrentMigrationVersion(projectVersion, migrationCompletedUtc);
+				await _da.SetCurrentMigrationVersionAsync(projectVersion, migrationCompletedUtc).ConfigureAwait(false);
 			}
-		);
+		).ConfigureAwait(false);
 	}
 }

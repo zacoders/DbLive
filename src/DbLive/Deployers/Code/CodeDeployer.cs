@@ -1,4 +1,3 @@
-
 namespace DbLive.Deployers.Code;
 
 
@@ -9,10 +8,9 @@ public class CodeDeployer(
 	ISettingsAccessor settingsAccessor
 ) : ICodeDeployer
 {
-	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));	
-	private readonly DbLiveSettings _projectSettings = settingsAccessor.ProjectSettings;
+	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -21,22 +19,24 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		foreach (CodeGroup group in _project.GetCodeGroups())
+		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
 		{
-			DeployGroup(group.CodeItems, parameters);
+			await DeployGroupAsync(group.CodeItems).ConfigureAwait(false);
 		}
 
 		_logger.Information("Code deploy successfully completed.");
 	}
 
-	internal void DeployGroup(IReadOnlyCollection<CodeItem> codeItems, DeployParameters parameters)
+	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
 	{
+		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
 		var cts = new CancellationTokenSource();
 
 		var queue = new ConcurrentQueue<CodeItem>();
 		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-		foreach (var item in codeItems)
+		foreach (CodeItem item in codeItems)
 		{
 			queue.Enqueue(item);
 			retryCounters[item.FileData.FilePath] = 0;
@@ -49,12 +49,12 @@ public class CodeDeployer(
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorker(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
+				=> CreateWorkerAsync(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
 
-		Task.WaitAll(workers);
+		_ = await Task.WhenAll(workers).ConfigureAwait(false);
 
 		List<Exception> exceptions = [.. workers.Where(w => w.Result is not null).Select(w => w.Result!)];
 
@@ -67,7 +67,7 @@ public class CodeDeployer(
 		}
 	}
 
-	internal Exception? CreateWorker(
+	internal async Task<Exception?> CreateWorkerAsync(
 		int maxRetries,
 		ConcurrentQueue<CodeItem> queue,
 		ConcurrentDictionary<string, int> retryCounters,
@@ -76,7 +76,7 @@ public class CodeDeployer(
 	{
 		while (!cts.IsCancellationRequested)
 		{
-			if (!queue.TryDequeue(out var codeItem))
+			if (!queue.TryDequeue(out CodeItem? codeItem))
 			{
 				break;
 			}
@@ -85,7 +85,7 @@ public class CodeDeployer(
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
-			CodeItemDeployResult result = _codeItemDeployer.Deploy(codeItem);
+			CodeItemDeployResult result = await _codeItemDeployer.DeployAsync(codeItem).ConfigureAwait(false);
 
 			if (result.IsSuccess)
 			{
@@ -107,7 +107,7 @@ public class CodeDeployer(
 					relativePath, retry
 				);
 
-				cts.Cancel();
+				await cts.CancelAsync().ConfigureAwait(false);
 
 				return result.Exception;
 			}

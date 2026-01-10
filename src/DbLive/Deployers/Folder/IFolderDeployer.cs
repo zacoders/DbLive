@@ -2,5 +2,5 @@
 
 public interface IFolderDeployer
 {
-	void Deploy(ProjectFolder projectFolder, DeployParameters parameters);
+	Task DeployAsync(ProjectFolder projectFolder, DeployParameters parameters);
 }

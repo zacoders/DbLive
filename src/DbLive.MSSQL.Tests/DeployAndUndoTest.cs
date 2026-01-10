@@ -10,7 +10,7 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 	//: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString),
 	: IAssemblyFixture<SqlServerIntegrationFixture>
 {
-	string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
+	private readonly string dbCnnString = _fixture.MasterDbConnectionString.SetRandomDatabaseName();
 	//readonly string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL_UNDO;Trusted_Connection=True;";
 
 	[Fact]
@@ -19,15 +19,15 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 		string projectMSSQL = Path.GetFullPath("DemoMSSQL");
 		string projectMSSQLEmpty = Path.GetFullPath("DemoMSSQLEmpty");
 
-		
-		var deployer = new DbLiveBuilder()
+
+		IDbLive deployer = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectMSSQL)
 			.CreateDeployer();
 
-		var deployerEmptyDb = new DbLiveBuilder()
+		IDbLive deployerEmptyDb = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
@@ -36,7 +36,7 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 
 
 		// First deploy the full project to create the database
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,
@@ -47,10 +47,10 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 				RecreateDatabase = true
 			}
 		);
-		
+
 
 		// Now undo the deployment back to empty database
-		deployerEmptyDb.Deploy(
+		await deployerEmptyDb.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,
@@ -63,7 +63,7 @@ public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutput
 		);
 
 		// redeploy again
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,

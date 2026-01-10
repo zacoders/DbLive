@@ -8,5 +8,5 @@ public interface IUnitTestItemRunner
 	/// <param name="test"></param>
 	/// <param name="settings"></param>
 	/// <returns></returns>
-	TestRunResult RunTest(TestItem test);
+	Task<TestRunResult> RunTestAsync(TestItem test);
 }

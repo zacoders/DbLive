@@ -1,29 +1,37 @@
-﻿
-namespace DbLive.Project;
+﻿namespace DbLive.Project;
 
-public class SettingsAccessor(IProjectPath projectPath, IFileSystem _fileSystem)
-	: ISettingsAccessor
+public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) : ISettingsAccessor
 {
-	readonly string _projectPath = projectPath.Path;
+	private readonly string _projectPath = projectPath.Path;
+	private readonly IFileSystem _fileSystem = fileSystem;
+
 	private readonly DbLiveSettings _defaultSettings = new();
-	private DbLiveSettings? _settings;
 
-	public DbLiveSettings ProjectSettings
+	private Task<DbLiveSettings>? _settingsTask;
+
+	public Task<DbLiveSettings> GetProjectSettingsAsync()
 	{
-		get
+		return _settingsTask ??= LoadSettingsAsync();
+	}
+
+	private async Task<DbLiveSettings> LoadSettingsAsync()
+	{
+		string settingsPath = _projectPath.CombineWith("settings.json");
+
+		if (_fileSystem.FileExists(settingsPath))
 		{
-			if (_settings is not null) return _settings;
+			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath).ConfigureAwait(false);
 
-			string settingsPath = _projectPath.CombineWith("settings.json");
-			if (_fileSystem.FileExists(settingsPath))
+			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
+				settingsJson,
+				SettingsTools.JsonSerializerOptions);
+
+			if (settings is not null)
 			{
-				string settingsJson = _fileSystem.FileReadAllText(settingsPath);
-				_settings = JsonSerializer.Deserialize<DbLiveSettings>(settingsJson, SettingsTools.JsonSerializerOptions);
+				return settings;
 			}
-
-			_settings ??= _defaultSettings;
-
-			return _settings;
 		}
+
+		return _defaultSettings;
 	}
 }

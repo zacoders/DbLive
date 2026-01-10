@@ -9,16 +9,16 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.Deploy(new DeployParameters { DeployBreaking = false });
+		deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
 
 		// Assert
-		mockSet.DbLiveDA.DidNotReceive().GetMigrations();
-		mockSet.DbLiveProject.DidNotReceive().GetMigrations();
+		mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
+		mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -27,9 +27,9 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
-		mockSet.DbLiveProject.GetMigrations().Returns([
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
 			new Migration
 		{
 			Version = 1,
@@ -44,14 +44,14 @@ public class BreakingChangesDeployerTests
 		}
 		]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.Deploy(DeployParameters.Breaking);
+		deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -60,7 +60,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			new MigrationItemDto
 			{
 				Version = 2,
@@ -98,19 +98,19 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrations().Returns([migration2, migration3]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration2, migration3]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.Deploy(DeployParameters.Breaking);
+		deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
 		mockSet.MigrationItemDeployer.Received(1)
-			.Deploy(3, migration3.Items[MigrationItemType.Breaking]);
+			.DeployAsync(3, migration3.Items[MigrationItemType.Breaking]);
 
 		mockSet.MigrationItemDeployer.DidNotReceive()
-			.Deploy(2, Arg.Any<MigrationItem>());
+			.DeployAsync(2, Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -119,7 +119,7 @@ public class BreakingChangesDeployerTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.DbLiveDA.GetMigrations().Returns([]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		Migration migration1 = new()
 		{
@@ -147,21 +147,21 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrations().Returns([migration1, migration2]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
 
-		var deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		deployer.Deploy(DeployParameters.Breaking);
+		deployer.DeployAsync(DeployParameters.Breaking);
 
 		// Assert
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer
-				.Deploy(1, migration1.Items[MigrationItemType.Breaking]);
+				.DeployAsync(1, migration1.Items[MigrationItemType.Breaking]);
 
 			mockSet.MigrationItemDeployer
-				.Deploy(2, migration2.Items[MigrationItemType.Breaking]);
+				.DeployAsync(2, migration2.Items[MigrationItemType.Breaking]);
 		});
 	}
 

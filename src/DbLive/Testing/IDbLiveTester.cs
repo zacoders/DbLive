@@ -3,5 +3,5 @@ namespace DbLive.Testing;
 
 public interface IDbLiveTester
 {
-	TestRunResult RunTest(Action<string> writeLine, string relativePath);
+	Task<TestRunResult> RunTestAsync(Action<string> writeLine, string relativePath);
 }

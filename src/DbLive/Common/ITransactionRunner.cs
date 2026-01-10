@@ -3,5 +3,10 @@ namespace DbLive.Common;
 
 public interface ITransactionRunner
 {
-	void ExecuteWithinTransaction(bool needTransaction, TranIsolationLevel isolationLevel, TimeSpan timeout, Action action);
+	Task ExecuteWithinTransactionAsync(
+		bool needTransaction,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout,
+		Func<Task> action
+	);
 }

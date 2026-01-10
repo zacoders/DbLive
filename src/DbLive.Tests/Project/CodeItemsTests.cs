@@ -3,7 +3,7 @@ namespace DbLive.Tests.Project;
 public class CodeItemsTests
 {
 	[Fact]
-	public void GetCodeItems()
+	public async Task GetCodeItems()
 	{
 		MockSet mockSet = new();
 
@@ -25,7 +25,7 @@ public class CodeItemsTests
 			codePath.CombineWith(@"sub").CombineWith("item2.sql")
 		]);
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
 			.ReturnsForAnyArgs(call =>
 			new FileData
 			{
@@ -34,9 +34,9 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var codeGroups = sqlProject.GetCodeGroups().ToList();
+		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
 		Assert.NotNull(codeGroups);
 		Assert.Single(codeGroups);
@@ -45,11 +45,11 @@ public class CodeItemsTests
 
 
 	[Fact]
-	public void GetCodeItems_With_CodeSubFoldersDeploymentOrder()
+	public async Task GetCodeItems_With_CodeSubFoldersDeploymentOrder()
 	{
 		MockSet mockSet = new();
 
-		mockSet.SettingsAccessor.ProjectSettings.Returns(new DbLiveSettings
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
@@ -75,7 +75,7 @@ public class CodeItemsTests
 			codePath.CombineWith(@"sub2").CombineWith("item1.sql")
 		]);
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
 			.ReturnsForAnyArgs(call =>
 			new FileData
 			{
@@ -84,9 +84,9 @@ public class CodeItemsTests
 				RelativePath = ""
 			});
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var codeGroups = sqlProject.GetCodeGroups().ToList();
+		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
 		Assert.NotNull(codeGroups);
 		Assert.Equal(3, codeGroups.Count);

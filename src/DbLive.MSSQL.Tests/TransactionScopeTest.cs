@@ -10,17 +10,17 @@ namespace DbLive.MSSQL.Tests;
 public class TransactionScopeTest(SqlServerIntegrationFixture _fixture) : IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
-	public void Test1()
+	public async Task Test1()
 	{
-		using TransactionScope transactionScope = new();
+		using TransactionScope transactionScope = TransactionScopeManager.Create();
 
 		SqlConnection cnn1 = new(_fixture.MasterDbConnectionString);
-		cnn1.Open();
-		cnn1.Close();
+		await cnn1.OpenAsync();
+		await cnn1.CloseAsync();
 
 		SqlConnection cnn2 = new(_fixture.MasterDbConnectionString);
-		cnn2.Open();
-		cnn2.Close();
+		await cnn2.OpenAsync();
+		await cnn2.CloseAsync();
 
 		transactionScope.Complete();
 	}

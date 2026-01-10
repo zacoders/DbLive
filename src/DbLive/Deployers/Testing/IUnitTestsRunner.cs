@@ -2,5 +2,5 @@
 
 public interface IUnitTestsRunner
 {
-	void RunAllTests(DeployParameters parameters);
+	Task RunAllTestsAsync(DeployParameters parameters);
 }

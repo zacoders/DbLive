@@ -1,3 +1,4 @@
+
 namespace DbLive.Deployers.Folder;
 
 public class FolderDeployer(
@@ -9,13 +10,12 @@ public class FolderDeployer(
 	) : IFolderDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
-	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
-	public void Deploy(ProjectFolder projectFolder, DeployParameters parameters)
+	public async Task DeployAsync(ProjectFolder projectFolder, DeployParameters parameters)
 	{
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 
-		ReadOnlyCollection<GenericItem> items = _project.GetFolderItems(projectFolder);
+		ReadOnlyCollection<GenericItem> items = await _project.GetFolderItemsAsync(projectFolder).ConfigureAwait(false);
 
 		if (items.Count == 0)
 		{
@@ -25,31 +25,33 @@ public class FolderDeployer(
 
 		foreach (GenericItem item in items)
 		{
-			DeployItem(projectFolder, item);
+			await DeployItemAsync(projectFolder, item).ConfigureAwait(false);
 		}
 
 		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed..", projectFolder);
 	}
 
-	private void DeployItem(ProjectFolder projectFolder, GenericItem item)
+	private async Task DeployItemAsync(ProjectFolder projectFolder, GenericItem item)
 	{
 		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
 
-		_da.ExecuteNonQuery(
+		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		await _da.ExecuteNonQueryAsync(
 			item.FileData.Content,
-			_projectSettings.TransactionIsolationLevel,
+			projectSettings.TransactionIsolationLevel,
 			projectFolder switch
 			{
-				ProjectFolder.BeforeDeploy => _projectSettings.BeforeDeployFolderTimeout,
-				ProjectFolder.AfterDeploy => _projectSettings.AfterDeployFolderTimeout,
+				ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
+				ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
 				_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 			}
-		);
+		).ConfigureAwait(false);
 
 		DateTime completedUtc = _timeProvider.UtcNow();
 
-		_da.MarkItemAsApplied(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds);
+		await _da.MarkItemAsAppliedAsync(projectFolder, item.FileData.RelativePath, startedUtc, completedUtc, (long)(completedUtc - startedUtc).TotalMilliseconds).ConfigureAwait(false);
 	}
 }

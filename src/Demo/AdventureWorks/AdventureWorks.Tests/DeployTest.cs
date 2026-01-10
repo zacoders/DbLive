@@ -2,6 +2,7 @@ using DbLive;
 using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;
@@ -13,9 +14,9 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 	[Fact]
 	public async Task DeployAsync()
 	{
-		var deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
+		IDbLive deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,
@@ -40,9 +41,9 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 			.SetDbConnection(dbCnnString)
 			.SetProjectPath(projectPath);
 
-		var deployer = builder.CreateDeployer();
+		IDbLive deployer = builder.CreateDeployer();
 
-		deployer.Deploy(
+		await deployer.DeployAsync(
 			new DeployParameters
 			{
 				CreateDbIfNotExists = true,

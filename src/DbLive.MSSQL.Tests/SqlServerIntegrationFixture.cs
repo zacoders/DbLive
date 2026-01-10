@@ -19,13 +19,13 @@ public class SqlServerIntegrationFixture : IAsyncLifetime
 	{
 		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
-			await _dockerContainer.StartAsync();
+			await _dockerContainer.StartAsync().ConfigureAwait(false);
 		}
 		_masterDbConnectionString = _dockerContainer.GetConnectionString();
 	}
 
 	public async Task DisposeAsync()
 	{
-		await _dockerContainer.DisposeAsync().AsTask();
+		await _dockerContainer.DisposeAsync().AsTask().ConfigureAwait(false);
 	}
 }

@@ -22,7 +22,7 @@ public class MyDbLiveTestingMSSQLFixture()
 	{
 		if (_dockerContainer.State != TestcontainersStates.Running)
 		{
-			await _dockerContainer.StartAsync();
+			await _dockerContainer.StartAsync().ConfigureAwait(false);
 		}
 
 		string masterDbCnnString = _dockerContainer.GetConnectionString();

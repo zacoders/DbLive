@@ -12,23 +12,23 @@ public class DbLive(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLive));
 
-	public void Deploy(DeployParameters parameters)
+	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting deployment.");
 
 		if (parameters.RecreateDatabase)
 		{
-			_da.DropDB();
-			_da.CreateDB();
+			await _da.DropDBAsync().ConfigureAwait(false);
+			await _da.CreateDBAsync().ConfigureAwait(false);
 		}
 
 		if (parameters.CreateDbIfNotExists)
-			_da.CreateDB(true);
+			await _da.CreateDBAsync(true).ConfigureAwait(false);
 
 		// Self deploy. Deploying DbLive to the database
-		_selfDeployer.Deploy();
+		await _selfDeployer.DeployAsync().ConfigureAwait(false);
 
 		// Deploy actual project
-		_deployer.Deploy(parameters);
+		await _deployer.DeployAsync(parameters).ConfigureAwait(false);
 	}
 }

@@ -2,5 +2,5 @@
 
 public interface IVsProjectPathAccessor
 {
-	string VisualStudioProjectPath { get; }
+	Task<string> GetVisualStudioProjectPathAsync();
 }

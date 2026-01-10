@@ -2,16 +2,21 @@
 
 public class TransactionRunner : ITransactionRunner
 {
-	public void ExecuteWithinTransaction(bool needTransaction, TranIsolationLevel isolationLevel, TimeSpan timeout, Action action)
+	public async Task ExecuteWithinTransactionAsync(
+		bool needTransaction,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout,
+		Func<Task> action
+	)
 	{
 		if (!needTransaction)
 		{
-			action();
+			await action().ConfigureAwait(false);
 			return;
 		}
 
 		using TransactionScope _transactionScope = TransactionScopeManager.Create(isolationLevel, timeout);
-		action();
+		await action().ConfigureAwait(false);
 		_transactionScope.Complete();
 	}
 }

@@ -8,37 +8,37 @@ public class CodeItemDeployer(
 	) : ICodeItemDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(CodeItemDeployer));
-	private readonly DbLiveSettings _projectSettings = _projectSettingsAccessor.ProjectSettings;
 
 	/// <inheritdoc/>
-	public CodeItemDeployResult Deploy(CodeItem codeItem)
+	public async Task<CodeItemDeployResult> DeployAsync(CodeItem codeItem)
 	{
+		DbLiveSettings _projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{
-			CodeItemDto? codeItemDto = _da.FindCodeItem(codeItem.FileData.RelativePath);
+			CodeItemDto? codeItemDto = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
 			if (codeItemDto != null
 				&& codeItemDto.ContentHash == codeItem.FileData.ContentHash
 				&& codeItemDto.Status == CodeItemStatus.Applied)
 			{
-				_da.MarkCodeAsVerified(codeItem.FileData.RelativePath, _timeProvider.UtcNow());
+				await _da.MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, _timeProvider.UtcNow()).ConfigureAwait(false);
 				_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
 				return CodeItemDeployResult.Success();
 			}
 
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
-			_da.ExecuteNonQuery(
+			await _da.ExecuteNonQueryAsync(
 				codeItem.FileData.Content,
 				_projectSettings.TransactionIsolationLevel,
 				_projectSettings.CodeItemTimeout
-			);
+			).ConfigureAwait(false);
 
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
 
-			_da.SaveCodeItem(new CodeItemDto()
+			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Applied,
@@ -47,7 +47,7 @@ public class CodeItemDeployer(
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),
 				ErrorMessage = ""
-			});
+			}).ConfigureAwait(false);
 
 			return CodeItemDeployResult.Success();
 		}
@@ -57,7 +57,7 @@ public class CodeItemDeployer(
 
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
-			_da.SaveCodeItem(new CodeItemDto()
+			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
 				Status = CodeItemStatus.Error,
@@ -66,7 +66,7 @@ public class CodeItemDeployer(
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),
 				ErrorMessage = ex.ToString()
-			});
+			}).ConfigureAwait(false);
 			return new CodeItemDeployResult
 			{
 				IsSuccess = false,

@@ -1,5 +1,6 @@
 using DbLive.Deployers.Testing;
 using DbLive.xunit;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;
@@ -8,9 +9,9 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	: IClassFixture<MyDbLiveTestingMSSQLFixture>
 {
 	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
-	public void Sql(string testFileRelativePath)
+	public async Task SqlAsync(string testFileRelativePath)
 	{
-		TestRunResult result = _fixture.Tester!.RunTest(_output.WriteLine, testFileRelativePath);
+		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath).ConfigureAwait(false);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }

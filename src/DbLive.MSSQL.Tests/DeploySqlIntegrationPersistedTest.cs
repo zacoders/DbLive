@@ -14,9 +14,9 @@ public class DeploySqlIntegrationPersistedTest(SqlServerIntegrationFixture _fixt
 	), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
-	public void DeployProject_PersistedDbName()
+	public async Task DeployProject_PersistedDbName()
 	{
-		DbLiveDeployer.Deploy(DeployParameters.Default);
-		DbLiveDeployer.Deploy(DeployParameters.Breaking);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 	}
 }

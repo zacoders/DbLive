@@ -1,4 +1,5 @@
 ﻿using DbLive.Common;
+using DbLive.Project;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -23,12 +24,26 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 		string assemblyName = attr.GetNamedArgument<string>(nameof(SqlFactAttribute.SqlAssemblyName));
 		string projectPath = Path.GetFullPath(assemblyName);
 
-		var project = new DbLiveBuilder()
+		IDbLiveProject project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)
 			.CreateProject();
 
-		string root = project.GetVisualStudioProjectPath();
-		foreach (Project.TestItem testItem in project.GetTests())
+
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+
+		string root = project
+			.GetVisualStudioProjectPathAsync()
+			.GetAwaiter()
+			.GetResult();
+
+		IReadOnlyCollection<TestItem> tests = project
+			.GetTestsAsync()
+			.GetAwaiter()
+			.GetResult();
+
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
+
+		foreach (Project.TestItem testItem in tests)
 		{
 			yield return new SqlXunitTestCase(
 				DiagnosticMessageSink,

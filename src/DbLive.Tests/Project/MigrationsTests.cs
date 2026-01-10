@@ -1,10 +1,11 @@
 
+
 namespace DbLive.Tests.Project;
 
 public class MigrationsTests
 {
 	[Fact]
-	public void TestReadingOfMigrations()
+	public async Task TestReadingOfMigrations()
 	{
 		MockSet mockSet = new();
 
@@ -23,9 +24,9 @@ public class MigrationsTests
 				@"C:/DB.Migrations/003.migration.test3.sql",
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		var migrations = sqlProject.GetMigrations();
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
 
 		Assert.Equal(4, migrations.Count);
 		Assert.Equal(1, migrations[0].Version);
@@ -35,7 +36,7 @@ public class MigrationsTests
 	}
 
 	[Fact]
-	public void TestReadingOfMigrations_Duplicate()
+	public async Task TestReadingOfMigrations_Duplicate()
 	{
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
@@ -46,13 +47,13 @@ public class MigrationsTests
 				@"C:/DB/Migrations/001.migration.dup2.sql"
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		Assert.Throws<DuplicateMigrationItemException>(sqlProject.GetMigrations);
+		await Assert.ThrowsAsync<DuplicateMigrationItemException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]
-	public void TestReadingOfMigrations_BadMigrationVersion()
+	public async Task TestReadingOfMigrations_BadMigrationVersion()
 	{
 		MockSet mockSet = new();
 
@@ -63,18 +64,18 @@ public class MigrationsTests
 				@"C:/DB/Migrations/bad001version.bad-version-migration"
 			]);
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
+		await Assert.ThrowsAsync<MigrationVersionParseException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]
-	public void GetMigrationsToApply()
+	public async Task GetMigrationsToApply()
 	{
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -84,7 +85,7 @@ public class MigrationsTests
 				@"C:/DB/Migrations/004.m.test4.sql",
 			]);
 
-		var migrations = sqlProject.GetMigrations().ToArray();
+		Migration[] migrations = (await sqlProject.GetMigrationsAsync()).ToArray();
 
 		Assert.Equal(4, migrations.Length);
 		Assert.Equal(1, migrations[0].Version);
@@ -94,13 +95,13 @@ public class MigrationsTests
 	}
 
 	[Fact]
-	public void GetMigrationType()
+	public async Task GetMigrationType()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
@@ -110,20 +111,20 @@ public class MigrationsTests
 				@"C:/DB/Migrations/003.breaking.sql"
 			]);
 
-		var migrations = sqlProject.GetMigrations();
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
 
 		Assert.Single(migrations);
 		Assert.Equal(3, migrations[0].Items.Count);
 	}
 
 	[Fact]
-	public void GetMigrationType_SimpleApproach()
+	public async Task GetMigrationType_SimpleApproach()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		//var settings = sqlProject.GetSettings();
 
@@ -134,22 +135,22 @@ public class MigrationsTests
 				@"C:/DB/Migrations/002.b.test.sql"
 			]);
 
-		var migrations = sqlProject.GetMigrations();
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
 
 		Assert.Single(migrations);
 		Assert.Equal(3, migrations[0].Items.Count);
 	}
 
 	[Fact]
-	public void GetMigrationType_MultipleMigrations()
+	public async Task GetMigrationType_MultipleMigrations()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		mockSet.FileSystem.ReadFileData(Arg.Any<string>(), Arg.Any<string>())
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
 			.ReturnsForAnyArgs(call =>
 			new FileData
 			{
@@ -169,11 +170,11 @@ public class MigrationsTests
 				@"C:/DB/Migrations/003.b.sql"
 			]);
 
-		var migrations = sqlProject.GetMigrations();
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
 
 		Assert.Equal(3, migrations.Count);
 
-		var migrationItems = migrations[1].Items;
+		Dictionary<MigrationItemType, MigrationItem> migrationItems = migrations[1].Items;
 
 		Assert.Equal(3, migrationItems.Count);
 		Assert.Equal(@"C:/DB/Migrations/002.m.first.sql", migrationItems[MigrationItemType.Migration].FileData.FilePath);
@@ -185,13 +186,13 @@ public class MigrationsTests
 	}
 
 	[Fact]
-	public void GetMigrationItems_MigrationVersionParseException()
+	public async Task GetMigrationItems_MigrationVersionParseException()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
@@ -200,17 +201,17 @@ public class MigrationsTests
 				@"C:/DB/Migrations/001.undo.sql",
 				@"C:/DB/Migrations/001.breaking.sql"
 			]);
-		Assert.Throws<MigrationVersionParseException>(sqlProject.GetMigrations);
+		await Assert.ThrowsAsync<MigrationVersionParseException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]
-	public void GetMigrationItems_UnknownItemType()
+	public async Task GetMigrationItems_UnknownItemType()
 	{
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns(
@@ -219,17 +220,17 @@ public class MigrationsTests
 				@"C:/DB/Migrations/003.undo.sql",
 				@"C:/DB/Migrations/003.breaking.sql"
 			]);
-		Assert.Throws<UnknownMigrationItemTypeException>(sqlProject.GetMigrations);
+		await Assert.ThrowsAsync<UnknownMigrationItemTypeException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]
-	public void GetMigrations_Throws_when_migration_item_is_missing()
+	public async Task GetMigrations_Throws_when_migration_item_is_missing()
 	{
 		// Arrange
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
 
-		var sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -238,9 +239,9 @@ public class MigrationsTests
 			]);
 
 		// Act
-		void act() => sqlProject.GetMigrations();
+		Task act() => sqlProject.GetMigrationsAsync();
 
 		// assert
-		Assert.Throws<MigrationItemMustExistsException>(act);
+		await Assert.ThrowsAsync<MigrationItemMustExistsException>(act);
 	}
 }
