@@ -5,10 +5,10 @@ namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class DeploySqlIntegrationFullMultiRedeployTest(
+public class DeploySqlIntegrationFullMultiRedeployTests(
 	SqlServerIntegrationFixture _fixture,
 	ITestOutputHelper output
-) : SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
+) : SqlServerIntegrationTestBase(output, _fixture.MasterDbConnectionString), IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
 	public async Task DeployProject_Full_Plus_Breaking()

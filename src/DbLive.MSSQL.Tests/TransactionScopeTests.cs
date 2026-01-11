@@ -7,7 +7,7 @@ namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class TransactionScopeTest(SqlServerIntegrationFixture _fixture) : IAssemblyFixture<SqlServerIntegrationFixture>
+public class TransactionScopeTests(SqlServerIntegrationFixture _fixture) : IAssemblyFixture<SqlServerIntegrationFixture>
 {
 	[Fact]
 	public async Task Test1()

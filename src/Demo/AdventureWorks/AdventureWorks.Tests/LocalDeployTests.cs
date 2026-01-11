@@ -2,23 +2,24 @@ using DbLive;
 using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using Xunit;
 using Xunit.Abstractions;
 
-namespace DemoMSSQL.Tests;
+namespace AdventureWorks.Tests;
 
-public class LocalDeployTest(ITestOutputHelper _output)
+public class LocalDeployTests(ITestOutputHelper _output)
 {
 	[Fact]
 	[Trait("Category", "LocalOnly")]
 	public async Task DeployToLocalSqlServerAsync()
 	{
-		string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
+		string dbCnnString = "Server=localhost;Database=DbLive_AdventureWorks;Trusted_Connection=True;";
 
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath("DemoMSSQL"));
+			.SetProjectPath(Path.GetFullPath("AdventureWorks.Database"));
 
 		IDbLive deployer = builder.CreateDeployer();
 

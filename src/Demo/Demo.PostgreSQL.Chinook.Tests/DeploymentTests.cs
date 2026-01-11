@@ -20,6 +20,7 @@ public class DeploymentTests(ITestOutputHelper _output, MyDeployFixture fixture)
 	[SqlDeployFact]
 	public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
 	{
-		await fixture.DeployAsync(_output, deployBreaking, undoTestMode).ConfigureAwait(false);
+		await fixture.DeployAsync(_output, deployBreaking, undoTestMode);
 	}
 }
+	

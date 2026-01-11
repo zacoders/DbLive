@@ -3,7 +3,7 @@ using Microsoft.SqlServer.Management.Common;
 
 namespace DbLive.MSSQL.Tests;
 
-public class SqlServerIntegrationBaseTest : IDisposable
+public class SqlServerIntegrationTestBase : IDisposable
 {
 	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "DbLive--";
@@ -19,7 +19,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 
 	public ITestOutputHelper Output { get; }
 
-	public SqlServerIntegrationBaseTest(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null, bool keepDatabaseAfterTests = false)
+	public SqlServerIntegrationTestBase(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null, bool keepDatabaseAfterTests = false)
 	{
 		_masterDbConnectionString = masterDbConnectionString;
 		_testingDbName = dbName ?? GetRandomDbName();
