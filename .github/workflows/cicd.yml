@@ -63,11 +63,14 @@ jobs:
     - name: Create DbLive package
       run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
+    - name: Create DbLive.xunit package
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+
     - name: Create DbLive.MSSQL package
       run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
-    - name: Create DbLive.xunit package
-      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+    - name: Create DbLive.PostgreSQL package
+      run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Publish packages
       if: github.ref == 'refs/heads/main'

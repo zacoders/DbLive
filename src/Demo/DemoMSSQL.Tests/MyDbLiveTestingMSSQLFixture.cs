@@ -5,7 +5,6 @@ using DbLive.MSSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.MsSql;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
@@ -31,7 +30,7 @@ public class MyDbLiveTestingMSSQLFixture()
 		}
 
 		string masterDbCnnString = _dockerContainer.GetConnectionString();
-		string dbCnnString = masterDbCnnString.SetRandomDatabaseName();
+		string dbCnnString = masterDbCnnString.SetRandomMsSqlDatabaseName();
 
 		// or just local sql server
 		//string dbCnnString = "Server=localhost;Database=master;Trusted_Connection=True;".SetRandomDatabaseName();

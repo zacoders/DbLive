@@ -31,7 +31,7 @@ public class SqlServerIntegrationBaseTest : IDisposable
 			.LogToXUnitOutput(Output)
 			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()
-			.SetDbConnection(_masterDbConnectionString.SetDatabaseName(_testingDbName))
+			.SetDbConnection(_masterDbConnectionString.SetMsSqlDatabaseName(_testingDbName))
 			.SetProjectPath(_msSqlTestingProjectPath)
 			.CreateDeployer();
 	}
