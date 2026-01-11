@@ -31,10 +31,10 @@
         <PackageReference Include="Serilog.Sinks.XUnit" />
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\DbLive\DbLive.csproj" />
-    </ItemGroup>
-
+	<ItemGroup>
+		<ProjectReference Include="..\DbLive\DbLive.csproj" />
+	</ItemGroup>
+	
 	<ItemGroup>
 		<None Include="..\dblive-icon.png">
 			<Pack>True</Pack>
