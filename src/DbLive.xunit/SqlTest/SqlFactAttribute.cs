@@ -9,7 +9,7 @@ namespace DbLive.xunit.SqlTest;
 /// test method.
 /// </summary>
 
-[XunitTestCaseDiscoverer("DbLive.xunit.SqlTest.SqlFactDiscoverer", "DbLive.xunit")]
+[XunitTestCaseDiscoverer($"DbLive.xunit.SqlTest.{nameof(SqlFactDiscoverer)}", "DbLive.xunit")]
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class SqlFactAttribute : FactAttribute
 {

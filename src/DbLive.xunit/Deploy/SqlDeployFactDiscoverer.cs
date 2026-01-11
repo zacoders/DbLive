@@ -4,7 +4,7 @@ using Xunit.Sdk;
 
 namespace DbLive.xunit.Deploy;
 
-public sealed class SqlDeployTestDiscoverer(IMessageSink diagnosticMessageSink)
+public sealed class SqlDeployFactDiscoverer(IMessageSink diagnosticMessageSink)
 	: IXunitTestCaseDiscoverer
 {
 	public IMessageSink DiagnosticMessageSink { get; } = diagnosticMessageSink ?? throw new ArgumentNullException(nameof(diagnosticMessageSink));

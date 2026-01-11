@@ -31,7 +31,6 @@
         <PackageReference Include="xunit.extensibility.core" />
         <PackageReference Include="xunit.extensibility.execution" />
         <PackageReference Include="Serilog.Sinks.XUnit" />
-		<PackageReference Include="Testcontainers.PostgreSql" />
     </ItemGroup>
 
     <ItemGroup>

@@ -21,13 +21,6 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			nameof(SqlFactAttribute.TestFixture)
 		);
 
-		//if (!typeof(DbLiveTestingFixture).IsAssignableFrom(fixtureType))
-		//{
-		//	throw new WrongDbLiveTestingFixtureTypeException(
-		//		$"The type specified in {nameof(SqlFactAttribute)}.{nameof(SqlFactAttribute.DbLiveTestingFixture)} must implement {nameof(DbLiveTestingFixture)} type."
-		//	);
-		//}
-
 		if (!typeof(DbLiveTestFixture).IsAssignableFrom(fixtureType))
 		{
 			string attributeName = nameof(SqlFactAttribute).Replace("Attribute", "");
