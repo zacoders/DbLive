@@ -109,13 +109,15 @@ Typical pipeline:
 ## Supported SQL Engines
  - Microsoft SQL Server
  - Azure SQL
- - PostgreSQL (Planed)
- - ?
+ - PostgreSQL
+ - SQLite (planned)
+ - MySql (planned)
 
 ## Installation
 
 ```powershell
 dotnet add package DbLive
 dotnet add package DbLive.MSSQL
+dotnet add package DbLive.PostgreSQL
 dotnet add package DbLive.xunit
 ```
