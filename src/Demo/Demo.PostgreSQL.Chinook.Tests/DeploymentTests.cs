@@ -1,67 +1,50 @@
 using DbLive;
 using DbLive.Common;
 using DbLive.PostgreSQL;
-using DbLive.xunit;
+using DbLive.xunit.Deploy;
+using DotNet.Testcontainers.Containers;
+using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
 
 namespace Demo.PostgreSQL.Chinook.Tests;
 
-
-public class DeploymentTests(ITestOutputHelper _output, MyPostgreSQLFixture fixture)
-	: IClassFixture<MyPostgreSQLFixture>
+public class MyDeployFixtureBase() : DeployFixtureBase(dropDatabaseOnComplete: true)
 {
-	[Theory]
-	[InlineData(false, UndoTestMode.None)]
-	[InlineData(true, UndoTestMode.None)]
-	[InlineData(false, UndoTestMode.MigrationUndoMigration)]
-	[InlineData(true, UndoTestMode.MigrationUndoMigration)]
-	[InlineData(false, UndoTestMode.MigrationBreakingUndoMigration)]
-	[InlineData(true, UndoTestMode.MigrationBreakingUndoMigration)]
-	public async Task Deploy(bool breaking, UndoTestMode undoTestingMode)
+	private static readonly PostgreSqlContainer _dockerContainer
+		= new PostgreSqlBuilder("postgres:latest").Build();
+
+	public override string GetProjectPath()
 	{
-		_output.WriteLine($"Deploying with breaking={breaking}, undoTestingMode={undoTestingMode}");
-
-		DbLiveBuilder builder = await fixture.GetBuilderAsync();
-
-		IDbLive deployer = builder
-			.LogToXUnitOutput(_output)
-			.CreateDeployer();
-
-		await deployer.DeployAsync(new DeployParameters
-		{
-			CreateDbIfNotExists = true,
-			DeployBreaking = breaking,
-			DeployCode = true,
-			DeployMigrations = true,
-			RunTests = true,
-			UndoTestDeployment = undoTestingMode
-		});
+		return Path.GetFullPath("Demo.PostgreSQL.Chinook");
 	}
 
-
-	[Fact]
-	[Trait("Category", "LocalOnly")]
-	public async Task DeployToLocalSqlServerAsync()
+	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
-		string dbCnnString = "Host=localhost;Port=5433;Database=dblive_chinook;Username=postgres;Password=123123;";
+		if (_dockerContainer.State != TestcontainersStates.Running)
+		{
+			await _dockerContainer.StartAsync().ConfigureAwait(false);
+		}
 
-		DbLiveBuilder builder = new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
+		string masterDbCnnString = _dockerContainer.GetConnectionString();
+		string dbCnnString = masterDbCnnString.SetRandomPostgreSqlDatabaseName();
+
+		// or just local sql server
+		//string dbCnnString = "...".SetRandomDatabaseName();
+
+		return new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(fixture.GetProjectPath());
+			.SetProjectPath(GetProjectPath());
+	}
+}
 
-		IDbLive deployer = builder.CreateDeployer();
 
-		await deployer.DeployAsync(
-			new DeployParameters
-			{
-				CreateDbIfNotExists = true,
-				DeployBreaking = false,
-				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = true
-			}
-		);
+public class DeploymentTests(ITestOutputHelper _output, MyDeployFixtureBase fixture)
+	: IClassFixture<MyDeployFixtureBase>
+{
+	[SqlDeployTest]
+	public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
+	{		
+		await fixture.DeployAsync(_output, deployBreaking, undoTestMode).ConfigureAwait(false);
 	}
 }

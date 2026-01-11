@@ -39,7 +39,7 @@ public abstract class DbLiveTestFixtureBase(bool dropDatabaseOnComplete)
 		{
 			DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
 			IDbLiveDA da = builder.CreateDbLiveDA();
-			await da.DropDBAsync().ConfigureAwait(false);
+			await da.DropDbAsync().ConfigureAwait(false);
 		}
 	}
 }

@@ -3,7 +3,7 @@ using DbLive.Project;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace DbLive.xunit;
+namespace DbLive.xunit.SqlTest;
 
 public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestCaseDiscoverer
 {
@@ -66,8 +66,7 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 		var fixture = (DbLiveTestFixtureBase)Activator.CreateInstance(fixtureType)!;
 
 		string projectPath = fixture.GetProjectPath();
-
-
+		
 		IDbLiveProject project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)
 			.CreateProject();

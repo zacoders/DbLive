@@ -1,5 +1,5 @@
 using DbLive.Deployers.Testing;
-using DbLive.xunit;
+using DbLive.xunit.SqlTest;
 using Xunit;
 using Xunit.Abstractions;
 

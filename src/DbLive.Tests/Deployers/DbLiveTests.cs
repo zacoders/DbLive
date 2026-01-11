@@ -69,7 +69,7 @@ public class DbLiveTests
 		dbLive.DeployAsync(parameters);
 
 		// Assert
-		mockSet.DbLiveDA.Received().DropDBAsync();
+		mockSet.DbLiveDA.Received().DropDbAsync();
 		mockSet.DbLiveDA.Received().CreateDBAsync();
 		mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));

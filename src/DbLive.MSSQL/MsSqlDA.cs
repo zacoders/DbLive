@@ -300,7 +300,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
-	public async Task DropDBAsync(bool skipIfNotExists = true)
+	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
 		string databaseToDrop = builder.InitialCatalog;

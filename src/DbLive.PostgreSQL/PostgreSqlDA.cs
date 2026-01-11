@@ -292,7 +292,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
-	public async Task DropDBAsync(bool skipIfNotExists = true)
+	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
 		string? dbName = builder.Database;

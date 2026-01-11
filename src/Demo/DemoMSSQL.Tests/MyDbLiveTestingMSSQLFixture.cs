@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.Deployers.Testing;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using DbLive.xunit.SqlTest;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.MsSql;
 using Xunit.Abstractions;

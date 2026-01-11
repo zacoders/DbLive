@@ -25,7 +25,7 @@ public interface IDbLiveDA
 
 	Task CreateDBAsync(bool skipIfExists = true);
 
-	Task DropDBAsync(bool skipIfNotExists = true);
+	Task DropDbAsync(bool skipIfNotExists = true);
 
 	/// <exception cref="DbLiveSqlException"/>
 	Task ExecuteNonQueryAsync(
