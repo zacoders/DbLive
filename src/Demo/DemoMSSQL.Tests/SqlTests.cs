@@ -1,9 +1,8 @@
 using DbLive.Deployers.Testing;
 using DbLive.xunit.SqlTest;
-using Xunit;
 using Xunit.Abstractions;
 
-namespace AdventureWorks.Tests;
+namespace DemoMSSQL.Tests;
 
 
 public class MyDbLiveTestingMSSQLFixture()

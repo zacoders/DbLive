@@ -6,19 +6,20 @@ using Xunit.Abstractions;
 namespace DbLive.xunit.Deploy;
 
 
-public abstract class DeployFixtureBase(bool dropDatabaseOnComplete)
+public class DeployFixture(
+		IDbLiveFixtureBuilder builderProvider,
+		bool dropDatabaseOnComplete
+	)
 	: IAsyncLifetime
 {
 	public IDbLive? Deployer { get; private set; }
-	private DbLiveBuilder? _builder { get; set; }
 
-	public abstract Task<DbLiveBuilder> GetBuilderAsync();
-	public abstract string GetProjectPath();
+	private DbLiveBuilder? _builder;
 
 	public async Task InitializeAsync()
 	{
-		_builder = await GetBuilderAsync().ConfigureAwait(false);
-		Deployer = _builder.CreateDeployer();		
+		_builder = await builderProvider.GetBuilderAsync().ConfigureAwait(false);
+		Deployer = _builder.CreateDeployer();
 	}
 
 	public async Task DisposeAsync()

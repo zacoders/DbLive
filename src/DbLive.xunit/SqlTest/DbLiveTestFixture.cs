@@ -3,23 +3,26 @@ using DbLive.Common;
 using DbLive.Testing;
 using Xunit;
 
-namespace DbLive.xunit;
+namespace DbLive.xunit.SqlTest;
 
-public abstract class DbLiveTestFixtureBase(bool dropDatabaseOnComplete)
+public class DbLiveTestFixture(
+		IDbLiveFixtureBuilder fixtureBuilder,
+		bool dropDatabaseOnComplete
+	)
 	: IAsyncLifetime
 {
 	private IDbLive? _deployer;
+	private DbLiveBuilder? _builder;
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public abstract Task<DbLiveBuilder> GetBuilderAsync();
-	public abstract string GetProjectPath();
+	public string ProjectPath { get; private set; } = fixtureBuilder.GetProjectPath();
 
 	public async Task InitializeAsync()
 	{
-		DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
+		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
 
-		_deployer = builder.CreateDeployer();
+		_deployer = _builder.CreateDeployer();
 
 		await _deployer.DeployAsync(new DeployParameters
 		{
@@ -30,15 +33,14 @@ public abstract class DbLiveTestFixtureBase(bool dropDatabaseOnComplete)
 			RunTests = false // do not need to run tests, they will be run in VS UI.
 		}).ConfigureAwait(false);
 
-		Tester = builder.CreateTester();
+		Tester = _builder.CreateTester();
 	}
 
 	public async Task DisposeAsync()
 	{
-		if (dropDatabaseOnComplete)
+		if (dropDatabaseOnComplete && _builder is not null)
 		{
-			DbLiveBuilder builder = await GetBuilderAsync().ConfigureAwait(false);
-			IDbLiveDA da = builder.CreateDbLiveDA();
+			IDbLiveDA da = _builder.CreateDbLiveDA();
 			await da.DropDbAsync().ConfigureAwait(false);
 		}
 	}

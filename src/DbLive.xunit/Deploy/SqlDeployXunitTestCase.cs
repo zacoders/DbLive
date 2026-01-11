@@ -7,8 +7,6 @@ namespace DbLive.xunit.Deploy;
 
 public sealed class SqlDeployXunitTestCase : XunitTestCase
 {
-	//private SqlDeployTestContext Context { get; set; }
-
 	private bool DeployBreaking { get; set; }
 	private UndoTestMode UndoTestMode { get; set; }
 
@@ -21,7 +19,7 @@ public sealed class SqlDeployXunitTestCase : XunitTestCase
 	public SqlDeployXunitTestCase(
 		IMessageSink sink,
 		ITestMethod testMethod,
-		bool deployBreaking, 
+		bool deployBreaking,
 		UndoTestMode undoTestMode
 	)
 		: base(

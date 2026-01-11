@@ -2,13 +2,12 @@ using DbLive.Common;
 using DbLive.xunit.Deploy;
 using Xunit.Abstractions;
 
-
-namespace Demo.PostgreSQL.Chinook.Tests;
+namespace DemoMSSQL.Tests;
 
 
 public class MyDeployFixture()
 	: DeployFixture(
-		builderProvider: new DockerPostgresFixtureBuilder(),
+		builderProvider: new DockerMsSqlFixtureBuilder(),
 		dropDatabaseOnComplete: true
 	  )
 {

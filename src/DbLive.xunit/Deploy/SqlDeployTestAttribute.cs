@@ -7,5 +7,4 @@ namespace DbLive.xunit.Deploy;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class SqlDeployTestAttribute : FactAttribute
 {
-	//public required Type TestFixture { get; set; }
 }

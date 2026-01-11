@@ -7,27 +7,8 @@ using Xunit.Abstractions;
 
 namespace AdventureWorks.Tests;
 
-
-public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture fixture)
-	: IClassFixture<MyDbLiveTestingMSSQLFixture>
+public class LocalDeployTest(ITestOutputHelper _output)
 {
-	[Fact]
-	public async Task DeployAsync()
-	{
-		IDbLive deployer = (await fixture.GetBuilderAsync()).CreateDeployer();
-
-		await deployer.DeployAsync(
-			new DeployParameters
-			{
-				CreateDbIfNotExists = true,
-				DeployBreaking = false,
-				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = false
-			}
-		);
-	}
-
 	[Fact]
 	[Trait("Category", "LocalOnly")]
 	public async Task DeployToLocalSqlServerAsync()
@@ -38,7 +19,7 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(fixture.GetProjectPath());
+			.SetProjectPath(Path.GetFullPath("AdventureWorks.Database"));
 
 		IDbLive deployer = builder.CreateDeployer();
 

@@ -27,8 +27,8 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 		//		$"The type specified in {nameof(SqlFactAttribute)}.{nameof(SqlFactAttribute.DbLiveTestingFixture)} must implement {nameof(DbLiveTestingFixture)} type."
 		//	);
 		//}
-		
-		if (!typeof(DbLiveTestFixtureBase).IsAssignableFrom(fixtureType))
+
+		if (!typeof(DbLiveTestFixture).IsAssignableFrom(fixtureType))
 		{
 			string attributeName = nameof(SqlFactAttribute).Replace("Attribute", "");
 			string paramName = nameof(SqlFactAttribute.TestFixture);
@@ -37,12 +37,12 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			string errorMessage = $$"""
 				Invalid type specified for {{paramName}} in {{attributeName}} attribute.
 
-				The type must inherit from: {{nameof(DbLiveTestFixtureBase)}}.
+				The type must inherit from: {{nameof(DbLiveTestFixture)}}.
 				Actual type: {{fixtureType.FullName}}.
 
 				Example:
 
-				class MyTestFixture : {{nameof(DbLiveTestFixtureBase)}}
+				class MyTestFixture : {{nameof(DbLiveTestFixture)}}
 				{
 					...
 				}
@@ -63,10 +63,10 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			yield break;
 		}
 
-		var fixture = (DbLiveTestFixtureBase)Activator.CreateInstance(fixtureType)!;
+		var fixture = (DbLiveTestFixture)Activator.CreateInstance(fixtureType)!;
 
-		string projectPath = fixture.GetProjectPath();
-		
+		string projectPath = fixture.ProjectPath;
+
 		IDbLiveProject project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)
 			.CreateProject();
