@@ -10,17 +10,15 @@ using Xunit.Abstractions;
 namespace DemoMSSQL.Tests;
 
 
-public class MyDbLiveTestingMSSQLFixture()
-	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
+public class MyDbLiveTestingMSSQLFixture() : DbLiveTestFixtureBase(dropDatabaseOnComplete: true)
 {
-	public const string SqlProjectName = "DemoMSSQL";
-	public const string DockerImage = "mcr.microsoft.com/mssql/server:2025-latest";
-
 	private static readonly MsSqlContainer _dockerContainer
-		= new MsSqlBuilder(DockerImage)
+		= new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
 				.WithName("DbLive.DemoMSSQL")
 				//.WithReuse(true)
 				.Build();
+
+	public override string GetProjectPath() => Path.GetFullPath("DemoMSSQL");
 
 	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
@@ -38,7 +36,7 @@ public class MyDbLiveTestingMSSQLFixture()
 		return new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath(SqlProjectName));
+			.SetProjectPath(GetProjectPath());
 	}
 }
 
@@ -47,7 +45,7 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 {
 	// TODO: if there are a lot of tests they will be in the same place
 	// it will be good to separate them by folders, it can be done by adding filter and creating multiple test methods.
-	[SqlFact(SqlAssemblyName = MyDbLiveTestingMSSQLFixture.SqlProjectName)]
+	[SqlFact(TestFixture = typeof(MyDbLiveTestingMSSQLFixture))]
 	public async Task Sql(string testFileRelativePath)
 	{
 		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath).ConfigureAwait(false);
@@ -87,19 +85,17 @@ public class DeploymentTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixt
 		});
 	}
 
-
 	[Fact]
 	[Trait("Category", "LocalOnly")]
 	public async Task DeployToLocalSqlServerAsync()
 	{
 		string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
-		string projectPath = Path.GetFullPath(MyDbLiveTestingMSSQLFixture.SqlProjectName);
 
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectPath);
+			.SetProjectPath(fixture.GetProjectPath());
 
 		IDbLive deployer = builder.CreateDeployer();
 

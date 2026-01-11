@@ -5,14 +5,9 @@ using Xunit.Sdk;
 
 namespace DbLive.xunit;
 
-public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
+public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestCaseDiscoverer
 {
-	public IMessageSink DiagnosticMessageSink { get; }
-
-	public SqlFactDiscoverer(IMessageSink diagnosticMessageSink)
-	{
-		DiagnosticMessageSink = diagnosticMessageSink ?? throw new ArgumentNullException(nameof(diagnosticMessageSink));
-	}
+	public IMessageSink DiagnosticMessageSink { get; } = diagnosticMessageSink ?? throw new ArgumentNullException(nameof(diagnosticMessageSink));
 
 	public IEnumerable<IXunitTestCase> Discover(
 		ITestFrameworkDiscoveryOptions discoveryOptions,
@@ -21,8 +16,57 @@ public class SqlFactDiscoverer : IXunitTestCaseDiscoverer
 	)
 	{
 		var attr = (ReflectionAttributeInfo)factAttribute;
-		string assemblyName = attr.GetNamedArgument<string>(nameof(SqlFactAttribute.SqlAssemblyName));
-		string projectPath = Path.GetFullPath(assemblyName);
+
+		Type fixtureType = attr.GetNamedArgument<Type>(
+			nameof(SqlFactAttribute.TestFixture)
+		);
+
+		//if (!typeof(DbLiveTestingFixture).IsAssignableFrom(fixtureType))
+		//{
+		//	throw new WrongDbLiveTestingFixtureTypeException(
+		//		$"The type specified in {nameof(SqlFactAttribute)}.{nameof(SqlFactAttribute.DbLiveTestingFixture)} must implement {nameof(DbLiveTestingFixture)} type."
+		//	);
+		//}
+		
+		if (!typeof(DbLiveTestFixtureBase).IsAssignableFrom(fixtureType))
+		{
+			string attributeName = nameof(SqlFactAttribute).Replace("Attribute", "");
+			string paramName = nameof(SqlFactAttribute.TestFixture);
+			string spaces = new(' ', paramName.Length + attributeName.Length);
+
+			string errorMessage = $$"""
+				Invalid type specified for {{paramName}} in {{attributeName}} attribute.
+
+				The type must inherit from: {{nameof(DbLiveTestFixtureBase)}}.
+				Actual type: {{fixtureType.FullName}}.
+
+				Example:
+
+				class MyTestFixture : {{nameof(DbLiveTestFixtureBase)}}
+				{
+					...
+				}
+				{{spaces}}            🡳🡳🡳
+				[{{attributeName}}({{paramName}} = typeof(MyTestFixture))]
+				public async Task Sql(string testRelativePath)
+				{
+					...
+				}
+				""";
+			yield return new ExecutionErrorTestCase(
+				DiagnosticMessageSink,
+				discoveryOptions.MethodDisplayOrDefault(),
+				discoveryOptions.MethodDisplayOptionsOrDefault(),
+				testMethod,
+				errorMessage
+			);
+			yield break;
+		}
+
+		var fixture = (DbLiveTestFixtureBase)Activator.CreateInstance(fixtureType)!;
+
+		string projectPath = fixture.GetProjectPath();
+
 
 		IDbLiveProject project = new DbLiveBuilder()
 			.SetProjectPath(projectPath)

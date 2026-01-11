@@ -7,16 +7,16 @@ using Testcontainers.MsSql;
 
 namespace AdventureWorks.Tests;
 
-public class MyDbLiveTestingMSSQLFixture()
-	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
+public class MyDbLiveTestingMSSQLFixture() 
+	: DbLiveTestFixtureBase(dropDatabaseOnComplete: true)
 {
-	public const string SqlProjectName = "AdventureWorks.Database";
-
 	private static readonly MsSqlContainer _dockerContainer
 		= new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
 			.WithName("DbLive.AdventureWorks")
 			//.WithReuse(true)
 			.Build();
+
+	public override string GetProjectPath() => Path.GetFullPath("AdventureWorks.Database");
 
 	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
@@ -30,10 +30,10 @@ public class MyDbLiveTestingMSSQLFixture()
 
 		// or just local sql server
 		//string dbCnnString = "Server=localhost;Database=master;Trusted_Connection=True;".SetRandomDatabaseName();
-		string projectPath = Path.GetFullPath(SqlProjectName);
+
 		return new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectPath);
+			.SetProjectPath(GetProjectPath());
 	}
 }

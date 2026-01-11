@@ -7,17 +7,18 @@ using Testcontainers.PostgreSql;
 
 namespace Demo.PostgreSQL.Chinook.Tests;
 
-public class MyPostgreSQLFixture()
-	: DbLiveTestingFixture(dropDatabaseOnComplete: true)
+public class MyPostgreSQLFixture() 
+	: DbLiveTestFixtureBase(dropDatabaseOnComplete: true)
 {
-	public const string SqlProjectName = "Demo.PostgreSQL.Chinook";
-	public const string DockerImage = "mcr.microsoft.com/mssql/server:2025-latest";
-
 	private static readonly PostgreSqlContainer _dockerContainer
 		= new PostgreSqlBuilder("postgres:latest")
 			.WithName("Demo.PostgreSQL.Chinook")
-			//.WithReuse(true)
 			.Build();
+
+	public override string GetProjectPath()
+	{
+		return Path.GetFullPath("Demo.PostgreSQL.Chinook");
+	}
 
 	public async override Task<DbLiveBuilder> GetBuilderAsync()
 	{
@@ -35,6 +36,6 @@ public class MyPostgreSQLFixture()
 		return new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath(SqlProjectName));
+			.SetProjectPath(GetProjectPath());
 	}
 }

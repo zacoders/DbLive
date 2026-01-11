@@ -44,13 +44,12 @@ public class DeploymentTests(ITestOutputHelper _output, MyPostgreSQLFixture fixt
 	public async Task DeployToLocalSqlServerAsync()
 	{
 		string dbCnnString = "Host=localhost;Port=5433;Database=dblive_chinook;Username=postgres;Password=123123;";
-		string projectPath = Path.GetFullPath(MyPostgreSQLFixture.SqlProjectName);
 
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectPath);
+			.SetProjectPath(fixture.GetProjectPath());
 
 		IDbLive deployer = builder.CreateDeployer();
 

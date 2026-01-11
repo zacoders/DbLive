@@ -13,5 +13,5 @@ namespace DbLive.xunit;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class SqlFactAttribute : FactAttribute
 {
-	public required string SqlAssemblyName { get; set; }
+	public required Type TestFixture { get; set; }
 }

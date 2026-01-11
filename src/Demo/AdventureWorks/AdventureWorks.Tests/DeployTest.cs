@@ -33,13 +33,12 @@ public class DeployTest(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture f
 	public async Task DeployToLocalSqlServerAsync()
 	{
 		string dbCnnString = "Server=localhost;Database=DbLive_AdventureWorks;Trusted_Connection=True;";
-		string projectPath = Path.GetFullPath(MyDbLiveTestingMSSQLFixture.SqlProjectName);
 
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectPath);
+			.SetProjectPath(fixture.GetProjectPath());
 
 		IDbLive deployer = builder.CreateDeployer();
 
