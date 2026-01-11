@@ -1,0 +1,29 @@
+﻿using DbLive;
+using DbLive.Common;
+using DbLive.PostgreSQL;
+using DbLive.xunit;
+using DotNet.Testcontainers.Containers;
+using Testcontainers.PostgreSql;
+
+namespace Demo.PostgreSQL.Chinook.Tests;
+
+public class DockerPostgresFixtureBuilder : IDbLiveFixtureBuilder
+{
+	private static readonly PostgreSqlContainer _container =
+		new PostgreSqlBuilder("postgres:latest").Build();
+
+	public async Task<DbLiveBuilder> GetBuilderAsync()
+	{
+		if (_container.State != TestcontainersStates.Running)
+			await _container.StartAsync().ConfigureAwait(false);
+
+		string connectionString = _container.GetConnectionString().SetRandomPostgreSqlDatabaseName();
+
+		return new DbLiveBuilder()
+			.PostgreSQL()
+			.SetDbConnection(connectionString)
+			.SetProjectPath(GetProjectPath());
+	}
+
+	public string GetProjectPath() => Path.GetFullPath("Demo.PostgreSQL.Chinook");
+}

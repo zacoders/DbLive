@@ -1,7 +1,7 @@
 ﻿using Xunit;
 using Xunit.Sdk;
 
-namespace DbLive.xunit;
+namespace DbLive.xunit.SqlTest;
 
 /// <summary>
 /// Attribute that is applied to a method to indicate that it is a fact that should be run
@@ -9,9 +9,9 @@ namespace DbLive.xunit;
 /// test method.
 /// </summary>
 
-[XunitTestCaseDiscoverer("DbLive.xunit.SqlFactDiscoverer", "DbLive.xunit")]
+[XunitTestCaseDiscoverer($"DbLive.xunit.SqlTest.{nameof(SqlFactDiscoverer)}", "DbLive.xunit")]
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public class SqlFactAttribute : FactAttribute
 {
-	public required string SqlAssemblyName { get; set; }
+	public required Type TestFixture { get; set; }
 }

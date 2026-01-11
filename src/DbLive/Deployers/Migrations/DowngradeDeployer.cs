@@ -28,10 +28,10 @@ public class DowngradeDeployer(
 		if (parameters.AllowDatabaseDowngrade == false)
 		{
 			_logger.Error(
-			"Database downgrade detected but not allowed. Project Version: {projectVersion}, Database Version: {databaseVersion}. Please allow downgrade if intentional {DeployPrametersClass}.{ParameterName} ",
+			"Database downgrade detected. This operation is not allowed. Project version: {projectVersion}, Database version: {databaseVersion}. If this downgrade is intentional, enable it by setting {deployParametersClass}.{parameterName} to true.",
 				projectVersion, databaseVersion, nameof(DeployParameters), nameof(parameters.AllowDatabaseDowngrade)
 			);
-			throw new DowngradeNotAllowedException("Database downgrade is not allowed.");
+			throw new DowngradeNotAllowedException($"Database downgrade detected. This operation is not allowed. Project version: {projectVersion}, Database version: {databaseVersion}. If this downgrade is intentional, enable it by setting {nameof(DeployParameters)}.{nameof(parameters.AllowDatabaseDowngrade)} to true.");
 		}
 
 		_logger.Information(

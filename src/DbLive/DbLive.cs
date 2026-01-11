@@ -18,7 +18,7 @@ public class DbLive(
 
 		if (parameters.RecreateDatabase)
 		{
-			await _da.DropDBAsync().ConfigureAwait(false);
+			await _da.DropDbAsync().ConfigureAwait(false);
 			await _da.CreateDBAsync().ConfigureAwait(false);
 		}
 

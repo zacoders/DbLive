@@ -6,7 +6,7 @@ namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class DeployAndUndoTest(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
+public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
 	//: SqlServerIntegrationBaseTest(output, _fixture.MasterDbConnectionString),
 	: IAssemblyFixture<SqlServerIntegrationFixture>
 {

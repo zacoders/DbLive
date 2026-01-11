@@ -46,3 +46,8 @@ dotnet_diagnostic.xUnit1000.severity = error
 # Force ConfigureAwait(false) in libraries
 dotnet_diagnostic.VSTHRD111.severity = error
 dotnet_diagnostic.CA2007.severity = error
+
+# For xunit ConfigureAwait(false) should be avoided. xUnit1030: "Do not call ConfigureAwait in test method"
+[**/*Tests.cs]
+dotnet_diagnostic.VSTHRD111.severity = none
+dotnet_diagnostic.CA2007.severity = none

@@ -1,9 +1,8 @@
 using DbLive.Deployers.Testing;
 using DbLive.xunit.SqlTest;
-using Xunit;
 using Xunit.Abstractions;
 
-namespace AdventureWorks.Tests;
+namespace DemoMSSQL.Tests;
 
 
 public class MyDbLiveTestingMSSQLFixture()
@@ -22,5 +21,11 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	{
 		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
+	}
+
+	[Fact]
+	public async Task SimpleTest()
+	{
+		_ = Task.FromResult(0);
 	}
 }

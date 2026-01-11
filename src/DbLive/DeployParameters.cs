@@ -47,7 +47,7 @@ public record DeployParameters
 	/// This will deploy the database changes with undo and changes again to test undo scripts.
 	/// This is not what production deployment should do.
 	/// </summary>
-	public UndoTestMode UndoTestDeployment { get; set; } = UndoTestMode.None;
+	internal UndoTestMode UndoTestDeployment { get; set; } = UndoTestMode.None;
 
 	/// <summary>
 	/// If true, allows downgrading the database to an earlier version.

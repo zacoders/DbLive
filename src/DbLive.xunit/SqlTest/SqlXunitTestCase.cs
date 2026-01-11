@@ -2,7 +2,7 @@
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace DbLive.xunit;
+namespace DbLive.xunit.SqlTest;
 
 public class SqlXunitTestCase : XunitTestCase
 {
