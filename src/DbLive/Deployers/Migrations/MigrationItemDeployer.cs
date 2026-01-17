@@ -70,7 +70,11 @@ public class MigrationItemDeployer(
 				migrationItem.FileData.RelativePath,
 				migrationItem.MigrationItemType
 			);
-			throw new MigrationDeploymentException(ex.SqlError);
+			throw new MigrationDeploymentException($"""
+				Error deploying {migrationItem.FileData.RelativePath} file.
+				{ex.SqlError}.
+				"""
+			);
 		}
 		catch (Exception ex)
 		{
