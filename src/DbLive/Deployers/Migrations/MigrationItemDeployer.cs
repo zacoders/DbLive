@@ -63,20 +63,18 @@ public class MigrationItemDeployer(
 				}
 			}
 		}
+		catch(DbLiveSqlException ex)
+		{
+			_logger.Error(
+				ex.SqlError,
+				migrationItem.FileData.RelativePath,
+				migrationItem.MigrationItemType
+			);
+			throw new MigrationDeploymentException(ex.SqlError);
+		}
 		catch (Exception ex)
 		{
-			DateTime migrationEndTime = _timeProvider.UtcNow();
-			MigrationItemStateDto dto = new()
-			{
-				Version = migrationVersion,
-				ItemType = migrationItem.MigrationItemType,
-				Status = MigrationItemStatus.Failed,
-				AppliedUtc = migrationEndTime,
-				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
-				ErrorMessage = ex.ToString()
-			};
-			await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false); // todo: it will be missed if external transaction fail.
-			throw new MigrationDeploymentException($"Migration file deployment error. File path: {migrationItem.FileData.RelativePath}", ex);
+			throw new MigrationDeploymentException($"Unexpected error deploying {migrationItem.FileData.RelativePath}. Type {migrationItem.MigrationItemType}.", ex);
 		}
 	}
 

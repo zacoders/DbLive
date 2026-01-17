@@ -165,7 +165,7 @@ public class UnitTestsRunnerTests
 		DeployParameters parameters = new() { RunTests = true };
 
 		// Act
-		await Assert.ThrowsAsync<DbLiveSqlException>(() => runner.RunAllTestsAsync(parameters));
+		await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(parameters));
 
 		// Assert
 

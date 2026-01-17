@@ -1,7 +1,14 @@
 ﻿namespace DbLive.Deployers.Migrations;
 
 [ExcludeFromCodeCoverage]
-public class MigrationDeploymentException(string errorMessage, Exception innerException)
-	: Exception(errorMessage, innerException)
+public class MigrationDeploymentException: Exception
 {
+	public MigrationDeploymentException(string errorMessage, Exception innerException)
+		: base(errorMessage, innerException)
+	{
+	}
+
+	public MigrationDeploymentException(string message) : base(message)
+	{
+	}
 }

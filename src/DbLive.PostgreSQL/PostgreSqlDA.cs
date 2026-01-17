@@ -133,7 +133,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			throw new DbLiveSqlException(e.Message, e);
+			throw new DbLiveSqlException(e.Message, GetSqlError(e), e);
 		}
 	}
 
@@ -190,7 +190,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			throw new DbLiveSqlException(e.Message, e);
+			throw new DbLiveSqlException(e.Message, GetSqlError(e), e);
 		}
 	}
 
@@ -544,4 +544,22 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}).ConfigureAwait(false);
 	}
 
+	private static string GetSqlError(Exception ex)
+	{
+		if (ex is PostgresException pgex)
+		{
+			return $"""
+				PostgreSQL error:
+				Severity: {pgex.Severity}
+				SqlState: {pgex.SqlState}
+				Message: {pgex.Message}
+				Position: {pgex.Position}
+				InternalQuery: {pgex.InternalQuery}
+				Where: {pgex.Where}
+				Routine: {pgex.Routine}
+				""";
+		}
+
+		return "";
+	}
 }

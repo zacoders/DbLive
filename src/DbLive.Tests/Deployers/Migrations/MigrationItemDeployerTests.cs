@@ -206,7 +206,7 @@ public class MigrationItemDeployerTests
 
 		mockSet.TimeProvider.UtcNow().Returns(_ => startUtc, _ => endUtc);
 
-		var exception = new InvalidOperationException("sql error");
+		var exception = new DbLiveSqlException("exception message", "some sql error", new Exception());
 
 		mockSet.DbLiveDA
 			.When(d => d.ExecuteNonQueryAsync(
@@ -215,9 +215,6 @@ public class MigrationItemDeployerTests
 				Arg.Any<TimeSpan>()))
 			.Do(_ => throw exception);
 
-		MigrationItemStateDto? savedDto = null;
-		await mockSet.DbLiveDA.UpdateMigrationStateAsync(
-			Arg.Do<MigrationItemStateDto>(dto => savedDto = dto));
 
 		MigrationItem migrationItem = new()
 		{
@@ -236,19 +233,7 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
-		Assert.Contains("Migration file deployment error", ex.Message);
-		Assert.Same(exception, ex.InnerException);
-
-		await mockSet.DbLiveDA.Received(1)
-			.UpdateMigrationStateAsync(Arg.Any<MigrationItemStateDto>());
-
-		Assert.NotNull(savedDto);
-		Assert.Equal(MigrationItemStatus.Failed, savedDto.Status);
-		Assert.Equal(MigrationItemType.Migration, savedDto.ItemType);
-		Assert.Equal(2, savedDto.Version);
-		Assert.Equal(endUtc, savedDto.AppliedUtc);
-		Assert.Equal(1000, savedDto.ExecutionTimeMs);
-		Assert.Contains("sql error", savedDto.ErrorMessage);
+		Assert.Contains("some sql error", ex.Message);
+		Assert.Null(ex.InnerException);
 	}
-
 }

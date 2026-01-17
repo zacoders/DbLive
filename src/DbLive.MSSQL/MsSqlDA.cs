@@ -121,8 +121,11 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
+			// todo: We are using Microsoft.SqlServer.Management.Common.ServerConnection
+			//       It does not provide global error line number, just line number in the 'GO' batch
+			//       Consider splitting statements manually.
 			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
 		}
 	}
 
@@ -182,7 +185,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		catch (Exception e)
 		{
 			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
 		}
 	}
 
@@ -612,5 +615,47 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				content_hash = contentHash
 			}
 		).ConfigureAwait(false);
+	}
+
+	private static string GetSqlServerError(Exception ex)
+	{
+		SqlException? sqlEx = FindSqlException(ex);
+
+		if (sqlEx == null)
+			return "";
+
+		var sb = new System.Text.StringBuilder();
+
+		_ = sb.AppendLine("SQL Server error:");
+
+		foreach (SqlError err in sqlEx.Errors)
+		{
+			_ = sb.AppendLine($"""
+			Msg {err.Number}, Level {err.Class}, State {err.State}, Line {err.LineNumber}
+			{err.Message}			
+			""");
+
+			if (!string.IsNullOrEmpty(err.Procedure))
+			{
+				_ = sb.AppendLine($"Procedure: {err.Procedure}");
+			}
+		}
+
+		return sb.ToString();
+	}
+
+	private static SqlException? FindSqlException(Exception ex)
+	{
+		Exception? cur = ex;
+
+		while (cur != null)
+		{
+			if (cur is SqlException sql)
+				return sql;
+
+			cur = cur.InnerException;
+		}
+
+		return null;
 	}
 }

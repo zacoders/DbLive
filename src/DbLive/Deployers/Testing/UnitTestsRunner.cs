@@ -65,7 +65,7 @@ public class UnitTestsRunner(
 
 		if (runResults.FailedCount > 0)
 		{
-			throw new DbLiveSqlException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
+			throw new UnitTestsFailedException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
 		}
 	}
 }
