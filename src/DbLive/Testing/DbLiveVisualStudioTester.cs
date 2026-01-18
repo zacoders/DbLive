@@ -10,7 +10,7 @@ public class DbLiveVisualStudioTester(
 	) : IDbLiveTester
 {
 	private ReadOnlyDictionary<string, TestItem>? _testsList = null;
-	
+
 	private async Task<ReadOnlyDictionary<string, TestItem>> LoadTestsAsync()
 	{
 		IReadOnlyCollection<TestItem> tests =

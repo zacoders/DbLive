@@ -16,7 +16,7 @@ public class DbLiveTestFixture(
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public IDbLiveProject GetProject() 
+	public IDbLiveProject GetProject()
 	{
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.SetProject(fixtureBuilder.GetProjectAssembly());
