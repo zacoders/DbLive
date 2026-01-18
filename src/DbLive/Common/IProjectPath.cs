@@ -4,19 +4,14 @@ namespace DbLive.Common;
 public interface IProjectPath
 {
 	string Path { get; }
+	string VisualStudioProjectPath { get; }
 }
 
 
-public class ProjectPath(string projectPath) : IProjectPath
+public class ProjectPath(string projectPath, string visualStudioProjectPath) : IProjectPath
 {
 	public string Path => projectPath;
+
+	public string VisualStudioProjectPath => visualStudioProjectPath;
 }
 
-//internal interface IInternalProjectPath : IProjectPath
-//{
-//}
-
-//public class InternalProjectPath(string projectPath): IProjectPath
-//{
-//	public string Path => projectPath;
-//}

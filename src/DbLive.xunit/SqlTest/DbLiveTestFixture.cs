@@ -1,5 +1,6 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
+using DbLive.Project;
 using DbLive.Testing;
 using Xunit;
 
@@ -16,13 +17,14 @@ public class DbLiveTestFixture(
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public string ProjectPath { get; private set; } = fixtureBuilder.GetProjectPath();
+	public IDbLiveProject? Project { get; private set; }
 
 	public async Task InitializeAsync()
 	{
 		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = _builder.CreateDeployer();
+		Project = _builder.CreateProject();
 
 		await _deployer.DeployAsync(new DeployParameters
 		{

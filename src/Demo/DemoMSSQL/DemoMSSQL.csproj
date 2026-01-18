@@ -6,28 +6,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  
-  <PropertyGroup>
-    <!-- projectdir.user file generated here to support open sql test file on click in VS Test Explorer. -->
-    <ProjectInfoStringFile>projectdir.user</ProjectInfoStringFile>
-  </PropertyGroup>
+	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
+		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
+	</Target>
 
-  <Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
-    <WriteLinesToFile File="$(ProjectInfoStringFile)" Lines="$(ProjectDir)" Overwrite="true" />
-    <Message Importance="high" Text="Generated file: $(ProjectInfoStringFile)" />
-  </Target>
-  
-  <ItemGroup>
-    <None Include="$(ProjectInfoStringFile)" Visible="false">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-    </None>
-    
-    <None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-    </None>
-  </ItemGroup>
-  
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+			<_Parameter1>ProjectDir</_Parameter1>
+			<_Parameter2>$(ProjectDir)</_Parameter2>
+		</AssemblyAttribute>
+
+		<None Include="Scripts\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</None>
+	</ItemGroup>
+
+
 </Project>
 

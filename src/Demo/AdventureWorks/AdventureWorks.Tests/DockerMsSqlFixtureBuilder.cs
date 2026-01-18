@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
+using System.Reflection;
 using Testcontainers.MsSql;
 
 namespace AdventureWorks.Tests;
@@ -23,9 +24,7 @@ public class DockerMsSqlFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(connectionString)
-			.SetProjectPath(GetProjectPath());
+			.SetProject(Assembly.Load("AdventureWorks.Database"));
 	}
-
-	public string GetProjectPath() => Path.GetFullPath("AdventureWorks.Database");
 }
 

@@ -19,7 +19,7 @@ public class LocalDeployTests(ITestOutputHelper _output)
 			.LogToXUnitOutput(_output)
 			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath("Demo.PostgreSQL.Chinook"));
+			.SetProject(typeof(LinkMe).Assembly);
 
 		IDbLive deployer = builder.CreateDeployer();
 

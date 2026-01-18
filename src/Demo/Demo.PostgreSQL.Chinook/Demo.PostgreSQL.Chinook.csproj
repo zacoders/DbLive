@@ -1,18 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
-	<Target Name="PrepareProjectOutput" BeforeTargets="BeforeBuild">
+	<ItemGroup>
+	  <ProjectReference Include="..\..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
+	</ItemGroup>
+	
+	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
 		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
-		<WriteLinesToFile File="Scripts\projectdir.user" Lines="$(ProjectDir)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 	</Target>
 
 	<ItemGroup>
-		<None Include="Scripts\**\*" Visible="true">
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+			<_Parameter1>ProjectDir</_Parameter1>
+			<_Parameter2>$(ProjectDir)</_Parameter2>
+		</AssemblyAttribute>
+
+		<None Include="Scripts\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>

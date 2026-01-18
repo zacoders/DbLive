@@ -2,6 +2,7 @@ using DbLive;
 using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -19,7 +20,7 @@ public class LocalDeployTests(ITestOutputHelper _output)
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath("AdventureWorks.Database"));
+			.SetProject(Assembly.Load("AdventureWorks.Database"));
 
 		IDbLive deployer = builder.CreateDeployer();
 

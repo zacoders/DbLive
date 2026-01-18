@@ -1,5 +1,7 @@
 ﻿
+using DbLive.Common;
 using Serilog.Core;
+using System.Reflection;
 
 namespace DbLive;
 
@@ -26,12 +28,32 @@ public static class DbLiveBuilderExtensions
 		});
 	}
 
-	public static DbLiveBuilder SetProjectPath(this DbLiveBuilder builder, string projectPath)
+	//public static DbLiveBuilder SetProjectPath(this DbLiveBuilder builder, string projectPath)
+	//{
+	//	return builder.ConfigureServices(services =>
+	//	{
+	//		_ = services.AddSingleton<IProjectPath>(new ProjectPath(projectPath));
+	//	});
+	//}
+
+	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly)
 	{
+		string outputPath = Path.GetFullPath(projectAssembly.GetName().Name!);
+		string vsProjectPath = GetVisualStudioProjectPath(projectAssembly);
+
 		return builder.ConfigureServices(services =>
 		{
-			_ = services.AddSingleton<IProjectPath>(new ProjectPath(projectPath));
+			ProjectPath projectPath = new(outputPath, vsProjectPath);
+			_ = services.AddSingleton<IProjectPath>(projectPath);
 		});
+	}
+
+	private static string GetVisualStudioProjectPath(Assembly projectAssembly)
+	{
+		var attr = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+						   .FirstOrDefault(a => a.Key == "ProjectDir");
+
+		return attr?.Value ?? throw new Exception("ProjectDir metadata not found!");
 	}
 }
 
