@@ -37,7 +37,7 @@ public static class DbLiveBuilderExtensions
 	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly)
 	{
 		string outputPath = Path.GetFullPath(projectAssembly.GetName().Name!);
-		string vsProjectPath = GetVisualStudioProjectPath(projectAssembly);
+		string vsProjectPath = Path.Combine(GetVisualStudioProjectPath(projectAssembly), "Scripts");
 
 		return builder.ConfigureServices(services =>
 		{
