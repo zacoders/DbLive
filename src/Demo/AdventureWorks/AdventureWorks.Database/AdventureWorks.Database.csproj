@@ -6,8 +6,6 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
-
-
 	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
 		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
 	</Target>
