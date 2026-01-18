@@ -1,5 +1,4 @@
 using DbLive;
-using DbLive.Common;
 using DbLive.PostgreSQL;
 using DbLive.xunit;
 using Xunit.Abstractions;
@@ -19,7 +18,7 @@ public class LocalDeployTests(ITestOutputHelper _output)
 			.LogToXUnitOutput(_output)
 			.PostgreSQL()
 			.SetDbConnection(dbCnnString)
-			.SetProject(typeof(LinkMe).Assembly);
+			.SetProject(typeof(DemoPostgreSQLChinookLink).Assembly);
 
 		IDbLive deployer = builder.CreateDeployer();
 

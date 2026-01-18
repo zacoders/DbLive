@@ -20,5 +20,5 @@ public interface IDbLiveProject
 	/// <returns>Read only list of items. Items sorted by full file path.</returns>
 	Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder);
 
-	Task<string> GetVisualStudioProjectPathAsync();
+	string GetVisualStudioProjectPath();
 }

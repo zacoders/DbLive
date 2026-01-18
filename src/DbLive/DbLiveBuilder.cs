@@ -1,4 +1,5 @@
-﻿namespace DbLive.Common;
+﻿
+namespace DbLive;
 
 public sealed class DbLiveBuilder
 {

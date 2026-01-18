@@ -1,6 +1,4 @@
-﻿using DbLive.Common;
-
-namespace DbLive.PostgreSQL;
+﻿namespace DbLive.PostgreSQL;
 
 public static class DbLiveBuilderExtensions
 {

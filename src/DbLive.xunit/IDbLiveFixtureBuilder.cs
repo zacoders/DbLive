@@ -1,6 +1,4 @@
-﻿using DbLive.Common;
-
-namespace DbLive.xunit;
+﻿namespace DbLive.xunit;
 
 public interface IDbLiveFixtureBuilder
 {

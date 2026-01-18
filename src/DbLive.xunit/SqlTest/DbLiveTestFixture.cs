@@ -1,5 +1,4 @@
 ﻿using DbLive.Adapter;
-using DbLive.Common;
 using DbLive.Project;
 using DbLive.Testing;
 using Xunit;
@@ -19,14 +18,21 @@ public class DbLiveTestFixture(
 
 	public IDbLiveProject? Project { get; private set; }
 
-	public async Task InitializeAsync()
+	internal async Task InitializeBulderAsync()
 	{
 		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = _builder.CreateDeployer();
 		Project = _builder.CreateProject();
 
-		await _deployer.DeployAsync(new DeployParameters
+		Tester = _builder.CreateTester();
+	}
+
+	public async Task InitializeAsync()
+	{
+		await InitializeBulderAsync().ConfigureAwait(false);
+
+		await _deployer!.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,
@@ -34,8 +40,6 @@ public class DbLiveTestFixture(
 			DeployMigrations = true,
 			RunTests = false // do not need to run tests, they will be run in VS UI.
 		}).ConfigureAwait(false);
-
-		Tester = _builder.CreateTester();
 	}
 
 	public async Task DisposeAsync()

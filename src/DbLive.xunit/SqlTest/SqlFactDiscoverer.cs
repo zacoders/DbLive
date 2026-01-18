@@ -1,5 +1,4 @@
-﻿using DbLive.Common;
-using DbLive.Project;
+﻿using DbLive.Project;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -61,7 +60,7 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 
-		fixture.InitializeAsync()
+		fixture.InitializeBulderAsync()
 			.GetAwaiter()
 			.GetResult();
 
@@ -70,11 +69,6 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			throw new ArgumentNullException(nameof(fixture.Project));
 		}
 
-		string root = fixture.Project
-			.GetVisualStudioProjectPathAsync()
-			.GetAwaiter()
-			.GetResult();
-
 		IReadOnlyCollection<TestItem> tests = fixture.Project!
 			.GetTestsAsync()
 			.GetAwaiter()
@@ -82,12 +76,14 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
 
+		string vsProjectPath = fixture.Project.GetVisualStudioProjectPath();
+
 		foreach (Project.TestItem testItem in tests)
 		{
 			yield return new SqlXunitTestCase(
 				DiagnosticMessageSink,
 				testMethod,
-				Path.Combine(root, testItem.FileData.RelativePath),
+				Path.Combine(vsProjectPath, testItem.FileData.RelativePath),
 				testItem.FileData.RelativePath
 			);
 		}

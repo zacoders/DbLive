@@ -1,6 +1,4 @@
-﻿
-using DbLive.Common;
-using Serilog.Core;
+﻿using Serilog.Core;
 using System.Reflection;
 
 namespace DbLive;

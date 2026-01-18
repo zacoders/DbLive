@@ -23,4 +23,3 @@ public class DeploymentTests(ITestOutputHelper _output, MyDeployFixture fixture)
 		await fixture.DeployAsync(_output, deployBreaking, undoTestMode);
 	}
 }
-	

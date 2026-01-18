@@ -63,7 +63,7 @@ public class MigrationItemDeployer(
 				}
 			}
 		}
-		catch(DbLiveSqlException ex)
+		catch (DbLiveSqlException ex)
 		{
 			_logger.Error(
 				ex.SqlError,

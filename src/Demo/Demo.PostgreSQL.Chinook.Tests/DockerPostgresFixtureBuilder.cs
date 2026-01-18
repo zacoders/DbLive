@@ -1,5 +1,4 @@
 ﻿using DbLive;
-using DbLive.Common;
 using DbLive.PostgreSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
@@ -22,6 +21,6 @@ public class DockerPostgresFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(connectionString)
-			.SetProject(typeof(LinkMe).Assembly);
+			.SetProject(typeof(DemoPostgreSQLChinookLink).Assembly);
 	}
 }
