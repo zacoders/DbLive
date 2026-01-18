@@ -19,7 +19,7 @@
 
 		<None Include="Scripts\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+			<TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
 	</ItemGroup>
 
