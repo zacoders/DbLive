@@ -23,6 +23,7 @@ public class DbLiveTestFixture(
 		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = _builder.CreateDeployer();
+
 		Project = _builder.CreateProject();
 
 		Tester = _builder.CreateTester();

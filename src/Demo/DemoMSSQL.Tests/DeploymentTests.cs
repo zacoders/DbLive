@@ -5,20 +5,20 @@ using Xunit.Abstractions;
 namespace DemoMSSQL.Tests;
 
 
-public class MyDeployFixture()
-	: DeployFixture(
+
+public class DeploymentTests(ITestOutputHelper _output) : IAsyncLifetime
+{
+	private readonly DeployFixture _fixture = new(
 		builderProvider: new DockerMsSqlFixtureBuilder(),
 		dropDatabaseOnComplete: true
-	  )
-{
-}
+	);
 
-public class DeploymentTests(ITestOutputHelper _output, MyDeployFixture fixture)
-	: IClassFixture<MyDeployFixture>
-{
+	public Task InitializeAsync() => _fixture.InitializeAsync();
+	public Task DisposeAsync() => _fixture.DisposeAsync();
+
 	[SqlDeployFact]
 	public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
 	{
-		await fixture.DeployAsync(_output, deployBreaking, undoTestMode);
+		await _fixture.DeployAsync(_output, deployBreaking, undoTestMode);
 	}
 }
