@@ -6,43 +6,16 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
-
-	<Target Name="CleanOrphanedContentFiles" BeforeTargets="PrepareForBuild">
-		<Message Text="Cleaning old SQL and JSON files from output..." Importance="high" />
-
-		<PropertyGroup>
-			<CustomOutputFolder>$(TargetDir)$(AssemblyName)</CustomOutputFolder>
-		</PropertyGroup>
-
-		<ItemGroup>
-			<OldOutputFiles Include="$(CustomOutputFolder)\**\*.sql" />
-			<OldOutputFiles Include="$(CustomOutputFolder)\**\*.json" />
-		</ItemGroup>
-
-		<Delete Files="@(OldOutputFiles)" />
-	</Target>
-	
-	<PropertyGroup>
-		<!-- projectdir.user file generated here to support open sql test file on click in VS Test Explorer. -->
-		<ProjectInfoStringFile>projectdir.user</ProjectInfoStringFile>
-	</PropertyGroup>
-
-	<Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
-		<WriteLinesToFile File="$(ProjectInfoStringFile)" Lines="$(ProjectDir)" Overwrite="true" />
-		<Message Importance="high" Text="Generated file: $(ProjectInfoStringFile)" />
+	<Target Name="PrepareProjectOutput" BeforeTargets="BeforeBuild">
+		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
+		<WriteLinesToFile File="Scripts\projectdir.user" Lines="$(ProjectDir)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 	</Target>
 
 	<ItemGroup>
-		<None Include="$(ProjectInfoStringFile)" Visible="false">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
-
-		<None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
+		<None Include="Scripts\**\*" Visible="true">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
 	</ItemGroup>
 
-	
 </Project>
