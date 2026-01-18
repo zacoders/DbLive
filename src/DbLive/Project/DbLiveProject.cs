@@ -4,11 +4,11 @@ namespace DbLive.Project;
 public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
-	ISettingsAccessor settingsAccessor,
-	IVsProjectPathAccessor vsProjectPathAccessor
+	ISettingsAccessor settingsAccessor
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
+	private readonly string _visualStudioProjectPath = projectPath.VisualStudioProjectPath;
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
@@ -230,9 +230,8 @@ public class DbLiveProject(
 	}
 
 	[ExcludeFromCodeCoverage]
-	public async Task<string> GetVisualStudioProjectPathAsync()
+	public string GetVisualStudioProjectPath()
 	{
-		return await vsProjectPathAccessor.GetVisualStudioProjectPathAsync().ConfigureAwait(false);
+		return _visualStudioProjectPath;
 	}
-
 }

@@ -1,6 +1,4 @@
-﻿using DbLive.Common;
-
-namespace DbLive.MSSQL;
+﻿namespace DbLive.MSSQL;
 
 public static class DbLiveBuilderExtensions
 {

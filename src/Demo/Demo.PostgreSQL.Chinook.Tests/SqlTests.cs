@@ -16,7 +16,7 @@ public class SqlTests(ITestOutputHelper _output, MySqlTestFixture _fixture)
 	: IClassFixture<MySqlTestFixture>
 {
 	[SqlFact(TestFixture = typeof(MySqlTestFixture))]
-	public async Task Sql(string testFileRelativePath)
+	public async Task SqlAsync(string testFileRelativePath)
 	{
 		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);

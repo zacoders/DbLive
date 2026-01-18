@@ -18,7 +18,7 @@ public static class Bootstrapper
 			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
 			.AddSingleton<IDbLiveProject, DbLiveProject>()
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
-			.AddSingleton<IDbLiveTester, DbLiveTester>()
+			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()
 			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
 			.AddSingleton<IFileSystem, FileSystem>()
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
@@ -32,7 +32,6 @@ public static class Bootstrapper
 			.AddSingleton<ITransactionRunner, TransactionRunner>()
 			.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>()
 			.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>()
-			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>()
-			.AddSingleton<IVsProjectPathAccessor, ProjectPathAccessor>();
+			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
 	}
 }

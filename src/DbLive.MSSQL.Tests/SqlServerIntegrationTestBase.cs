@@ -1,11 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
+using System.Reflection;
 
 namespace DbLive.MSSQL.Tests;
 
 public class SqlServerIntegrationTestBase : IDisposable
 {
-	private readonly static string _msSqlTestingProjectPath = Path.GetFullPath(@"DemoMSSQL");
+	private readonly static Assembly _projectAssembly = Assembly.Load("DemoMSSQL");
 	private static readonly string TestDbNamePrefix = "DbLive--";
 
 	private readonly string _masterDbConnectionString;
@@ -32,7 +33,7 @@ public class SqlServerIntegrationTestBase : IDisposable
 			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()
 			.SetDbConnection(_masterDbConnectionString.SetMsSqlDatabaseName(_testingDbName))
-			.SetProjectPath(_msSqlTestingProjectPath)
+			.SetProject(_projectAssembly)
 			.CreateDeployer();
 	}
 

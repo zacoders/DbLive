@@ -17,7 +17,6 @@ public class MockSet
 	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
 	public readonly IInternalProjectPath InternalProjectPath = Substitute.For<IInternalProjectPath>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
-	public readonly IVsProjectPathAccessor VsProjectPathAccessor = Substitute.For<IVsProjectPathAccessor>();
 	public readonly IProjectPath ProjectPath = Substitute.For<IProjectPath>();
 	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();

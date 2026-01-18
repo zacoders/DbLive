@@ -1,7 +1,7 @@
 using DbLive;
-using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
+using System.Reflection;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
@@ -18,7 +18,7 @@ public class LocalDeployTests(ITestOutputHelper _output)
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(Path.GetFullPath("DemoMSSQL"));
+			.SetProject(Assembly.Load("DemoMSSQL"));
 
 		IDbLive deployer = builder.CreateDeployer();
 

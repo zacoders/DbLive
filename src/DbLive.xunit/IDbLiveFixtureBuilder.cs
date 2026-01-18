@@ -1,9 +1,9 @@
-﻿using DbLive.Common;
+﻿using System.Reflection;
 
 namespace DbLive.xunit;
 
 public interface IDbLiveFixtureBuilder
 {
-	string GetProjectPath();
 	Task<DbLiveBuilder> GetBuilderAsync();
+	Assembly GetProjectAssembly();
 }

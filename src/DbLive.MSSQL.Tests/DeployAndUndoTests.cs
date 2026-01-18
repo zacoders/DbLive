@@ -1,5 +1,6 @@
 
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
@@ -16,22 +17,18 @@ public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutpu
 	[Fact]
 	public async Task Deploy_MSSQL_demo_and_undo_to_empty_database()
 	{
-		string projectMSSQL = Path.GetFullPath("DemoMSSQL");
-		string projectMSSQLEmpty = Path.GetFullPath("DemoMSSQLEmpty");
-
-
 		IDbLive deployer = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectMSSQL)
+			.SetProject(Assembly.Load("DemoMSSQL"))
 			.CreateDeployer();
 
 		IDbLive deployerEmptyDb = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProjectPath(projectMSSQLEmpty)
+			.SetProject(Assembly.Load(assemblyString: "DemoMSSQLEmpty"))
 			.CreateDeployer();
 
 

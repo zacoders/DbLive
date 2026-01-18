@@ -19,7 +19,7 @@ public class DbLiveTesterTests
 
 		Action<string> writeLine = Console.WriteLine;
 
-		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+		DbLiveVisualStudioTester tester = mockSet.CreateUsingMocks<DbLiveVisualStudioTester>();
 
 		// Act
 		await tester.RunTestAsync(writeLine, "/test/first.sql");
@@ -51,7 +51,7 @@ public class DbLiveTesterTests
 
 		Action<string> writeLine = Console.WriteLine;
 
-		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+		DbLiveVisualStudioTester tester = mockSet.CreateUsingMocks<DbLiveVisualStudioTester>();
 
 		// Act
 		await tester.RunTestAsync(writeLine, "/test/first.sql");

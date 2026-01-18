@@ -1,8 +1,8 @@
 ﻿using DbLive;
-using DbLive.Common;
 using DbLive.PostgreSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
+using System.Reflection;
 using Testcontainers.PostgreSql;
 
 namespace Demo.PostgreSQL.Chinook.Tests;
@@ -22,8 +22,8 @@ public class DockerPostgresFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(connectionString)
-			.SetProjectPath(GetProjectPath());
+			.SetProject(GetProjectAssembly());
 	}
 
-	public string GetProjectPath() => Path.GetFullPath("Demo.PostgreSQL.Chinook");
+	public Assembly GetProjectAssembly() => typeof(DemoPostgreSQLChinookLink).Assembly;
 }

@@ -1,32 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
-
-	<PropertyGroup>
-		<!-- projectdir.user file generated here to support open sql test file on click in VS Test Explorer. -->
-		<ProjectInfoStringFile>projectdir.user</ProjectInfoStringFile>
-	</PropertyGroup>
-
-	<Target Name="GenerateProjectInfoString" BeforeTargets="BeforeBuild">
-		<WriteLinesToFile File="$(ProjectInfoStringFile)" Lines="$(ProjectDir)" Overwrite="true" />
-		<Message Importance="high" Text="Generated file: $(ProjectInfoStringFile)" />
+	<ItemGroup>
+	  <ProjectReference Include="..\..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
+	</ItemGroup>
+	
+	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
+		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
 	</Target>
 
 	<ItemGroup>
-		<None Include="$(ProjectInfoStringFile)" Visible="false">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+			<_Parameter1>ProjectDir</_Parameter1>
+			<_Parameter2>$(ProjectDir)</_Parameter2>
+		</AssemblyAttribute>
 
-		<None Include="**\*.sql;**\*.json" Exclude="**\bin\**;**\obj\**">
+		<None Include="Scripts\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+			<TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
 	</ItemGroup>
-	
+
 </Project>

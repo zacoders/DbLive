@@ -174,15 +174,10 @@ CREATE INDEX playlist_track_track_id_idx ON playlist_track (track_id);
 ALTER TABLE track ADD CONSTRAINT track_album_id_fkey
     FOREIGN KEY (album_id) REFERENCES album (album_id) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
-CREATE INDEX track_album_id_idx ON track (album_id);
-
 ALTER TABLE track ADD CONSTRAINT track_genre_id_fkey
     FOREIGN KEY (genre_id) REFERENCES genre (genre_id) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
-CREATE INDEX track_genre_id_idx ON track (genre_id);
 
 ALTER TABLE track ADD CONSTRAINT track_media_type_id_fkey
     FOREIGN KEY (media_type_id) REFERENCES media_type (media_type_id) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
-CREATE INDEX track_media_type_id_idx ON track (media_type_id);
 

@@ -1,8 +1,8 @@
 using DbLive;
-using DbLive.Common;
 using DbLive.MSSQL;
 using DbLive.xunit;
 using DotNet.Testcontainers.Containers;
+using System.Reflection;
 using Testcontainers.MsSql;
 
 namespace DemoMSSQL.Tests;
@@ -23,9 +23,9 @@ public class DockerMsSqlFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(connectionString)
-			.SetProjectPath(GetProjectPath());
+			.SetProject(GetProjectAssembly());
 	}
 
-	public string GetProjectPath() => Path.GetFullPath("DemoMSSQL");
+	public Assembly GetProjectAssembly() => Assembly.Load("DemoMSSQL");
 }
 
