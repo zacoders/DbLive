@@ -44,14 +44,17 @@ public static class AssertTypeExtensions
 		if (assertDefinition.Contains("row-count"))
 		{
 			int equalIndex = assertDefinition.IndexOf("=");
-			if (equalIndex != -1)
+			
+			if (equalIndex < 0)
 			{
-				return new AssertInfo
-				{
-					AssertType = AssertType.RowCount,
-					RowCount = Convert.ToInt32(assertDefinition.Substring(equalIndex + 1))
-				};
+				throw new Exception($"Please use row-count=[Number] to assert row count. Example: row-count=10.");
 			}
+			
+			return new AssertInfo
+			{
+				AssertType = AssertType.RowCount,
+				RowCount = Convert.ToInt32(assertDefinition.Substring(equalIndex + 1))
+			};			
 		}
 
 		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: {SupportedAssertTypes()}");

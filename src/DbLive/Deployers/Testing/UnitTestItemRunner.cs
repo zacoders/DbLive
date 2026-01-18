@@ -18,6 +18,7 @@ public class UnitTestItemRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
+		bool initFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		try
 		{
@@ -33,6 +34,7 @@ public class UnitTestItemRunner(
 					TranIsolationLevel.Serializable,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
+				initFileDeployed = true;
 			}
 
 			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
@@ -58,9 +60,18 @@ public class UnitTestItemRunner(
 		}
 		catch (Exception ex)
 		{
-			result.ErrorMessage = ex.Message;
-			result.Output = "ERROR:" + ex.Message + Environment.NewLine + result.Output;
-			result.Exception = ex;
+			if (test.InitFileData is not null && !initFileDeployed)
+			{
+				result.ErrorMessage = ex.Message;
+				result.Output = "ERROR: Init file deployment error. " + ex.Message + Environment.NewLine + result.Output;
+				result.Exception = ex;
+			}
+			else
+			{
+				result.ErrorMessage = ex.Message;
+				result.Output = "ERROR:" + ex.Message + Environment.NewLine + result.Output;
+				result.Exception = ex;
+			}
 		}
 		finally
 		{
