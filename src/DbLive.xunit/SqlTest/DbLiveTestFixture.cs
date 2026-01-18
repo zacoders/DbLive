@@ -16,22 +16,20 @@ public class DbLiveTestFixture(
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public IDbLiveProject? Project { get; private set; }
+	public IDbLiveProject GetProject() 
+	{
+		DbLiveBuilder builder = new DbLiveBuilder()
+			.SetProject(fixtureBuilder.GetProjectAssembly());
+		return builder.CreateProject();
+	}
 
-	internal async Task InitializeBulderAsync()
+	public async Task InitializeAsync()
 	{
 		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
 
 		_deployer = _builder.CreateDeployer();
 
-		Project = _builder.CreateProject();
-
 		Tester = _builder.CreateTester();
-	}
-
-	public async Task InitializeAsync()
-	{
-		await InitializeBulderAsync().ConfigureAwait(false);
 
 		await _deployer!.DeployAsync(new DeployParameters
 		{

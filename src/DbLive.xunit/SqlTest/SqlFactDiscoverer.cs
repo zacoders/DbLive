@@ -56,27 +56,18 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 		}
 
 		var fixture = (DbLiveTestFixture)Activator.CreateInstance(fixtureType)!;
-
+		var project = fixture.GetProject();
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 
-		fixture.InitializeBulderAsync()
-			.GetAwaiter()
-			.GetResult();
-
-		if (fixture.Project is null)
-		{
-			throw new ArgumentNullException(nameof(fixture.Project));
-		}
-
-		IReadOnlyCollection<TestItem> tests = fixture.Project!
+		IReadOnlyCollection<TestItem> tests = project
 			.GetTestsAsync()
 			.GetAwaiter()
 			.GetResult();
 
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
 
-		string vsProjectPath = fixture.Project.GetVisualStudioProjectPath();
+		string vsProjectPath = project.GetVisualStudioProjectPath();
 
 		foreach (Project.TestItem testItem in tests)
 		{
