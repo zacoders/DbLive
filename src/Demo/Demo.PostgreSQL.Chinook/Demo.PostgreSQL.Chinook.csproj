@@ -7,6 +7,21 @@
 	</PropertyGroup>
 
 
+	<Target Name="CleanOrphanedContentFiles" BeforeTargets="PrepareForBuild">
+		<Message Text="Cleaning old SQL and JSON files from output..." Importance="high" />
+
+		<PropertyGroup>
+			<CustomOutputFolder>$(TargetDir)$(AssemblyName)</CustomOutputFolder>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<OldOutputFiles Include="$(CustomOutputFolder)\**\*.sql" />
+			<OldOutputFiles Include="$(CustomOutputFolder)\**\*.json" />
+		</ItemGroup>
+
+		<Delete Files="@(OldOutputFiles)" />
+	</Target>
+	
 	<PropertyGroup>
 		<!-- projectdir.user file generated here to support open sql test file on click in VS Test Explorer. -->
 		<ProjectInfoStringFile>projectdir.user</ProjectInfoStringFile>
@@ -28,5 +43,6 @@
 			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</None>
 	</ItemGroup>
+
 	
 </Project>

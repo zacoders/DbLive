@@ -19,6 +19,8 @@ public class DeployFixture(
 	public async Task InitializeAsync()
 	{
 		_builder = await builderProvider.GetBuilderAsync().ConfigureAwait(false);
+		// todo: need to think how to get VS Project Dir, and deploy directly from project
+		//       this is what we need for unit tests.
 		Deployer = _builder.CreateDeployer();
 	}
 
