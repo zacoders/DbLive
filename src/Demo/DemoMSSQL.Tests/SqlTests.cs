@@ -22,10 +22,4 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
-
-	[Fact]
-	public async Task SimpleTest()
-	{
-		_ = Task.FromResult(0);
-	}
 }

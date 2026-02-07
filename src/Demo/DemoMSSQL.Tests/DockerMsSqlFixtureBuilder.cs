@@ -23,7 +23,7 @@ public class DockerMsSqlFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(connectionString)
-			.SetProject(GetProjectAssembly());
+			.SetProject(GetProjectAssembly(), useVsProjectPath: true);
 	}
 
 	public Assembly GetProjectAssembly() => Assembly.Load("DemoMSSQL");
