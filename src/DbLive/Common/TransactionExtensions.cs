@@ -1,8 +1,8 @@
-﻿namespace DbLive.Common;
+namespace DbLive.Common;
 
 using System.Transactions;
 
-internal static class TransactionExtentions
+internal static class TransactionExtensions
 {
 	public static IsolationLevel ToSystemTransaction(this TranIsolationLevel transaction)
 		=> transaction switch
@@ -14,4 +14,3 @@ internal static class TransactionExtentions
 			_ => throw new NotSupportedException()
 		};
 }
-
