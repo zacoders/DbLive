@@ -22,25 +22,22 @@ create table dblive.dbversion (
     version int not null,
     created_utc timestamptz not null,
     applied_utc timestamptz null,
+    one_row_lock int not null default 1,
 
-    -- computed column replacement
-    one_row_lock int generated always as (1) stored,
-
-    constraint pk_dblive_dbversion primary key (one_row_lock)
+    constraint ck_dblive_dbversion_singleton check (one_row_lock = 1),
+    constraint pk_dblive_dbversion primary key (one_row_lock)    
 );
 
 insert into dblive.dbversion (version, created_utc)
 values (0, now());
 
-
 create table dblive.version (
     version int not null,
     created_utc timestamptz not null,
     applied_utc timestamptz null,
+    one_row_lock int not null default 1,
 
-    -- computed column replacement
-    one_row_lock int generated always as (1) stored,
-
+    constraint ck_dblive_version_singleton check (one_row_lock = 1),
     constraint pk_dblive_version primary key (one_row_lock)
 );
 
