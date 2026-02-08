@@ -1,18 +1,16 @@
 ﻿<Project>
+  <Target Name="CopyDbLivePostgreSqlScripts" AfterTargets="Build;Publish">
+    <PropertyGroup>
+      <DbLiveTargetDir Condition="'$(PublishDir)' != ''">$(PublishDir)</DbLiveTargetDir>
+      <DbLiveTargetDir Condition="'$(PublishDir)' == ''">$(OutDir)</DbLiveTargetDir>
+    </PropertyGroup>
 
-	<Target Name="CopyDbLiveMssqlScripts"
-			AfterTargets="Build">
+    <ItemGroup>
+      <_DbLiveSqlFiles Include="$(MSBuildThisFileDirectory)..\scripts\**\*.sql" />
+    </ItemGroup>
 
-		<ItemGroup>
-			<_DbLiveSqlFiles
-			  Include="$(MSBuildThisFileDirectory)..\scripts\**\*.sql" />
-		</ItemGroup>
-
-		<Copy
-		  SourceFiles="@(_DbLiveSqlFiles)"
-		  DestinationFiles="@(_DbLiveSqlFiles->'$(OutDir)DbLive.PostgreSQL\%(RecursiveDir)%(Filename)%(Extension)')"
-		  SkipUnchangedFiles="true" />
-
-	</Target>
-
+    <Copy SourceFiles="@(_DbLiveSqlFiles)"
+          DestinationFiles="@(_DbLiveSqlFiles->'$(DbLiveTargetDir)DbLive.PostgreSQL\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
