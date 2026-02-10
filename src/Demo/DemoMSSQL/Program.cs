@@ -2,9 +2,9 @@
 using DbLive.MSSQL;
 using System.Reflection;
 
-string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
+const string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
 
-var deployer = new DbLiveBuilder()
+IDbLive deployer = new DbLiveBuilder()
 	.LogToConsole()
 	.SqlServer()
 	.SetDbConnection(dbCnnString)
