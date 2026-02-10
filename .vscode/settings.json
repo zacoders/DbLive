@@ -3,5 +3,6 @@
         "**/bin": true,
         "**/obj": true,
         "**/TestResults": true
-    }
+    },
+    "dotnet.unitTests.runSettingsPath": "src/.runsettings"
 }
