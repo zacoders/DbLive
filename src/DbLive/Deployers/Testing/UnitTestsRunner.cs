@@ -29,11 +29,13 @@ public class UnitTestsRunner(
 
 		var parallelOptions = new ParallelOptions
 		{
-			MaxDegreeOfParallelism = projectSettings.NumberOfThreadsForTestsRun
+			MaxDegreeOfParallelism = Math.Max(1, projectSettings.NumberOfThreadsForTestsRun)
 		};
 
 		await Parallel.ForEachAsync(tests, parallelOptions, async (test, ct) =>
 		{
+			ct.ThrowIfCancellationRequested();
+
 			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test).ConfigureAwait(false);
 
 			if (testResult.IsSuccess)

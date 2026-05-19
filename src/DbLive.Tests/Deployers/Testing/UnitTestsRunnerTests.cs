@@ -130,10 +130,14 @@ public class UnitTestsRunnerTests
 
 
 	[Fact]
-	public async Task RunTest_OneTestFailed()
+	public async Task RunTest_OneTestFailed_RunsAllTests_AndSavesAllResults()
 	{
-		// Arrange
 		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			NumberOfThreadsForTestsRun = 1
+		});
 
 		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
@@ -146,32 +150,33 @@ public class UnitTestsRunnerTests
 		TestItem testItem2 = new()
 		{
 			Name = "test2",
-			FileData = GetFileData("/tests/test1.sql"),
+			FileData = GetFileData("/tests/test2.sql"),
 			InitFileData = GetFileData("/tests/init.sql")
 		};
 
-		mockSet.DbLiveProject.GetTestsAsync().Returns([
-			testItem1,
-			testItem2
-		]);
+		TestItem testItem3 = new()
+		{
+			Name = "test3",
+			FileData = GetFileData("/tests/test3.sql")
+		};
 
+		mockSet.DbLiveProject.GetTestsAsync().Returns([testItem1, testItem2, testItem3]);
 
-		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Is(testItem1))
-			.Returns(new TestRunResult() { IsSuccess = true });
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
+			.Returns(call =>
+			{
+				TestItem item = call.Arg<TestItem>();
+				return Task.FromResult(new TestRunResult
+				{
+					IsSuccess = item.Name != "test2",
+					ErrorMessage = item.Name == "test2" ? "failed" : null
+				});
+			});
 
-		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Is(testItem2))
-			.Returns(new TestRunResult() { IsSuccess = false });
+		await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
 
-		DeployParameters parameters = new() { RunTests = true };
-
-		// Act
-		await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(parameters));
-
-		// Assert
-
-		await mockSet.DbLiveProject.Received().GetTestsAsync();
-
-		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
+		await mockSet.UnitTestItemRunner.Received(3).RunTestAsync(Arg.Any<TestItem>());
+		await mockSet.DbLiveDA.Received(3).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
 
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
@@ -186,13 +191,21 @@ public class UnitTestsRunnerTests
 				dto.RelativePath == testItem2.FileData.RelativePath &&
 				dto.ContentHash == testItem2.FileData.ContentHash &&
 				dto.IsSuccess == false &&
+				dto.ErrorMessage == "failed"
+			));
+
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
+				dto.RelativePath == testItem3.FileData.RelativePath &&
+				dto.ContentHash == testItem3.FileData.ContentHash &&
+				dto.IsSuccess == true &&
 				dto.ErrorMessage.IsNullOrEmpty()
 			));
 
 		mockSet.Logger.Received()
 			.Information(
 				Arg.Is("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}."),
-				Arg.Is(1), // passed
+				Arg.Is(2), // passed
 				Arg.Is(1)  // failed
 			);
 	}
