@@ -30,6 +30,7 @@ public class CodeDeployer(
 	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
 	{
 		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+		int maxRetries = Math.Max(1, _projectSettings.MaxCodeDeployRetries);
 
 		using var cts = new CancellationTokenSource();
 
@@ -39,17 +40,17 @@ public class CodeDeployer(
 		foreach (CodeItem item in codeItems)
 		{
 			queue.Enqueue(item);
-			retryCounters[item.FileData.FilePath] = 0;
+			retryCounters[item.FileData.RelativePath] = 0;
 		}
 
 		// Limit the number of workers to the number of code items to avoid creating unnecessary threads
-		int workersCount = Math.Min(_projectSettings.NumberOfThreadsForCodeDeploy, codeItems.Count);
+		int workersCount = Math.Min(Math.Max(1, _projectSettings.NumberOfThreadsForCodeDeploy), codeItems.Count);
 
 		Task<Exception?>[] workers = new Task<Exception?>[workersCount];
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
 			Task<Exception?> worker = Task.Run(()
-				=> CreateWorkerAsync(_projectSettings.MaxCodeDeployRetries, queue, retryCounters, cts)
+				=> CreateWorkerAsync(maxRetries, queue, retryCounters, cts)
 			);
 			workers[workerId] = worker;
 		}
@@ -61,7 +62,7 @@ public class CodeDeployer(
 		if (exceptions.Count > 0)
 		{
 			throw new CodeDeploymentAggregateException(
-				$"Code deployment failed after {_projectSettings.MaxCodeDeployRetries} attempts.",
+				$"Code deployment failed after {maxRetries} attempts.",
 				exceptions
 			);
 		}
@@ -118,6 +119,8 @@ public class CodeDeployer(
 				relativePath, retry, maxRetries
 			);
 
+			// Queue-based retry is intentional: SQL objects may fail until their dependencies are deployed.
+			// Moving the item to the tail lets other objects deploy first, then retries this item later.
 			queue.Enqueue(codeItem);
 		}
 		return null;
