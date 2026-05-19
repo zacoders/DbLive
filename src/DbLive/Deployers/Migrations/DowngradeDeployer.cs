@@ -18,7 +18,10 @@ public class DowngradeDeployer(
 
 		int databaseVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
 
-		int projectVersion = (await _project.GetMigrationsAsync().ConfigureAwait(false)).Max(m => m.Version);
+		int projectVersion = (await _project.GetMigrationsAsync().ConfigureAwait(false))
+			.Select(m => m.Version)
+			.DefaultIfEmpty(0)
+			.Max();
 
 		if (databaseVersion <= projectVersion)
 		{

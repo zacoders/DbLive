@@ -158,13 +158,12 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			using SqlConnection cnn = GetConnection();
 
+			await cnn.OpenAsync().ConfigureAwait(false);
 			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 
 			using SqlCommand cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
-
-			await cnn.OpenAsync().ConfigureAwait(false);
 
 			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
 
@@ -287,10 +286,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		string databaseToCreate = builder.InitialCatalog;
 		builder.InitialCatalog = "master";
 
-		SqlConnection cnn = new(builder.ConnectionString);
+		using SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
-		SqlCommand cmd = cnn.CreateCommand();
+		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
 		bool dbExists = (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
@@ -309,10 +308,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		string databaseToDrop = builder.InitialCatalog;
 		builder.InitialCatalog = "master";
 
-		SqlConnection cnn = new(builder.ConnectionString);
+		using SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
-		SqlCommand cmd = cnn.CreateCommand();
+		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
 		_ = cmd.Parameters.AddWithValue("name", databaseToDrop);
 		bool dbExists = (int?)await cmd.ExecuteScalarAsync().ConfigureAwait(false) == 1;

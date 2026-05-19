@@ -72,12 +72,6 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				};
 			}
 
-			if (testRunResults.ActualResults.Count == 0
-				&& testRunResults.AssertInfo.RowCount == 0)
-			{
-				return new ValidationResult { IsValid = true };
-			}
-
 			if (testRunResults.ActualResults[0].Rows.Count == testRunResults.AssertInfo.RowCount)
 			{
 				return new ValidationResult { IsValid = true };

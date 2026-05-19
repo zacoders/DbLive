@@ -31,7 +31,7 @@ public class CodeDeployer(
 	{
 		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		var cts = new CancellationTokenSource();
+		using var cts = new CancellationTokenSource();
 
 		var queue = new ConcurrentQueue<CodeItem>();
 		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);

@@ -6,7 +6,9 @@ public class BreakingChangesDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationItemDeployer _migrationItemDeployer
+		IMigrationItemDeployer _migrationItemDeployer,
+		ITransactionRunner _transactionRunner,
+		ISettingsAccessor _projectSettingsAccessor
 	) : IBreakingChangesDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
@@ -45,9 +47,19 @@ public class BreakingChangesDeployer(
 			return;
 		}
 
-		foreach ((int Version, MigrationItem Item) breaking in breakingToApply)
-		{
-			await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item).ConfigureAwait(false);
-		}
+		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		await _transactionRunner.ExecuteWithinTransactionAsync(
+			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
+			projectSettings.TransactionIsolationLevel,
+			projectSettings.MigrationTimeout,
+			async () =>
+			{
+				foreach ((int Version, MigrationItem Item) breaking in breakingToApply)
+				{
+					await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item).ConfigureAwait(false);
+				}
+			}
+		).ConfigureAwait(false);
 	}
 }

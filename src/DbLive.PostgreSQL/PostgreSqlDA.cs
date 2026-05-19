@@ -144,7 +144,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			TranIsolationLevel.ReadCommitted => "read committed",
 			TranIsolationLevel.RepeatableRead => "repeatable read",
 			TranIsolationLevel.Serializable => "serializable",
-			_ => "read committed"
+			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
 		};
 
 		using NpgsqlCommand cmd = new($"set transaction isolation level {isolationLevelSql};", cnn);
@@ -314,8 +314,12 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		_ = await cnn.ExecuteAsync($"""
 			revoke connect on database "{dbName}" from public;
-			select pg_terminate_backend(pid) from pg_stat_activity where datname = '{dbName}';
 		""").ConfigureAwait(false);
+
+		_ = await cnn.ExecuteAsync(
+			"select pg_terminate_backend(pid) from pg_stat_activity where datname = @name;",
+			new { name = dbName }
+		).ConfigureAwait(false);
 
 		_ = await cnn.ExecuteAsync($"""
 			drop database "{dbName}";

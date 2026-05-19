@@ -66,9 +66,11 @@ public class MigrationItemDeployer(
 		catch (DbLiveSqlException ex)
 		{
 			_logger.Error(
-				ex.SqlError,
+				ex,
+				"Error deploying {RelativePath}. Type {MigrationType}. SQL Error: {SqlError}",
 				migrationItem.FileData.RelativePath,
-				migrationItem.MigrationItemType
+				migrationItem.MigrationItemType,
+				ex.SqlError
 			);
 			throw new MigrationDeploymentException($"""
 				Error deploying {migrationItem.FileData.RelativePath} file.

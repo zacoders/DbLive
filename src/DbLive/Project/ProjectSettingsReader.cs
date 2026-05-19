@@ -8,10 +8,15 @@ public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) 
 	private readonly DbLiveSettings _defaultSettings = new();
 
 	private Task<DbLiveSettings>? _settingsTask;
+	private readonly object _settingsLock = new();
 
 	public Task<DbLiveSettings> GetProjectSettingsAsync()
 	{
-		return _settingsTask ??= LoadSettingsAsync();
+		if (_settingsTask is not null) return _settingsTask;
+		lock (_settingsLock)
+		{
+			return _settingsTask ??= LoadSettingsAsync();
+		}
 	}
 
 	private async Task<DbLiveSettings> LoadSettingsAsync()
