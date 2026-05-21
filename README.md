@@ -134,7 +134,109 @@ Use SQL tests to:
 - Check data rules and constraints
 - Validate migration outcomes
 
-Tests are plain SQL; a test “passes” when it runs without error and (optionally) matches expected result sets. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case.
+Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case.
+
+### Test structure
+
+Each `.test.sql` file is a standalone test with Arrange / Act / Assert sections:
+
+```sql
+-- Arrange
+set identity_insert dbo.Users on;
+
+insert into dbo.Users ( UserId, Name )
+values ( 10, 'TestUser10' )
+
+-- Act
+exec dbo.GetUser2 @UserId = 10
+
+-- Assert
+select assert = 'rows'
+
+select 10 as UserId, 'TestUser10' as Name
+```
+
+### Supported assertions
+
+Assertions are defined by returning a result set with a column named `assert`.
+
+| Assert | Description |
+|--------|-------------|
+| `rows` | Compare columns and row values with expected result sets. |
+| `rows-with-schema` | Compare columns, row values, and SQL types. |
+| `has-rows` | Pass if at least one row is returned. |
+| `row-count=N` | Pass if exactly N rows are returned. |
+| `single-row` | Shortcut for `row-count=1`. |
+| `empty` | Shortcut for `row-count=0`. |
+| _(no assert)_ | Pass if script completes without error (you can use `THROW` for custom checks). |
+
+Examples:
+
+```sql
+-- exact values
+exec dbo.GetUser @UserId = 10
+select assert = 'rows'
+select 10 as UserId, 'TestUser10' as Name
+```
+
+```sql
+-- row count
+exec dbo.GetUser @UserId = -999
+select assert = 'row-count=0'
+```
+
+```sql
+-- type-aware comparison
+select dbo.GetFullName('first', 'last')
+select assert = 'rows-with-schema'
+select cast('first last' as nvarchar(255))
+```
+
+```sql
+-- custom assertion using throw
+declare @cnt int = (
+    select count(*)
+    from dbo.Users
+    where Name = 'Admin'
+)
+
+if @cnt != 1 throw 50000, 'Expected one admin user.', 0
+```
+
+### Shared test data with `init.sql`
+
+You can place `init.sql` inside a test folder. It is executed before each test in that folder, so one setup script can be reused by many tests.
+
+```text
+Scripts/
+  Tests/
+    Orders/
+      init.sql
+      select-order.test.sql
+      update-order.test.sql
+```
+
+Example test that relies on folder-level initialization:
+
+```sql
+-- Arrange
+-- Note: Test data was prepared in init.sql file.
+
+-- Act
+select count(*) from dbo.Orders
+
+-- Assert
+select assert = 'row-count=3'
+```
+
+### Test isolation and rollback
+
+Each SQL test runs inside a transaction. The transaction is always rolled back after test execution.
+
+- `init.sql` and the test script run in the same transaction.
+- Test data is isolated between tests.
+- No manual cleanup is needed.
+- Tests are safe to re-run repeatedly.
 
 > SQL becomes a first-class, testable citizen in your solution.
 
