@@ -6,11 +6,8 @@ public class MigrationFileNameParserTests
 	[Fact]
 	public void Throws_When_Version_Is_Not_Number()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-
 		Assert.Throws<InvalidMigrationVersionException>(() =>
-			migrationFileNameParser.GetMigrationInfo("abc.migration.sql", validateVersion: false));
+			MigrationFileNameParser.GetMigrationInfo("abc.migration.sql"));
 	}
 
 	[Theory]
@@ -22,9 +19,7 @@ public class MigrationFileNameParserTests
 	[InlineData("001.b.sql", MigrationItemType.Breaking)]
 	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-		MigrationItemInfo result = migrationFileNameParser.GetMigrationInfo(file, validateVersion: false);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
 		Assert.Equal(expectedType, result.MigrationItemType);
@@ -36,9 +31,7 @@ public class MigrationFileNameParserTests
 	[InlineData("001.s.json")]
 	public void Parses_Settings_Json_Correctly(string file)
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-		MigrationItemInfo result = migrationFileNameParser.GetMigrationInfo(file, validateVersion: false);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(MigrationItemType.Settings, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
@@ -49,10 +42,8 @@ public class MigrationFileNameParserTests
 	[InlineData("001.s.sql")]
 	public void Throws_When_Settings_Is_Not_Json(string file)
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
-			migrationFileNameParser.GetMigrationInfo(file, validateVersion: false));
+			MigrationFileNameParser.GetMigrationInfo(file));
 	}
 
 	[Theory]
@@ -64,18 +55,14 @@ public class MigrationFileNameParserTests
 	[InlineData("001.b.json")]
 	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
-			migrationFileNameParser.GetMigrationInfo(file, validateVersion: false));
+			MigrationFileNameParser.GetMigrationInfo(file));
 	}
 
 	[Fact]
 	public void Unknown_Type_With_Sql_Defaults_To_Migration()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-		MigrationItemInfo result = migrationFileNameParser.GetMigrationInfo("003.some-random.sql", validateVersion: false);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("003.some-random.sql");
 
 		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
 		Assert.Equal("some-random", result.Name);
@@ -85,18 +72,14 @@ public class MigrationFileNameParserTests
 	[Fact]
 	public void Unknown_Type_With_Json_Throws_Settings_Exception()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
 		Assert.Throws<UnknownMigrationSettingsException>(() =>
-			migrationFileNameParser.GetMigrationInfo("004.custom.json", validateVersion: false));
+			MigrationFileNameParser.GetMigrationInfo("004.custom.json"));
 	}
 
 	[Fact]
 	public void Parses_Timestamp_Version()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-		MigrationItemInfo result = migrationFileNameParser.GetMigrationInfo("20250621143000.migration.sql", validateVersion: false);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("20250621143000.migration.sql");
 
 		Assert.Equal(20250621143000L, result.Version);
 		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
@@ -105,18 +88,14 @@ public class MigrationFileNameParserTests
 	[Fact]
 	public void Throws_When_Extension_Is_Unknown()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
 		Assert.Throws<UnknownMigrationItemTypeException>(() =>
-			migrationFileNameParser.GetMigrationInfo("001.whatever.txt", validateVersion: false));
+			MigrationFileNameParser.GetMigrationInfo("001.whatever.txt"));
 	}
 
 	[Fact]
 	public void Parses_Migration_Name_When_Present()
 	{
-		MockSet mockSet = new();
-		MigrationFileNameParser migrationFileNameParser = mockSet.CreateUsingMocks<MigrationFileNameParser>();
-		MigrationItemInfo result = migrationFileNameParser.GetMigrationInfo("010.migration.create-users.sql", validateVersion: false);
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("010.migration.create-users.sql");
 
 		Assert.Equal("create-users", result.Name);
 		Assert.Equal(10, result.Version);

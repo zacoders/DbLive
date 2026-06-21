@@ -33,7 +33,6 @@ public static class Bootstrapper
 			.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>()
 			.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>()
 			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>()
-			.AddSingleton<IMigrationVersionValidator, MigrationVersionValidator>()
-			.AddSingleton<IMigrationFileNameParser, MigrationFileNameParser>();
+			.AddSingleton<IMigrationVersionValidator, MigrationVersionValidator>();
 	}
 }

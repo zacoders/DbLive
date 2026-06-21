@@ -5,7 +5,7 @@ public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
 	ISettingsAccessor settingsAccessor,
-	IMigrationFileNameParser migrationFileNameParser
+	IMigrationVersionValidator migrationVersionValidator
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
@@ -90,7 +90,13 @@ public class DbLiveProject(
 
 		foreach (string filePath in migrationFiles)
 		{
-			MigrationItemInfo migrationItemInfo = migrationFileNameParser.GetMigrationInfo(filePath, projectSettings.EnforceTimestampVersion);
+			MigrationItemInfo migrationItemInfo = MigrationFileNameParser.GetMigrationInfo(filePath);
+
+			if (projectSettings.EnforceTimestampVersion)
+			{
+				migrationVersionValidator.Validate(migrationItemInfo.Version, migrationItemInfo.FilePath);
+			}
+
 			migrationItems.Add(migrationItemInfo);
 		}
 

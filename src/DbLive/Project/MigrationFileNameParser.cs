@@ -1,9 +1,9 @@
 ﻿
 namespace DbLive.Project;
 
-internal class MigrationFileNameParser(IMigrationVersionValidator migrationVersionValidator) : IMigrationFileNameParser
+internal static class MigrationFileNameParser
 {
-	public MigrationItemInfo GetMigrationInfo(string filePath, bool validateVersion)
+	public static MigrationItemInfo GetMigrationInfo(string filePath)
 	{
 		string fileName = Path.GetFileName(filePath);
 		string fileExtension = Path.GetExtension(fileName);
@@ -33,11 +33,6 @@ internal class MigrationFileNameParser(IMigrationVersionValidator migrationVersi
 		{
 			string errorMessage = "Version prefix failed to parse into a long integer.";
 			throw new InvalidMigrationVersionException(fileName, errorMessage);
-		}
-
-		if (validateVersion)
-		{
-			migrationVersionValidator.Validate(version, fileName);
 		}
 
 		if (migrationType.HasValue)
