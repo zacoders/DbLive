@@ -2,8 +2,8 @@
 
 
 [ExcludeFromCodeCoverage]
-public class MigrationItemMustExistsException(int migrationVersion)
+public class MigrationItemMustExistsException(long migrationVersion)
 	: Exception($"Migration item must exists. MigrationVersion='{migrationVersion}'.")
 {
-	internal int MigrationVersion { get; private set; } = migrationVersion;
+	internal long MigrationVersion { get; private set; } = migrationVersion;
 }

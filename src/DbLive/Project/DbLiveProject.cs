@@ -94,9 +94,9 @@ public class DbLiveProject(
 		}
 
 		List<Migration> migrations = [];
-		foreach (IGrouping<int, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
+		foreach (IGrouping<long, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
 		{
-			int migrationVersion = migrationGroup.Key;
+			long migrationVersion = migrationGroup.Key;
 			Dictionary<MigrationItemType, MigrationItem> items = [];
 			foreach (MigrationItemInfo item in migrationGroup)
 			{

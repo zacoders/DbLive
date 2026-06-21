@@ -23,7 +23,7 @@ internal class DbLiveSelfDeployer(
 
 		if (await _da.DbLiveInstalledAsync().ConfigureAwait(false))
 		{
-			int appliedVersion = await _da.GetDbLiveVersionAsync().ConfigureAwait(false);
+			long appliedVersion = await _da.GetDbLiveVersionAsync().ConfigureAwait(false);
 			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 		}
 

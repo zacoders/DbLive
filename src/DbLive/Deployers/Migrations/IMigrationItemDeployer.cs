@@ -2,5 +2,5 @@
 
 public interface IMigrationItemDeployer
 {
-	Task DeployAsync(int migrationVersion, MigrationItem migrationItem);
+	Task DeployAsync(long migrationVersion, MigrationItem migrationItem);
 }

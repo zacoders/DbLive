@@ -33,7 +33,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType)
+	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
 	{
 		const string query = @"
 			select content_hash
@@ -55,27 +55,29 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return await cnn.ExecuteScalarAsync<bool>(query).ConfigureAwait(false);
 	}
 
-	public async Task<int> GetCurrentMigrationVersionAsync()
+	public async Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync()
 	{
 		const string query = @"
 			select version
-			from dblive.dbversion
+			from dblive.migration
+			where item_type = 'migration'
+			  and status = 'applied'
 		";
 		using var cnn = GetConnection();
-		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<int> GetDbLiveVersionAsync()
+	public async Task<long> GetDbLiveVersionAsync()
 	{
 		const string query = @"
 			select version
 			from dblive.version
 		";
 		using var cnn = GetConnection();
-		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
+	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			update dblive.version
@@ -84,21 +86,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
-	}
-
-	public async Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc)
-	{
-		const string query = @"
-			update dblive.dbversion
-			set version = @version
-			  , applied_utc = @applied_utc;
-		";
-		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(query, new
-		{
-			version,
-			applied_utc = migrationCompletedUtc
-		}).ConfigureAwait(false);
 	}
 
 	public async Task ExecuteNonQueryAsync(
@@ -492,7 +479,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public async Task<bool> MigrationItemExistsAsync(int version, MigrationItemType ItemType)
+	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType ItemType)
 	{
 		using var cnn = GetConnection();
 		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
@@ -510,7 +497,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return exists is not null;
 	}
 
-	public async Task<string?> GetMigrationContentAsync(int version, MigrationItemType migrationType)
+	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
 	{
 		using var cnn = GetConnection();
 		string? content = await cnn.QueryFirstOrDefaultAsync<string?>("""

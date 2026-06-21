@@ -19,7 +19,7 @@ public class MigrationsDeployer(
 
 		_logger.Information("Deploying migrations.");
 
-		// saving migrations before deploying
+		// saving migrations to the log table before actual deployment.
 		await _migrationsSaver.SaveAsync().ConfigureAwait(false);
 
 		IOrderedEnumerable<Migration> migrationsToApply = await GetMigrationsToApplyAsync().ConfigureAwait(false);
@@ -38,13 +38,13 @@ public class MigrationsDeployer(
 
 	internal protected async Task<IOrderedEnumerable<Migration>> GetMigrationsToApplyAsync()
 	{
-		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
+		IEnumerable<Migration> allMigrations = await _project.GetMigrationsAsync().ConfigureAwait(false);
 
-		int appliedVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
+		HashSet<long> appliedVersions = (await _da.GetAppliedMigrationVersionsAsync().ConfigureAwait(false)).ToHashSet();
 
-		_logger.Information("Current migration version in target database: {AppliedVersion}.", appliedVersion);
+		_logger.Information("Applied migration versions in target database: {AppliedVersions}.", appliedVersions.Count == 0 ? "none" : string.Join(", ", appliedVersions.OrderBy(v => v)));
 
-		migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
+		IEnumerable<Migration> migrationsToApply = allMigrations.Where(m => !appliedVersions.Contains(m.Version));
 
 		return migrationsToApply.OrderBy(m => m.Version);
 	}

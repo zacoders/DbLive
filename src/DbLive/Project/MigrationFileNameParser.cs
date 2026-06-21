@@ -14,7 +14,7 @@ internal static class MigrationFileNameParser
 		string migrationFilePart2 = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
 
-		if (!int.TryParse(migrationVersionStr, out var version))
+		if (!long.TryParse(migrationVersionStr, out var version))
 		{
 			throw new MigrationVersionParseException(fileName, migrationVersionStr);
 		}

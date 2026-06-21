@@ -9,7 +9,7 @@ public class MigrationItemDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	public async Task DeployAsync(int migrationVersion, MigrationItem migrationItem)
+	public async Task DeployAsync(long migrationVersion, MigrationItem migrationItem)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
 
@@ -84,7 +84,7 @@ public class MigrationItemDeployer(
 		}
 	}
 
-	private async Task UpdateDateForRevertedMigrationsAsync(int migrationVersion)
+	private async Task UpdateDateForRevertedMigrationsAsync(long migrationVersion)
 	{
 		MigrationItemStateDto migrationDto = new()
 		{

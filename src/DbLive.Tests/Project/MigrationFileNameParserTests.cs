@@ -77,6 +77,15 @@ public class MigrationFileNameParserTests
 	}
 
 	[Fact]
+	public void Parses_Timestamp_Version()
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("20250621143000.migration.sql");
+
+		Assert.Equal(20250621143000L, result.Version);
+		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
+	}
+
+	[Fact]
 	public void Throws_When_Extension_Is_Unknown()
 	{
 		Assert.Throws<UnknownMigrationItemTypeException>(() =>

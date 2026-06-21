@@ -2,7 +2,7 @@ namespace DbLive.Tests.Deployers.Migrations;
 
 public class MigrationsDeployerTests
 {
-	static Migration NewMigration(int version) =>
+	static Migration NewMigration(long version) =>
 		new()
 		{
 			Version = version,
@@ -27,8 +27,8 @@ public class MigrationsDeployerTests
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 
-		mockSet.DbLiveDA.GetCurrentMigrationVersionAsync()
-			.Returns(2);
+		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync()
+			.Returns([1L, 2L]);
 
 		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
 
@@ -55,7 +55,7 @@ public class MigrationsDeployerTests
 			]);
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
 
 		DeployParameters deployParams = DeployParameters.Default;
 
@@ -79,7 +79,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
 
 		DeployParameters deployParams = DeployParameters.Default;
 
@@ -191,9 +191,6 @@ public class MigrationsDeployerTests
 			mockSet.MigrationItemDeployer.DeployAsync(2, undoItem);
 			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
 		});
-
-		await mockSet.DbLiveDA.Received(1)
-			.SetCurrentMigrationVersionAsync(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -297,14 +294,11 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public async Task DeployInternal_saves_current_migration_version()
+	public async Task DeployInternal_saves_migration_item()
 	{
 		// Arrange
 		MockSet mockSet = new();
 		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		DateTime now = new(2025, 2, 1);
-		mockSet.TimeProvider.UtcNow().Returns(now);
 
 		MigrationItem migrationItem = new()
 		{
@@ -325,8 +319,8 @@ public class MigrationsDeployerTests
 		await deployer.DeployInternalAsync(migration, DeployParameters.Default);
 
 		// Assert
-		await mockSet.DbLiveDA.Received(1)
-			.SetCurrentMigrationVersionAsync(5, now);
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(5, migrationItem);
 	}
 
 
