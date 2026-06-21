@@ -66,7 +66,7 @@ public class MigrationsTests
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		await Assert.ThrowsAsync<MigrationVersionParseException>(sqlProject.GetMigrationsAsync);
+		await Assert.ThrowsAsync<InvalidMigrationVersionException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]
@@ -201,7 +201,7 @@ public class MigrationsTests
 				@"C:/DB/Migrations/001.undo.sql",
 				@"C:/DB/Migrations/001.breaking.sql"
 			]);
-		await Assert.ThrowsAsync<MigrationVersionParseException>(sqlProject.GetMigrationsAsync);
+		await Assert.ThrowsAsync<InvalidMigrationVersionException>(sqlProject.GetMigrationsAsync);
 	}
 
 	[Fact]

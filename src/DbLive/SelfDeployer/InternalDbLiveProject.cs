@@ -3,7 +3,8 @@ namespace DbLive.SelfDeployer;
 
 internal class InternalDbLiveProject(
 		IInternalProjectPath _projectPath,
-		IFileSystem _fileSystem
+		IFileSystem _fileSystem,
+		IMigrationFileNameParser migrationFileNameParser
 	) : IInternalDbLiveProject
 {
 	public async Task<IReadOnlyList<InternalMigration>> GetMigrationsAsync()
@@ -14,7 +15,7 @@ internal class InternalDbLiveProject(
 
 		foreach (string filePath in migrationFiles)
 		{
-			MigrationItemInfo info = MigrationFileNameParser.GetMigrationInfo(filePath);
+			MigrationItemInfo info = migrationFileNameParser.GetMigrationInfo(filePath, validateVersion: false);
 
 			InternalMigration migrationItem = new()
 			{

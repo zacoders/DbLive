@@ -1,9 +1,9 @@
 ﻿
 namespace DbLive.Project;
 
-internal static class MigrationFileNameParser
+internal class MigrationFileNameParser(IMigrationVersionValidator migrationVersionValidator) : IMigrationFileNameParser
 {
-	internal static MigrationItemInfo GetMigrationInfo(string filePath)
+	public MigrationItemInfo GetMigrationInfo(string filePath, bool validateVersion)
 	{
 		string fileName = Path.GetFileName(filePath);
 		string fileExtension = Path.GetExtension(fileName);
@@ -13,11 +13,6 @@ internal static class MigrationFileNameParser
 		string migrationVersionStr = fileParts[0];
 		string migrationFilePart2 = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
-
-		if (!long.TryParse(migrationVersionStr, out var version))
-		{
-			throw new MigrationVersionParseException(fileName, migrationVersionStr);
-		}
 
 		MigrationItemType? migrationType = migrationFilePart2.ToLower() switch
 		{
@@ -31,6 +26,19 @@ internal static class MigrationFileNameParser
 			"s" => MigrationItemType.Settings,
 			_ => null
 		};
+
+
+		// 4. Final conversion to long for database storage
+		if (!long.TryParse(migrationVersionStr, out long version))
+		{
+			string errorMessage = "Version prefix failed to parse into a long integer.";
+			throw new InvalidMigrationVersionException(fileName, errorMessage);
+		}
+
+		if (validateVersion)
+		{
+			migrationVersionValidator.Validate(version, fileName);
+		}
 
 		if (migrationType.HasValue)
 		{

@@ -32,6 +32,8 @@ public static class Bootstrapper
 			.AddSingleton<ITransactionRunner, TransactionRunner>()
 			.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>()
 			.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>()
-			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>();
+			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>()
+			.AddSingleton<IMigrationVersionValidator, MigrationVersionValidator>()
+			.AddSingleton<IMigrationFileNameParser, MigrationFileNameParser>();
 	}
 }

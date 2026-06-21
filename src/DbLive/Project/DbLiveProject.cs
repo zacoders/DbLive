@@ -4,7 +4,8 @@ namespace DbLive.Project;
 public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
-	ISettingsAccessor settingsAccessor
+	ISettingsAccessor settingsAccessor,
+	IMigrationFileNameParser migrationFileNameParser
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
@@ -89,7 +90,7 @@ public class DbLiveProject(
 
 		foreach (string filePath in migrationFiles)
 		{
-			MigrationItemInfo migrationItemInfo = MigrationFileNameParser.GetMigrationInfo(filePath);
+			MigrationItemInfo migrationItemInfo = migrationFileNameParser.GetMigrationInfo(filePath, projectSettings.EnforceTimestampVersion);
 			migrationItems.Add(migrationItemInfo);
 		}
 
