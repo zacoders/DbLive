@@ -27,8 +27,6 @@ internal static class MigrationFileNameParser
 			_ => null
 		};
 
-
-		// 4. Final conversion to long for database storage
 		if (!long.TryParse(migrationVersionStr, out long version))
 		{
 			string errorMessage = "Version prefix failed to parse into a long integer.";

@@ -26,7 +26,7 @@ public class DowngradeDeployerTests
 			ContentHash = 111111,
 			Status = MigrationItemStatus.Applied
 		};
-		
+
 		var appliedMigration2 = new MigrationItemDto
 		{
 			Version = 2,
@@ -36,7 +36,7 @@ public class DowngradeDeployerTests
 			ContentHash = 222222,
 			Status = MigrationItemStatus.Applied
 		};
-		
+
 		var appliedMigration3 = new MigrationItemDto
 		{
 			Version = 3,
@@ -163,7 +163,7 @@ public class DowngradeDeployerTests
 		);
 
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());		
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
