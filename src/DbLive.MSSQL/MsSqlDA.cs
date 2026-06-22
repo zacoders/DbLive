@@ -452,7 +452,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
 	{
 		using var cnn = GetConnection();
-		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
+		long? ver = await cnn.QueryFirstOrDefaultAsync<long?>("""
 			update dblive.migration
 			set status = @status
 			  , applied_utc = @applied_utc

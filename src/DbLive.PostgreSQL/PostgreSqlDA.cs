@@ -414,7 +414,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 
-		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
+		long? ver = await cnn.QueryFirstOrDefaultAsync<long?>("""
 			update dblive.migration
 			set status = @status,
 				applied_utc = @applied_utc,
