@@ -14,6 +14,9 @@ public class DbLiveSettings
 	public string AfterDeployFolder { get; init; } = "AfterDeploy";
 
 	public string MigrationsFolder { get; init; } = "Migrations";
+
+	public bool EnforceTimestampVersion { get; set; } = false;
+
 	public string CodeFolder { get; init; } = "Code";
 
 	public IEnumerable<string> CodeSubFoldersDeploymentOrder { get; init; } = [];

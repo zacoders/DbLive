@@ -5,18 +5,15 @@ public interface IDbLiveDA
 {
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
-	Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType);
+	Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType);
 
-	Task<int> GetCurrentMigrationVersionAsync();
+	Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync();
 
 	Task<bool> DbLiveInstalledAsync();
 
-	Task<int> GetDbLiveVersionAsync();
+	Task<long> GetDbLiveVersionAsync();
 
-	Task SetDbLiveVersionAsync(int version, DateTime migrationDatetime);
-
-	/// <exception cref="DbLiveSqlException"/>
-	Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc);
+	Task SetDbLiveVersionAsync(long version, DateTime migrationDatetime);
 
 	/// <exception cref="DbLiveSqlException"/>
 	Task SaveCodeItemAsync(CodeItemDto item);
@@ -50,9 +47,9 @@ public interface IDbLiveDA
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
 	Task UpdateMigrationStateAsync(MigrationItemStateDto item);
 
-	Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType);
+	Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType);
 
-	Task<string?> GetMigrationContentAsync(int version, MigrationItemType undo);
+	Task<string?> GetMigrationContentAsync(long version, MigrationItemType undo);
 
 	Task SaveUnitTestResultAsync(UnitTestItemDto item);
 

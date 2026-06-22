@@ -40,21 +40,15 @@ public class MigrationVersionDeployerTests
 			}
 		};
 
-		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
-
 		await deploy.DeployAsync(migration, DeployParameters.Default);
 
 		await mockSet.MigrationItemDeployer.Received(1)
 			.DeployAsync(1, Arg.Any<MigrationItem>());
-
-		await mockSet.DbLiveDA.Received()
-		   .SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	[Fact]
 	public async Task DeployMigration_SkipMigrationTypes()
 	{
-		// Arrange
 		MockSet mockSet = new();
 
 		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
@@ -82,17 +76,10 @@ public class MigrationVersionDeployerTests
 			}
 		};
 
-		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
-
-		// Act
 		await deploy.DeployAsync(migration, DeployParameters.Default);
 
-		// Assert
 		await mockSet.MigrationItemDeployer.Received()
 			.DeployAsync(1, Arg.Any<MigrationItem>());
-
-		await mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 	}
 
 	private static FileData GetFileData(string relativePath, string content = "-- default item content")
@@ -139,15 +126,10 @@ public class MigrationVersionDeployerTests
 			}
 		};
 
-		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2024, 1, 1));
-
 		await deploy.DeployAsync(migration, DeployParameters.Default);
 
 		await mockSet.MigrationItemDeployer.Received(1)
 			.DeployAsync(1, Arg.Any<MigrationItem>());
-
-		await mockSet.DbLiveDA.Received()
-			.SetCurrentMigrationVersionAsync(migration.Version, new DateTime(2024, 1, 1));
 
 		await mockSet.TransactionRunner.Received(1)
 			.ExecuteWithinTransactionAsync(

@@ -17,7 +17,7 @@ public class BreakingChangesDeployerTests
 		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
 		await mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]
@@ -50,7 +50,7 @@ public class BreakingChangesDeployerTests
 
 		// Assert
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<int>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
 	}
 
 	[Fact]

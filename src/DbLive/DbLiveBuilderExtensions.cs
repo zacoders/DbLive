@@ -40,7 +40,7 @@ public static class DbLiveBuilderExtensions
 	{
 		string vsProjectPath = Path.Combine(GetVisualStudioProjectPath(projectAssembly), "Scripts");
 		string outputPath = vsProjectPath;
-		
+
 		if (!useVsProjectPath)
 		{
 			outputPath = Path.GetFullPath(projectAssembly.GetName().Name!) + ".Scripts";

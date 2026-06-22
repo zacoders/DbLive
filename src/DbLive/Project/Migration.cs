@@ -3,7 +3,7 @@
 [ExcludeFromCodeCoverage]
 public record Migration
 {
-	public required int Version { get; set; }
+	public required long Version { get; set; }
 	public required Dictionary<MigrationItemType, MigrationItem> Items { get; set; }
 
 	public virtual bool Equals(Migration? other)
@@ -14,6 +14,6 @@ public record Migration
 
 	public override int GetHashCode()
 	{
-		return Version;
+		return Version.GetHashCode();
 	}
 }

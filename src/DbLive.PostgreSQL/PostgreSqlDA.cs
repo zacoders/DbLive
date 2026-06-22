@@ -36,7 +36,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long?> GetMigrationHashAsync(int version, MigrationItemType itemType)
+	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
 	{
 		const string query = """
 			select content_hash
@@ -67,21 +67,27 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return exists is not null;
 	}
 
-	public async Task<int> GetCurrentMigrationVersionAsync()
+	public async Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync()
 	{
-		const string query = "select version from dblive.dbversion;";
+		const string query = """
+			select version
+			from dblive.migration
+			where item_type = 'migration'
+			  and status = 'applied'
+		""";
+
 		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<int> GetDbLiveVersionAsync()
+	public async Task<long> GetDbLiveVersionAsync()
 	{
 		const string query = "select version from dblive.version;";
 		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.ExecuteScalarAsync<int?>(query).ConfigureAwait(false) ?? 0;
+		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(int version, DateTime migrationDateTime)
+	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = """
 			update dblive.version
@@ -94,22 +100,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			version,
 			applied_utc = migrationDateTime
-		}).ConfigureAwait(false);
-	}
-
-	public async Task SetCurrentMigrationVersionAsync(int version, DateTime migrationCompletedUtc)
-	{
-		const string query = """
-			update dblive.dbversion
-			set version = @version,
-			    applied_utc = @applied_utc;
-		""";
-
-		using NpgsqlConnection cnn = CreateConnection();
-		_ = await cnn.ExecuteAsync(query, new
-		{
-			version,
-			applied_utc = migrationCompletedUtc
 		}).ConfigureAwait(false);
 	}
 
@@ -424,7 +414,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 
-		int? ver = await cnn.QueryFirstOrDefaultAsync<int?>("""
+		long? ver = await cnn.QueryFirstOrDefaultAsync<long?>("""
 			update dblive.migration
 			set status = @status,
 				applied_utc = @applied_utc,
@@ -451,7 +441,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			);
 		}
 	}
-	public async Task<bool> MigrationItemExistsAsync(int version, MigrationItemType itemType)
+	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
@@ -468,7 +458,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		return exists is not null;
 	}
-	public async Task<string?> GetMigrationContentAsync(int version, MigrationItemType migrationType)
+	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.QueryFirstOrDefaultAsync<string?>("""

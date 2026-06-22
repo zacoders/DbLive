@@ -2,9 +2,7 @@ namespace DbLive.Deployers.Migrations;
 
 public class MigrationVersionDeployer(
 		ILogger _logger,
-		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
-		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
 		ISettingsAccessor projectSettingsAccessor
 	) : IMigrationVersionDeployer
@@ -72,9 +70,5 @@ public class MigrationVersionDeployer(
 		}
 
 		await _migrationItemDeployer.DeployAsync(migration.Version, migrationItem).ConfigureAwait(false);
-
-		DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-
-		await _da.SetCurrentMigrationVersionAsync(migration.Version, migrationCompletedUtc).ConfigureAwait(false);
 	}
 }

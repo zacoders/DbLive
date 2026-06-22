@@ -85,7 +85,7 @@ public class MigrationsSaverTests
 			.Warning(
 				"Migration item '{MigrationItemType}' for version {Version} has changed, saving new version.",
 				MigrationItemType.Migration,
-				2
+				2L
 			);
 
 		await mockSet.DbLiveDA.Received(1)
@@ -122,7 +122,7 @@ public class MigrationsSaverTests
 		Migration migration = NewMigration(1, undoItem, migrationItem);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
-		mockSet.DbLiveDA.GetMigrationHashAsync(Arg.Any<int>(), Arg.Any<MigrationItemType>())
+		mockSet.DbLiveDA.GetMigrationHashAsync(Arg.Any<long>(), Arg.Any<MigrationItemType>())
 			.Returns((long?)null);
 
 		// Act
@@ -144,7 +144,7 @@ public class MigrationsSaverTests
 
 
 	static Migration NewMigration(
-		int version,
+		long version,
 		params MigrationItem[] items)
 	{
 		var dict = new Dictionary<MigrationItemType, MigrationItem>();

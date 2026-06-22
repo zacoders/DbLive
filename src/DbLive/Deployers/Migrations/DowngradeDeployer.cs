@@ -7,23 +7,26 @@ public class DowngradeDeployer(
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ITransactionRunner _transactionRunner,
-		ISettingsAccessor projectSettingsAccessor,
-		ITimeProvider _timeProvider
+		ISettingsAccessor projectSettingsAccessor
 	) : IDowngradeDeployer
 {
 
 	public async Task DeployAsync(DeployParameters parameters)
 	{
-		// verify downgrade needed/allowed
+		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
-		int databaseVersion = await _da.GetCurrentMigrationVersionAsync().ConfigureAwait(false);
-
-		int projectVersion = (await _project.GetMigrationsAsync().ConfigureAwait(false))
+		HashSet<long> appliedInDb = allMigrations
+			.Where(m => m.ItemType == MigrationItemType.Migration && m.Status == MigrationItemStatus.Applied)
 			.Select(m => m.Version)
-			.DefaultIfEmpty(0)
-			.Max();
+			.ToHashSet();
 
-		if (databaseVersion <= projectVersion)
+		HashSet<long> projectVersions = (await _project.GetMigrationsAsync().ConfigureAwait(false))
+			.Select(m => m.Version)
+			.ToHashSet();
+
+		List<long> versionsToUndo = appliedInDb.Except(projectVersions).OrderByDescending(v => v).ToList();
+
+		if (versionsToUndo.Count == 0)
 		{
 			return;
 		}
@@ -31,34 +34,25 @@ public class DowngradeDeployer(
 		if (parameters.AllowDatabaseDowngrade == false)
 		{
 			_logger.Error(
-			"Database downgrade detected. This operation is not allowed. Project version: {projectVersion}, Database version: {databaseVersion}. If this downgrade is intentional, enable it by setting {deployParametersClass}.{parameterName} to true.",
-				projectVersion, databaseVersion, nameof(DeployParameters), nameof(parameters.AllowDatabaseDowngrade)
+				"Database downgrade detected. This operation is not allowed. Applied versions not in project: {versionsToUndo}. If this downgrade is intentional, enable it by setting {deployParametersClass}.{parameterName} to true.",
+				string.Join(", ", versionsToUndo), nameof(DeployParameters), nameof(parameters.AllowDatabaseDowngrade)
 			);
-			throw new DowngradeNotAllowedException($"Database downgrade detected. This operation is not allowed. Project version: {projectVersion}, Database version: {databaseVersion}. If this downgrade is intentional, enable it by setting {nameof(DeployParameters)}.{nameof(parameters.AllowDatabaseDowngrade)} to true.");
+			throw new DowngradeNotAllowedException($"Database downgrade detected. This operation is not allowed. Applied versions not in project: {string.Join(", ", versionsToUndo)}. If this downgrade is intentional, enable it by setting {nameof(DeployParameters)}.{nameof(parameters.AllowDatabaseDowngrade)} to true.");
 		}
 
 		_logger.Information(
-			"Starting database downgrade. Project Version: {projectVersion}, Database Version: {databaseVersion}",
-			projectVersion, databaseVersion
+			"Starting database downgrade. Undo versions: {versionsToUndo}",
+			string.Join(", ", versionsToUndo)
 		);
 
-		IReadOnlyCollection<MigrationItemDto> allMigrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
-
-		// get undo migrations
 		List<MigrationItemDto> undoMigrations =
-				allMigrations
+			allMigrations
 				.Where(m => m.ItemType == MigrationItemType.Undo)
-				.Where(m => m.Version > projectVersion)
+				.Where(m => versionsToUndo.Contains(m.Version))
 				.OrderByDescending(m => m.Version)
 				.ToList();
 
-
-		// verify we have undo scripts for all migrations to be undone
-
-		HashSet<int> undoVersions = undoMigrations.Select(u => u.Version).ToHashSet();
-		HashSet<int> requiredVersions = Enumerable.Range(projectVersion + 1, databaseVersion - projectVersion).ToHashSet();
-
-		List<int> missingUndoVersions = requiredVersions.Except(undoVersions).ToList();
+		List<long> missingUndoVersions = versionsToUndo.Except(undoMigrations.Select(u => u.Version)).ToList();
 
 		if (missingUndoVersions.Count != 0)
 		{
@@ -69,9 +63,8 @@ public class DowngradeDeployer(
 			throw new DowngradeImpossibleException("Cannot perform downgrade due to missing undo scripts.");
 		}
 
-		Dictionary<int, string> undoContents = [];
+		Dictionary<long, string> undoContents = [];
 
-		// deploy undo migrations
 		foreach (MigrationItemDto undoDto in undoMigrations)
 		{
 			string? undoContent = await _da.GetMigrationContentAsync(undoDto.Version, MigrationItemType.Undo).ConfigureAwait(false);
@@ -84,15 +77,12 @@ public class DowngradeDeployer(
 		}
 
 		_logger.Information(
-			"Downgrading database from version {databaseVersion} to {projectVersion}. Undo versions: {versions}",
-			databaseVersion,
-			projectVersion,
+			"Downgrading database. Undo versions: {versions}",
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
 
 		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		// all or nothing. online downgrades is not required.
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
 			projectSettings.TransactionIsolationLevel,
@@ -117,9 +107,6 @@ public class DowngradeDeployer(
 
 					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
 				}
-
-				DateTime migrationCompletedUtc = _timeProvider.UtcNow();
-				await _da.SetCurrentMigrationVersionAsync(projectVersion, migrationCompletedUtc).ConfigureAwait(false);
 			}
 		).ConfigureAwait(false);
 	}

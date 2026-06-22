@@ -4,7 +4,8 @@ namespace DbLive.Project;
 public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
-	ISettingsAccessor settingsAccessor
+	ISettingsAccessor settingsAccessor,
+	IMigrationVersionValidator migrationVersionValidator
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
@@ -90,13 +91,19 @@ public class DbLiveProject(
 		foreach (string filePath in migrationFiles)
 		{
 			MigrationItemInfo migrationItemInfo = MigrationFileNameParser.GetMigrationInfo(filePath);
+
+			if (projectSettings.EnforceTimestampVersion)
+			{
+				migrationVersionValidator.Validate(migrationItemInfo.Version, migrationItemInfo.FilePath);
+			}
+
 			migrationItems.Add(migrationItemInfo);
 		}
 
 		List<Migration> migrations = [];
-		foreach (IGrouping<int, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
+		foreach (IGrouping<long, MigrationItemInfo> migrationGroup in migrationItems.ToLookup(i => i.Version))
 		{
-			int migrationVersion = migrationGroup.Key;
+			long migrationVersion = migrationGroup.Key;
 			Dictionary<MigrationItemType, MigrationItem> items = [];
 			foreach (MigrationItemInfo item in migrationGroup)
 			{
