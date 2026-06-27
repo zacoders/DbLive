@@ -4,8 +4,7 @@ public class MigrationsDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationVersionDeployer _migrationVersionDeployer,
-		IMigrationsSaver _migrationsSaver
+		IMigrationVersionDeployer _migrationVersionDeployer
 	) : IMigrationsDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationsDeployer));
@@ -18,9 +17,6 @@ public class MigrationsDeployer(
 		}
 
 		_logger.Information("Deploying migrations.");
-
-		// saving migrations to the log table before actual deployment.
-		await _migrationsSaver.SaveAsync().ConfigureAwait(false);
 
 		IOrderedEnumerable<Migration> migrationsToApply = await GetMigrationsToApplyAsync().ConfigureAwait(false);
 

@@ -10,7 +10,8 @@ public class DbLiveDeployer(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
-		IDowngradeDeployer _downgradeDeployer
+		IDowngradeDeployer _downgradeDeployer,
+		IMigrationsSaver _migrationsSaver
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
@@ -27,6 +28,9 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			async () =>
 			{
+				// saving migrations to the log table before actual deployment.
+				await _migrationsSaver.SaveAsync().ConfigureAwait(false);
+
 				await _downgradeDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
 				await _folderDeployer.DeployAsync(ProjectFolder.BeforeDeploy, parameters).ConfigureAwait(false);

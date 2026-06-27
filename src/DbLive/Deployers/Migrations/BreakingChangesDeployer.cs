@@ -22,17 +22,28 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		HashSet<long> appliedBreakingVersions =
-			(await _da.GetMigrationsAsync().ConfigureAwait(false))
-				.Where(m => m.Status == MigrationItemStatus.Applied)
+		IReadOnlyCollection<MigrationItemDto> migrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
+
+		HashSet<long> notAppliedBreakingVersions =
+			migrations
+				.Where(m => m.Status != MigrationItemStatus.Applied)
 				.Where(m => m.ItemType == MigrationItemType.Breaking)
 				.Select(m => m.Version)
 				.ToHashSet();
 
+		HashSet<long> appliedMigrationVersions =
+			migrations
+				.Where(m => m.Status == MigrationItemStatus.Applied)
+				.Where(m => m.ItemType == MigrationItemType.Migration)
+				.Select(m => m.Version)
+				.ToHashSet();
+
+		HashSet<long> breakingVersionsToApply = appliedMigrationVersions.Intersect(notAppliedBreakingVersions).ToHashSet();
+
 		List<(long Version, MigrationItem Item)> breakingToApply = [];
 		foreach (Migration migration in await _project.GetMigrationsAsync().ConfigureAwait(false))
 		{
-			if (appliedBreakingVersions.Contains(migration.Version))
+			if (!breakingVersionsToApply.Contains(migration.Version))
 			{
 				continue;
 			}
@@ -57,7 +68,7 @@ public class BreakingChangesDeployer(
 			projectSettings.MigrationTimeout,
 			async () =>
 			{
-				foreach ((long Version, MigrationItem Item) breaking in breakingToApply)
+				foreach ((long Version, MigrationItem Item) breaking in breakingToApply.OrderBy(b => b.Version))
 				{
 					await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item).ConfigureAwait(false);
 				}
