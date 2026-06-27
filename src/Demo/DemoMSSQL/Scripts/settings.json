@@ -2,6 +2,9 @@
   // can be used to configure project
   // can be overwritten in separate migration folder
 
+  // Optional. Binds this project to a database; max 128 characters.
+  "ProjectId": "demo-mssql",
+
   /* Options:
       deployment - full deployment will be wrapped withing transaction
       migration - each migration wrapped by transaction

@@ -1,3 +1,6 @@
 {
+  // Optional. Binds this project to a database; max 128 characters.
+  "ProjectId": "demo-postgresql-chinook",
+
   "EnforceTimestampVersion": true
 }

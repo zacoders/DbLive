@@ -103,6 +103,24 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}).ConfigureAwait(false);
 	}
 
+	public async Task<string?> GetProjectIdAsync()
+	{
+		const string query = "select project_id from dblive.version;";
+		using NpgsqlConnection cnn = CreateConnection();
+		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+	}
+
+	public async Task SetProjectIdAsync(string projectId)
+	{
+		const string query = """
+			update dblive.version
+			set project_id = @project_id;
+		""";
+
+		using NpgsqlConnection cnn = CreateConnection();
+		_ = await cnn.ExecuteAsync(query, new { project_id = projectId.ToLower() }).ConfigureAwait(false);
+	}
+
 	public async Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,

@@ -88,6 +88,26 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
 	}
 
+	public async Task<string?> GetProjectIdAsync()
+	{
+		const string query = @"
+			select project_id
+			from dblive.version
+		";
+		using var cnn = GetConnection();
+		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+	}
+
+	public async Task SetProjectIdAsync(string projectId)
+	{
+		const string query = @"
+			update dblive.version
+			set project_id = @project_id;
+		";
+		using var cnn = GetConnection();
+		_ = await cnn.ExecuteAsync(query, new { project_id = projectId }).ConfigureAwait(false);
+	}
+
 	public async Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,

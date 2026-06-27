@@ -1,4 +1,3 @@
-
 namespace DbLive.Deployers;
 
 public class DbLiveDeployer(
@@ -11,7 +10,8 @@ public class DbLiveDeployer(
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
 		IDowngradeDeployer _downgradeDeployer,
-		IMigrationsSaver _migrationsSaver
+		IMigrationsSaver _migrationsSaver,
+		IProjectIdValidator _projectIdValidator
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
@@ -19,6 +19,8 @@ public class DbLiveDeployer(
 	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting project deploy.");
+
+		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
 
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
 

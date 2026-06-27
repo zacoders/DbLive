@@ -19,6 +19,10 @@ public class DbLiveDeployerTests
 
 		List<string> calls = [];
 
+		mockSet.ProjectIdValidator
+			.When(x => x.ValidateAsync())
+			.Do(_ => calls.Add("project-id"));
+
 		mockSet.DowngradeDeployer
 			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("downgrade"));
@@ -55,6 +59,7 @@ public class DbLiveDeployerTests
 		// assert – exact order
 		Assert.Equal(
 			[
+				"project-id",
 				"downgrade",
 				"folder-before",
 				"migrations",
@@ -84,6 +89,7 @@ public class DbLiveDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// assert
+		await mockSet.ProjectIdValidator.Received(1).ValidateAsync();
 		mockSet.Logger.Received(1).Information("Starting project deploy.");
 		mockSet.Logger.Received(1).Information("Project deploy completed.");
 	}
