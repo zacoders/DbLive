@@ -37,4 +37,10 @@ public class DbLiveSettings
 	public int MaxCodeDeployRetries { get; set; } = 5;
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
+	/// <summary>
+	/// Optional project identity. When set, binds the target database on first deploy
+	/// and blocks deployment if the stored value does not match.
+	/// </summary>
+	public string? ProjectId { get; init; }
+
 }

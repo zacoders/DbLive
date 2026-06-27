@@ -15,6 +15,10 @@ public interface IDbLiveDA
 
 	Task SetDbLiveVersionAsync(long version, DateTime migrationDatetime);
 
+	Task<string?> GetProjectIdAsync();
+
+	Task SetProjectIdAsync(string projectId);
+
 	/// <exception cref="DbLiveSqlException"/>
 	Task SaveCodeItemAsync(CodeItemDto item);
 

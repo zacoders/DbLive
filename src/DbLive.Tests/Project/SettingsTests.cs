@@ -51,4 +51,31 @@ public class SettingsTests
 
 		Assert.NotNull(settings);
 	}
+
+	[Fact]
+	public async Task LoadSettings_WithProjectId()
+	{
+		MockSet mockSet = new();
+
+		string projectPath = @"C:/DB";
+		mockSet.ProjectPath.Path.Returns(projectPath);
+
+		string settingsPath = projectPath.CombineWith("settings.json");
+
+		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
+
+		mockSet.FileSystem.FileReadAllTextAsync(settingsPath)
+			.Returns("""
+				{
+					"ProjectId": "my-operational-db"
+				}
+				"""
+			);
+
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+
+		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
+
+		Assert.Equal("my-operational-db", settings.ProjectId);
+	}
 }
