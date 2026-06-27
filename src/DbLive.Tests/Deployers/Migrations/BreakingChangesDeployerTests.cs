@@ -54,7 +54,7 @@ public class BreakingChangesDeployerTests
 	}
 
 	[Fact]
-	public async Task Applies_only_breaking_migrations_newer_than_latest_applied()
+	public async Task Applies_only_pending_breaking_for_applied_migrations()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -140,7 +140,7 @@ public class BreakingChangesDeployerTests
 	}
 
 	[Fact]
-	public async Task Applies_all_new_breaking_items_in_version_order()
+	public async Task Applies_pending_breaking_in_version_order_and_skips_unapplied_migrations()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -189,7 +189,7 @@ public class BreakingChangesDeployerTests
 				ItemType = MigrationItemType.Migration,
 				Status = MigrationItemStatus.None,
 				Name = "migration",
-				RelativePath = "migrations/002.migration.sql",
+				RelativePath = "migrations/003.migration.sql",
 				ContentHash = 333
 			},
 			new MigrationItemDto
@@ -198,7 +198,7 @@ public class BreakingChangesDeployerTests
 				ItemType = MigrationItemType.Breaking,
 				Status = MigrationItemStatus.None,
 				Name = "breaking",
-				RelativePath = "migrations/002.breaking.sql",
+				RelativePath = "migrations/003.breaking.sql",
 				ContentHash = 3333
 			},
 		]);
@@ -229,7 +229,20 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
+		Migration migration3 = new()
+		{
+			Version = 3,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("3.breaking.sql", "-- content 3")
+				}
+			}
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2, migration3]);
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
@@ -247,7 +260,7 @@ public class BreakingChangesDeployerTests
 		});
 
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-				.DeployAsync(3, migration2.Items[MigrationItemType.Breaking]);
+			.DeployAsync(3, Arg.Any<MigrationItem>());
 	}
 
 	private static FileData GetFileData(string relativePath, string content)
