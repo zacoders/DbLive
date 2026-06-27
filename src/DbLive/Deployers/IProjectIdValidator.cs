@@ -1,4 +1,4 @@
-namespace DbLive.Project;
+namespace DbLive.Deployers;
 
 public interface IProjectIdValidator
 {

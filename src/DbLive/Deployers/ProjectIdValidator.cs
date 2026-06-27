@@ -1,7 +1,4 @@
-using DbLive.Common.Settings;
-using DbLive.Project.Exceptions;
-
-namespace DbLive.Project;
+namespace DbLive.Deployers;
 
 internal class ProjectIdValidator(
 	ILogger logger,
