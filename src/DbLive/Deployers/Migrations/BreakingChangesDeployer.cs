@@ -22,15 +22,17 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
+		IReadOnlyCollection<MigrationItemDto> migrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
+
 		HashSet<long> notAppliedBreakingVersions =
-			(await _da.GetMigrationsAsync().ConfigureAwait(false))
+			migrations
 				.Where(m => m.Status != MigrationItemStatus.Applied)
 				.Where(m => m.ItemType == MigrationItemType.Breaking)
 				.Select(m => m.Version)
 				.ToHashSet();
 
 		HashSet<long> appliedMigrationVersions =
-			(await _da.GetMigrationsAsync().ConfigureAwait(false))
+			migrations
 				.Where(m => m.Status == MigrationItemStatus.Applied)
 				.Where(m => m.ItemType == MigrationItemType.Migration)
 				.Select(m => m.Version)
