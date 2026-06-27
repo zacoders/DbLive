@@ -118,7 +118,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		""";
 
 		using NpgsqlConnection cnn = CreateConnection();
-		_ = await cnn.ExecuteAsync(query, new { project_id = projectId }).ConfigureAwait(false);
+		_ = await cnn.ExecuteAsync(query, new { project_id = projectId.ToLower() }).ConfigureAwait(false);
 	}
 
 	public async Task ExecuteNonQueryAsync(

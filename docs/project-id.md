@@ -5,6 +5,7 @@
 ## Format
 
 - Unicode string, maximum **128** characters
+- Case insensitive
 - Example: `"ProjectId": "my-app-prod"`
 
 Choose a value that uniquely identifies your project and environment, for example `billing-api-staging` or `inventory-prod`.
@@ -22,7 +23,7 @@ Add `ProjectId` to `settings.json` next to your scripts:
 
 ## Behavior
 
-### ProjectId not set (legacy mode)
+### ProjectId not set
 
 If `ProjectId` is absent, null, or whitespace, validation is skipped entirely. Existing projects continue to work without changes.
 
