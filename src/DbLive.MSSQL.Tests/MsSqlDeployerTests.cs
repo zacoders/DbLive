@@ -1,5 +1,6 @@
 ﻿using DbLive.Adapter;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
 using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
@@ -12,11 +13,14 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 {
 	private readonly IDbLiveDA _da;
 
+	private readonly string _connectionString;
+
 	public MsSqlDeployerTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper output) : base(output)
 	{
 		Container.InitializeMSSQL();
 
 		var cnn = new DbLiveDbConnection(_fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName());
+		_connectionString = cnn.ConnectionString;
 		_ = Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
 		Container.InitializeDbLive();
@@ -237,5 +241,27 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		List<SqlResult> results = await _da.ExecuteQueryMultipleAsync(sql);
 
 		Assert.Empty(results);
+	}
+
+	[Fact]
+	public async Task Snapshot_IsolationLevel_Works()
+	{
+		SqlConnectionStringBuilder builder = new(_connectionString);
+		string dbName = builder.InitialCatalog;
+
+		await _da.ExecuteNonQueryAsync($"alter database [{dbName}] set allow_snapshot_isolation on;");
+
+		using (TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.Snapshot, TimeSpan.FromMinutes(1)))
+		{
+			await _da.ExecuteNonQueryAsync("""
+				create table dbo.TestSnapshot (id int not null);
+				insert into dbo.TestSnapshot (id) values (1);
+			""");
+		}
+
+		await _da.ExecuteNonQueryAsync("""
+			if object_id('dbo.TestSnapshot', 'U') is not null
+				raiserror('Snapshot transaction should have rolled back.', 16, 1);
+		""");
 	}
 }

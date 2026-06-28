@@ -30,6 +30,7 @@ public static class Bootstrapper
 			.AddSingleton<ISettingsAccessor, SettingsAccessor>()
 			.AddSingleton<ITimeProvider, Common.TimeProvider>()
 			.AddSingleton<ITransactionRunner, TransactionRunner>()
+			.AddSingleton<ITransactionSettingsValidator, TransactionSettingsValidator>()
 			.AddSingleton<IUnitTestItemRunner, UnitTestItemRunner>()
 			.AddSingleton<IUnitTestResultChecker, UnitTestResultChecker>()
 			.AddSingleton<IUnitTestsRunner, UnitTestsRunner>()

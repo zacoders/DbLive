@@ -11,7 +11,8 @@ public class DbLiveDeployer(
 		ITransactionRunner _transactionRunner,
 		IDowngradeDeployer _downgradeDeployer,
 		IMigrationsSaver _migrationsSaver,
-		IProjectIdValidator _projectIdValidator
+		IProjectIdValidator _projectIdValidator,
+		ITransactionSettingsValidator _transactionSettingsValidator
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
@@ -23,6 +24,8 @@ public class DbLiveDeployer(
 		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
 
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		await _transactionSettingsValidator.ValidateAsync(projectSettings).ConfigureAwait(false);
 
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,

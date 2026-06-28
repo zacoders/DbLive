@@ -20,10 +20,11 @@ public class UnitTestItemRunner(
 
 		bool initFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
+		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
 		try
 		{
 			using TransactionScope _transactionScope = TransactionScopeManager.Create(
-				TranIsolationLevel.Serializable,
+				testsIsolationLevel,
 				projectSettings.UnitTestItemTimeout
 			);
 
@@ -31,7 +32,7 @@ public class UnitTestItemRunner(
 			{
 				await _da.ExecuteNonQueryAsync(
 					test.InitFileData.Content,
-					TranIsolationLevel.Serializable,
+					testsIsolationLevel,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
 				initFileDeployed = true;
@@ -39,7 +40,7 @@ public class UnitTestItemRunner(
 
 			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
 				test.FileData.Content,
-				TranIsolationLevel.Serializable,
+				testsIsolationLevel,
 				projectSettings.UnitTestItemTimeout
 			).ConfigureAwait(false);
 

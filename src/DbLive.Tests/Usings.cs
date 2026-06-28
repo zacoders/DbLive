@@ -13,4 +13,5 @@ global using DbLive.Tests.Common;
 global using NSubstitute;
 global using NSubstitute.ReturnsExtensions;
 global using System.Collections.ObjectModel;
+global using System.Transactions;
 global using Xunit;
