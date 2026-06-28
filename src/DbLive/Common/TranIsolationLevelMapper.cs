@@ -20,10 +20,10 @@ internal static class TranIsolationLevelMapper
 		{
 			DbProvider.MsSql => level switch
 			{
-				TranIsolationLevel.ReadCommitted => "READ COMMITTED",
-				TranIsolationLevel.RepeatableRead => "REPEATABLE READ",
-				TranIsolationLevel.Serializable => "SERIALIZABLE",
-				TranIsolationLevel.Snapshot => "SNAPSHOT",
+				TranIsolationLevel.ReadCommitted => "read committed",
+				TranIsolationLevel.RepeatableRead => "repeatable read",
+				TranIsolationLevel.Serializable => "serializable",
+				TranIsolationLevel.Snapshot => "snapshot",
 				_ => throw new NotSupportedTransactionIsolationLevelException(level)
 			},
 			DbProvider.PostgreSql => level switch

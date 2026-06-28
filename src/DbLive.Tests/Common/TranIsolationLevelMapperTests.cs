@@ -14,10 +14,10 @@ public class TranIsolationLevelMapperTests
 	}
 
 	[Theory]
-	[InlineData(TranIsolationLevel.ReadCommitted, "READ COMMITTED")]
-	[InlineData(TranIsolationLevel.RepeatableRead, "REPEATABLE READ")]
-	[InlineData(TranIsolationLevel.Serializable, "SERIALIZABLE")]
-	[InlineData(TranIsolationLevel.Snapshot, "SNAPSHOT")]
+	[InlineData(TranIsolationLevel.ReadCommitted, "read committed")]
+	[InlineData(TranIsolationLevel.RepeatableRead, "repeatable read")]
+	[InlineData(TranIsolationLevel.Serializable, "serializable")]
+	[InlineData(TranIsolationLevel.Snapshot, "snapshot")]
 	public void ToSql_MsSql_MapsSupportedLevels(TranIsolationLevel level, string expected)
 	{
 		string actual = TranIsolationLevelMapper.ToSql(level, DbProvider.MsSql);
