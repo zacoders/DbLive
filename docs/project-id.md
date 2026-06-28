@@ -41,4 +41,5 @@ The value is stored in the `project_id` column on the singleton `dblive.version`
 
 ## See also
 
+- [Philosophy — Zero-Downtime Database Delivery](philosophy.md)
 - [Issue #71](https://github.com/zacoders/DbLive/issues/71)

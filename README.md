@@ -4,6 +4,8 @@
 
 DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
 
+> **New to DbLive?** Start with [Philosophy](docs/philosophy.md) to understand zero-downtime deployment principles.
+
 ---
 
 ## Features
@@ -246,6 +248,8 @@ Each SQL test runs inside a transaction. The transaction is always rolled back a
 
 ## Deployment flow
 
+See [Philosophy](docs/philosophy.md) for why breaking changes run in a separate phase and how migrations, code, and applications fit together.
+
 A single `DeployAsync` run typically does (in order):
 
 1. **Downgrade** (if requested) — apply undo scripts down to the target version
@@ -284,6 +288,8 @@ DbLive fits into a release pipeline like this:
 ---
 
 ## Design goals
+
+DbLive design follows [zero-downtime, backward-compatible delivery](docs/philosophy.md).
 
 - **Database is not a special snowflake** — it is code: versioned in repo, reviewed, and deployed like application code.
 - **SQL is testable** — procedures, views, and migrations can have automated tests.
