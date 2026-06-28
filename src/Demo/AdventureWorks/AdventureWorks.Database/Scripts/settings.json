@@ -12,7 +12,6 @@
   "TransactionWrapLevel": "Migration",
 
   /* Options:
-      Chaos (deprecated alias for ReadCommitted),
       ReadCommitted,
       RepeatableRead,
       Serializable,
