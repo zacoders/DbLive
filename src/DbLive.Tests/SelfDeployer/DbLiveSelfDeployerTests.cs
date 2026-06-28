@@ -121,6 +121,30 @@ public class DbLiveSelfDeployerTests
 
 
 	[Fact]
+	public async Task Deploy_wraps_migrations_in_transaction()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([CreateMigration(1, "-- migration 1")]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		// Act
+		await deployer.DeployAsync();
+
+		// Assert
+		await mockSet.TransactionRunner.Received(1).ExecuteWithinTransactionAsync(
+			true,
+			TranIsolationLevel.Serializable,
+			TimeSpan.FromMinutes(5),
+			Arg.Any<Func<Task>>()
+		);
+	}
+
+	[Fact]
 	public async Task Deploy_executes_sql_from_internal_migration_file_data()
 	{
 		// Arrange

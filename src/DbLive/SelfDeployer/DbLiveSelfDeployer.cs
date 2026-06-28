@@ -5,7 +5,8 @@ internal class DbLiveSelfDeployer(
 		ISettingsAccessor _projectSettings,
 		IInternalDbLiveProject _internalProject,
 		IDbLiveDA _da,
-		ITimeProvider _timeProvider
+		ITimeProvider _timeProvider,
+		ITransactionRunner _transactionRunner
 	) : IDbLiveSelfDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
@@ -27,11 +28,18 @@ internal class DbLiveSelfDeployer(
 			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
 		}
 
-		foreach (InternalMigration migration in migrationsToApply)
-		{
-			await _da.ExecuteNonQueryAsync(migration.FileData.Content).ConfigureAwait(false);
-			await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
-		}
+		await _transactionRunner.ExecuteWithinTransactionAsync(
+			true,
+			TranIsolationLevel.Serializable,
+			TimeSpan.FromMinutes(5),
+			async () =>
+			{
+				foreach (InternalMigration migration in migrationsToApply)
+				{
+					await _da.ExecuteNonQueryAsync(migration.FileData.Content).ConfigureAwait(false);
+					await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
+				}
+			}).ConfigureAwait(false);
 
 		if (projectSettings.LogSelfDeploy)
 		{
