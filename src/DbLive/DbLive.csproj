@@ -36,6 +36,8 @@
     <ItemGroup>
         <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
+        <InternalsVisibleTo Include="DbLive.MSSQL" />
+        <InternalsVisibleTo Include="DbLive.PostgreSQL" />
         <InternalsVisibleTo Include="DbLive.xunit" />
     </ItemGroup>
 

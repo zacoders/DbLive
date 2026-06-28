@@ -105,7 +105,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set project_id = @project_id;
 		";
 		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(query, new { project_id = projectId }).ConfigureAwait(false);
+		_ = await cnn.ExecuteAsync(query, new { project_id = ProjectIdTools.Normalize(projectId) }).ConfigureAwait(false);
 	}
 
 	public async Task ExecuteNonQueryAsync(

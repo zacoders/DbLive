@@ -94,6 +94,40 @@ public class ProjectIdValidatorTests
 	}
 
 	[Fact]
+	public async Task ValidateAsync_succeeds_when_project_id_differs_only_by_case()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = "My-App-Prod"
+		});
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns("my-app-prod");
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		await validator.ValidateAsync();
+
+		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
+	}
+
+	[Fact]
+	public async Task ValidateAsync_normalizes_project_id_when_persisting()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = "My-App-Prod"
+		});
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns((string?)null);
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		await validator.ValidateAsync();
+
+		await mockSet.DbLiveDA.Received(1).SetProjectIdAsync("my-app-prod");
+	}
+
+	[Fact]
 	public async Task ValidateAsync_throws_when_project_id_mismatch()
 	{
 		MockSet mockSet = new();

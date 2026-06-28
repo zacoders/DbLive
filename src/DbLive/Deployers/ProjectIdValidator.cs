@@ -1,3 +1,5 @@
+using DbLive.Common;
+
 namespace DbLive.Deployers;
 
 internal class ProjectIdValidator(
@@ -30,12 +32,13 @@ internal class ProjectIdValidator(
 
 		if (dbProjectId is null)
 		{
-			await da.SetProjectIdAsync(settingsProjectId).ConfigureAwait(false);
-			_logger.Information("ProjectId bound to database: {ProjectId}.", settingsProjectId);
+			string normalizedProjectId = ProjectIdTools.Normalize(settingsProjectId);
+			await da.SetProjectIdAsync(normalizedProjectId).ConfigureAwait(false);
+			_logger.Information("ProjectId bound to database: {ProjectId}.", normalizedProjectId);
 			return;
 		}
 
-		if (dbProjectId != settingsProjectId)
+		if (!ProjectIdTools.Equals(dbProjectId, settingsProjectId))
 		{
 			_logger.Error(
 				"ProjectId mismatch. Settings ProjectId: {SettingsProjectId}, database ProjectId: {DatabaseProjectId}. Deployment blocked to prevent deploying to the wrong database.",
