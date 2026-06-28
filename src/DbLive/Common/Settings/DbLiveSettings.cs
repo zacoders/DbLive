@@ -49,4 +49,10 @@ public class DbLiveSettings
 	/// </summary>
 	public MigrationChecksumMode MigrationChecksumMode { get; init; } = MigrationChecksumMode.Strict;
 
+	/// <summary>
+	/// When enabled, serializes concurrent deployments to the same database.
+	/// A second parallel deploy waits until the first completes.
+	/// </summary>
+	public bool DeployLockEnabled { get; init; } = true;
+
 }

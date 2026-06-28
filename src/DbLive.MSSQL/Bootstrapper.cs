@@ -1,4 +1,6 @@
 ﻿using DbLive.Adapter;
+using DbLive.Deployers;
+
 namespace DbLive.MSSQL;
 
 public static class Bootstrapper
@@ -7,6 +9,7 @@ public static class Bootstrapper
 	{
 		_ = container
 			.AddSingleton<IDbLiveDA, MsSqlDA>()
+			.AddSingleton<IDeployLock, MsSqlDeployLock>()
 			.AddSingleton<IInternalProjectPath, MsSqlProjectPath>();
 	}
 }

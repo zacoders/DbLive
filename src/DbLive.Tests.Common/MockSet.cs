@@ -39,6 +39,8 @@ public class MockSet
 	public readonly IMigrationVersionValidator MigrationVersionValidator = Substitute.For<IMigrationVersionValidator>();
 	public readonly IProjectIdValidator ProjectIdValidator = Substitute.For<IProjectIdValidator>();
 	public readonly ITransactionSettingsValidator TransactionSettingsValidator = Substitute.For<ITransactionSettingsValidator>();
+	public readonly IDeployLockRunner DeployLockRunner = Substitute.For<IDeployLockRunner>();
+	public readonly IDeployLock DeployLock = Substitute.For<IDeployLock>();
 
 	public MockSet()
 	{
@@ -61,6 +63,10 @@ public class MockSet
 				Arg.Any<TimeSpan>(),
 				Arg.Any<Func<Task>>()
 			)
+			.Returns(ci => ci.Arg<Func<Task>>()());
+
+		DeployLockRunner
+			.ExecuteWithLockAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>())
 			.Returns(ci => ci.Arg<Func<Task>>()());
 
 		foreach (FieldInfo? fld in GetType().GetFields().Where(fld => !fld.IsPrivate))

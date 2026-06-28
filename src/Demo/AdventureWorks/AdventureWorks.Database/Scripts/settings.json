@@ -31,5 +31,8 @@
   ],
 
   /* MigrationChecksumMode: Strict (default) | Warn */
-  "MigrationChecksumMode": "Strict"
+  "MigrationChecksumMode": "Strict",
+
+  /* When enabled, a second parallel deploy waits until the first completes. Default: true */
+  "DeployLockEnabled": true
 }

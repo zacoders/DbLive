@@ -1,4 +1,5 @@
 ﻿using DbLive.Adapter;
+using DbLive.Deployers;
 
 namespace DbLive.PostgreSQL;
 
@@ -8,6 +9,7 @@ public static class Bootstrapper
 	{
 		_ = container
 			.AddSingleton<IDbLiveDA, PostgreSqlDA>()
+			.AddSingleton<IDeployLock, PostgreSqlDeployLock>()
 			.AddSingleton<IInternalProjectPath, PostgreSqlProjectPath>();
 	}
 }

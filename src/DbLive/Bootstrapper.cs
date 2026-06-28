@@ -16,6 +16,7 @@ public static class Bootstrapper
 			.AddSingleton<ICodeItemDeployer, CodeItemDeployer>()
 			.AddSingleton<IDbLive, DbLive>()
 			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
+			.AddSingleton<IDeployLockRunner, DeployLockRunner>()
 			.AddSingleton<IDbLiveProject, DbLiveProject>()
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
 			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()

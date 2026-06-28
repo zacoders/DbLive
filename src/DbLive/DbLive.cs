@@ -7,7 +7,8 @@ public class DbLive(
 		IDbLiveDA _da,
 		ILogger _logger,
 		IDbLiveDeployer _deployer,
-		IDbLiveSelfDeployer _selfDeployer
+		IDbLiveSelfDeployer _selfDeployer,
+		IDeployLockRunner _deployLockRunner
 	) : IDbLive
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLive));
@@ -16,19 +17,22 @@ public class DbLive(
 	{
 		_logger.Information("Starting deployment.");
 
-		if (parameters.RecreateDatabase)
+		await _deployLockRunner.ExecuteWithLockAsync(async () =>
 		{
-			await _da.DropDbAsync().ConfigureAwait(false);
-			await _da.CreateDBAsync().ConfigureAwait(false);
-		}
+			if (parameters.RecreateDatabase)
+			{
+				await _da.DropDbAsync().ConfigureAwait(false);
+				await _da.CreateDBAsync().ConfigureAwait(false);
+			}
 
-		if (parameters.CreateDbIfNotExists)
-			await _da.CreateDBAsync(true).ConfigureAwait(false);
+			if (parameters.CreateDbIfNotExists)
+				await _da.CreateDBAsync(true).ConfigureAwait(false);
 
-		// Self deploy. Deploying DbLive to the database
-		await _selfDeployer.DeployAsync().ConfigureAwait(false);
+			// Self deploy. Deploying DbLive to the database
+			await _selfDeployer.DeployAsync().ConfigureAwait(false);
 
-		// Deploy actual project
-		await _deployer.DeployAsync(parameters).ConfigureAwait(false);
+			// Deploy actual project
+			await _deployer.DeployAsync(parameters).ConfigureAwait(false);
+		}).ConfigureAwait(false);
 	}
 }

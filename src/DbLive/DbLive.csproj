@@ -38,6 +38,7 @@
         <InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL" />
         <InternalsVisibleTo Include="DbLive.PostgreSQL" />
+        <InternalsVisibleTo Include="DbLive.PostgreSQL.Tests" />
         <InternalsVisibleTo Include="DbLive.xunit" />
     </ItemGroup>
 
