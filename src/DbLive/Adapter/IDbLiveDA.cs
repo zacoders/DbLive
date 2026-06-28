@@ -47,6 +47,8 @@ public interface IDbLiveDA
 
 	Task SaveMigrationItemAsync(MigrationItemSaveDto item);
 
+	Task RepairMigrationChecksumAsync(MigrationChecksumRepairDto item);
+
 	/// <summary>
 	/// Updates the migration state for the specified migration item.
 	/// </summary>

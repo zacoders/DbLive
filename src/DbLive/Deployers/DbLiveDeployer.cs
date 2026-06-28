@@ -11,6 +11,7 @@ public class DbLiveDeployer(
 		ITransactionRunner _transactionRunner,
 		IDowngradeDeployer _downgradeDeployer,
 		IMigrationsSaver _migrationsSaver,
+		IMigrationChecksumValidator _migrationChecksumValidator,
 		IProjectIdValidator _projectIdValidator,
 		ITransactionSettingsValidator _transactionSettingsValidator
 	) : IDbLiveDeployer
@@ -33,6 +34,8 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			async () =>
 			{
+				await _migrationChecksumValidator.ValidateAsync(parameters).ConfigureAwait(false);
+
 				// saving migrations to the log table before actual deployment.
 				await _migrationsSaver.SaveAsync().ConfigureAwait(false);
 

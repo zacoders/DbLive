@@ -11,6 +11,7 @@ public class MigrationsSaverTests
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		// Act
 		await saver.SaveAsync();
@@ -38,8 +39,9 @@ public class MigrationsSaverTests
 			});
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
-		mockSet.DbLiveDA.GetMigrationHashAsync(1, MigrationItemType.Migration)
-			.Returns(fileData.ContentHash);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied)
+		]);
 
 		// Act
 		await saver.SaveAsync();
@@ -47,13 +49,10 @@ public class MigrationsSaverTests
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive()
 			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
-
-		mockSet.Logger.DidNotReceive()
-			.Warning(Arg.Any<string>(), Arg.Any<object[]>());
 	}
 
 	[Fact]
-	public async Task Save_logs_warning_and_saves_when_hash_differs()
+	public async Task Save_logs_and_saves_when_hash_differs_for_not_applied_item()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -70,9 +69,9 @@ public class MigrationsSaverTests
 			});
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
-
-		mockSet.DbLiveDA.GetMigrationHashAsync(2, MigrationItemType.Migration)
-			.Returns(fileData.ContentHash + 123); // different hash
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDbItem(2, MigrationItemType.Migration, fileData.ContentHash + 123, MigrationItemStatus.None)
+		]);
 
 		var now = new DateTime(2025, 1, 2);
 		mockSet.TimeProvider.UtcNow().Returns(now);
@@ -82,7 +81,7 @@ public class MigrationsSaverTests
 
 		// Assert
 		mockSet.Logger.Received(1)
-			.Warning(
+			.Information(
 				"Migration item '{MigrationItemType}' for version {Version} has changed, saving new version.",
 				MigrationItemType.Migration,
 				2L
@@ -96,6 +95,36 @@ public class MigrationsSaverTests
 				dto.ContentHash == fileData.ContentHash &&
 				dto.CreatedUtc == now
 			));
+	}
+
+	[Fact]
+	public async Task Save_skips_applied_item_when_hash_differs()
+	{
+		// Arrange
+		MockSet mockSet = new();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+
+		FileData fileData = GetFileData("/001.migration.sql", "some content");
+		Migration migration = NewMigration(
+			1,
+			new MigrationItem
+			{
+				MigrationItemType = MigrationItemType.Migration,
+				Name = "001.migration.sql",
+				FileData = fileData
+			});
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 123, MigrationItemStatus.Applied)
+		]);
+
+		// Act
+		await saver.SaveAsync();
+
+		// Assert
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
 	}
 
 	[Fact]
@@ -122,8 +151,7 @@ public class MigrationsSaverTests
 		Migration migration = NewMigration(1, undoItem, migrationItem);
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
-		mockSet.DbLiveDA.GetMigrationHashAsync(Arg.Any<long>(), Arg.Any<MigrationItemType>())
-			.Returns((long?)null);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		// Act
 		await saver.SaveAsync();
@@ -157,6 +185,23 @@ public class MigrationsSaverTests
 		{
 			Version = version,
 			Items = dict
+		};
+	}
+
+	private static MigrationItemDto NewDbItem(
+		long version,
+		MigrationItemType itemType,
+		long contentHash,
+		MigrationItemStatus status)
+	{
+		return new MigrationItemDto
+		{
+			Version = version,
+			ItemType = itemType,
+			Name = $"{version}.{itemType}.sql",
+			RelativePath = $"/{version}.{itemType}.sql",
+			ContentHash = contentHash,
+			Status = status
 		};
 	}
 

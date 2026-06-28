@@ -31,6 +31,7 @@ public class MockSet
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IMigrationsSaver MigrationsSaver = Substitute.For<IMigrationsSaver>();
+	public readonly IMigrationChecksumValidator MigrationChecksumValidator = Substitute.For<IMigrationChecksumValidator>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IDbLiveDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveDeployer>();
 	public readonly IDbLiveSelfDeployer DbLiveSelfDeployer = Substitute.For<IDbLiveSelfDeployer>();
@@ -47,6 +48,10 @@ public class MockSet
 
 		TransactionSettingsValidator
 			.ValidateAsync(Arg.Any<DbLiveSettings>())
+			.Returns(Task.CompletedTask);
+
+		MigrationChecksumValidator
+			.ValidateAsync(Arg.Any<DeployParameters>())
 			.Returns(Task.CompletedTask);
 
 		TransactionRunner

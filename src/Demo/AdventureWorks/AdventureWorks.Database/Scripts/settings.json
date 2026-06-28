@@ -28,5 +28,8 @@
     "Views",
     "Triggers",
     "Functions"
-  ]
+  ],
+
+  /* MigrationChecksumMode: Strict (default) | Warn */
+  "MigrationChecksumMode": "Strict"
 }

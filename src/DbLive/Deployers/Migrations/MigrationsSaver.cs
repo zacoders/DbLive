@@ -16,26 +16,31 @@ internal class MigrationsSaver(
 		_logger.Information("Saving migration items.");
 
 		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
+		IReadOnlyCollection<MigrationItemDto> dbItems = await _da.GetMigrationsAsync().ConfigureAwait(false);
+		Dictionary<(long Version, MigrationItemType ItemType), MigrationItemDto> dbItemsByKey =
+			dbItems.ToDictionary(i => (i.Version, i.ItemType));
 
 		foreach (Migration migration in migrationsToApply)
 		{
 			foreach ((MigrationItemType _, MigrationItem migrationItem) in migration.Items)
 			{
-				long? hash = await _da.GetMigrationHashAsync(migration.Version, migrationItem.MigrationItemType).ConfigureAwait(false);
-
-				if (hash.HasValue)
+				if (dbItemsByKey.TryGetValue((migration.Version, migrationItem.MigrationItemType), out MigrationItemDto? dbItem))
 				{
-					if (hash.Value == migrationItem.FileData.ContentHash)
+					if (dbItem.ContentHash == migrationItem.FileData.ContentHash)
 					{
-						// skip save, already saved
 						continue;
 					}
-					else
+
+					if (dbItem.Status == MigrationItemStatus.Applied)
 					{
-						// todo: Throw exception or just log warning? Overwriting migration item is not a good practice.
-						//		 Need to analyze use cases where this can happen.
-						_logger.Warning("Migration item '{MigrationItemType}' for version {Version} has changed, saving new version.", migrationItem.MigrationItemType, migration.Version);
+						continue;
 					}
+
+					_logger.Information(
+						"Migration item '{MigrationItemType}' for version {Version} has changed, saving new version.",
+						migrationItem.MigrationItemType,
+						migration.Version
+					);
 				}
 
 				await _da.SaveMigrationItemAsync(new MigrationItemSaveDto
