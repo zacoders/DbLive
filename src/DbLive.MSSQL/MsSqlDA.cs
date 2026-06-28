@@ -42,7 +42,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and item_type = @item_type
 		";
 		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString() }).ConfigureAwait(false);
+		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString().ToLower() }).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
