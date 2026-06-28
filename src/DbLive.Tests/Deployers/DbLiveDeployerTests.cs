@@ -23,6 +23,10 @@ public class DbLiveDeployerTests
 			.When(x => x.ValidateAsync())
 			.Do(_ => calls.Add("project-id"));
 
+		mockSet.MigrationChecksumValidator
+			.When(x => x.ValidateAsync(parameters))
+			.Do(_ => calls.Add("checksum"));
+
 		mockSet.DowngradeDeployer
 			.When(x => x.DeployAsync(parameters))
 			.Do(_ => calls.Add("downgrade"));
@@ -61,6 +65,7 @@ public class DbLiveDeployerTests
 		Assert.Equal(
 			[
 				"project-id",
+				"checksum",
 				"downgrade",
 				"folder-before",
 				"migrations",

@@ -470,6 +470,35 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
+	public async Task RepairMigrationChecksumAsync(MigrationChecksumRepairDto item)
+	{
+		using var cnn = GetConnection();
+		int rowsAffected = await cnn.ExecuteAsync("""
+			update dblive.migration
+			set content_hash = @content_hash
+			  , content = @content
+			  , relative_path = @relative_path
+			where version = @version
+			  and item_type = @item_type
+			  and status = 'applied'
+			""",
+			new
+			{
+				version = item.Version,
+				item_type = item.ItemType.ToString().ToLower(),
+				content_hash = item.ContentHash,
+				content = item.Content,
+				relative_path = item.RelativePath
+			}
+		).ConfigureAwait(false);
+
+		if (rowsAffected == 0)
+		{
+			throw new DbLiveMigrationItemMissedSqlException(
+				$"Applied migration item not found for checksum repair. Version: {item.Version}, Type: {item.ItemType}");
+		}
+	}
+
 	public async Task UpdateMigrationStateAsync(MigrationItemStateDto item)
 	{
 		using var cnn = GetConnection();

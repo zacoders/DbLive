@@ -23,6 +23,7 @@ public static class Bootstrapper
 			.AddSingleton<IFileSystem, FileSystem>()
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
 			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()
+			.AddSingleton<IMigrationChecksumValidator, MigrationChecksumValidator>()
 			.AddSingleton<IMigrationItemDeployer, MigrationItemDeployer>()
 			.AddSingleton<IMigrationsDeployer, MigrationsDeployer>()
 			.AddSingleton<IMigrationsSaver, MigrationsSaver>()

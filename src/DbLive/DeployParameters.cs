@@ -54,4 +54,10 @@ public record DeployParameters
 	/// It will apply UNDO up to the current version.
 	/// </summary>
 	public bool AllowDatabaseDowngrade { get; set; } = false;
+
+	/// <summary>
+	/// Updates stored checksums for applied migrations whose files no longer match.
+	/// Use only after confirming the database schema already matches the project files.
+	/// </summary>
+	public bool RepairMigrationChecksums { get; set; } = false;
 }

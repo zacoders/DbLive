@@ -43,4 +43,10 @@ public class DbLiveSettings
 	/// </summary>
 	public string? ProjectId { get; init; }
 
+	/// <summary>
+	/// Controls behavior when applied migration files no longer match stored checksums.
+	/// Strict (default) blocks deployment; Warn logs and continues.
+	/// </summary>
+	public MigrationChecksumMode MigrationChecksumMode { get; init; } = MigrationChecksumMode.Strict;
+
 }
