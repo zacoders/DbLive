@@ -43,8 +43,17 @@ public class CodeDeployer(
 			retryCounters[item.FileData.RelativePath] = 0;
 		}
 
-		// Limit the number of workers to the number of code items to avoid creating unnecessary threads
-		int workersCount = Math.Min(Math.Max(1, _projectSettings.NumberOfThreadsForCodeDeploy), codeItems.Count);
+		bool inAmbientTransaction = Transaction.Current is not null;
+		if (inAmbientTransaction && _projectSettings.NumberOfThreadsForCodeDeploy > 1)
+		{
+			_logger.Information(
+				"Parallel code deploy disabled because deployment runs inside a transaction."
+			);
+		}
+
+		int workersCount = inAmbientTransaction
+			? 1
+			: Math.Min(Math.Max(1, _projectSettings.NumberOfThreadsForCodeDeploy), codeItems.Count);
 
 		Task<Exception?>[] workers = new Task<Exception?>[workersCount];
 		for (int workerId = 0; workerId < workersCount; workerId++)

@@ -12,11 +12,14 @@
   "TransactionWrapLevel": "Migration",
 
   /* Options:
-      Chaos,
-	    ReadCommitted,
-	    RepeatableRead,
-	    Serializable */
+      Chaos (deprecated alias for ReadCommitted),
+      ReadCommitted,
+      RepeatableRead,
+      Serializable,
+      Snapshot (MSSQL only; requires ALLOW_SNAPSHOT_ISOLATION ON) */
   "TransactionIsolationLevel": "Serializable",
+
+  /* Parallel code deploy is forced to serial when TransactionWrapLevel is Deployment. */
 
   /* Search pattern for the test files. 
      Test files can be executed in the end of deployment. */

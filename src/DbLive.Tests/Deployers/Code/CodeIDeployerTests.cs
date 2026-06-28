@@ -49,6 +49,62 @@ public class CodeDeployerTests
 		await mockSet.CodeItemDeployer.Received(5).DeployAsync(Arg.Any<CodeItem>());
 	}
 
+	[Fact]
+	public async Task DeployCode_SerialWhenInAmbientTransaction()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			NumberOfThreadsForCodeDeploy = 10
+		});
+
+		List<CodeItem> codeItems =
+		[
+			GetCodeItem("item1"),
+			GetCodeItem("item2"),
+			GetCodeItem("item3"),
+			GetCodeItem("item4"),
+			GetCodeItem("item5")
+		];
+
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
+			new CodeGroup { Path = "Code", CodeItems = codeItems }
+		]);
+
+		int concurrent = 0;
+		int maxConcurrent = 0;
+		object sync = new();
+
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(async _ =>
+		{
+			lock (sync)
+			{
+				concurrent++;
+				maxConcurrent = Math.Max(maxConcurrent, concurrent);
+			}
+
+			await Task.Delay(50).ConfigureAwait(false);
+
+			lock (sync)
+			{
+				concurrent--;
+			}
+
+			return CodeItemDeployResult.Success();
+		});
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		using TransactionScope scope = TransactionScopeManager.Create();
+		await deployer.DeployAsync(DeployParameters.Default);
+		scope.Complete();
+
+		Assert.Equal(1, maxConcurrent);
+		mockSet.Logger.Received(1).Information(
+			"Parallel code deploy disabled because deployment runs inside a transaction."
+		);
+	}
+
 
 	[Fact]
 	public async Task DeployCode_FailedCodeItems()

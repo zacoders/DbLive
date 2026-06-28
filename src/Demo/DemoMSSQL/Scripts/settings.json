@@ -8,16 +8,18 @@
   /* Options:
       deployment - full deployment will be wrapped withing transaction
       migration - each migration wrapped by transaction
-      task - migration task wrapped by transaction
       none - no transactions introduced */
   "TransactionWrapLevel": "migration",
 
   /* Options:
-      Chaos,
-	    ReadCommitted,
-	    RepeatableRead,
-	    Serializable */
+      Chaos (deprecated alias for ReadCommitted),
+      ReadCommitted,
+      RepeatableRead,
+      Serializable,
+      Snapshot (MSSQL only; requires ALLOW_SNAPSHOT_ISOLATION ON) */
   "TransactionIsolationLevel": "serializable",
+
+  /* Parallel code deploy is forced to serial when TransactionWrapLevel is deployment. */
 
   /* Search pattern for the test files. 
      Test files can be executed in the end of deployment. */

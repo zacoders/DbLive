@@ -6,7 +6,7 @@ public static class TransactionScopeManager
 	{
 		TransactionOptions _options = new()
 		{
-			IsolationLevel = isolationLevel.ToSystemTransaction(),
+			IsolationLevel = TranIsolationLevelMapper.ToSystemTransaction(isolationLevel),
 			Timeout = timeOut
 		};
 		return new TransactionScope(

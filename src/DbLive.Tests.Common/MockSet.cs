@@ -37,10 +37,17 @@ public class MockSet
 	public readonly IUnitTestResultChecker UnitTestResultChecker = Substitute.For<IUnitTestResultChecker>();
 	public readonly IMigrationVersionValidator MigrationVersionValidator = Substitute.For<IMigrationVersionValidator>();
 	public readonly IProjectIdValidator ProjectIdValidator = Substitute.For<IProjectIdValidator>();
+	public readonly ITransactionSettingsValidator TransactionSettingsValidator = Substitute.For<ITransactionSettingsValidator>();
 
 	public MockSet()
 	{
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
+
+		DbLiveDA.Provider.Returns(DbProvider.MsSql);
+
+		TransactionSettingsValidator
+			.ValidateAsync(Arg.Any<DbLiveSettings>())
+			.Returns(Task.CompletedTask);
 
 		TransactionRunner
 			.ExecuteWithinTransactionAsync(

@@ -57,6 +57,7 @@ public class DbLiveDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// assert – exact order
+		await mockSet.TransactionSettingsValidator.Received(1).ValidateAsync(Arg.Any<DbLiveSettings>());
 		Assert.Equal(
 			[
 				"project-id",

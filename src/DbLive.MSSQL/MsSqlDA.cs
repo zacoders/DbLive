@@ -7,11 +7,14 @@ namespace DbLive.MSSQL;
 
 public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
+	public DbProvider Provider => DbProvider.MsSql;
+
 	static MsSqlDA()
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
 	}
+
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
@@ -118,7 +121,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
-			await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
+			if (Transaction.Current is null)
+			{
+				await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
+			}
 			ServerConnection serverConnection = new(sqlConnection)
 			{
 				StatementTimeout = GetTimeoutSeconds(timeout)
@@ -138,15 +144,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private static async Task SetTransactionIsolationLevelAsync(SqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
-		string isolationLevelSql = isolationLevel switch
-		{
-			TranIsolationLevel.Chaos => "READ UNCOMMITTED;",
-			TranIsolationLevel.ReadCommitted => "READ COMMITTED;",
-			TranIsolationLevel.RepeatableRead => "REPEATABLE READ;",
-			TranIsolationLevel.Serializable => "SERIALIZABLE;",
-			TranIsolationLevel.Snapshot => "SNAPSHOT;",
-			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
-		};
+		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.MsSql);
 		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
 	}
 
@@ -166,7 +164,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using SqlConnection cnn = GetConnection();
 
 			await cnn.OpenAsync().ConfigureAwait(false);
-			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			if (Transaction.Current is null)
+			{
+				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			}
 
 			using SqlCommand cmd = cnn.CreateCommand();
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);

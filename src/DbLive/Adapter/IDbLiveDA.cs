@@ -3,6 +3,8 @@ namespace DbLive.Adapter;
 
 public interface IDbLiveDA
 {
+	DbProvider Provider { get; }
+
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
 	Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType);

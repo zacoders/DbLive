@@ -150,6 +150,41 @@ public class UnitTestItemRunnerTests
 		Assert.Equal(999, result.ExecutionTimeMs);
 	}
 
+	[Fact]
+	public async Task RunTest_UsesTestsTransactionIsolationLevelFromSettings()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			TestsTransactionIsolationLevel = TranIsolationLevel.ReadCommitted,
+			UnitTestItemTimeout = TimeSpan.FromMinutes(2)
+		});
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		mockSet.TimeProvider.UtcNow().Returns(DateTime.UtcNow);
+		IStopWatch mockStopWatch = Substitute.For<IStopWatch>();
+		mockStopWatch.ElapsedMilliseconds.Returns(100);
+		mockSet.TimeProvider.StartNewStopwatch().Returns(mockStopWatch);
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
+
+		TestItem testItem = new()
+		{
+			Name = "test1",
+			FileData = GetFileData("/test/folder/test1.sql"),
+			InitFileData = null
+		};
+
+		_ = await runner.RunTestAsync(testItem);
+
+		await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(
+			Arg.Is(testItem.FileData.Content),
+			TranIsolationLevel.ReadCommitted,
+			TimeSpan.FromMinutes(2)
+		);
+	}
+
 	private static FileData GetFileData(string relativePath)
 	{
 		return new FileData

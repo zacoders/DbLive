@@ -10,6 +10,8 @@ namespace DbLive.PostgreSQL;
 
 public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
+	public DbProvider Provider => DbProvider.PostgreSql;
+
 	static PostgreSqlDA()
 	{
 		DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -132,7 +134,10 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using NpgsqlConnection cnn = CreateConnection();
 			await cnn.OpenAsync().ConfigureAwait(false);
 
-			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			if (System.Transactions.Transaction.Current is null)
+			{
+				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			}
 
 			using NpgsqlCommand cmd = new(sqlStatement, cnn);
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
@@ -147,13 +152,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private static async Task SetTransactionIsolationLevelAsync(NpgsqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
-		string isolationLevelSql = isolationLevel switch
-		{
-			TranIsolationLevel.ReadCommitted => "read committed",
-			TranIsolationLevel.RepeatableRead => "repeatable read",
-			TranIsolationLevel.Serializable => "serializable",
-			_ => throw new ArgumentOutOfRangeException(nameof(isolationLevel), $"Unsupported isolation level: {isolationLevel}.")
-		};
+		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.PostgreSql);
 
 		using NpgsqlCommand cmd = new($"set transaction isolation level {isolationLevelSql};", cnn);
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
@@ -175,7 +174,10 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using NpgsqlConnection cnn = CreateConnection();
 			await cnn.OpenAsync().ConfigureAwait(false);
 
-			await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			if (System.Transactions.Transaction.Current is null)
+			{
+				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
+			}
 
 			using NpgsqlCommand cmd = new(sqlStatement, cnn);
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
