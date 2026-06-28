@@ -1,14 +1,9 @@
 namespace DbLive.Common;
 
-#pragma warning disable CS0618 // TranIsolationLevel.Chaos is intentionally supported as a deprecated alias here.
-
 internal static class TranIsolationLevelMapper
 {
-	public static TranIsolationLevel Normalize(TranIsolationLevel level)
-		=> level == TranIsolationLevel.Chaos ? TranIsolationLevel.ReadCommitted : level;
-
 	public static IsolationLevel ToSystemTransaction(TranIsolationLevel level)
-		=> Normalize(level) switch
+		=> level switch
 		{
 			TranIsolationLevel.ReadCommitted => IsolationLevel.ReadCommitted,
 			TranIsolationLevel.RepeatableRead => IsolationLevel.RepeatableRead,
@@ -21,11 +16,9 @@ internal static class TranIsolationLevelMapper
 	{
 		ValidateForProvider(level, provider);
 
-		TranIsolationLevel normalized = Normalize(level);
-
 		return provider switch
 		{
-			DbProvider.MsSql => normalized switch
+			DbProvider.MsSql => level switch
 			{
 				TranIsolationLevel.ReadCommitted => "READ COMMITTED",
 				TranIsolationLevel.RepeatableRead => "REPEATABLE READ",
@@ -33,7 +26,7 @@ internal static class TranIsolationLevelMapper
 				TranIsolationLevel.Snapshot => "SNAPSHOT",
 				_ => throw new NotSupportedTransactionIsolationLevelException(level)
 			},
-			DbProvider.PostgreSql => normalized switch
+			DbProvider.PostgreSql => level switch
 			{
 				TranIsolationLevel.ReadCommitted => "read committed",
 				TranIsolationLevel.RepeatableRead => "repeatable read",
@@ -49,7 +42,6 @@ internal static class TranIsolationLevelMapper
 		{
 			DbProvider.MsSql =>
 			[
-				TranIsolationLevel.Chaos,
 				TranIsolationLevel.ReadCommitted,
 				TranIsolationLevel.RepeatableRead,
 				TranIsolationLevel.Serializable,
@@ -57,7 +49,6 @@ internal static class TranIsolationLevelMapper
 			],
 			DbProvider.PostgreSql =>
 			[
-				TranIsolationLevel.Chaos,
 				TranIsolationLevel.ReadCommitted,
 				TranIsolationLevel.RepeatableRead,
 				TranIsolationLevel.Serializable
@@ -67,20 +58,13 @@ internal static class TranIsolationLevelMapper
 
 	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider)
 	{
-		if (level == TranIsolationLevel.Chaos)
-		{
-			return;
-		}
-
-		TranIsolationLevel normalized = Normalize(level);
-
-		if (provider == DbProvider.PostgreSql && normalized == TranIsolationLevel.Snapshot)
+		if (provider == DbProvider.PostgreSql && level == TranIsolationLevel.Snapshot)
 		{
 			throw new NotSupportedTransactionIsolationLevelException(level);
 		}
 
 		if (provider == DbProvider.PostgreSql
-			&& normalized is not (
+			&& level is not (
 				TranIsolationLevel.ReadCommitted
 				or TranIsolationLevel.RepeatableRead
 				or TranIsolationLevel.Serializable))
@@ -89,5 +73,3 @@ internal static class TranIsolationLevelMapper
 		}
 	}
 }
-
-#pragma warning restore CS0618
