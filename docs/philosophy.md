@@ -1,10 +1,9 @@
-# Philosophy — Zero-Downtime Database Delivery
+# Philosophy - Zero-Downtime Database Delivery
 
 DbLive treats the database as an **independently deployable service** with a **versioned SQL interface** (procedures, functions, views). Internal schema evolves through backward-compatible migrations; compatibility with callers is broken only in an explicit **breaking** phase.
 
-If you are new to DbLive, read this page before the [Quick start](../README.md#quick-start). It explains the principles the tool is built on—not just what it runs, but **why** it runs that way.
+If you are new to DbLive, read this page before the [Quick start](../README.md#quick-start). It explains the principles the tool is built on - not just what it runs, but **why** it runs that way.
 
----
 
 ## The problem DbLive solves
 
@@ -12,71 +11,108 @@ Most migration tools focus on **running SQL scripts in order**. DbLive focuses o
 
 | Traditional migration tools | DbLive |
 |----------------------------|--------|
-| Schema and application change together | Schema and interface evolve **before** app cutover |
-| Destructive changes block old apps immediately | Breaking changes are **deferred** to a separate phase |
+| Database schema and application change together | Database schema and interface evolve **before** app cutover |
+| Destructive database changes block old apps immediately | Database breaking changes are **deferred** to a separate phase |
 | Often assumes a maintenance window | Designed for **always-on** systems |
 
-Tools like Flyway, Liquibase, and [grate](https://github.com/grate-devs/grate) solve the **runner** problem well. DbLive adds an opinionated **compatibility lifecycle** and a **service-oriented database** model on top.
+DbLive provides an opinionated **compatibility lifecycle** and a **service-oriented database** model on top.
 
----
 
-## Database as a service — procedures as the interface
+## Database as a service - stored procedures as the interface
 
-With this approach, the database becomes **another service in your system**. It does not need to be a separate process, but it has its **own contract and deployment lifecycle**—just like a microservice.
+With this approach, the database becomes **another service in your system**. It does not need to be a separate process, but it has its **own contract and deployment lifecycle** - just like a microservice.
 
 | Layer | Role | Who owns it | Changes via |
 |-------|------|-------------|-------------|
-| **Interface** | Procedures, functions, views — **stable API** for applications | DB developers / DBA | Code deploy (versioned names) |
+| **Interface** | Procedures, functions, views - **stable API** for applications | DB developers / DBA | Code deploy (versioned names) |
 | **Internal state** | Tables, indexes, triggers, data layout | DB developers / DBA | Migrations |
 | **Applications** | Consumers of the interface | App teams | Separate deploy |
 
 ### What DbLive recommends
 
 - **Procedures are not business logic.** DbLive does not recommend a "smart database" where domain rules, workflows, or use cases live inside stored procedures.
-- **Procedures are the interface** — an abstraction over the database, similar to a service API or repository boundary.
+- **Procedures are the interface** - an abstraction over the database, similar to a service API or repository boundary.
 - Applications call **named, versioned** procedures. They do not depend on internal table shapes that migrations may change at any time.
 
 ### Why this enables zero-downtime
 
-- **Migrations** can reshape internals freely (new tables, triggers, column splits) as long as the **interface contract** for existing procedure versions remains valid.
-- **Behind a procedure**, almost anything can change — different joins, new tables, rewritten queries — as long as `GetUsers_v1` still satisfies old callers and `GetUsers_v2` serves new ones.
-- This gives DBAs and database developers **freedom to evolve storage** without waiting for an application release, while callers keep a stable surface.
+- **Decoupled evolution:** Migrations can reshape internals freely (adding columns, splitting 
+  tables) as long as the **interface contract** for existing procedure versions remains valid.
+- **Encapsulated complexity:** Behind a procedure, almost anything can change. You can rewrite 
+  queries or alter joins, provided `GetUsers_v1` satisfies old callers while new procedures 
+  serve updated applications.
+- **Independent deployment:** This grants DBAs and developers the freedom to evolve storage 
+  without waiting for an application release, guaranteeing callers a stable surface.
 
-> Putting business rules, workflow orchestration, or domain logic inside procedures makes versioning and testing harder. DbLive works best when procedures **expose data access and atomic database operations**, not application use cases.
+#### Example: 1-to-Many Refactoring
+
+**Scenario:** The `dbo.Users` table currently has a `PhoneNumber` column. Business requirements 
+change to support multiple phone numbers per user, meaning the data must be moved to a new 
+`dbo.UserPhones` table.
+
+Instead of a destructive migration that immediately breaks existing applications, DbLive recommends 
+this transition seamlessly:
+
+1. **Internal State:** A temporary trigger is introduced to synchronize data between the 
+   legacy `dbo.Users.PhoneNumber` column and the new `dbo.UserPhones` table in real-time.
+2. **Old Applications:** Continue using `GetUsers_v1`. The database still fulfills this 
+   contract, allowing legacy apps to function without interruption.
+3. **New Applications:** Upgrade to `GetUsers_v2` for core user data and use a new 
+   `GetUserPhones_v1` procedure to retrieve the list of multiple phone numbers.
+4. **Breaking Phase (Cleanup):** Once all old applications are decommissioned, you can 
+   safely run breaking migrations to clean up the legacy state:
+   - The legacy `GetUsers_v1` procedure is dropped.
+   - The temporary migration trigger is removed, as it is no longer needed.
+   - The redundant `PhoneNumber` column is dropped from the `dbo.Users` table.
 
 ```mermaid
-flowchart TB
-    subgraph apps [Applications]
-        OldApp[OldApp calls GetUsers_v1]
-        NewApp[NewApp calls GetUsers_v2]
+flowchart LR
+    classDef class_Red   fill:#ffefdf,stroke:#c94a29
+    classDef class_Green fill:#d4ffd4,stroke:#333,stroke-width:2px
+    classDef class_Blue  fill:#e6f3ff,stroke:#336699,stroke-width:2px
+    classDef class_White fill:#ffffff
+
+    subgraph APPs [Applications]
+        OldApp[Old Application]:::class_Red
+        NewApp[New Application]:::class_Blue
     end
-    subgraph dbService [DatabaseService]
-        subgraph interface [StableInterface]
-            P1[GetUsers_v1]
-            P2[GetUsers_v2]
+
+    subgraph DBService [Database]
+        subgraph Interface [Stable Interface]
+            GetUsers1["GetUsers_v1"]:::class_Red
+            GetUsers2[GetUsers_v2]:::class_Blue
+            GetUserPhones[GetUserPhones_v1]:::class_Blue
         end
-        subgraph internals [InternalState via Migrations]
-            T1[Users table]
-            T2[PersonPhones table]
-            TR[Sync triggers]
+        class Interface class_Green
+
+        subgraph Internals [Internal Database State]
+            UsersTable("dbo.Users table")
+            Trigger[["Migration Trigger (Temporary)"]]
+            UserPhonesTable[/"dbo.UserPhones table"/]
+            UsersTable <--> Trigger
+            Trigger <--> UserPhonesTable
         end
-        P1 --> internals
-        P2 --> internals
+        class Internals class_White
+
+        GetUsers1 --> UsersTable
+        GetUsers2 --> UsersTable
+        GetUserPhones --> UserPhonesTable
     end
-    OldApp --> P1
-    NewApp --> P2
+
+    OldApp --> GetUsers1
+    NewApp --> GetUsers2
+    NewApp --> GetUserPhones
 ```
 
 The sections below show how **interface versioning** and **internal schema evolution** work in practice.
 
----
 
 ## Core principles
 
-1. **Migrations are backward-compatible** — expand schema and data; never break running applications.
-2. **Code deploy is backward-compatible** — new object versions coexist with old ones in the database.
-3. **Application deploy follows database readiness** — old and new applications can run in parallel.
-4. **Breaking changes are explicit and last** — only after old applications are gone; removes legacy objects and columns.
+1. **Migrations are backward-compatible** - expand schema and data; never break running applications.
+2. **Code deploy is backward-compatible** - new object versions coexist with old ones in the database.
+3. **Application deploy follows database readiness** - old and new applications can run in parallel.
+4. **Breaking changes are explicit and last** - only after old applications are gone; removes legacy objects and columns.
 
 ```mermaid
 flowchart LR
@@ -92,7 +128,6 @@ flowchart LR
 
 DbLive enforces this order in every deploy: migrations, then code, then (optionally) breaking. See [Deployment flow](../README.md#deployment-flow) for the full step list.
 
----
 
 ## Why atomicity is per migration, not per deployment
 
@@ -100,14 +135,13 @@ DbLive does **not** wrap the entire deployment in one transaction by default. Th
 
 - Default `TransactionWrapLevel` is **`Migration`** (see [settings.json](../src/Demo/DemoMSSQL/Scripts/settings.json)).
 - Each migration is atomic: it commits or rolls back **on its own**.
-- Between migrations, the system **must remain operational** — that is a feature, not a missing safeguard.
+- Between migrations, the system **must remain operational** - that is a feature, not a missing safeguard.
 - `TransactionWrapLevel: Deployment` exists for special cases; it is not the recommended default for 24/7 systems.
 
 Per-migration settings can override the global level (for example, `004.settings.json` in DemoMSSQL uses `"TransactionWrapLevel": "none"` for online index creation).
 
----
 
-## Procedure versioning — one file, two objects in the database
+## Procedure versioning - one file, two objects in the database
 
 Versioning applies to the **interface layer**. The repository holds one file per logical object; the database may temporarily hold multiple versions until breaking.
 
@@ -149,9 +183,7 @@ drop proc if exists dbo.GetUsers_v1
 
 See also the DemoMSSQL example: [GetUser.sql](../src/Demo/DemoMSSQL/Scripts/Code/dbo/stored-procedures/GetUser.sql) deploys `GetUser2`, while [005.breaking.sql](../src/Demo/DemoMSSQL/Scripts/Migrations/005.breaking.sql) drops the legacy `GetUser`.
 
----
-
-## Schema evolution — expand/contract without breaking the interface
+## Schema evolution - expand/contract without breaking the interface
 
 The same model applies when **internal state** changes while the interface stays stable. DemoMSSQL migration **007** splits phone data from `Person` into `PersonPhones`:
 
@@ -165,7 +197,6 @@ This follows the industry **expand / contract** pattern ([Evolutionary Database 
 
 Migration 007 changes **storage under the hood**. Applications that call versioned procedures are unaffected until breaking removes legacy columns and triggers. That is the freedom this model gives database developers: reshape internals without forcing a synchronized big-bang release.
 
----
 
 ## What DbLive enforces vs team responsibility
 
@@ -178,14 +209,13 @@ Migration 007 changes **storage under the hood**. Applications that call version
 ### The team must ensure
 
 - Migration and code scripts are **actually** backward-compatible
-- Procedures stay **thin** — data access and atomic DB operations, not application business logic
+- Procedures stay **thin** - data access and atomic DB operations, not application business logic
 - Applications reference the correct object version (`_v2`, not `_v1`) and avoid querying internal tables directly while those tables are in flux
 - Old application instances are drained before a breaking deploy
 - Breaking scripts drop every superseded object and column
 
 DbLive provides **rails**; compatibility discipline remains a team responsibility.
 
----
 
 ## CI/CD mapping
 
@@ -215,7 +245,6 @@ sequenceDiagram
 
 Run **Default** before application deploy. Run **Breaking** only when old applications are gone.
 
----
 
 ## How this differs from other tools
 
@@ -225,7 +254,6 @@ Run **Default** before application deploy. Run **Breaking** only when old applic
 | **[grate](https://github.com/grate-devs/grate)** | RoundhousE-style runner; one-time vs any-time scripts, not compatibility phases |
 | **DbLive** | Opinionated zero-downtime lifecycle for .NET + SQL; **database-as-service** with a versioned procedure interface |
 
----
 
 ## When DbLive is the right fit
 
@@ -239,12 +267,11 @@ DbLive fits well when:
 
 A simpler tool may suffice for greenfield projects, acceptable downtime, EF-only schema, or when the ORM owns the entire data model with no procedure boundary.
 
----
 
 ## Next steps
 
 - [Quick start](../README.md#quick-start)
 - [Deployment flow](../README.md#deployment-flow)
 - [SQL testing](../README.md#sql-testing)
-- [DemoMSSQL](../src/Demo/DemoMSSQL/) — migrations, code, breaking, and tests
-- [ProjectId](project-id.md) — bind a project to a target database
+- [DemoMSSQL](../src/Demo/DemoMSSQL/) - migrations, code, breaking, and tests
+- [ProjectId](project-id.md) - bind a project to a target database
