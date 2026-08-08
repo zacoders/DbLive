@@ -27,14 +27,23 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.top         
+    - navigation.instant      
     - search.suggest
     - search.highlight
     - content.code.copy
-
+    - content.code.annotate  
+    
 # Extensions for Markdown
 markdown_extensions:
+  - admonition               # Блоки с заметками и варнингами (!!! note, !!! warning)
+  - pymdownx.details         # Сворачиваемые блоки заметок (??? note)
+  - pymdownx.tabbed:         # Переключаемые вкладки (например, для C# / SQL примеров)
+      alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences:

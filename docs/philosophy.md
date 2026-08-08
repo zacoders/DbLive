@@ -210,7 +210,7 @@ Migration 007 changes **storage under the hood**. Applications that call version
 
 - Migration and code scripts are **actually** backward-compatible
 - Procedures stay **thin** - data access and atomic DB operations, not application business logic
-- Applications reference the correct object version (`_v2`, not `_v1`) and avoid querying internal tables directly while those tables are in flux
+- Applications reference the correct object version (`_v2`, not `_v1`) and avoid querying internal tables directly
 - Old application instances are drained before a breaking deploy
 - Breaking scripts drop every superseded object and column
 
@@ -228,9 +228,11 @@ sequenceDiagram
     participant DB
     participant App
     CI->>DbLive: DeployAsync Default
-    DbLive->>DB: migrations + code
-    CI->>App: deploy new version
-    Note over App,DB: old and new apps run
+    DbLive->>DB: Migrations + Code
+    CI->>App: Deploy new version
+    Note over App,DB: Old and New apps run
+    Note over App,DB: Migrate to a New App version...
+    CI->>App: Drop Old App Version
     CI->>DbLive: DeployAsync Breaking
     DbLive->>DB: breaking scripts
 ```
