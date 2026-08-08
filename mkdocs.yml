@@ -1,56 +1,92 @@
-# Site information
+# Display name shown in the browser title and site header
 site_name: DbLive Documentation
+# Canonical public URL of the published docs (used for sitemap, social cards, etc.)
 site_url: https://zacoders.github.io/DbLive/
+# Link to the source GitHub repository (enables the repo icon in the header)
 repo_url: https://github.com/zacoders/DbLive
+# Short repo label shown next to the repository icon
 repo_name: zacoders/DbLive
 
-# Theme configuration
+# Theme configuration (Material for MkDocs)
 theme:
+  # Use the Material theme
   name: material
+  # Color schemes and light/dark mode switching
   palette:
-    # Light mode
+    # Light mode: applied when the OS prefers a light color scheme
     - media: "(prefers-color-scheme: light)"
+      # Base color scheme for light mode
       scheme: default
+      # Primary brand color (header, links, accents)
       primary: indigo
+      # Secondary accent color (buttons, highlights)
       accent: blue
+      # Toggle control shown in the header to switch themes
       toggle:
+        # Icon for the light-mode toggle button
         icon: material/brightness-7
+        # Accessible label / tooltip for the toggle
         name: Switch to dark mode
-    # Dark mode
+    # Dark mode: applied when the OS prefers a dark color scheme
     - media: "(prefers-color-scheme: dark)"
+      # Base color scheme for dark mode
       scheme: slate
       primary: indigo
       accent: blue
       toggle:
+        # Icon for the dark-mode toggle button
         icon: material/brightness-4
         name: Switch to light mode
+  # Optional Material UI features
   features:
+    # Top-level nav items as horizontal tabs
     - navigation.tabs
+    # Group pages into collapsible sections in the sidebar
     - navigation.sections
-    - navigation.top         
-    - navigation.instant      
+    # "Back to top" button when scrolling down
+    - navigation.top
+    # Instant page loads via AJAX (no full page refresh)
+    - navigation.instant
+    # Search autocomplete suggestions while typing
     - search.suggest
+    # Highlight matching search terms on the result page
     - search.highlight
+    # "Copy" button on code blocks
     - content.code.copy
-    - content.code.annotate  
-    
-# Extensions for Markdown
+    # Support for annotated code blocks (inline comments on lines)
+    - content.code.annotate
+
+# Markdown extensions (extra syntax and rendering features)
 markdown_extensions:
-  - admonition               # Блоки с заметками и варнингами (!!! note, !!! warning)
-  - pymdownx.details         # Сворачиваемые блоки заметок (??? note)
-  - pymdownx.tabbed:         # Переключаемые вкладки (например, для C# / SQL примеров)
+  # Admonition/callout blocks (!!! note, warning, tip, etc.)
+  - admonition
+  # Collapsible details/summary blocks
+  - pymdownx.details
+  # Content tabs (tabbed sections); alternate_style uses Material's tab look
+  - pymdownx.tabbed:
       alternate_style: true
+  # Syntax highlighting for fenced code blocks
   - pymdownx.highlight:
+      # Make each line number a deep-linkable anchor
       anchor_linenums: true
+      # Wrap lines in spans so line-level styling/highlighting works
       line_spans: __span
+      # Add language class names for Pygments-based styling
       pygments_lang_class: true
+  # Highlight inline code with language hints
   - pymdownx.inlinehilite
+  # Include external file snippets into Markdown
   - pymdownx.snippets
+  # Nested fences and custom fence handlers (needed for Mermaid, etc.)
   - pymdownx.superfences:
       custom_fences:
+        # Render ```mermaid blocks as Mermaid diagrams
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  # GitHub-style Markdown tables
   - tables
+  # Auto-generated table of contents from headings
   - toc:
+      # Add a permanent link icon next to each heading
       permalink: true
