@@ -40,9 +40,9 @@ theme:
   # Optional Material UI features
   features:
     # Top-level nav items as horizontal tabs
-    - navigation.tabs
+    #- navigation.tabs
     # Group pages into collapsible sections in the sidebar
-    - navigation.sections
+    #- navigation.sections
     # "Back to top" button when scrolling down
     - navigation.top
     # Instant page loads via AJAX (no full page refresh)
@@ -54,8 +54,10 @@ theme:
     # "Copy" button on code blocks
     - content.code.copy
     # Support for annotated code blocks (inline comments on lines)
-    - content.code.annotate
-
+    #- content.code.annotate
+    - navigation.expand
+    - navigation.indexes
+    
 # Markdown extensions (extra syntax and rendering features)
 markdown_extensions:
   # Admonition/callout blocks (!!! note, warning, tip, etc.)
