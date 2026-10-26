@@ -12,6 +12,7 @@ public class MigrationsTests
 		string projectPath = @"C:/DB/";
 
 		mockSet.ProjectPath.Path.Returns(projectPath);
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
 			projectPath.CombineWith("Migrations"),
@@ -40,6 +41,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -58,6 +60,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
 			.Returns([
@@ -74,6 +77,7 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -100,6 +104,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -123,6 +128,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -147,6 +153,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -191,6 +198,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -210,6 +218,7 @@ public class MigrationsTests
 		MockSet mockSet = new();
 
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -229,6 +238,7 @@ public class MigrationsTests
 		// Arrange
 		MockSet mockSet = new();
 		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -243,5 +253,28 @@ public class MigrationsTests
 
 		// assert
 		await Assert.ThrowsAsync<MigrationItemMustExistsException>(act);
+	}
+
+	[Fact]
+	public async Task GetMigrations_Returns_empty_when_migrations_folder_is_missing()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		string projectPath = @"C:/DB/";
+		mockSet.ProjectPath.Path.Returns(projectPath);
+
+		string migrationsPath = projectPath.CombineWith("Migrations");
+		mockSet.FileSystem.PathExists(migrationsPath).Returns(false);
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// Act
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
+
+		// Assert
+		Assert.Empty(migrations);
+		mockSet.FileSystem.Received(1).PathExists(migrationsPath);
+		mockSet.FileSystem.DidNotReceiveWithAnyArgs().EnumerateFiles(default!, default(IEnumerable<string>)!, default);
 	}
 }

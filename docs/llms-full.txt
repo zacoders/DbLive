@@ -18,7 +18,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 6. **BeforeDeploy and AfterDeploy scripts run on every deployment** (not once). They must be idempotent.
 7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `init.sql`.)
 8. **The assertion marker column is named exactly `assert` (lowercase) and must be the first column** of its result set. The value `row-count=N` must be lowercase.
-9. **The Migrations folder must exist and contain at least one file** in the deployed scripts folder; otherwise deployment fails with `DirectoryNotFoundException`. (Code, Tests, BeforeDeploy, AfterDeploy are optional.)
+9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, the `Migrations` folder was not copied to the output), it is treated as a downgrade → `DowngradeNotAllowedException`.
 10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). Without that metadata, `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery throw `Exception("ProjectDir metadata not found!")`.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production** (`RunTests = false` there). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
@@ -99,7 +99,7 @@ MyDb/
   Program.cs           <- deployer
   Scripts/
     settings.json      <- optional
-    Migrations/        <- required, at least one file
+    Migrations/        <- all folders are optional
     Code/
     Tests/
     BeforeDeploy/
@@ -172,13 +172,15 @@ Paths below are relative to the scripts root. Folder names are configurable in `
 
 | Folder (default name) | Required | Files picked up | Search | Order |
 |---|---|---|---|---|
-| `Migrations` | **yes** | `*.sql`, `*.json`; any subfolder | recursive | by version number |
+| `Migrations` | no | `*.sql`, `*.json`; any subfolder | recursive | by version number |
 | `Code` | no | `*.sql` except files matching `TestFilePatterns` | recursive | groups from `CodeSubFoldersDeploymentOrder` first, then the rest; inside a group parallel with retries |
 | `Tests` | no | every `*.sql` except `init.sql` | each folder, all subfolders | parallel |
 | `Code` (tests) | no | files matching `TestFilePatterns` (default `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql`) | each folder, all subfolders | parallel |
 | `BeforeDeploy` | no | `*.sql` | recursive | alphabetical by full path |
 | `AfterDeploy` | no | `*.sql` | recursive | alphabetical by full path |
 | root | no | `settings.json` | root only | — |
+
+A missing folder is skipped. A project without `Migrations` deploys only code, tests and BeforeDeploy/AfterDeploy scripts (rule 9 in Section 0 still applies).
 
 Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`: a `.json` file there that is not `<version>.settings.json` / `<version>.s.json` fails the deployment (`UnknownMigrationSettingsException`). A `.txt` in `Migrations` is ignored (the demos keep `002.notes.txt` next to migrations).
 
@@ -812,11 +814,10 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | Exception / message | Cause | Fix |
 |---|---|---|
 | `Exception: ProjectDir metadata not found!` | `.csproj` lacks the `AssemblyMetadata` `ProjectDir` item; thrown by `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery | Add the block from Section 3.1 |
-| `DirectoryNotFoundException` (…`Migrations`) | No Migrations folder in the scripts root, or it is empty and therefore not copied to the output | Add at least one migration file |
 | `JsonException` reading `settings.json` | Wrong case, unknown key, or trailing comma | Section 9.1 |
 | `ProjectIdMismatchException` | Wrong database, or `ProjectId` changed | Check the connection string; rebind deliberately (Section 14) |
 | `MigrationChecksumMismatchException` | An applied migration/breaking file was edited (or line endings changed) | Revert the file and add a new migration; or `RepairMigrationChecksums = true` if the database already matches |
-| `DowngradeNotAllowedException` | The database has applied versions this build does not contain | Deploy the newer build, restore the deleted file, or set `AllowDatabaseDowngrade = true` intentionally |
+| `DowngradeNotAllowedException` | The database has applied versions this build does not contain (a deleted file, or the `Migrations` folder missing from the output) | Deploy the newer build, restore the deleted file or folder, or set `AllowDatabaseDowngrade = true` intentionally |
 | `DowngradeImpossibleException` | A version to revert has no undo script stored | Cannot revert automatically; fix manually |
 | `MigrationDeploymentException` | SQL error in a migration/breaking/undo script | Read the inner SQL error and fix the script (it was not applied) |
 | `CodeDeploymentAggregateException` | A code file failed `MaxCodeDeployRetries` times | Read the inner exceptions; check dependencies and syntax |

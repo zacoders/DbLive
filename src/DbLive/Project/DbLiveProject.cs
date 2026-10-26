@@ -84,6 +84,12 @@ public class DbLiveProject(
 
 		string migrationsPath = _projectPath.CombineWith(projectSettings.MigrationsFolder);
 
+		// a project without migrations (code only) is valid.
+		if (!_fileSystem.PathExists(migrationsPath))
+		{
+			return [];
+		}
+
 		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
 
 		List<MigrationItemInfo> migrationItems = [];

@@ -5,7 +5,7 @@ All scripts live under the `Scripts` folder of the SQL project. Folder names can
 ```
 Scripts/
   settings.json                        optional project settings
-  Migrations/                          required
+  Migrations/                          optional
     20260808104925.create-users.sql
     20260808104925.undo.sql
     20260812090000.split-phones.sql
@@ -28,16 +28,18 @@ Scripts/
 
 | Folder | Required | Picked up | Runs |
 |--------|----------|-----------|------|
-| `Migrations` | **yes** | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
+| `Migrations` | no | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
 | `Code` | no | `*.sql` (except test files), including subfolders | When the file is new or changed |
 | `Tests` | no | every `*.sql` except `init.sql`, including subfolders | At the end of a deployment, or from xUnit |
 | `BeforeDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, before migrations |
 | `AfterDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, after breaking changes |
 
+Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code, tests and the BeforeDeploy/AfterDeploy scripts.
+
 Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not a migration settings file: it stops the deployment.
 
-!!! warning "The Migrations folder must exist"
-    Deployment fails with `DirectoryNotFoundException` if the `Migrations` folder is missing from the deployed scripts. An empty folder is not copied to the build output, so keep at least one migration file in it.
+!!! warning "Ship applied migrations with every build"
+    Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because the `Migrations` folder was not copied to the output, DbLive treats this as a [downgrade](../deployment/migrations.md#downgrade) and the deployment fails with `DowngradeNotAllowedException`.
 
 ## Migration files
 

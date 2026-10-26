@@ -22,7 +22,7 @@ Scripts/
   Tests/
 ```
 
-`Migrations` is required and must contain at least one file (you add it in step 5); `Code` and `Tests` are optional. See [Project Structure](project/structure.md).
+All three folders are optional; a project can, for example, contain only code. See [Project Structure](project/structure.md).
 
 ## 4. Configure Project
 
