@@ -5,6 +5,8 @@
 DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
 
 > **New to DbLive?** Start with [Philosophy](docs/philosophy.md) to understand zero-downtime deployment principles.
+>
+> **Using an AI coding assistant?** Give it [llms-full.txt](https://zacoders.github.io/DbLive/llms-full.txt): the complete reference in one file, written for agents (index: [llms.txt](https://zacoders.github.io/DbLive/llms.txt)).
 
 ---
 
@@ -56,7 +58,7 @@ Add the following code; it will prepare the project and make sure all files in t
 
 ```xml
 <Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
+  <RemoveDir Directories="$(TargetDir)$(AssemblyName).Scripts" />
 </Target>
 
 <ItemGroup>
@@ -112,7 +114,7 @@ DbLive expects a clear separation of **migrations**, **code**, and **tests**. Yo
 | **Migrations** | Schema and data changes in version order. Optional `*.undo.sql` per version for rollback, `*.breaking.sql` for breaking changes. |
 | **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests. |
 | **Tests** | Standalone SQL tests (e.g. cross-object checks, data rules). |
-| **BeforeDeploy** / **AfterDeploy** | Scripts run once before or after the main deployment (optional). |
+| **BeforeDeploy** / **AfterDeploy** | Scripts run on every deployment, before migrations or after breaking changes (optional; must be idempotent). |
 
 Naming examples:
 
@@ -225,7 +227,7 @@ Example test that relies on folder-level initialization:
 -- Note: Test data was prepared in init.sql file.
 
 -- Act
-select count(*) from dbo.Orders
+select OrderId from dbo.Orders
 
 -- Assert
 select assert = 'row-count=3'

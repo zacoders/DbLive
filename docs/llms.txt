@@ -1,0 +1,38 @@
+# DbLive
+
+> DbLive is a .NET library (NuGet: DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit) for database lifecycle management on SQL Server and PostgreSQL: versioned SQL migrations with undo scripts, re-runnable code objects (procedures, functions, views), SQL unit tests that run in rolled-back transactions and as xUnit tests, and a separate "breaking changes" phase for zero-downtime releases.
+
+Start with `llms-full.txt`: it is a complete, self-contained reference written for AI coding agents (setup, file naming grammar, settings, transactions, test assertions, exceptions, recipes). The pages below are the human documentation; they cover the same facts in narrative form.
+
+Key facts an agent must not get wrong:
+- Scripts live in a `Scripts/` folder of a .NET project; the `.csproj` copies them to `<AssemblyName>.Scripts` and embeds `ProjectDir` metadata.
+- Migration file names: `<version>.<type>.<name>.sql` with type `migration|m|undo|u|breaking|b`, or `<version>.settings.json`. Applied migrations must never be edited or deleted.
+- Code files are re-executed when they change, so they must be re-runnable (`create or alter`).
+- Breaking (destructive) scripts run only with `DeployParameters.DeployBreaking = true`, after the old application is gone.
+- SQL tests assert through a result set whose first column is named `assert` (`rows`, `rows-with-schema`, `has-rows`, `row-count=N`, `empty`, `single-row`).
+
+## Docs
+
+- [Complete reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): everything in one file; read this first
+- [Getting started](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/gettingstarted.md): create a project, first migration, first deployment
+- [Project structure](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/structure.md): folders and file naming rules
+- [Project configuration](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/configuration.md): `settings.json` keys, per-migration settings, transactions
+- [Deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/index.md): pipeline order, `DeployParameters`, presets
+- [Migrations](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/migrations.md): versions, undo, downgrade, checksums
+- [Code deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/code.md): re-runnable objects, ordering, retries
+- [Breaking changes](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/breaking-changes.md): the contract phase
+- [Zero-downtime deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/zero-downtime.md): step-by-step runbook
+- [SQL unit testing](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/unit-testing/index.md): assertions, `init.sql`, xUnit integration
+- [Philosophy](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/philosophy.md): database as a service, versioned procedure interface, expand/contract
+
+## Examples
+
+- [DemoMSSQL](https://github.com/zacoders/DbLive/tree/main/src/Demo/DemoMSSQL): SQL Server project with migrations, undo, breaking, code, tests, BeforeDeploy/AfterDeploy
+- [DemoMSSQL.Tests](https://github.com/zacoders/DbLive/tree/main/src/Demo/DemoMSSQL.Tests): xUnit with `[SqlFact]`, `[SqlDeployFact]` and Testcontainers
+- [Demo.PostgreSQL.Chinook](https://github.com/zacoders/DbLive/tree/main/src/Demo/Demo.PostgreSQL.Chinook): PostgreSQL project with timestamp versions
+- [Table split example](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/examples/table-split.md): expand/contract walkthrough
+
+## Optional
+
+- [Source code](https://github.com/zacoders/DbLive/tree/main/src): the source of truth when docs and behavior disagree
+- [ProjectId](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/features/project-id.md): bind a project to a database

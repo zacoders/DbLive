@@ -12,7 +12,7 @@ dotnet add package DbLive
 dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL
 ```
 
-## 2. Add SQL Scripts to Your Project
+## 3. Add SQL Scripts to Your Project
 
 Add the following folder to the project
 ```
@@ -22,13 +22,15 @@ Scripts/
   Tests/
 ```
 
-## 3. Configure Project
+`Migrations` is required and must contain at least one file (you add it in step 5); `Code` and `Tests` are optional. See [Project Structure](project/structure.md).
+
+## 4. Configure Project
 
 Add the following code to the `.csproj`; it will prepare the project and make sure all files in the `Scripts` folder will be copied to the output directory.
 
 ```xml
 <Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
+  <RemoveDir Directories="$(TargetDir)$(AssemblyName).Scripts" />
 </Target>
 
 <ItemGroup>
@@ -44,7 +46,7 @@ Add the following code to the `.csproj`; it will prepare the project and make su
 </ItemGroup>
 ```
 
-## 4. Add First Migration
+## 5. Add First Migration
 
 Add your first migration sql script. File name format is `{timestamp}.{description}.sql`
 
@@ -59,7 +61,7 @@ create table dbo.Users
 );
 ```
 
-## 5. Configure and Run Deployment
+## 6. Configure and Run Deployment
 
 Copy the following code to the `Program.cs`
 
@@ -88,7 +90,12 @@ await deployer.DeployAsync(new DeployParameters
 });
 ```
 
-## 6. Run app
+## 7. Run App
+
+Run the app from Visual Studio, or start the built executable from its output folder.
+
+!!! note "`dotnet run`"
+    By default `SetProject` looks for the `<AssemblyName>.Scripts` folder in the **current working directory**. Visual Studio starts console apps in the output folder, but `dotnet run` keeps the directory of your shell, so the scripts are not found. For local runs with `dotnet run`, read the scripts straight from the project folder instead: `.SetProject(Assembly.GetExecutingAssembly(), useVsProjectPath: true)`. See [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts).
 
 You will see deployment process in the console app output:
 
@@ -100,7 +107,7 @@ You will see deployment process in the console app output:
 [23:09:43 INF] Folder BeforeDeploy is empty.
 [23:09:43 INF] Deploying migrations.
 [23:09:43 INF] Applied migration versions in target database: none.
-[23:09:43 INF] Deploying Migrations\20260808104925.first.sql. Type Migration.
+[23:09:43 INF] Deploying Migrations\20260808104925.create-users-table.sql. Type Migration.
 [23:09:43 INF] Deploying code.
 [23:09:43 INF] Code deploy successfully completed.
 [23:09:43 INF] Deploying folder AfterDeploy.

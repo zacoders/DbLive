@@ -72,7 +72,7 @@ DbLive enforces this order in every deploy: migrations, then code, then (optiona
 
 DbLive does **not** wrap the entire deployment in one transaction by default. That is intentional.
 
-- Default `TransactionWrapLevel` is **`Migration`** (see [settings.json](../src/Demo/DemoMSSQL/Scripts/settings.json)).
+- Default `TransactionWrapLevel` is **`Migration`** (see [Project Configuration](project/configuration.md)).
 - Each migration is atomic: it commits or rolls back **on its own**.
 - Between migrations, the system **must remain operational** - that is a feature, not a missing safeguard.
 - `TransactionWrapLevel: Deployment` exists for special cases; it is not the recommended default for 24/7 systems.

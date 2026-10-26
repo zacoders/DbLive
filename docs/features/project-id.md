@@ -6,9 +6,9 @@
 
 - Unicode string, maximum **128** characters
 - Case insensitive
-- Example: `"ProjectId": "my-app-prod"`
+- Example: `"ProjectId": "my-app"`
 
-Choose a value that uniquely identifies your project and environment, for example `billing-api-staging` or `inventory-prod`.
+Choose a value that uniquely identifies your project, for example `billing-api` or `inventory`. `settings.json` is the same file for every environment, so the value protects against deploying one project into another project's database; it does not distinguish staging from production.
 
 ## Configuration
 
@@ -16,7 +16,7 @@ Add `ProjectId` to `settings.json` next to your scripts:
 
 ```json
 {
-  "ProjectId": "my-app-prod",
+  "ProjectId": "my-app",
   "TransactionWrapLevel": "migration"
 }
 ```
@@ -41,5 +41,5 @@ The value is stored in the `project_id` column on the singleton `dblive.version`
 
 ## See also
 
-- [Philosophy — Zero-Downtime Database Delivery](philosophy.md)
+- [Philosophy — Zero-Downtime Database Delivery](../philosophy.md)
 - [Issue #71](https://github.com/zacoders/DbLive/issues/71)
