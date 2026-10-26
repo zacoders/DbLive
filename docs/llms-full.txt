@@ -549,13 +549,7 @@ Same JSON rules. Allowed keys only:
 
 Always transactional: DbLive's own schema deployment (Serializable, 5 minutes), downgrade, each test.
 
-**10-minute cap.** DbLive uses `System.Transactions.TransactionScope`. .NET caps every scope timeout at `TransactionManager.MaximumTimeout`, which defaults to **10 minutes**. A transactional migration, breaking step or `Deployment`-level deployment that runs longer is aborted (`TransactionAbortedException`), even though `MigrationTimeout` is 12 hours. For long operations, either:
-- give that migration a `<version>.settings.json` with `"TransactionWrapLevel": "None"`, or
-- raise the cap in the deployer (.NET 7+), before `DeployAsync`:
-
-```csharp
-System.Transactions.TransactionManager.MaximumTimeout = TimeSpan.FromHours(12);
-```
+**Transaction timeouts.** DbLive uses `System.Transactions.TransactionScope`. .NET caps every scope timeout at the process-wide `TransactionManager.MaximumTimeout` (10 minutes by default). Before opening a transaction, DbLive raises that cap to the transaction's timeout (it never lowers it), so `MigrationTimeout`, `DowngradeTimeout`, `DeploymentTimeout` and `UnitTestItemTimeout` apply as configured. Side effect: other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used, not at 10 minutes. A transaction that runs longer than its timeout is aborted with `TransactionAbortedException`.
 
 Command timeouts (`*Timeout` settings) are applied separately to each SQL command, in whole seconds.
 
@@ -833,7 +827,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `InvalidMigrationVersionException` | Version is not a number, or not `yyyyMMddHHmmss` with `EnforceTimestampVersion` | Rename the file |
 | `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.settings.json` or move it |
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL | Choose another level |
-| `TransactionAbortedException` | A transaction ran longer than 10 minutes (Section 10) | `TransactionWrapLevel: None` for that migration, or raise `TransactionManager.MaximumTimeout` |
+| `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout`, `DowngradeTimeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10) | Raise that timeout, or `TransactionWrapLevel: None` for that migration |
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `init.sql` |
 
 ---
@@ -897,7 +891,6 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
 - `rows` assertions do not detect extra actual rows or extra result sets.
-- Transaction timeouts are capped at 10 minutes by .NET unless `TransactionManager.MaximumTimeout` is raised.
 - `SetProject` resolves the output scripts folder relative to the current working directory.
 - Per-migration `MigrationTimeout` affects only the migration's transaction, not the command timeout.
 - `CodeSubFoldersDeploymentOrder` entries with nested paths are OS-specific.

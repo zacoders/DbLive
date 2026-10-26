@@ -81,12 +81,8 @@ Entries in `CodeSubFoldersDeploymentOrder` are compared using the operating syst
 | `BeforeDeployFolderTimeout` | `06:00:00` | Each BeforeDeploy script |
 | `AfterDeployFolderTimeout` | `06:00:00` | Each AfterDeploy script |
 
-!!! warning "Transactions longer than 10 minutes"
-    DbLive uses `System.Transactions`. .NET caps every transaction at `TransactionManager.MaximumTimeout`, which is **10 minutes** by default, whatever the timeout settings above say. A transactional migration, breaking step or `Deployment`-level deployment that runs longer is aborted. Either run long migrations without a transaction (see below), or raise the cap in your deployer before calling `DeployAsync` (.NET 7 and later):
-
-    ```csharp
-    System.Transactions.TransactionManager.MaximumTimeout = TimeSpan.FromHours(12);
-    ```
+!!! note "Transactions longer than 10 minutes"
+    DbLive uses `System.Transactions`. .NET caps every transaction at the process-wide `TransactionManager.MaximumTimeout`, which is 10 minutes by default. Before opening a transaction, DbLive raises that cap to the transaction's timeout and never lowers it, so the settings above apply as written. Other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used.
 
 ## Choosing a transaction level
 

@@ -101,7 +101,7 @@ and enforce the format in `settings.json`:
 
 ## Long-running migrations
 
-A migration that runs inside a transaction is limited to 10 minutes by .NET (see [Transactions longer than 10 minutes](../project/configuration.md#timeouts)). Large index builds and data backfills should get their own version with `"TransactionWrapLevel": "None"` in a settings file, should be re-runnable, and should update data in batches.
+A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 hours by default (see [Timeouts](../project/configuration.md#timeouts)), and holds its locks until it commits. Large index builds and data backfills should get their own version with `"TransactionWrapLevel": "None"` in a settings file, should be re-runnable, and should update data in batches.
 
 ## Errors
 
