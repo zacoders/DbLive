@@ -31,7 +31,9 @@ select assert = 'rows';
 select 10 as UserId, 'TestUser10' as Name;
 ```
 
-The **assert result set** is a result set whose first column is named `assert`. Its value chooses the assertion. Result sets returned **before** it are the actual results; result sets **after** it are the expected results. Statements that return no result set (`insert`, `set`, `declare`) are ignored.
+The **assert result set** is a result set whose first column is named `assert` (in any case). Its value chooses the assertion. Result sets returned **before** it are the actual results; result sets **after** it are the expected results. Statements that return no result set (`insert`, `set`, `declare`) are ignored.
+
+A misspelled column (`select asstert = 'rows'`) or a missing alias (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column.
 
 !!! warning "No `GO` in SQL Server test files"
     A test file is executed as a single batch, so `GO` is a syntax error there. `init.sql`, migrations and code files may use `GO`.
@@ -40,15 +42,15 @@ The **assert result set** is a result set whose first column is named `assert`. 
 
 | Assert | Passes when |
 |--------|-------------|
-| `rows` | Each expected result set matches the actual result set at the same position: same column names in the same order, same values row by row. |
+| `rows` | There are as many actual result sets as expected ones, and each expected result set matches the actual result set at the same position: same column names in the same order, same number of rows, same values row by row. |
 | `rows-with-schema` | Like `rows`, and the SQL column types match as well (for example `nvarchar(255)` vs `nvarchar(100)` fails). |
 | `has-rows` | The first actual result set has at least one row. |
-| `row-count=N` | There is exactly one actual result set, with exactly N rows. Write it in lowercase. |
+| `row-count=N` | There is exactly one actual result set, with exactly N rows. |
 | `empty` | Shortcut for `row-count=0`. |
 | `single-row` | Shortcut for `row-count=1`. |
 | _(none)_ | The test passes if the script runs without an error. |
 
-Only one assert result set is allowed per test.
+Only one assert result set is allowed per test. Assert values are case-insensitive.
 
 ### Custom checks
 
@@ -82,8 +84,8 @@ end $$;
 - Row order matters; use `order by` in the act.
 - Column names must match exactly. SQL Server gives an unnamed expression an empty name, so `select dbo.GetFullName('a', 'b')` can be compared with `select cast('a b' as nvarchar(255))`. PostgreSQL names such columns (`?column?` or the function name), so give both sides an alias.
 
-!!! note "Limitations of `rows`"
-    `rows` checks the expected rows only. Extra rows in the actual result, and extra actual result sets, are not reported. If the exact number of rows matters, add a separate test with `row-count=N`.
+!!! note "`rows` compares all actual output"
+    `rows` fails on extra or missing result sets and rows, for example `Expected 1 row(s), but 3 received.` Every result set returned before the assert counts as actual, including output from the Arrange part (`update ... output`, a debugging `select`). Remove such output, or move the setup into `init.sql`.
 
 `row-count` counts rows of the actual result set: `select count(*) from dbo.Orders` returns **one** row. To check that there are three orders, select the orders themselves:
 

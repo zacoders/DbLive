@@ -18,46 +18,46 @@ public static class AssertTypeExtensions
 
 	public static AssertInfo ToAssertInfo(this string assertDefinition)
 	{
-		if (reverseAssertTypesMap.TryGetValue(assertDefinition.ToLower(), out AssertType value))
+		if (assertDefinition.TryParseAssertInfo(out AssertInfo? assertInfo))
 		{
-			if (value == AssertType.Empty)
-			{
-				return new AssertInfo
-				{
-					AssertType = AssertType.RowCount,
-					RowCount = 0
-				};
-			}
-
-			if (value == AssertType.SingleRow)
-			{
-				return new AssertInfo
-				{
-					AssertType = AssertType.RowCount,
-					RowCount = 1
-				};
-			}
-
-			return new AssertInfo { AssertType = value };
+			return assertInfo;
 		}
 
-		if (assertDefinition.Contains("row-count"))
+		if (assertDefinition.Contains("row-count", StringComparison.OrdinalIgnoreCase))
 		{
-			int equalIndex = assertDefinition.IndexOf("=");
-
-			if (equalIndex < 0)
-			{
-				throw new Exception($"Please use row-count=[Number] to assert row count. Example: row-count=10.");
-			}
-
-			return new AssertInfo
-			{
-				AssertType = AssertType.RowCount,
-				RowCount = Convert.ToInt32(assertDefinition.Substring(equalIndex + 1))
-			};
+			throw new Exception($"Please use row-count=[Number] to assert row count. Example: row-count=10.");
 		}
 
 		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: {SupportedAssertTypes()}");
+	}
+
+	public static bool TryParseAssertInfo(this string assertDefinition, [NotNullWhen(true)] out AssertInfo? assertInfo)
+	{
+		string definition = assertDefinition.Trim().ToLowerInvariant();
+
+		// bare "row-count" has no number, it is parsed below as "row-count=N"
+		if (reverseAssertTypesMap.TryGetValue(definition, out AssertType value) && value != AssertType.RowCount)
+		{
+			assertInfo = value switch
+			{
+				AssertType.Empty => new AssertInfo { AssertType = AssertType.RowCount, RowCount = 0 },
+				AssertType.SingleRow => new AssertInfo { AssertType = AssertType.RowCount, RowCount = 1 },
+				_ => new AssertInfo { AssertType = value }
+			};
+			return true;
+		}
+
+		string[] parts = definition.Split('=', 2);
+		if (parts.Length == 2
+			&& parts[0].Trim() == "row-count"
+			&& int.TryParse(parts[1], out int rowCount))
+		{
+			assertInfo = new AssertInfo { AssertType = AssertType.RowCount, RowCount = rowCount };
+			return true;
+		}
+
+		assertInfo = null;
+		return false;
 	}
 
 	private static string SupportedAssertTypes() =>

@@ -13,20 +13,11 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		if (testRunResults.AssertInfo.AssertType is AssertType.Rows or AssertType.RowsWithSchema)
 		{
-			for (int i = 0; i < testRunResults.ExpectedResults.Count; i++)
-			{
-				ValidationResult compareResult = CompareResults(
-					testRunResults.ExpectedResults[i],
-					testRunResults.ActualResults[i],
-					columnTypesCheck: testRunResults.AssertInfo.AssertType == AssertType.RowsWithSchema
-				);
-
-				if (!compareResult.IsValid)
-				{
-					return compareResult;
-				}
-			}
-			return new ValidationResult { IsValid = true };
+			return CompareResultSets(
+				testRunResults.ExpectedResults,
+				testRunResults.ActualResults,
+				columnTypesCheck: testRunResults.AssertInfo.AssertType == AssertType.RowsWithSchema
+			);
 		}
 
 
@@ -67,7 +58,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				{
 					IsValid = false,
 					Output = $"""
-					Expected 0 rows, but result set is not recieved.
+					Expected {testRunResults.AssertInfo.RowCount} row(s), but no result set received.
 					"""
 				};
 			}
@@ -95,6 +86,8 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		if (!assertResultIndex.HasValue)
 		{
+			ThrowIfLooksLikeMisnamedAssert(multiResult);
+
 			return new TestRunSqlResults
 			{
 				AssertInfo = new AssertInfo { AssertType = AssertType.None },
@@ -103,7 +96,11 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		}
 
 		SqlResult expectedResult = multiResult[assertResultIndex.Value];
-		string assertTypeStr = expectedResult.GetValue<string>("assert", 0)!;
+		if (expectedResult.Rows.Count == 0)
+		{
+			throw new Exception("The 'assert' result set has no rows. Example: select 'rows' as assert.");
+		}
+		string assertTypeStr = Convert.ToString(expectedResult.Rows[0][0]) ?? "";
 
 		TestRunSqlResults testRunResults = new()
 		{
@@ -117,20 +114,111 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 	private static int? GetExpectedResultPosition(List<SqlResult> multiResult)
 	{
-		if (multiResult.Count(r => r.Columns[0].ColumnName == "assert") > 1)
+		if (multiResult.Count(IsAssertResult) > 1)
 		{
 			throw new Exception("Just one 'assert' result set is allowed.");
 		}
 
-		for (int i = 0; i < multiResult.Count; i++)
+		int index = multiResult.FindIndex(IsAssertResult);
+		return index < 0 ? null : index;
+	}
+
+	private static bool IsAssertResult(SqlResult result) =>
+		result.Columns.Count > 0
+		&& result.Columns[0].ColumnName.Equals("assert", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>
+	/// Catches a typo in the assert column name (`asstert`) or a missing alias (`select 'rows'`).
+	/// Without this check such a test has no assertion and passes silently.
+	/// </summary>
+	private static void ThrowIfLooksLikeMisnamedAssert(List<SqlResult> multiResult)
+	{
+		foreach (SqlResult result in multiResult)
 		{
-			SqlResult r = multiResult[i];
-			if (r.Columns[0].ColumnName == "assert")
+			if (result.Columns.Count == 0 || result.Rows.Count == 0) continue;
+			if (result.Rows[0][0] is not string value || !value.TryParseAssertInfo(out _)) continue;
+
+			string columnName = result.Columns[0].ColumnName;
+			bool unnamed = columnName is "" or "?column?"; // SQL Server and PostgreSQL names of an unnamed column
+			if (!unnamed && EditDistance(columnName.ToLowerInvariant(), "assert") > 2) continue;
+
+			string columnDescription = unnamed ? "has no name" : $"is named '{columnName}'";
+			throw new Exception(
+				$"A result set with the value '{value}' looks like an assert result set, but its first column {columnDescription} "
+				+ $"instead of 'assert', so the test has no assertion. Rename the column, for example: select '{value}' as assert."
+			);
+		}
+	}
+
+	private static int EditDistance(string a, string b)
+	{
+		int[] previous = Enumerable.Range(0, b.Length + 1).ToArray();
+		int[] current = new int[b.Length + 1];
+
+		for (int i = 1; i <= a.Length; i++)
+		{
+			current[0] = i;
+			for (int j = 1; j <= b.Length; j++)
 			{
-				return i;
+				int substitutionCost = a[i - 1] == b[j - 1] ? 0 : 1;
+				current[j] = Math.Min(
+					Math.Min(previous[j] + 1, current[j - 1] + 1),
+					previous[j - 1] + substitutionCost
+				);
+			}
+			(previous, current) = (current, previous);
+		}
+
+		return previous[b.Length];
+	}
+
+	private ValidationResult CompareResultSets(List<SqlResult> expectedResults, List<SqlResult> actualResults, bool columnTypesCheck)
+	{
+		if (expectedResults.Count == 0)
+		{
+			return new ValidationResult
+			{
+				IsValid = false,
+				Output = $"""
+				No expected result set after the 'assert' result set.
+				"""
+			};
+		}
+
+		if (expectedResults.Count != actualResults.Count)
+		{
+			return new ValidationResult
+			{
+				IsValid = false,
+				Output = $"""
+				Expected {expectedResults.Count} result set(s), but {actualResults.Count} received.
+				"""
+			};
+		}
+
+		for (int i = 0; i < expectedResults.Count; i++)
+		{
+			ValidationResult compareResult = CompareResults(expectedResults[i], actualResults[i], columnTypesCheck);
+
+			if (!compareResult.IsValid)
+			{
+				if (expectedResults.Count == 1)
+				{
+					return compareResult;
+				}
+
+				return new ValidationResult
+				{
+					IsValid = false,
+					Output = $"""
+					Result set {i + 1}:
+					{compareResult.Output}
+					"""
+				};
 			}
 		}
-		return null;
+
+		return new ValidationResult { IsValid = true };
 	}
 
 	private ValidationResult CompareResults(SqlResult expected, SqlResult actual, bool columnTypesCheck)
@@ -138,6 +226,17 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		ValidationResult columnsCompareResult = CompareColumns(expected.Columns, actual.Columns, columnTypesCheck);
 		if (!columnsCompareResult.IsValid)
 			return columnsCompareResult;
+
+		if (expected.Rows.Count != actual.Rows.Count)
+		{
+			return new ValidationResult
+			{
+				IsValid = false,
+				Output = $"""
+				Expected {expected.Rows.Count} row(s), but {actual.Rows.Count} received.
+				"""
+			};
+		}
 
 		for (int i = 0; i < expected.Rows.Count; i++)
 		{

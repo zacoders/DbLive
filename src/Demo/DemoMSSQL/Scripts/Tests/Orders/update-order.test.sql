@@ -11,5 +11,5 @@ where OrderID = 1
 
 
 -- Assert
-select asstert = 'row-count=1'
+select assert = 'row-count=1'
 

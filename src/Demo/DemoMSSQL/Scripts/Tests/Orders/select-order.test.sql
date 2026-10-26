@@ -3,11 +3,11 @@
 
 
 -- Act
-select count(*) from dbo.Orders
+select OrderId from dbo.Orders
 
 
 -- Assert
-select asstert = 'row-count=3'
+select assert = 'row-count=3'
 
 
 

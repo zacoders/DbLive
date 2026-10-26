@@ -166,7 +166,7 @@ Assertions are defined by returning a result set with a column named `assert`.
 
 | Assert | Description |
 |--------|-------------|
-| `rows` | Compare columns and row values with expected result sets. |
+| `rows` | Compare columns and row values with expected result sets; the number of result sets and rows must match too. |
 | `rows-with-schema` | Compare columns, row values, and SQL types. |
 | `has-rows` | Pass if at least one row is returned. |
 | `row-count=N` | Pass if exactly N rows are returned. |

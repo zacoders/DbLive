@@ -17,7 +17,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 5. **Write `<version>.undo.sql` for every migration you may need to roll back**, and make it work in both states: breaking script applied and not applied (use existence checks).
 6. **BeforeDeploy and AfterDeploy scripts run on every deployment** (not once). They must be idempotent.
 7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `init.sql`.)
-8. **The assertion marker column is named exactly `assert` (lowercase) and must be the first column** of its result set. The value `row-count=N` must be lowercase.
+8. **The assertion marker column is named `assert` and must be the first column** of its result set (case does not matter; `select 'rows' as assert` works on both engines). A misspelled name (`asstert`) or a missing alias (`select 'rows'`) → the test fails with "... looks like an assert result set ..." (Section 8.3).
 9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, the `Migrations` folder was not copied to the output), it is treated as a downgrade → `DowngradeNotAllowedException`.
 10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). Without that metadata, `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery throw `Exception("ProjectDir metadata not found!")`.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
@@ -366,7 +366,7 @@ Parallel tests with `Serializable` isolation that touch the same tables can dead
 
 ### 8.3 Assertions: exact semantics
 
-The test script returns result sets. One of them may be the **assert result set**: a result set whose first column is named `assert` (case-sensitive). Its first row holds the assertion type.
+The test script returns result sets. One of them may be the **assert result set**: a result set whose first column is named `assert` (case-insensitive). Its first row holds the assertion type; an assert result set without rows fails the test.
 
 ```
 [actual result sets ...]   select ... assert ...   [expected result sets ...]
@@ -376,17 +376,18 @@ The test script returns result sets. One of them may be the **assert result set*
 - At most one assert result set is allowed; a second one makes the test fail.
 - Statements that return no result set (insert, update without `output`, `set`, `declare`) are ignored.
 - Without an assert result set, the test passes if the script runs without an error. Raise an error for custom checks: `throw 50000, 'message', 0;` (SQL Server) or `raise exception 'message';` (PostgreSQL).
+- Typo guard: when there is no assert result set, but some result set's first column has no name (SQL Server `''`, PostgreSQL `?column?`) or is within two edits of `assert` (`asstert`, `asert`, `Assret`), and its first value is a valid assert value, the test fails: `A result set with the value 'row-count=3' looks like an assert result set, but its first column is named 'asstert' instead of 'assert', so the test has no assertion. Rename the column, for example: select 'row-count=3' as assert.` A test without an assert whose act returns an unnamed string column with a value such as `empty` or `rows` trips this guard too; give that column an alias.
 
 | Assert value | Passes when |
 |---|---|
-| `rows` | For each expected result set *i*: actual result set *i* has the same column count and the same column names (case-sensitive, same order), and for each expected row *j*, actual row *j* has equal values. |
+| `rows` | There are as many actual result sets as expected ones (at least one), and for each expected result set *i*: actual result set *i* has the same column count and the same column names (case-sensitive, same order), the same number of rows, and for each row *j* equal values. |
 | `rows-with-schema` | Like `rows`, and the column SQL types are equal too (for example `nvarchar(255)`, `decimal(10, 2)`, `datetime2(7)` on SQL Server; `integer`, `bigint`, `numeric(12,2)`, `text`, `varchar(200)`, `timestamptz` on PostgreSQL). |
 | `has-rows` | The first actual result set has at least one row. |
-| `row-count=N` | There is exactly one actual result set and it has exactly N rows. Lowercase only. |
+| `row-count=N` | There is exactly one actual result set and it has exactly N rows. |
 | `empty` | Same as `row-count=0`. |
 | `single-row` | Same as `row-count=1`. |
 
-Keyword matching is case-insensitive except `row-count=N`; an unknown value fails the test with a list of supported values.
+Assert values are case-insensitive, and spaces around them and around `=` are ignored (`Row-Count = 3` works). An unknown value fails the test with a list of supported values.
 
 Value comparison in `rows`: each value is serialized to JSON and the strings are compared.
 - `int` 10 equals `bigint` 10. `decimal` 150.00 does **not** equal `int` 150 or `decimal` 150.0; the scale must match. Cast expected values: `cast(150 as decimal(10,2))`.
@@ -395,7 +396,8 @@ Value comparison in `rows`: each value is serialized to JSON and the strings are
 - `NULL` equals `NULL`.
 - Column names must match exactly. SQL Server gives unnamed expressions an empty name, so `select dbo.F(1)` against `select cast('x' as nvarchar(10))` compares fine. PostgreSQL names them (`?column?`, or the function name), so alias both sides explicitly.
 - Row order matters. Make the act deterministic (`order by`).
-- Limitations: extra actual rows beyond the expected rows and extra actual result sets are **not detected**. If the actual set has fewer rows than expected, the test fails with an index error instead of a readable message. Use a separate `row-count=N` test when the exact count matters.
+- Counts are checked before values: `Expected 2 result set(s), but 1 received.`, then per result set the columns, then `Expected 1 row(s), but 3 received.`, then the values. With several expected result sets the message starts with `Result set N:`. No result set after the assert result set: `No expected result set after the 'assert' result set.`
+- Every result set returned before the assert result set is actual, including output from the Arrange part (`update ... output`, a `select` used for debugging). Remove such output, or move data setup into `init.sql`, whose result sets are ignored.
 
 ### 8.4 Examples
 
@@ -829,6 +831,8 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL | Choose another level |
 | `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout`, `DowngradeTimeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10) | Raise that timeout, or `TransactionWrapLevel: None` for that migration |
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `init.sql` |
+| Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
+| Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
 
 ---
 
@@ -890,7 +894,6 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - No CLI tool; deployments are started from your own C# code.
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
-- `rows` assertions do not detect extra actual rows or extra result sets.
 - Per-migration `MigrationTimeout` affects only the migration's transaction, not the command timeout.
 - `CodeSubFoldersDeploymentOrder` entries with nested paths are OS-specific.
 - Code and test relative paths use the OS path separator, so switching the deploying OS redeploys every code file once (harmless).

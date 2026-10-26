@@ -9,6 +9,8 @@
 	
     <ItemGroup>
         <PackageReference Include="Microsoft.Data.SqlClient" />
+        <!-- Patched transitive dependency of Microsoft.Data.SqlClient, see DbLive.MSSQL.csproj -->
+        <PackageReference Include="System.Security.Cryptography.Pkcs" />
         <PackageReference Include="NSubstitute" />
         <PackageReference Include="Serilog.Sinks.XUnit" />
     </ItemGroup>
