@@ -31,7 +31,7 @@ await deployer.DeployAsync(breaking
     : DeployParameters.Default with { RunTests = false });
 ```
 
-Start it from its output folder, or see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts) for a version that works from any working directory. A failed deployment throws, so the process exits with a non-zero code and your CI step fails.
+It reads the scripts from the `<AssemblyName>.Scripts` folder next to the executable, so it can be started from any working directory (see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts)). A failed deployment throws, so the process exits with a non-zero code and your CI step fails.
 
 ## What a deployment does
 

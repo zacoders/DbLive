@@ -9,7 +9,7 @@ public class DbLiveProject(
 ) : IDbLiveProject
 {
 	private readonly string _projectPath = projectPath.Path;
-	private readonly string _visualStudioProjectPath = projectPath.VisualStudioProjectPath;
+	private readonly Lazy<string> _visualStudioProjectPath = new(() => projectPath.VisualStudioProjectPath);
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
@@ -239,6 +239,6 @@ public class DbLiveProject(
 	[ExcludeFromCodeCoverage]
 	public string GetVisualStudioProjectPath()
 	{
-		return _visualStudioProjectPath;
+		return _visualStudioProjectPath.Value;
 	}
 }

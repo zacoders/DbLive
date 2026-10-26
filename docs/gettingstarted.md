@@ -92,10 +92,7 @@ await deployer.DeployAsync(new DeployParameters
 
 ## 7. Run App
 
-Run the app from Visual Studio, or start the built executable from its output folder.
-
-!!! note "`dotnet run`"
-    By default `SetProject` looks for the `<AssemblyName>.Scripts` folder in the **current working directory**. Visual Studio starts console apps in the output folder, but `dotnet run` keeps the directory of your shell, so the scripts are not found. For local runs with `dotnet run`, read the scripts straight from the project folder instead: `.SetProject(Assembly.GetExecutingAssembly(), useVsProjectPath: true)`. See [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts).
+Run the app from Visual Studio or with `dotnet run`. DbLive reads the scripts from the `<AssemblyName>.Scripts` folder next to the executable (see [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts)).
 
 You will see deployment process in the console app output:
 

@@ -19,7 +19,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `init.sql`.)
 8. **The assertion marker column is named exactly `assert` (lowercase) and must be the first column** of its result set. The value `row-count=N` must be lowercase.
 9. **The Migrations folder must exist and contain at least one file** in the deployed scripts folder; otherwise deployment fails with `DirectoryNotFoundException`. (Code, Tests, BeforeDeploy, AfterDeploy are optional.)
-10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). `SetProject` throws `Exception("ProjectDir metadata not found!")` without that metadata.
+10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). Without that metadata, `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery throw `Exception("ProjectDir metadata not found!")`.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production** (`RunTests = false` there). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
 
@@ -132,7 +132,7 @@ IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()
     .SqlServer()                                   // or .PostgreSQL()
     .SetDbConnection(connectionString)
-    .SetProject(Assembly.GetExecutingAssembly())   // layout B: typeof(MyDbMarker).Assembly; resolves against the working directory, see 3.4
+    .SetProject(Assembly.GetExecutingAssembly())   // layout B: typeof(MyDbMarker).Assembly; reads <AssemblyName>.Scripts next to the app, see 3.4
     .CreateDeployer();
 
 await deployer.DeployAsync(breaking
@@ -148,22 +148,21 @@ An unhandled exception gives a non-zero exit code, so CI steps fail correctly.
 
 | `useVsProjectPath` | Scripts root used | Typical use |
 |---|---|---|
-| `false` (default) | `Path.GetFullPath("<AssemblyName>") + ".Scripts"`, which is **relative to the current working directory**, not to the exe location | Deployer started from its output folder (Visual Studio F5, `cd bin/... && dotnet MyDb.dll`); `dotnet test` (the test host runs in the output folder) |
+| `false` (default) | `Path.Combine(AppContext.BaseDirectory, "<AssemblyName>.Scripts")`: the folder next to the application, **independent of the current working directory** | Deployers, however they are started (Visual Studio, `dotnet run`, `dotnet path/to/MyDb.Deploy.dll` from any folder, Windows service, scheduled task); `dotnet test` (the test project's output gets the scripts through `ProjectReference`) |
 | `true` | `<ProjectDir>/Scripts`, where `ProjectDir` is the absolute source path baked in at build time | Tests and local development: edits are picked up without a rebuild |
 
-Pitfalls:
-- If the deployer starts with a different working directory (`dotnet run`, which keeps the shell's directory; Windows service; scheduled task; `dotnet path/to/MyDb.Deploy.dll` from elsewhere), scripts are not found. Either `cd` to the output folder first, or register the path yourself. This is the robust choice for production deployers; it replaces `SetProject`:
+Notes:
+- `useVsProjectPath: true` only works on a machine that has the source checkout at the same path as the build.
+- The `ProjectDir` metadata is read only when the source folder is needed: `SetProject(..., useVsProjectPath: true)` reads it immediately, and `[SqlFact]` discovery reads it for "go to source". A deployer with the default `useVsProjectPath: false` works without it.
+- To read scripts from any other folder, register the path instead of calling `SetProject`:
 
 ```csharp
 using DbLive.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-string scripts = Path.Combine(AppContext.BaseDirectory, "MyDb.Scripts");
+string scripts = "/opt/mydb/scripts";
 builder.ConfigureServices(s => s.AddSingleton<IProjectPath>(new ProjectPath(scripts, scripts)));
 ```
-
-- `useVsProjectPath: true` only works on a machine that has the source checkout at the same path as the build.
-- `SetProject` always reads the `ProjectDir` metadata, even with `useVsProjectPath: false`.
 
 ---
 
@@ -812,7 +811,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 
 | Exception / message | Cause | Fix |
 |---|---|---|
-| `Exception: ProjectDir metadata not found!` | `.csproj` lacks the `AssemblyMetadata` `ProjectDir` item | Add the block from Section 3.1 |
+| `Exception: ProjectDir metadata not found!` | `.csproj` lacks the `AssemblyMetadata` `ProjectDir` item; thrown by `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery | Add the block from Section 3.1 |
 | `DirectoryNotFoundException` (…`Migrations`) | No Migrations folder in the scripts root, or it is empty and therefore not copied to the output | Add at least one migration file |
 | `JsonException` reading `settings.json` | Wrong case, unknown key, or trailing comma | Section 9.1 |
 | `ProjectIdMismatchException` | Wrong database, or `ProjectId` changed | Check the connection string; rebind deliberately (Section 14) |
@@ -875,7 +874,7 @@ Preferred: revert the file to its applied content (git history) and add a new ve
 ### 18.10 CI/CD pipeline
 1. Build.
 2. `dotnet test` (Testcontainers): runs `[SqlDeployFact]` (deploy + undo paths + all SQL tests) and `[SqlFact]` tests.
-3. Deploy the database: `dotnet MyDb.Deploy.dll` (from its output folder) with `DeployParameters.Default with { RunTests = false }`.
+3. Deploy the database: `dotnet MyDb.Deploy.dll` with `DeployParameters.Default with { RunTests = false }`.
 4. Deploy the application; old and new versions run side by side.
 5. Remove the old application.
 6. Deploy breaking changes: `dotnet MyDb.Deploy.dll --breaking` (`DeployParameters.Breaking`).
@@ -891,7 +890,6 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
 - `rows` assertions do not detect extra actual rows or extra result sets.
-- `SetProject` resolves the output scripts folder relative to the current working directory.
 - Per-migration `MigrationTimeout` affects only the migration's transaction, not the command timeout.
 - `CodeSubFoldersDeploymentOrder` entries with nested paths are OS-specific.
 - Code and test relative paths use the OS path separator, so switching the deploying OS redeploys every code file once (harmless).

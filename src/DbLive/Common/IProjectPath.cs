@@ -8,10 +8,15 @@ public interface IProjectPath
 }
 
 
-public class ProjectPath(string projectPath, string visualStudioProjectPath) : IProjectPath
+public class ProjectPath(string projectPath, Func<string> visualStudioProjectPath) : IProjectPath
 {
+	public ProjectPath(string projectPath, string visualStudioProjectPath)
+		: this(projectPath, () => visualStudioProjectPath)
+	{
+	}
+
 	public string Path => projectPath;
 
-	public string VisualStudioProjectPath => visualStudioProjectPath;
+	public string VisualStudioProjectPath => visualStudioProjectPath();
 }
 

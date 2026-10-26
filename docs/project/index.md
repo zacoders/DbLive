@@ -41,7 +41,7 @@ Add this to the project that contains the `Scripts` folder:
 </Target>
 
 <ItemGroup>
-  <!-- Lets DbLive find the source folder (used by tests and by SetProject). -->
+  <!-- Lets DbLive find the source folder (used by useVsProjectPath: true and [SqlFact] tests). -->
   <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
     <_Parameter1>ProjectDir</_Parameter1>
     <_Parameter2>$(ProjectDir)</_Parameter2>
@@ -56,7 +56,7 @@ Add this to the project that contains the `Scripts` folder:
 ```
 
 !!! note
-    The folder in your project must be named `Scripts`. The `ProjectDir` metadata is required: without it `SetProject` throws `ProjectDir metadata not found!`.
+    The folder in your project must be named `Scripts`. The `ProjectDir` metadata tells DbLive where the source folder is: `useVsProjectPath: true` and `[SqlFact]` tests need it and throw `ProjectDir metadata not found!` without it.
 
 ## How DbLive finds the scripts
 
@@ -64,16 +64,16 @@ Add this to the project that contains the `Scripts` folder:
 
 | `useVsProjectPath` | Scripts are read from | Use it for |
 |--------------------|-----------------------|------------|
-| `false` (default) | `<current working directory>/<AssemblyName>.Scripts` | Deployers started from their output folder, `dotnet test` |
+| `false` (default) | `<AssemblyName>.Scripts` next to the application (`AppContext.BaseDirectory`) | Deployers, `dotnet test` |
 | `true` | `<project source folder>/Scripts` | Tests and local development: script edits are picked up without a rebuild |
 
-The default resolves against the **current working directory**, not against the location of the executable. `dotnet run`, Windows services and scheduled tasks usually start in a different folder. For such deployers, register the path explicitly instead of calling `SetProject`:
+The default does not depend on the current working directory, so a deployer finds its scripts when it is started from Visual Studio, with `dotnet run`, as a Windows service or as a scheduled task. To read scripts from another folder, register the path explicitly instead of calling `SetProject`:
 
 ```csharp
 using DbLive.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-string scripts = Path.Combine(AppContext.BaseDirectory, "MyDb.Scripts");
+string scripts = @"D:\Deploy\MyDb.Scripts";
 
 var deployer = new DbLiveBuilder()
     .LogToConsole()
