@@ -21,3 +21,6 @@ Starting a project takes four manual steps today: packages, a `.csproj` snippet 
 ## Done when
 - [ ] Template published and tested in CI
 - [ ] Docs updated
+
+## Notes
+2026-11-01: do after 0096-31. The `.csproj` block becomes one `EmbeddedResource` line plus the `ProjectDir` metadata, and the test fixture calls `SetProject(assembly)` without `useVsProjectPath`.
