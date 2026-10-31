@@ -41,6 +41,8 @@ The new pages are committed (fa118f6).
 
 Bugs found while studying the code for the docs are tasks `0096-01` to `0096-16` (`ls tasks/0096-* tasks/done/0096-*`). The docs describe current behavior, so each fix updates them in the same commit.
 
+Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10-31): safe defaults, release process, how the project looks to someone evaluating it, and gaps compared with tSQLt. They do not block this task.
+
 ## Done when
 - [ ] D1–D6 done
 - [x] `mkdocs build --strict` passes
