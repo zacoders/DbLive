@@ -9,6 +9,8 @@ this transition seamlessly:
 
 1. **Internal State:** A temporary trigger is introduced to synchronize data between the 
    legacy `dbo.Person.PhoneNumber` column and the new `dbo.PersonPhones` table in real-time.
+   It syncs only the primary phone: the legacy column knows nothing about the other phones, 
+   which the new application adds, so the trigger must not touch them.
 2. **Old Applications:** Continue using `GetPerson_v1`. The database still fulfills this 
    contract, allowing legacy apps to function without interruption.
 3. **New Applications:** Upgrade to `GetPerson_v2` for core person data and use a new 
