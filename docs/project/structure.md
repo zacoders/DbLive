@@ -12,7 +12,7 @@ Scripts/
     20260812090000.breaking.sql
     20260812090000.undo.sql
     20260815120000.indexes.sql
-    20260815120000.settings.json
+    20260815120000.migration.settings.json
   Code/                                optional
     schemas/sales.sql
     dbo/GetUser.sql
@@ -36,7 +36,7 @@ Scripts/
 
 Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code, tests and the BeforeDeploy/AfterDeploy scripts.
 
-Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not a migration settings file: it stops the deployment.
+Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
 
 !!! warning "Ship applied migrations with every build"
     Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because the `Migrations` folder was not copied to the output, DbLive treats this as a [downgrade](../deployment/migrations.md#downgrade) and the deployment fails with `DowngradeNotAllowedException`.
@@ -46,7 +46,7 @@ Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next t
 ```
 <version>.<type>.<name>.sql
 <version>.<name>.sql                 (no type: a migration)
-<version>.settings.json
+<version>.<item>.settings.json       (settings of the migration, breaking or undo script)
 ```
 
 **Version.** The first part of the name, a whole number (64-bit). `001`, `1` and `20260808104925` are valid; `001` and `1` are the same version. For teams, use UTC timestamps (`yyyyMMddHHmmss`) so that branches do not collide, and set `"EnforceTimestampVersion": true` to reject anything else.
@@ -58,9 +58,10 @@ Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next t
 | `migration` | `m` | `.sql` | The forward change. Every version must have one. |
 | `undo` | `u` | `.sql` | Reverts this version. Used by downgrades and undo tests. |
 | `breaking` | `b` | `.sql` | Destructive part, run only in a breaking deployment. |
-| `settings` | `s` | `.json` | [Per-migration settings](configuration.md#per-migration-settings). |
 
 **Name.** Free text, for humans only. If the second part of the file name is not a type, the file is a migration and that part is its name: `20260808104925.create-users.sql` is a migration named `create-users`.
+
+**Settings.** A `.json` file `<version>.<item>.settings.json` holds the [settings](configuration.md#item-settings) of one script of that version: `migration`, `breaking` or `undo`. Short forms combine: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.u.s.json`. A settings file needs its script. The old `<version>.settings.json` is rejected with a hint to the new name.
 
 | File | Version | Type | Name |
 |------|---------|------|------|
@@ -68,7 +69,8 @@ Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next t
 | `003.m.orders.sql` | 3 | migration | orders |
 | `003.undo.sql` | 3 | undo | |
 | `005.breaking.sql` | 5 | breaking | |
-| `004.settings.json` | 4 | settings | |
+| `004.migration.settings.json` | 4 | settings of the migration | |
+| `005.b.s.json` | 5 | settings of the breaking script | |
 | `20260808104925.create-users.sql` | 20260808104925 | migration | create-users |
 
 Migrations are matched by version and type, not by path. You can move old migrations into a subfolder such as `Migrations/Old/` at any time.

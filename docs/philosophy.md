@@ -77,7 +77,7 @@ DbLive does **not** wrap the entire deployment in one transaction by default. Th
 - Between migrations, the system **must remain operational** - that is a feature, not a missing safeguard.
 - `TransactionWrapLevel: Deployment` exists for special cases; it is not the recommended default for 24/7 systems.
 
-Per-migration settings can override the global level (for example, `004.settings.json` in DemoMSSQL uses `"TransactionWrapLevel": "none"` for online index creation).
+Item settings can override the global level for one script (for example, `004.migration.settings.json` in DemoMSSQL uses `"TransactionWrapLevel": "none"` for online index creation).
 
 
 ## Procedure versioning - one file, two objects in the database

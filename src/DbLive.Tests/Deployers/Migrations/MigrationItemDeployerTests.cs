@@ -31,7 +31,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		await deploy.DeployAsync(1, migrationItem);
+		await deploy.DeployAsync(1, migrationItem, new MigrationItemSettings());
 
 
 		// Assert
@@ -85,7 +85,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		await deploy.DeployAsync(1, undoItem);
+		await deploy.DeployAsync(1, undoItem, new MigrationItemSettings());
 
 
 		// Assert
@@ -158,7 +158,7 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		await deploy.DeployAsync(1, undoItem);
+		await deploy.DeployAsync(1, undoItem, new MigrationItemSettings());
 
 
 		// Assert
@@ -229,11 +229,182 @@ public class MigrationItemDeployerTests
 		};
 
 		// Act
-		Task act() => deployer.DeployAsync(2, migrationItem);
+		Task act() => deployer.DeployAsync(2, migrationItem, new MigrationItemSettings());
 
 		// Assert
 		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
 		Assert.Contains("some sql error", ex.Message);
 		Assert.Null(ex.InnerException);
+	}
+
+	[Fact]
+	public async Task Item_settings_reach_the_transaction_and_the_sql_command()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		MigrationItem migrationItem = NewMigrationItem();
+
+		MigrationItemSettings itemSettings = new()
+		{
+			TransactionIsolationLevel = TranIsolationLevel.Serializable,
+			Timeout = TimeSpan.FromMinutes(5)
+		};
+
+		// Act
+		await deployer.DeployAsync(1, migrationItem, itemSettings);
+
+		// Assert
+		await mockSet.TransactionRunner.Received(1)
+			.ExecuteWithinTransactionAsync(
+				true,
+				TranIsolationLevel.Serializable,
+				TimeSpan.FromMinutes(5),
+				Arg.Any<Func<Task>>()
+			);
+
+		await mockSet.DbLiveDA.Received(1)
+			.ExecuteNonQueryAsync(
+				migrationItem.FileData.Content,
+				TranIsolationLevel.Serializable,
+				TimeSpan.FromMinutes(5)
+			);
+	}
+
+	[Fact]
+	public async Task Item_without_transaction_still_gets_its_isolation_level_and_timeout()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		MigrationItem migrationItem = NewMigrationItem();
+
+		MigrationItemSettings itemSettings = new()
+		{
+			TransactionWrapLevel = TransactionWrapLevel.None,
+			TransactionIsolationLevel = TranIsolationLevel.RepeatableRead,
+			Timeout = TimeSpan.FromHours(1)
+		};
+
+		// Act
+		await deployer.DeployAsync(1, migrationItem, itemSettings);
+
+		// Assert
+		await mockSet.TransactionRunner.Received(1)
+			.ExecuteWithinTransactionAsync(
+				false,
+				TranIsolationLevel.RepeatableRead,
+				TimeSpan.FromHours(1),
+				Arg.Any<Func<Task>>()
+			);
+
+		await mockSet.DbLiveDA.Received(1)
+			.ExecuteNonQueryAsync(
+				migrationItem.FileData.Content,
+				TranIsolationLevel.RepeatableRead,
+				TimeSpan.FromHours(1)
+			);
+	}
+
+	[Fact]
+	public async Task Missing_item_keys_fall_back_to_the_project_settings()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			TransactionWrapLevel = TransactionWrapLevel.None,
+			TransactionIsolationLevel = TranIsolationLevel.Serializable,
+			MigrationTimeout = TimeSpan.FromMinutes(20)
+		});
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		// Act
+		await deployer.DeployAsync(1, NewMigrationItem(), new MigrationItemSettings());
+
+		// Assert
+		await mockSet.TransactionRunner.Received(1)
+			.ExecuteWithinTransactionAsync(
+				false,
+				TranIsolationLevel.Serializable,
+				TimeSpan.FromMinutes(20),
+				Arg.Any<Func<Task>>()
+			);
+	}
+
+	[Theory]
+	[InlineData(TransactionWrapLevel.Migration, false)]
+	[InlineData(TransactionWrapLevel.None, true)]
+	public async Task Project_deployment_transaction_runs_the_item_inside_it(TransactionWrapLevel itemTransactionWrapLevel, bool warningExpected)
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			TransactionWrapLevel = TransactionWrapLevel.Deployment
+		});
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		MigrationItem migrationItem = NewMigrationItem();
+
+		// Act
+		await deployer.DeployAsync(1, migrationItem, new MigrationItemSettings { TransactionWrapLevel = itemTransactionWrapLevel });
+
+		// Assert
+		await mockSet.TransactionRunner.Received(1)
+			.ExecuteWithinTransactionAsync(
+				false,
+				Arg.Any<TranIsolationLevel>(),
+				Arg.Any<TimeSpan>(),
+				Arg.Any<Func<Task>>()
+			);
+
+		await mockSet.DbLiveDA.Received(1)
+			.ExecuteNonQueryAsync(migrationItem.FileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+
+		mockSet.Logger.Received(warningExpected ? 1 : 0)
+			.Warning(Arg.Any<string>(), migrationItem.FileData.RelativePath);
+	}
+
+	[Fact]
+	public async Task Item_isolation_level_not_supported_by_the_provider_throws_before_running()
+	{
+		// Arrange
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.Provider.Returns(DbProvider.PostgreSql);
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		// Act
+		Task act() => deployer.DeployAsync(1, NewMigrationItem(), new MigrationItemSettings { TransactionIsolationLevel = TranIsolationLevel.Snapshot });
+
+		// Assert
+		await Assert.ThrowsAsync<NotSupportedTransactionIsolationLevelException>(act);
+
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs()
+			.ExecuteNonQueryAsync(default!, default, default);
+	}
+
+	private static MigrationItem NewMigrationItem()
+	{
+		return new MigrationItem
+		{
+			MigrationItemType = MigrationItemType.Migration,
+			Name = "some-migration",
+			FileData = new FileData
+			{
+				Content = "-- some sql migration content",
+				RelativePath = "db/migrations/001.m.some-migration.sql",
+				FilePath = "c:/db/migrations/001.m.some-migration.sql"
+			}
+		};
 	}
 }

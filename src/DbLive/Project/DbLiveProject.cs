@@ -131,6 +131,18 @@ public class DbLiveProject(
 				throw new MigrationItemMustExistsException(migrationVersion);
 			}
 
+			foreach (MigrationItem settingsItem in items.Values.Where(i => MigrationItemTypeMapper.IsSettings(i.MigrationItemType)))
+			{
+				MigrationItemType scriptType = MigrationItemTypeMapper.GetScriptType(settingsItem.MigrationItemType);
+				if (!items.ContainsKey(scriptType))
+				{
+					throw new MigrationSettingsWithoutScriptException(settingsItem.FileData.RelativePath, migrationVersion, scriptType);
+				}
+
+				// parsing here, so an invalid settings file stops the deployment before anything is deployed.
+				_ = SettingsTools.GetMigrationItemSettings(settingsItem.FileData.Content, settingsItem.FileData.RelativePath);
+			}
+
 			Migration migration = new()
 			{
 				Version = migrationGroup.Key,

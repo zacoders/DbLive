@@ -27,23 +27,34 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.settings.json")]
-	[InlineData("001.s.json")]
-	public void Parses_Settings_Json_Correctly(string file)
+	[InlineData("001.migration.settings.json", MigrationItemType.MigrationSettings)]
+	[InlineData("001.m.s.json", MigrationItemType.MigrationSettings)]
+	[InlineData("001.m.settings.json", MigrationItemType.MigrationSettings)]
+	[InlineData("001.migration.s.json", MigrationItemType.MigrationSettings)]
+	[InlineData("001.breaking.settings.json", MigrationItemType.BreakingSettings)]
+	[InlineData("001.b.s.json", MigrationItemType.BreakingSettings)]
+	[InlineData("001.undo.settings.json", MigrationItemType.UndoSettings)]
+	[InlineData("001.u.s.json", MigrationItemType.UndoSettings)]
+	[InlineData("001.Undo.Settings.json", MigrationItemType.UndoSettings)]
+	public void Parses_Item_Settings_Json_Correctly(string file, MigrationItemType expectedType)
 	{
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
-		Assert.Equal(MigrationItemType.Settings, result.MigrationItemType);
+		Assert.Equal(expectedType, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
+		Assert.Equal(file, result.FilePath);
 	}
 
 	[Theory]
-	[InlineData("001.settings.sql")]
-	[InlineData("001.s.sql")]
-	public void Throws_When_Settings_Is_Not_Json(string file)
+	[InlineData("001.settings.json")]
+	[InlineData("001.s.json")]
+	[InlineData("001.settings.online-index.json")]
+	public void Throws_When_Old_Version_Settings_File_Name(string file)
 	{
-		Assert.Throws<InvalidMigrationItemTypeException>(() =>
+		ObsoleteMigrationSettingsFileException ex = Assert.Throws<ObsoleteMigrationSettingsFileException>(() =>
 			MigrationFileNameParser.GetMigrationInfo(file));
+
+		Assert.Contains("001.migration.settings.json", ex.Message);
 	}
 
 	[Theory]
@@ -53,10 +64,32 @@ public class MigrationFileNameParserTests
 	[InlineData("001.m.json")]
 	[InlineData("001.u.json")]
 	[InlineData("001.b.json")]
+	[InlineData("001.m.config.json")]
+	public void Throws_When_Json_Is_Not_Item_Settings(string file)
+	{
+		Assert.Throws<UnknownMigrationSettingsException>(() =>
+			MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Theory]
+	[InlineData("001.migration.txt")]
+	[InlineData("001.undo.txt")]
+	[InlineData("001.b.txt")]
 	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
 	{
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
 			MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Theory]
+	[InlineData("005.settings.sql", "settings")]
+	[InlineData("005.m.settings.sql", "settings")]
+	public void Settings_Word_In_Sql_File_Is_A_Name(string file, string expectedName)
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
 	}
 
 	[Fact]
@@ -74,6 +107,15 @@ public class MigrationFileNameParserTests
 	{
 		Assert.Throws<UnknownMigrationSettingsException>(() =>
 			MigrationFileNameParser.GetMigrationInfo("004.custom.json"));
+	}
+
+	[Fact]
+	public void Item_Settings_Name_Is_The_Fourth_Part()
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("004.b.s.drop-column.json");
+
+		Assert.Equal(MigrationItemType.BreakingSettings, result.MigrationItemType);
+		Assert.Equal("drop-column", result.Name);
 	}
 
 	[Fact]

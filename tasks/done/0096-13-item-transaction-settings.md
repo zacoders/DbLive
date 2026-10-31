@@ -2,6 +2,7 @@
 type: feature
 priority: high
 created: 2026-10-31
+closed: 2026-10-31
 ---
 # Transaction settings per migration item: migration, breaking, undo
 
@@ -69,14 +70,39 @@ Each item (migration, breaking, undo) is one unit: its own transaction, by its o
 - `docs/features/index.md`, `docs/philosophy.md`, `docs/examples/index.md` (`004.settings.json` mentions)
 
 ## Done when
-- [ ] Parser: new settings file names, errors for old names and for a settings file without its script
-- [ ] Item settings model with `Timeout`; `Deployment` in an item file is an error
-- [ ] Item settings reach the transaction and the SQL command
-- [ ] Breaking: transaction per version by its own settings
-- [ ] Downgrade: transaction per version by stored undo settings; `DowngradeTimeout` removed
-- [ ] `UndoTestMode`: each step by its own settings
-- [ ] Warning for project `Deployment` + item `None`
-- [ ] Item type mapper; `undo.settings` content saved; self-deploy rename scripts (MSSQL, PostgreSQL)
-- [ ] Demos renamed
-- [ ] Unit tests, integration tests (MSSQL, PostgreSQL) green
-- [ ] Docs updated
+- [x] Parser: new settings file names, errors for old names and for a settings file without its script
+- [x] Item settings model with `Timeout`; `Deployment` in an item file is an error
+- [x] Item settings reach the transaction and the SQL command
+- [x] Breaking: transaction per version by its own settings
+- [x] Downgrade: transaction per version by stored undo settings; `DowngradeTimeout` removed
+- [x] `UndoTestMode`: each step by its own settings
+- [x] Warning for project `Deployment` + item `None`
+- [x] Item type mapper; `undo.settings` content saved; self-deploy rename scripts (MSSQL, PostgreSQL)
+- [x] Demos renamed
+- [x] Unit tests, integration tests (MSSQL, PostgreSQL) green
+- [x] Docs updated
+
+## Notes
+- File name grammar: for `.json` the second part is the script type and the third `settings`/`s`; an optional fourth part is the name. For `.sql` nothing changed, except that `settings`/`s` is no longer a type token: `005.settings.sql` is a migration named `settings` (before: an error).
+- `001.migration.json` (a type without `settings`) is now `UnknownMigrationSettingsException`, not `InvalidMigrationItemTypeException`.
+- Item settings are parsed when the project is read (`DbLiveProject.GetMigrationsAsync`), so a bad file or `Deployment` stops the deployment before anything runs. JSON errors are wrapped in `InvalidMigrationItemSettingsException` with the file path.
+- `MigrationItemDeployer` owns the item transaction now (merge with the project settings, warning, `TransactionScope`, command isolation and timeout). `MigrationVersionDeployer`, `BreakingChangesDeployer` and `DowngradeDeployer` only pick the settings and call it.
+- Project `Deployment`: an item never opens its own scope, also with item `Migration` (a nested `Required` scope with another isolation level would throw).
+- Item isolation level is checked for the provider when the item runs (`Snapshot` on PostgreSQL → `NotSupportedTransactionIsolationLevelException`), like the project level at the start.
+- `MigrationItemSettings` (was `MigrationSettings`) is a record, so tests compare settings by value.
+- `MigrationItemRow` reads `dblive.migration` in both DAs; `item_type` goes through `MigrationItemTypeMapper`. `DbLive.PostgreSQL.Tests` got `InternalsVisibleTo` (for `UndoTestDeployment`), like `DbLive.MSSQL.Tests`.
+- The demo `004.migration.sql` runs without a transaction but is not re-runnable (`create index` without a check). Not changed here: editing an applied migration breaks checksums of existing databases. See `0096-14`.
+
+## Result
+Each migration, breaking and undo script is one unit: its own transaction, by its own settings file merged over the project settings.
+
+- Settings files: `<v>.migration.settings.json`, `<v>.breaking.settings.json`, `<v>.undo.settings.json` (short forms `m`/`b`/`u` + `s`/`settings`). Keys `TransactionWrapLevel` (`Migration`/`None`), `TransactionIsolationLevel`, `Timeout`. New exceptions: `ObsoleteMigrationSettingsFileException` (old `<v>.settings.json`), `MigrationSettingsWithoutScriptException`, `InvalidMigrationItemSettingsException` (unknown key incl. `MigrationTimeout`, bad JSON, `Deployment`).
+- Execution: the item's isolation level and timeout go to the `TransactionScope` and to the SQL command (fixes 0096-05). Breaking: one transaction per version. Downgrade: one transaction per version, newest first, by the stored `undo.settings` over the current project settings. `UndoTestMode`: each step by its own settings. Project `Deployment` + item `None`: warning, runs inside the deployment transaction. `DbLiveSettings.DowngradeTimeout` removed.
+- Storage: `MigrationItemType.MigrationSettings` / `BreakingSettings` / `UndoSettings`, stored as `migration.settings` / `breaking.settings` / `undo.settings` via `MigrationItemTypeMapper`. `undo.settings` content is saved. Self-deploy scripts MSSQL `07.item-settings.sql`, PostgreSQL `04.item-settings.sql` rename old `settings` rows.
+- Demos: `004.migration.settings.json`, `20260208142812.migration.settings.json` with `Timeout`.
+- Tests: unit tests for parser, mapper, project checks, item/version/breaking/downgrade deployers, saver (253 in `DbLive.Tests`). Integration tests `ItemTransactionSettingsTests` for MSSQL (`alter database`) and PostgreSQL (`create/drop index concurrently`, `vacuum`): undo test mode, breaking, downgrade by stored undo settings, a script without settings runs in a transaction, self-deploy rename of old rows. All test projects green, including the demo deployment tests.
+- Docs: `docs/llms-full.txt` §0 (rule 13), §4, §5.1-5.6, §9.2, §9.3, §10, §15, §16, §17, §18.7, §18.8, §19; `docs/llms.txt`; `docs/project/configuration.md` ("Item settings", timeouts, transactions); `docs/project/structure.md`; `docs/project/index.md`; `docs/deployment/migrations.md`; `docs/deployment/breaking-changes.md`; `docs/features/index.md`; `docs/examples/index.md`; `docs/philosophy.md` (the `004.settings.json` sentence only).
+
+Release note:
+
+> **Breaking: per-script settings files and transactions.** `<version>.settings.json` is replaced by one file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`; rename existing files and the key `MigrationTimeout` to `Timeout` (an old name fails with a hint). `Timeout` now also sets the command timeout. Breaking scripts and undo scripts no longer share one transaction: each runs in its own transaction by its own settings file, so a downgrade or a breaking deployment can stop between versions. `DowngradeTimeout` is removed from `settings.json`. Use `"TransactionWrapLevel": "Deployment"` for all-or-nothing. Existing `settings` rows in `dblive.migration` are renamed to `migration.settings` automatically.

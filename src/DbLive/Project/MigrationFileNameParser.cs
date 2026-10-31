@@ -13,6 +13,7 @@ internal static class MigrationFileNameParser
 		string migrationVersionStr = fileParts[0];
 		string migrationFilePart2 = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
+		string migrationFilePart4 = fileParts.Length > 3 ? fileParts[3] : "";
 
 		MigrationItemType? migrationType = migrationFilePart2.ToLower() switch
 		{
@@ -22,8 +23,6 @@ internal static class MigrationFileNameParser
 			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
-			"settings" => MigrationItemType.Settings,
-			"s" => MigrationItemType.Settings,
 			_ => null
 		};
 
@@ -33,15 +32,31 @@ internal static class MigrationFileNameParser
 			throw new InvalidMigrationVersionException(fileName, errorMessage);
 		}
 
-		if (migrationType.HasValue)
+		if (fileExtension == ".json")
 		{
-			if (fileExtension != ".json" && migrationType == MigrationItemType.Settings)
+			// <version>.settings.json was one settings file for the whole version.
+			if (IsSettingsPart(migrationFilePart2))
 			{
-				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".json");
+				throw new ObsoleteMigrationSettingsFileException(fileName, migrationVersionStr);
 			}
 
-			if (fileExtension != ".sql"
-				&& migrationType.Value is MigrationItemType.Migration or MigrationItemType.Undo or MigrationItemType.Breaking)
+			if (!migrationType.HasValue || !IsSettingsPart(migrationFilePart3))
+			{
+				throw new UnknownMigrationSettingsException(fileName);
+			}
+
+			return new MigrationItemInfo()
+			{
+				Version = version,
+				MigrationItemType = MigrationItemTypeMapper.GetSettingsType(migrationType.Value),
+				Name = migrationFilePart4,
+				FilePath = filePath
+			};
+		}
+
+		if (migrationType.HasValue)
+		{
+			if (fileExtension != ".sql")
 			{
 				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
 			}
@@ -53,11 +68,6 @@ internal static class MigrationFileNameParser
 				Name = migrationFilePart3,
 				FilePath = filePath
 			};
-		}
-
-		if (fileExtension == ".json")
-		{
-			throw new UnknownMigrationSettingsException(fileName);
 		}
 
 		if (fileExtension == ".sql")
@@ -73,4 +83,7 @@ internal static class MigrationFileNameParser
 
 		throw new UnknownMigrationItemTypeException(migrationFilePart2, fileName);
 	}
+
+	private static bool IsSettingsPart(string filePart)
+		=> filePart.ToLower() is "settings" or "s";
 }

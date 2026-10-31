@@ -22,6 +22,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). Without that metadata, `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery throw `Exception("ProjectDir metadata not found!")`.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production** (`RunTests = false` there). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
+13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json` (short `<version>.m.s.json`, `.b.s.json`, `.u.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`. A script that reverts a no-transaction change (concurrent/online index, `ALTER DATABASE`) usually needs its own `<version>.undo.settings.json`.
 
 ---
 
@@ -182,7 +183,7 @@ Paths below are relative to the scripts root. Folder names are configurable in `
 
 A missing folder is skipped. A project without `Migrations` deploys only code, tests and BeforeDeploy/AfterDeploy scripts (rule 9 in Section 0 still applies).
 
-Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`: a `.json` file there that is not `<version>.settings.json` / `<version>.s.json` fails the deployment (`UnknownMigrationSettingsException`). A `.txt` in `Migrations` is ignored (the demos keep `002.notes.txt` next to migrations).
+Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`: a `.json` file there that is not an item settings file `<version>.<item>.settings.json` (Section 5.1) fails the deployment (`UnknownMigrationSettingsException`; the old `<version>.settings.json` / `<version>.s.json` → `ObsoleteMigrationSettingsFileException`). A `.txt` in `Migrations` is ignored (the demos keep `002.notes.txt` next to migrations).
 
 `init.sql` inside `Code/` is not excluded from code deployment: it would be deployed as a code object and also used as the init script for tests in that folder. Keep `init.sql` in `Tests/` folders only.
 
@@ -193,22 +194,23 @@ Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`:
 ### 5.1 File name grammar
 
 ```
-<version>.<type>.<name>.<ext>     explicit type
-<version>.<name>.sql              no type -> Migration
+<version>.<type>.<name>.sql                    script with explicit type
+<version>.<name>.sql                           no type -> Migration
+<version>.<type>.<settings>[.<name>].json      settings of the <type> script of that version
 ```
 
 - `<version>`: the first dot-separated part, parsed as a 64-bit integer (`long`). `001`, `1`, `20260808104925` are valid. `001` and `1` are the **same** version.
-- `<type>` (case-insensitive), with the extension it requires:
+- `<type>` (case-insensitive):
 
-| Type token | Item type | Extension |
-|---|---|---|
-| `migration`, `m` | Migration (forward change) | `.sql` |
-| `undo`, `u` | Undo (rollback of this version) | `.sql` |
-| `breaking`, `b` | Breaking (contract phase) | `.sql` |
-| `settings`, `s` | Per-migration settings | `.json` |
+| Type token | Item type | `.sql` file | `.json` file (`<settings>` = `settings` or `s`) |
+|---|---|---|---|
+| `migration`, `m` | Migration (forward change) | `MigrationItemType.Migration` | `MigrationItemType.MigrationSettings` |
+| `undo`, `u` | Undo (rollback of this version) | `MigrationItemType.Undo` | `MigrationItemType.UndoSettings` |
+| `breaking`, `b` | Breaking (contract phase) | `MigrationItemType.Breaking` | `MigrationItemType.BreakingSettings` |
 
-- `<name>`: free text, informational only (stored in the database). With an explicit type it is the third part; without a type it is the second part. Further dot-separated parts are ignored.
-- If the second part is not a type token, the file is a Migration and the second part is its name: `20260808104925.create-users-table.sql` is Migration, name `create-users-table`. A name that equals a type token (`m`, `u`, `b`, `s`, `undo`, ...) is read as the type.
+- `<name>`: free text, informational only (stored in the database). For a script with an explicit type it is the third part; without a type it is the second part; for a settings file it is the optional fourth part. Further dot-separated parts are ignored.
+- If the second part of a `.sql` file is not a type token, the file is a Migration and the second part is its name: `20260808104925.create-users-table.sql` is Migration, name `create-users-table`. A name that equals a type token (`m`, `u`, `b`, `undo`, ...) is read as the type. `settings`/`s` is not a type token in a `.sql` name (`005.settings.sql` is a Migration named `settings`).
+- A settings file belongs to one script and needs that script: `<version>.breaking.settings.json` without a breaking script of that version is an error. Settings files of one version do not inherit from each other (Section 9.3).
 
 Examples:
 
@@ -218,8 +220,12 @@ Examples:
 002.m.orders.sql                        Migration v2, name "orders"
 002.u.sql                               Undo v2
 002.b.sql                               Breaking v2
-004.settings.json                       Settings v4
+004.migration.settings.json             settings of Migration v4
+004.m.s.json                            the same, short form (only one of the two may exist)
+004.undo.settings.json                  settings of Undo v4
+005.b.s.json                            settings of Breaking v5
 20260808104925.create-users-table.sql   Migration v20260808104925
+20260808104925.migration.settings.json  settings of that migration (any migration file name)
 20260808104925.undo.sql                 Undo v20260808104925
 ```
 
@@ -228,10 +234,13 @@ Errors raised while reading the project:
 | Situation | Exception |
 |---|---|
 | Version part is not an integer | `InvalidMigrationVersionException` |
-| `settings`/`s` with a non-`.json` extension, or `migration`/`undo`/`breaking` with a non-`.sql` one | `InvalidMigrationItemTypeException` |
-| Other `.json` file in Migrations | `UnknownMigrationSettingsException` |
-| Two files with the same version and type (also `001.migration.sql` + `1.m.sql`) | `DuplicateMigrationItemException` |
+| `migration`/`undo`/`breaking` with an extension other than `.sql` or `.json` | `InvalidMigrationItemTypeException` |
+| Old per-version settings file `<version>.settings.json` / `<version>.s.json` | `ObsoleteMigrationSettingsFileException` (message names the new file) |
+| Other `.json` file in Migrations (`004.custom.json`, `004.migration.json`) | `UnknownMigrationSettingsException` |
+| Two files with the same version and type (also `001.migration.sql` + `1.m.sql`, `004.m.s.json` + `004.migration.settings.json`) | `DuplicateMigrationItemException` |
 | A version has undo/breaking/settings but no migration file | `MigrationItemMustExistsException` |
+| A settings file without its script (`004.u.s.json` without an undo script) | `MigrationSettingsWithoutScriptException` |
+| A settings file with an unknown key (also the old `MigrationTimeout`), invalid JSON, or `"TransactionWrapLevel": "Deployment"` | `InvalidMigrationItemSettingsException` (message names the file) |
 | `EnforceTimestampVersion: true` and the version is not `yyyyMMddHHmmss` (14 digits, valid date, year from 2000 to next month's year) | `InvalidMigrationVersionException` |
 
 Version strategy: sequential numbers (`001`, `002`) are fine for one developer. For teams, use timestamps (`yyyyMMddHHmmss`, UTC) and set `"EnforceTimestampVersion": true` to avoid collisions between branches.
@@ -241,17 +250,21 @@ Version strategy: sequential numbers (`001`, `002`) are fine for one developer. 
 - A version is pending when its Migration item is not `applied` in `dblive.migration`.
 - All pending versions are applied in ascending version order, **including versions lower than the highest applied one** (a branch merged later with an older timestamp still gets applied). There is no "out of order" check.
 - Subfolders are irrelevant to matching: items are matched by `(version, type)`, so moving old migrations into `Migrations/Old/` is safe.
-- At the start of every deployment, all migration items found in the project are recorded in `dblive.migration` (status `none`) before anything runs. Items that are not applied yet are updated in place when their file changes. **Undo file content is stored in the database** (needed for downgrades); other items store only a hash.
+- At the start of every deployment, all migration items found in the project are recorded in `dblive.migration` (status `none`) before anything runs. Items that are not applied yet are updated in place when their file changes. **The content of the undo script and of its `<version>.undo.settings.json` is stored in the database** (needed for downgrades); other items store only a hash.
 
 ### 5.3 Execution of a migration version
 
+Rule: each item (migration, breaking, undo) is one unit: its own transaction, by its own settings (Section 9.3). After any item the database is consistent at the version level, so a deployment or a downgrade may stop between items and continue later.
+
 For each pending version, in order:
-1. Read `<version>.settings.json` if present and merge it over the project settings (Section 9.3).
-2. Open a transaction if the effective `TransactionWrapLevel` is `Migration` (default).
-3. Execute the Migration item; mark it `applied`. If an Undo item exists, reset its status to `none`.
+1. Effective settings of the Migration item = `<version>.migration.settings.json` (if present) over the project `settings.json`, key by key.
+2. Open a transaction with the effective `TransactionIsolationLevel` and `Timeout` if the effective `TransactionWrapLevel` is `Migration` (default). With `None`, no transaction. With project-level `Deployment`, the item runs inside the deployment transaction (an item `None` then logs a warning and has no effect).
+3. Execute the Migration item; the SQL command gets the same isolation level (set on the connection when there is no transaction) and the same `Timeout`. Mark it `applied`. If an Undo item exists, reset its status to `none`.
 4. Commit.
 
-The migration script and its status update are committed together. If a migration fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error); earlier versions stay committed (with the default `Migration` level).
+The migration script and its status update are committed together. If a migration fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error); earlier versions stay committed (with the default `Migration` level). A failed item is not marked `applied`, so the next deployment runs the **whole** script again: an item with `TransactionWrapLevel: None` must be re-runnable (`if not exists`, `create index concurrently if not exists`).
+
+`[SqlDeployFact]` undo modes (`UndoTestMode`) deploy a version as migration → (breaking) → undo → migration; each step runs with its own settings file, in its own transaction.
 
 ### 5.4 Checksums
 
@@ -270,7 +283,9 @@ Line endings: if one machine deploys with CRLF files (Windows checkout, `core.au
 - Downgrade is triggered automatically when the database has applied migration versions that do not exist in the project being deployed (deploying an older build).
 - `AllowDatabaseDowngrade = false` (default): `DowngradeNotAllowedException`, nothing is changed.
 - `AllowDatabaseDowngrade = true`: for each such version, newest first, DbLive runs the **undo content stored in the database** (the older build does not have those files). Every one of those versions must have an undo item, otherwise `DowngradeImpossibleException` and nothing runs.
-- All undo scripts of one downgrade run in **one transaction**, regardless of `TransactionWrapLevel`.
+- Each undo script runs **in its own transaction**, by its settings: the `undo.settings` content stored in the database (from `<version>.undo.settings.json`) over the **current** project settings. Without a stored undo settings file, the project settings apply. The migration's settings file is never used for the undo.
+- If an undo fails, the undos of newer versions stay committed; deploying the older build again continues with the failed version (for example: undo 004 succeeds, undo 003 fails, the next downgrade undoes 003). With project `TransactionWrapLevel: Deployment` the whole downgrade is one transaction (all or nothing).
+- An undo that drops a concurrent/online index or runs `ALTER DATABASE` needs `<version>.undo.settings.json` with `"TransactionWrapLevel": "None"`.
 - After an undo: Undo is marked `applied`; Migration and Breaking of that version are marked `reverted`. Deploying the newer build again re-applies them.
 - Code objects are not dropped by a downgrade. Code files of the older build are redeployed if their content differs from what was last applied.
 - Write undo scripts defensively: the breaking script may or may not have run, and with `TransactionWrapLevel: none` the migration may be half-applied. Use `drop ... if exists` and existence checks.
@@ -279,7 +294,7 @@ Line endings: if one machine deploys with CRLF files (Windows checkout, `core.au
 
 - Run only when `DeployParameters.DeployBreaking = true`, after migrations and code.
 - Applied for every version whose Migration item is `applied` and whose Breaking item is not `applied`, in version order. A breaking script of a version whose migration has not been applied is never run.
-- With `TransactionWrapLevel: Migration`, **all pending breaking scripts of one deployment run in one transaction**. Per-migration settings files are not used for breaking scripts.
+- Each breaking script runs **in its own transaction** (version by version), by `<version>.breaking.settings.json` over the project settings. The migration's settings file is not used for the breaking script. If one fails, the breaking scripts of lower versions stay applied.
 - Once applied, a breaking file is checksum-protected like a migration.
 
 ---
@@ -486,8 +501,8 @@ select 'has-rows' as assert;
 | Key | Type | Default | Effect |
 |---|---|---|---|
 | `ProjectId` | string (max 128) | null | Binds the project to the database (Section 14). |
-| `TransactionWrapLevel` | `Deployment` \| `Migration` \| `None` | `Migration` | Transaction scope (Section 10). |
-| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionWrapLevel` | `Deployment` \| `Migration` \| `None` | `Migration` | Transaction scope (Section 10). Default for every migration, breaking and undo script. |
+| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command; default for every migration, breaking and undo script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | same | `Serializable` | Isolation of test transactions. |
 | `TestFilePatterns` | string[] | `["test.*.sql","t.*.sql","*.test.sql","*.t.sql"]` | Which files in `Code/` are tests (and excluded from code deployment). |
 | `MigrationsFolder` | string | `Migrations` | Folder name under the scripts root. |
@@ -502,8 +517,7 @@ select 'has-rows' as assert;
 | `MaxCodeDeployRetries` | int | `5` | Attempts per code file. |
 | `NumberOfThreadsForTestsRun` | int | `10` | Parallel tests during `DeployAsync`. |
 | `DeploymentTimeout` | TimeSpan | `1.00:00:00` | Transaction timeout with `TransactionWrapLevel: Deployment`. |
-| `MigrationTimeout` | TimeSpan | `12:00:00` | Command timeout of migration, breaking and undo scripts; transaction timeout of a migration and of the breaking step. |
-| `DowngradeTimeout` | TimeSpan | `12:00:00` | Transaction timeout of the downgrade step. |
+| `MigrationTimeout` | TimeSpan | `12:00:00` | Default `Timeout` of every migration, breaking and undo script: its command timeout and its transaction timeout. |
 | `CodeItemTimeout` | TimeSpan | `00:00:30` | Command timeout per code file. |
 | `UnitTestItemTimeout` | TimeSpan | `00:01:00` | Command and transaction timeout per test. |
 | `BeforeDeployFolderTimeout` | TimeSpan | `06:00:00` | Command timeout per BeforeDeploy file. |
@@ -523,20 +537,36 @@ Example:
 }
 ```
 
-### 9.3 Per-migration settings (`<version>.settings.json`)
+### 9.3 Item settings (`<version>.<item>.settings.json`)
 
-Same JSON rules. Allowed keys only:
+One optional settings file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`. Short forms combine `m` / `b` / `u` with `s` / `settings`: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.undo.s.json`. A settings file applies to its own script only and requires that script to exist (Section 5.1).
 
-| Key | Effect for this migration version |
-|---|---|
-| `TransactionWrapLevel` | `None` runs the migration without a transaction (needed for online index builds, `ALTER DATABASE`, full-text, `CREATE INDEX CONCURRENTLY`). `Migration` wraps it. |
-| `TransactionIsolationLevel` | Isolation of this migration's transaction. Without a transaction the project-level isolation applies. |
-| `MigrationTimeout` | Timeout of this migration's **transaction**. The SQL command timeout always uses the project-level `MigrationTimeout`. Without a transaction this key has no effect. |
+Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
+
+| Key | Values | Effect for this script | Default when the key is missing |
+|---|---|---|---|
+| `TransactionWrapLevel` | `Migration` \| `None` | `Migration`: the script runs in its own transaction. `None`: no transaction (needed for online/concurrent index builds, `ALTER DATABASE`, full-text DDL, `CREATE/DROP INDEX CONCURRENTLY`, `VACUUM`). `Deployment` is an error (`InvalidMigrationItemSettingsException`). | project `TransactionWrapLevel` |
+| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | Isolation of the script's transaction and of its SQL command (set on the connection when there is no transaction). | project `TransactionIsolationLevel` |
+| `Timeout` | TimeSpan | Timeout of the script's transaction **and** of its SQL command. | project `MigrationTimeout` |
+
+- A missing key falls back to the **project** settings, never to another item's file: `004.migration.settings.json` does not affect `004.undo.sql` or `004.breaking.sql`.
+- The old key `MigrationTimeout` is an unknown key → `InvalidMigrationItemSettingsException`. Rename it to `Timeout`.
+- Project `TransactionWrapLevel: Deployment` + item `None`: a warning is logged, and the script runs inside the deployment transaction.
+- `None` is the author's guarantee that the database keeps working if the script stops midway. A failed script reruns from the start on the next deployment, so it must be re-runnable (`if not exists`, `drop ... if exists`).
+- Undo settings are stored in `dblive.migration` with their content and used by a downgrade (Section 5.5); they are updated while the undo has not run, like the undo script.
 
 ```json
+// 20260815120000.migration.settings.json: online index build, no long transaction
 {
-  "TransactionWrapLevel": "None",   // online index creation, no long transaction
-  "TransactionIsolationLevel": "ReadCommitted"
+  "TransactionWrapLevel": "None",
+  "Timeout": "01:00:00"
+}
+```
+
+```json
+// 20260815120000.undo.settings.json: the undo drops the index online/concurrently, so it needs no transaction either
+{
+  "TransactionWrapLevel": "None"
 }
 ```
 
@@ -544,17 +574,17 @@ Same JSON rules. Allowed keys only:
 
 ## 10. Transactions and timeouts
 
-| `TransactionWrapLevel` | Behavior |
+| `TransactionWrapLevel` (project) | Behavior |
 |---|---|
-| `Migration` (default) | Each migration version runs in its own transaction. All breaking scripts of a deployment share one transaction. Code, BeforeDeploy and AfterDeploy are not transactional. |
-| `Deployment` | Checksum validation, migration saving, downgrade, BeforeDeploy, migrations, code (single-threaded), breaking and AfterDeploy run in one transaction. Tests run after it. Use for small databases or test environments, not for 24/7 production. |
-| `None` | No transactions, except downgrade (always one transaction) and self-deployment. |
+| `Migration` (default) | Each migration, breaking and undo script runs in its own transaction, by its item settings (Section 9.3). This applies to migrations, to the breaking step (one transaction per breaking script, in version order), to the downgrade (one transaction per undo script, newest version first) and to every step of `UndoTestMode`. Code, BeforeDeploy and AfterDeploy are not transactional. |
+| `Deployment` | Checksum validation, migration saving, downgrade, BeforeDeploy, migrations, code (single-threaded), breaking and AfterDeploy run in one transaction (all or nothing). Item files cannot opt out (`None` → warning, runs inside). Tests run after it. Use for small databases or test environments, not for 24/7 production. |
+| `None` | No transactions, except self-deployment and tests. An item file with `"TransactionWrapLevel": "Migration"` still gets its own transaction. |
 
-Always transactional: DbLive's own schema deployment (Serializable, 5 minutes), downgrade, each test.
+Always transactional: DbLive's own schema deployment (Serializable, 5 minutes), each test. There is no special transaction for downgrade or breaking anymore: they follow the item rules above. `DowngradeTimeout` was removed (an unknown key in `settings.json` now fails); undo scripts use `MigrationTimeout` or their `Timeout`.
 
-**Transaction timeouts.** DbLive uses `System.Transactions.TransactionScope`. .NET caps every scope timeout at the process-wide `TransactionManager.MaximumTimeout` (10 minutes by default). Before opening a transaction, DbLive raises that cap to the transaction's timeout (it never lowers it), so `MigrationTimeout`, `DowngradeTimeout`, `DeploymentTimeout` and `UnitTestItemTimeout` apply as configured. Side effect: other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used, not at 10 minutes. A transaction that runs longer than its timeout is aborted with `TransactionAbortedException`.
+**Transaction timeouts.** DbLive uses `System.Transactions.TransactionScope`. .NET caps every scope timeout at the process-wide `TransactionManager.MaximumTimeout` (10 minutes by default). Before opening a transaction, DbLive raises that cap to the transaction's timeout (it never lowers it), so `MigrationTimeout`, item `Timeout`, `DeploymentTimeout` and `UnitTestItemTimeout` apply as configured. Side effect: other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used, not at 10 minutes. A transaction that runs longer than its timeout is aborted with `TransactionAbortedException`.
 
-Command timeouts (`*Timeout` settings) are applied separately to each SQL command, in whole seconds.
+Command timeouts (`*Timeout` settings, item `Timeout`) are applied separately to each SQL command, in whole seconds.
 
 ---
 
@@ -778,7 +808,7 @@ Created and upgraded automatically on every deployment. Same tables in both prov
 | Table | Content |
 |---|---|
 | `dblive.version` | One row: internal schema version, `project_id`. |
-| `dblive.migration` | One row per `(version, item_type)`: `item_type` (`migration`/`undo`/`breaking`/`settings`), `name`, `relative_path`, `status` (`none`/`applied`/`reverted`), `content_hash`, `content` (undo only), `created_utc`, `applied_utc`, `execution_time_ms`, `error`. |
+| `dblive.migration` | One row per `(version, item_type)`: `item_type` (`migration`/`undo`/`breaking`/`migration.settings`/`breaking.settings`/`undo.settings`, following the file names; databases deployed by older DbLive versions have their `settings` rows renamed to `migration.settings` automatically), `name`, `relative_path`, `status` (`none`/`applied`/`reverted`), `content_hash`, `content` (`undo` and `undo.settings` only), `created_utc`, `applied_utc`, `execution_time_ms`, `error`. |
 | `dblive.code` | One row per code file: `relative_path`, `status` (`applied`/`error`), `content_hash`, `applied_utc`, `verified_utc`, `execution_time_ms`, `error`. |
 | `dblive.unit_test_run` | Last result per test file: `relative_path`, `pass`, `error`, `run_utc`, `execution_time_ms`. |
 | `dblive.folder_items` | Last run per BeforeDeploy/AfterDeploy file. |
@@ -804,7 +834,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | Test files | One batch, no `GO` | Normal multi-statement script |
 | Create/drop database | via `master` | via `postgres` database |
 | `Snapshot` isolation | Supported (`ALLOW_SNAPSHOT_ISOLATION ON` required) | Not supported: deployment fails at start |
-| Statements that cannot run in a transaction | `ALTER DATABASE`, full-text DDL, online index with long locks: use a migration settings file with `TransactionWrapLevel: None` | `CREATE INDEX CONCURRENTLY`, `VACUUM`: `TransactionWrapLevel: None`, and keep the statement alone in its file (a multi-statement file runs as one implicit transaction) |
+| Statements that cannot run in a transaction | `ALTER DATABASE`, full-text DDL, online index with long locks: an item settings file (`<version>.migration.settings.json`, `.breaking.settings.json` or `.undo.settings.json`) with `TransactionWrapLevel: None` | `CREATE/DROP INDEX CONCURRENTLY`, `VACUUM`: item settings file with `TransactionWrapLevel: None`, and keep the statement alone in its file (a multi-statement file runs as one implicit transaction) |
 | Re-runnable code | `create or alter` | `create or replace`; `drop function if exists f(args)` before `create` when the signature or return type changes |
 | Assert column | `select assert = 'rows'` or `select 'rows' as assert` | `select 'rows' as assert` |
 | Error details | Msg number, level, state, line in batch, procedure | SqlState, severity, position, where |
@@ -826,10 +856,14 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `UnitTestsFailedException` (internal type) | One or more SQL tests failed after deployment | See the logs or `dblive.unit_test_run`; the deployment is already committed |
 | `DuplicateMigrationItemException` | Two files with the same version and type | Renumber the newer file (only if not applied anywhere) |
 | `MigrationItemMustExistsException` | Undo/breaking/settings without a migration for that version | Add the migration file or fix the version |
+| `ObsoleteMigrationSettingsFileException` | Old per-version `<version>.settings.json` / `<version>.s.json` | Rename to `<version>.migration.settings.json` (the message names it); add `.breaking.settings.json` / `.undo.settings.json` if those scripts need settings too; rename the key `MigrationTimeout` to `Timeout` |
+| `MigrationSettingsWithoutScriptException` | `<version>.breaking.settings.json` or `<version>.undo.settings.json` without its script | Add the script or delete the settings file |
+| `InvalidMigrationItemSettingsException` | Item settings file with an unknown key (also `MigrationTimeout`), invalid JSON, or `"TransactionWrapLevel": "Deployment"` | Section 9.3: keys `TransactionWrapLevel` (`Migration`/`None`), `TransactionIsolationLevel`, `Timeout` |
 | `InvalidMigrationVersionException` | Version is not a number, or not `yyyyMMddHHmmss` with `EnforceTimestampVersion` | Rename the file |
-| `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.settings.json` or move it |
-| `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL | Choose another level |
-| `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout`, `DowngradeTimeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10) | Raise that timeout, or `TransactionWrapLevel: None` for that migration |
+| `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.<item>.settings.json` (`migration`/`breaking`/`undo`) or move it |
+| `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL, in `settings.json` (at the start of the deployment) or in an item settings file (when that script runs) | Choose another level |
+| `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout` or the item's `Timeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10) | Raise that timeout (for one script: `Timeout` in its item settings file), or `TransactionWrapLevel: None` for that script |
+| `JsonException: The JSON property 'DowngradeTimeout' could not be mapped` reading `settings.json` | `DowngradeTimeout` was removed | Delete the key; undo scripts use `MigrationTimeout` or `Timeout` in `<version>.undo.settings.json` |
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `init.sql` |
 | Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
@@ -868,10 +902,10 @@ Migration: add a nullable column, or a non-null column with a default. Undo: dro
 Rename the object in its file (`GetUser_v1` → `GetUser_v2`), update the test file, and add `drop proc if exists dbo.GetUser_v1` to the breaking script of the migration version you ship together with it. A breaking script needs a migration of the same version; if the release has no schema change, add a trivial one (for example a file containing only `select 1;`).
 
 ### 18.7 Long-running index / data backfill
-Own migration version with `<v>.settings.json` `{ "TransactionWrapLevel": "None" }`. SQL Server: `with (online = on)`. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied. Batch large updates.
+Own migration version with `<v>.migration.settings.json` `{ "TransactionWrapLevel": "None", "Timeout": "01:00:00" }`. SQL Server: `with (online = on)`. PostgreSQL: `create index concurrently if not exists ...`, alone in its file. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied and the next deployment runs the whole script again. If the undo drops the index online/concurrently, give it `<v>.undo.settings.json` `{ "TransactionWrapLevel": "None" }` too; the migration's settings file does not apply to the undo. Batch large updates.
 
 ### 18.8 Roll back a release
-Deploy the previous build with `AllowDatabaseDowngrade = true` (and normally `RunTests = false`). Versions missing from that build are reverted newest first, using the undo scripts stored in the database, in one transaction. Code objects introduced by the newer release are not dropped.
+Deploy the previous build with `AllowDatabaseDowngrade = true` (and normally `RunTests = false`). Versions missing from that build are reverted newest first, using the undo scripts and undo settings stored in the database, each undo in its own transaction. If one undo fails, the newer versions stay reverted; fix the cause and deploy the same build again to continue. Code objects introduced by the newer release are not dropped.
 
 ### 18.9 Someone edited an applied migration
 Preferred: revert the file to its applied content (git history) and add a new version with the intended change. If the edit is cosmetic and the database already matches: deploy once with `RepairMigrationChecksums = true`.
@@ -894,7 +928,6 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - No CLI tool; deployments are started from your own C# code.
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
-- Per-migration `MigrationTimeout` affects only the migration's transaction, not the command timeout.
 - `CodeSubFoldersDeploymentOrder` entries with nested paths are OS-specific.
 - Code and test relative paths use the OS path separator, so switching the deploying OS redeploys every code file once (harmless).
 - Supported engines: SQL Server / Azure SQL and PostgreSQL. SQLite and MySQL are planned.

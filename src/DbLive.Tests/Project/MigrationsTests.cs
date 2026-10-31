@@ -277,4 +277,95 @@ public class MigrationsTests
 		mockSet.FileSystem.Received(1).PathExists(migrationsPath);
 		mockSet.FileSystem.DidNotReceiveWithAnyArgs().EnumerateFiles(default!, default(IEnumerable<string>)!, default);
 	}
+
+	[Fact]
+	public async Task GetMigrations_reads_item_settings_files()
+	{
+		// Arrange
+		MockSet mockSet = NewMockSetWithFiles(new Dictionary<string, string>
+		{
+			[@"C:/DB/Migrations/004.migration.sql"] = "-- migration",
+			[@"C:/DB/Migrations/004.migration.settings.json"] = """{ "TransactionWrapLevel": "None" }""",
+			[@"C:/DB/Migrations/004.breaking.sql"] = "-- breaking",
+			[@"C:/DB/Migrations/004.b.s.json"] = """{ "Timeout": "00:05:00" }""",
+			[@"C:/DB/Migrations/004.undo.sql"] = "-- undo",
+			[@"C:/DB/Migrations/004.u.settings.json"] = """{ "TransactionWrapLevel": "Migration" }"""
+		});
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// Act
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
+
+		// Assert
+		Migration migration = Assert.Single(migrations);
+		Assert.Equal(6, migration.Items.Count);
+		Assert.Equal(TransactionWrapLevel.None, migration.GetItemSettings(MigrationItemType.Migration).TransactionWrapLevel);
+		Assert.Equal(TimeSpan.FromMinutes(5), migration.GetItemSettings(MigrationItemType.Breaking).Timeout);
+		Assert.Equal(TransactionWrapLevel.Migration, migration.GetItemSettings(MigrationItemType.Undo).TransactionWrapLevel);
+	}
+
+	[Theory]
+	[InlineData(@"C:/DB/Migrations/004.breaking.settings.json")]
+	[InlineData(@"C:/DB/Migrations/004.u.s.json")]
+	public async Task GetMigrations_throws_when_settings_file_has_no_script(string settingsFile)
+	{
+		// Arrange
+		MockSet mockSet = NewMockSetWithFiles(new Dictionary<string, string>
+		{
+			[@"C:/DB/Migrations/004.migration.sql"] = "-- migration",
+			[settingsFile] = """{ "TransactionWrapLevel": "None" }"""
+		});
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// Act
+		Task act() => sqlProject.GetMigrationsAsync();
+
+		// Assert
+		await Assert.ThrowsAsync<MigrationSettingsWithoutScriptException>(act);
+	}
+
+	[Theory]
+	[InlineData("""{ "TransactionWrapLevel": "Deployment" }""", "Deployment")]
+	[InlineData("""{ "MigrationTimeout": "01:00:00" }""", "MigrationTimeout")]
+	public async Task GetMigrations_throws_when_settings_file_is_invalid(string json, string expectedInMessage)
+	{
+		// Arrange
+		MockSet mockSet = NewMockSetWithFiles(new Dictionary<string, string>
+		{
+			[@"C:/DB/Migrations/004.migration.sql"] = "-- migration",
+			[@"C:/DB/Migrations/004.migration.settings.json"] = json
+		});
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// Act
+		Task act() => sqlProject.GetMigrationsAsync();
+
+		// Assert
+		InvalidMigrationItemSettingsException ex = await Assert.ThrowsAsync<InvalidMigrationItemSettingsException>(act);
+		Assert.Contains(expectedInMessage, ex.Message);
+		Assert.Contains("004.migration.settings.json", ex.Message);
+	}
+
+	private static MockSet NewMockSetWithFiles(Dictionary<string, string> files)
+	{
+		MockSet mockSet = new();
+		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.FileSystem.PathExists(Arg.Any<string>()).Returns(true);
+
+		mockSet.FileSystem.EnumerateFiles(Arg.Any<string>(), Arg.Any<IEnumerable<string>>(), true)
+			.Returns(files.Keys);
+
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
+			.Returns(call => new FileData
+			{
+				FilePath = call.ArgAt<string>(0),
+				Content = files[call.ArgAt<string>(0)],
+				RelativePath = Path.GetFileName(call.ArgAt<string>(0))
+			});
+
+		return mockSet;
+	}
 }

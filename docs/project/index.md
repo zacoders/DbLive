@@ -3,7 +3,7 @@
 A **DbLive project** is an ordinary .NET project that contains a `Scripts` folder with your SQL. A few lines in the `.csproj` copy the scripts to the build output, and a small piece of C# (the *deployer*) tells DbLive which database to deploy them to.
 
 - [Project Structure](structure.md): folders and file naming rules
-- [Project Configuration](configuration.md): `settings.json`, per-migration settings, transactions
+- [Project Configuration](configuration.md): `settings.json`, item settings, transactions
 
 ## Layouts
 

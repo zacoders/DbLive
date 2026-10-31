@@ -10,7 +10,7 @@ internal class MigrationsSaver(
 {
 	public async Task SaveAsync()
 	{
-		// By default saving all migrations, skip content for all except UNDO.
+		// By default saving all migrations, skip content for all except UNDO and its settings (both are needed for a downgrade).
 		// Options can be added to control what to save
 
 		_logger.Information("Saving migration items.");
@@ -50,7 +50,9 @@ internal class MigrationsSaver(
 					Name = migrationItem.Name,
 					RelativePath = migrationItem.FileData.RelativePath,
 					Status = MigrationItemStatus.None,
-					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : null,
+					Content = migrationItem.MigrationItemType is MigrationItemType.Undo or MigrationItemType.UndoSettings
+						? migrationItem.FileData.Content
+						: null,
 					ContentHash = migrationItem.FileData.ContentHash,
 					CreatedUtc = _timeProvider.UtcNow()
 				}).ConfigureAwait(false);

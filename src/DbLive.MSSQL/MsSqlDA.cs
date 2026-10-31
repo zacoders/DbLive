@@ -33,7 +33,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = GetConnection();
-		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
+		return (await cnn.QueryAsync<MigrationItemRow>(query).ConfigureAwait(false)).Select(r => r.ToDto()).ToList();
 	}
 
 	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
@@ -45,7 +45,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  and item_type = @item_type
 		";
 		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString().ToLower() }).ConfigureAwait(false);
+		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = MigrationItemTypeMapper.ToDbValue(itemType) }).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -460,7 +460,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				version = item.Version,
 				name = item.Name,
-				item_type = item.ItemType.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				relative_path = item.RelativePath,
 				content_hash = item.ContentHash,
 				content = item.Content,
@@ -485,7 +485,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				content_hash = item.ContentHash,
 				content = item.Content,
 				relative_path = item.RelativePath
@@ -515,7 +515,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				status = item.Status.ToString().ToLower(),
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -541,7 +541,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version,
-				item_type = ItemType.ToString().ToLower()
+				item_type = MigrationItemTypeMapper.ToDbValue(ItemType)
 			}
 		).ConfigureAwait(false);
 		return exists is not null;
@@ -559,7 +559,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version,
-				item_type = migrationType.ToString().ToLower()
+				item_type = MigrationItemTypeMapper.ToDbValue(migrationType)
 			}
 		).ConfigureAwait(false);
 		return content;

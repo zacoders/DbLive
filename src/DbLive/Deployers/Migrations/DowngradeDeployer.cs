@@ -5,9 +5,7 @@ public class DowngradeDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationItemDeployer _migrationItemDeployer,
-		ITransactionRunner _transactionRunner,
-		ISettingsAccessor projectSettingsAccessor
+		IMigrationItemDeployer _migrationItemDeployer
 	) : IDowngradeDeployer
 {
 
@@ -76,38 +74,47 @@ public class DowngradeDeployer(
 			undoContents[undoDto.Version] = undoContent;
 		}
 
+		Dictionary<long, MigrationItemSettings> undoSettings = [];
+
+		foreach (MigrationItemDto undoSettingsDto in allMigrations
+			.Where(m => m.ItemType == MigrationItemType.UndoSettings)
+			.Where(m => versionsToUndo.Contains(m.Version)))
+		{
+			string? undoSettingsContent = await _da.GetMigrationContentAsync(undoSettingsDto.Version, MigrationItemType.UndoSettings).ConfigureAwait(false);
+
+			if (undoSettingsContent is null)
+			{
+				throw new DowngradeImpossibleException($"Undo settings content for migration version {undoSettingsDto.Version} is missing.");
+			}
+			undoSettings[undoSettingsDto.Version] = SettingsTools.GetMigrationItemSettings(undoSettingsContent, undoSettingsDto.RelativePath);
+		}
+
 		_logger.Information(
 			"Downgrading database. Undo versions: {versions}",
 			string.Join(", ", undoMigrations.Select(m => m.Version))
 		);
 
-		DbLiveSettings projectSettings = await projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-
-		await _transactionRunner.ExecuteWithinTransactionAsync(
-			true,
-			projectSettings.TransactionIsolationLevel,
-			projectSettings.DowngradeTimeout,
-			async () =>
+		// each undo script is deployed by its stored settings, in its own transaction,
+		// so the downgrade can stop between versions and leave the database consistent.
+		foreach (MigrationItemDto undoDto in undoMigrations)
+		{
+			MigrationItem undoItem = new()
 			{
-				foreach (MigrationItemDto undoDto in undoMigrations)
+				MigrationItemType = MigrationItemType.Undo,
+				FileData = new FileData
 				{
-					MigrationItem undoItem = new()
-					{
-						MigrationItemType = MigrationItemType.Undo,
-						FileData = new FileData
-						{
-							Content = undoContents[undoDto.Version],
-							FilePath = "",
-							RelativePath = undoDto.RelativePath
-						},
-						Name = undoDto.Name
-					};
+					Content = undoContents[undoDto.Version],
+					FilePath = "",
+					RelativePath = undoDto.RelativePath
+				},
+				Name = undoDto.Name
+			};
 
-					await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem).ConfigureAwait(false);
+			MigrationItemSettings settings = undoSettings.GetValueOrDefault(undoDto.Version) ?? new MigrationItemSettings();
 
-					_logger.Information("Successfully undone migration version {version}", undoDto.Version);
-				}
-			}
-		).ConfigureAwait(false);
+			await _migrationItemDeployer.DeployAsync(undoDto.Version, undoItem, settings).ConfigureAwait(false);
+
+			_logger.Information("Successfully undone migration version {version}", undoDto.Version);
+		}
 	}
 }

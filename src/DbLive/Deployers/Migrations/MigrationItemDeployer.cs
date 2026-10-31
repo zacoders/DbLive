@@ -4,29 +4,69 @@ public class MigrationItemDeployer(
 		ILogger _logger,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
+		ITransactionRunner _transactionRunner,
 		ISettingsAccessor _projectSettingsAccessor
 	) : IMigrationItemDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(MigrationItemDeployer));
 
-	public async Task DeployAsync(long migrationVersion, MigrationItem migrationItem)
+	public async Task DeployAsync(long migrationVersion, MigrationItem migrationItem, MigrationItemSettings itemSettings)
+	{
+		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		TransactionWrapLevel transactionWrapLevel = itemSettings.TransactionWrapLevel ?? projectSettings.TransactionWrapLevel;
+		TranIsolationLevel isolationLevel = itemSettings.TransactionIsolationLevel ?? projectSettings.TransactionIsolationLevel;
+		TimeSpan timeout = itemSettings.Timeout ?? projectSettings.MigrationTimeout;
+
+		TranIsolationLevelMapper.ValidateForProvider(isolationLevel, _da.Provider);
+
+		if (projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
+		{
+			if (transactionWrapLevel == TransactionWrapLevel.None)
+			{
+				_logger.Warning(
+					"{relativePath} has TransactionWrapLevel None, but the project runs the whole deployment in one transaction (TransactionWrapLevel Deployment). The script runs inside the deployment transaction.",
+					migrationItem.FileData.RelativePath
+				);
+			}
+
+			// the deployment transaction is already open, the item runs inside it.
+			transactionWrapLevel = TransactionWrapLevel.Deployment;
+		}
+
+		await _transactionRunner.ExecuteWithinTransactionAsync(
+			transactionWrapLevel == TransactionWrapLevel.Migration,
+			isolationLevel,
+			timeout,
+			() => DeployInternalAsync(migrationVersion, migrationItem, transactionWrapLevel, isolationLevel, timeout)
+		).ConfigureAwait(false);
+	}
+
+	private async Task DeployInternalAsync(
+		long migrationVersion,
+		MigrationItem migrationItem,
+		TransactionWrapLevel transactionWrapLevel,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	)
 	{
 		DateTime startTimeUtc = _timeProvider.UtcNow();
 
 		try
 		{
 			_logger.Information(
-				"Deploying {relativePath}. Type {migrationType}.",
+				"Deploying {relativePath}. Type {migrationType}. Transaction {transactionWrapLevel}, isolation level {isolationLevel}, timeout {timeout}.",
 				migrationItem.FileData.RelativePath,
-				migrationItem.MigrationItemType
+				migrationItem.MigrationItemType,
+				transactionWrapLevel,
+				isolationLevel,
+				timeout
 			);
-
-			DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 			await _da.ExecuteNonQueryAsync(
 				migrationItem.FileData.Content,
-				projectSettings.TransactionIsolationLevel,
-				projectSettings.MigrationTimeout
+				isolationLevel,
+				timeout
 			).ConfigureAwait(false);
 
 			DateTime migrationEndTime = _timeProvider.UtcNow();

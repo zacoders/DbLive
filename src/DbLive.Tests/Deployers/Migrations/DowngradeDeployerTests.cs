@@ -72,20 +72,118 @@ public class DowngradeDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// Assert
-		await mockSet.TransactionRunner.Received(1).ExecuteWithinTransactionAsync(
-			true,
-			TranIsolationLevel.ReadCommitted,
-			Arg.Any<TimeSpan>(),
-			Arg.Any<Func<Task>>()
-		);
-
 		await mockSet.MigrationItemDeployer.Received(1).DeployAsync(
 			3,
 			Arg.Is<MigrationItem>(m =>
 				m.MigrationItemType == MigrationItemType.Undo &&
 				m.FileData.Content == "-- undo sql"
-			)
+			),
+			new MigrationItemSettings()
 		);
+	}
+
+	[Fact]
+	public async Task Deploy_downgrade_undoes_each_version_newest_first_by_its_stored_settings()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns(
+			[
+				new Migration { Version = 1, Items = [] }
+			]
+		);
+
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDto(1, MigrationItemType.Migration, MigrationItemStatus.Applied),
+			NewDto(2, MigrationItemType.Migration, MigrationItemStatus.Applied),
+			NewDto(2, MigrationItemType.Undo, MigrationItemStatus.None),
+			NewDto(3, MigrationItemType.Migration, MigrationItemStatus.Applied),
+			NewDto(3, MigrationItemType.Undo, MigrationItemStatus.None),
+			NewDto(3, MigrationItemType.UndoSettings, MigrationItemStatus.None)
+		]);
+
+		mockSet.DbLiveDA.GetMigrationContentAsync(2, MigrationItemType.Undo).Returns("-- undo 2");
+		mockSet.DbLiveDA.GetMigrationContentAsync(3, MigrationItemType.Undo).Returns("-- undo 3");
+		mockSet.DbLiveDA.GetMigrationContentAsync(3, MigrationItemType.UndoSettings).Returns("""
+			{
+			  "TransactionWrapLevel": "None",
+			  "Timeout": "00:05:00"
+			}
+			""");
+
+		DeployParameters parameters = DeployParameters.Default with
+		{
+			AllowDatabaseDowngrade = true
+		};
+
+		// Act
+		await deployer.DeployAsync(parameters);
+
+		// Assert
+		Received.InOrder(() =>
+		{
+			mockSet.MigrationItemDeployer.DeployAsync(
+				3,
+				Arg.Is<MigrationItem>(m => m.FileData.Content == "-- undo 3"),
+				new MigrationItemSettings { TransactionWrapLevel = TransactionWrapLevel.None, Timeout = TimeSpan.FromMinutes(5) }
+			);
+			mockSet.MigrationItemDeployer.DeployAsync(
+				2,
+				Arg.Is<MigrationItem>(m => m.FileData.Content == "-- undo 2"),
+				new MigrationItemSettings()
+			);
+		});
+	}
+
+	[Fact]
+	public async Task Deploy_undo_settings_content_missing_throws_downgrade_impossible_exception()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		DowngradeDeployer deployer = mockSet.CreateUsingMocks<DowngradeDeployer>();
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDto(3, MigrationItemType.Migration, MigrationItemStatus.Applied),
+			NewDto(3, MigrationItemType.Undo, MigrationItemStatus.None),
+			NewDto(3, MigrationItemType.UndoSettings, MigrationItemStatus.None)
+		]);
+
+		mockSet.DbLiveDA.GetMigrationContentAsync(3, MigrationItemType.Undo).Returns("-- undo 3");
+		mockSet.DbLiveDA.GetMigrationContentAsync(3, MigrationItemType.UndoSettings).Returns((string?)null);
+
+		DeployParameters parameters = DeployParameters.Default with
+		{
+			AllowDatabaseDowngrade = true
+		};
+
+		// Act
+		Task act() => deployer.DeployAsync(parameters);
+
+		// Assert
+		DowngradeImpossibleException ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
+		Assert.Contains("Undo settings content for migration version 3 is missing", ex.Message);
+
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
+	}
+
+	private static MigrationItemDto NewDto(long version, MigrationItemType itemType, MigrationItemStatus status)
+	{
+		return new MigrationItemDto
+		{
+			Version = version,
+			ItemType = itemType,
+			Name = "",
+			RelativePath = $"db/migrations/{version:000}.{itemType}",
+			ContentHash = 1,
+			Status = status
+		};
 	}
 
 
@@ -155,15 +253,8 @@ public class DowngradeDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// Assert
-		await mockSet.TransactionRunner.DidNotReceive().ExecuteWithinTransactionAsync(
-			Arg.Any<bool>(),
-			Arg.Any<TranIsolationLevel>(),
-			Arg.Any<TimeSpan>(),
-			Arg.Any<Func<Task>>()
-		);
-
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -213,16 +304,8 @@ public class DowngradeDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// Assert
-		await mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransactionAsync(
-				Arg.Any<bool>(),
-				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
-				Arg.Any<Func<Task>>()
-			);
-
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -265,16 +348,8 @@ public class DowngradeDeployerTests
 		// Assert
 		await Assert.ThrowsAsync<DowngradeNotAllowedException>(act);
 
-		await mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransactionAsync(
-				Arg.Any<bool>(),
-				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
-				Arg.Any<Func<Task>>()
-			);
-
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -337,16 +412,8 @@ public class DowngradeDeployerTests
 		DowngradeImpossibleException ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Cannot perform downgrade due to missing undo scripts.", ex.Message);
 
-		await mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransactionAsync(
-				Arg.Any<bool>(),
-				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
-				Arg.Any<Func<Task>>()
-			);
-
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -405,16 +472,8 @@ public class DowngradeDeployerTests
 		DowngradeImpossibleException ex = await Assert.ThrowsAsync<DowngradeImpossibleException>(act);
 		Assert.Contains("Undo content for migration version 3 is missing", ex.Message);
 
-		await mockSet.TransactionRunner.DidNotReceive()
-			.ExecuteWithinTransactionAsync(
-				Arg.Any<bool>(),
-				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
-				Arg.Any<Func<Task>>()
-			);
-
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 }

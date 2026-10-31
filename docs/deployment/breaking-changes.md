@@ -32,7 +32,7 @@ Make breaking scripts tolerant (`if exists`), and make the version's undo script
 - Only when `DeployBreaking = true`, for example with `DeployParameters.Breaking`.
 - After migrations and code, in the same deployment.
 - For every version whose **migration is already applied** and whose breaking script is not. A breaking script never runs before its migration.
-- In version order. With the default `TransactionWrapLevel: Migration`, all breaking scripts of one deployment run in **one** transaction. Per-migration settings files do not apply to breaking scripts.
+- In version order, **each in its own transaction** with the default `TransactionWrapLevel: Migration`, so the breaking scripts that ran before a failed one stay applied. `<version>.breaking.settings.json` sets the [transaction level, isolation level and timeout](../project/configuration.md#item-settings) of one breaking script; the migration's settings file does not apply to it.
 - Once applied, a breaking script is protected by a [checksum](migrations.md#checksums) like a migration. Before it is applied you can still edit it.
 
 ```csharp

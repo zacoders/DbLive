@@ -22,13 +22,41 @@ internal static class SettingsTools
 		return settings ?? new T();
 	}
 
-	public static MigrationSettings GetMigrationSettings(this DbLiveSettings projectSettings, MigrationSettings migrationSettings)
+	/// <exception cref="InvalidMigrationItemSettingsException"/>
+	public static MigrationItemSettings GetMigrationItemSettings(string json, string relativePath)
 	{
-		return new MigrationSettings
+		MigrationItemSettings settings;
+		try
 		{
-			TransactionWrapLevel = migrationSettings.TransactionWrapLevel ?? projectSettings.TransactionWrapLevel,
-			TransactionIsolationLevel = migrationSettings.TransactionIsolationLevel ?? projectSettings.TransactionIsolationLevel,
-			MigrationTimeout = migrationSettings.MigrationTimeout ?? projectSettings.MigrationTimeout
-		};
+			settings = GetSettings<MigrationItemSettings>(json);
+		}
+		catch (JsonException e)
+		{
+			throw new InvalidMigrationItemSettingsException(relativePath, e.Message, e);
+		}
+
+		if (settings.TransactionWrapLevel == TransactionWrapLevel.Deployment)
+		{
+			throw new InvalidMigrationItemSettingsException(
+				relativePath,
+				$"{nameof(TransactionWrapLevel)} '{TransactionWrapLevel.Deployment}' is a project setting (settings.json). A migration item takes '{TransactionWrapLevel.Migration}' or '{TransactionWrapLevel.None}'."
+			);
+		}
+
+		return settings;
+	}
+
+	/// <summary>
+	/// Settings of a migration, breaking or undo script from its settings file, empty when the file does not exist.
+	/// </summary>
+	/// <exception cref="InvalidMigrationItemSettingsException"/>
+	public static MigrationItemSettings GetItemSettings(this Migration migration, MigrationItemType scriptType)
+	{
+		if (!migration.Items.TryGetValue(MigrationItemTypeMapper.GetSettingsType(scriptType), out MigrationItem? settingsItem))
+		{
+			return new MigrationItemSettings();
+		}
+
+		return GetMigrationItemSettings(settingsItem.FileData.Content, settingsItem.FileData.RelativePath);
 	}
 }

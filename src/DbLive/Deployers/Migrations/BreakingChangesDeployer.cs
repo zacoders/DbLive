@@ -6,9 +6,7 @@ public class BreakingChangesDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationItemDeployer _migrationItemDeployer,
-		ITransactionRunner _transactionRunner,
-		ISettingsAccessor _projectSettingsAccessor
+		IMigrationItemDeployer _migrationItemDeployer
 	) : IBreakingChangesDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
@@ -40,7 +38,7 @@ public class BreakingChangesDeployer(
 
 		HashSet<long> breakingVersionsToApply = appliedMigrationVersions.Intersect(notAppliedBreakingVersions).ToHashSet();
 
-		List<(long Version, MigrationItem Item)> breakingToApply = [];
+		List<(long Version, MigrationItem Item, MigrationItemSettings Settings)> breakingToApply = [];
 		foreach (Migration migration in await _project.GetMigrationsAsync().ConfigureAwait(false))
 		{
 			if (!breakingVersionsToApply.Contains(migration.Version))
@@ -50,7 +48,7 @@ public class BreakingChangesDeployer(
 
 			if (migration.Items.TryGetValue(MigrationItemType.Breaking, out MigrationItem? breakingItem))
 			{
-				breakingToApply.Add((migration.Version, breakingItem));
+				breakingToApply.Add((migration.Version, breakingItem, migration.GetItemSettings(MigrationItemType.Breaking)));
 			}
 		}
 
@@ -60,19 +58,10 @@ public class BreakingChangesDeployer(
 			return;
 		}
 
-		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-
-		await _transactionRunner.ExecuteWithinTransactionAsync(
-			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Migration,
-			projectSettings.TransactionIsolationLevel,
-			projectSettings.MigrationTimeout,
-			async () =>
-			{
-				foreach ((long Version, MigrationItem Item) breaking in breakingToApply.OrderBy(b => b.Version))
-				{
-					await _migrationItemDeployer.DeployAsync(breaking.Version, breaking.Item).ConfigureAwait(false);
-				}
-			}
-		).ConfigureAwait(false);
+		// each breaking script is deployed by its own settings, in its own transaction.
+		foreach ((long version, MigrationItem item, MigrationItemSettings settings) in breakingToApply.OrderBy(b => b.Version))
+		{
+			await _migrationItemDeployer.DeployAsync(version, item, settings).ConfigureAwait(false);
+		}
 	}
 }

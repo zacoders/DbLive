@@ -5,5 +5,7 @@ public enum MigrationItemType
 	Migration,
 	Undo,
 	Breaking,
-	Settings
+	MigrationSettings,
+	BreakingSettings,
+	UndoSettings
 }

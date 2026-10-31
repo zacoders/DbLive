@@ -17,7 +17,7 @@ public class BreakingChangesDeployerTests
 		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
 		await mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -50,7 +50,7 @@ public class BreakingChangesDeployerTests
 
 		// Assert
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>());
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -133,10 +133,10 @@ public class BreakingChangesDeployerTests
 
 		// Assert
 		await mockSet.MigrationItemDeployer.Received(1)
-			.DeployAsync(3, migration3.Items[MigrationItemType.Breaking]);
+			.DeployAsync(3, migration3.Items[MigrationItemType.Breaking], new MigrationItemSettings());
 
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(2, Arg.Any<MigrationItem>());
+			.DeployAsync(2, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -253,14 +253,120 @@ public class BreakingChangesDeployerTests
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer
-				.DeployAsync(1, migration1.Items[MigrationItemType.Breaking]);
+				.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], new MigrationItemSettings());
 
 			mockSet.MigrationItemDeployer
-				.DeployAsync(2, migration2.Items[MigrationItemType.Breaking]);
+				.DeployAsync(2, migration2.Items[MigrationItemType.Breaking], new MigrationItemSettings());
 		});
 
 		await mockSet.MigrationItemDeployer.DidNotReceive()
-			.DeployAsync(3, Arg.Any<MigrationItem>());
+			.DeployAsync(3, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
+	}
+
+	[Fact]
+	public async Task Applies_each_breaking_by_its_own_settings_file()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			new MigrationItemDto
+			{
+				Version = 1,
+				ItemType = MigrationItemType.Migration,
+				Status = MigrationItemStatus.Applied,
+				Name = "migration",
+				RelativePath = "migrations/001.migration.sql",
+				ContentHash = 111
+			},
+			new MigrationItemDto
+			{
+				Version = 1,
+				ItemType = MigrationItemType.Breaking,
+				Status = MigrationItemStatus.None,
+				Name = "breaking",
+				RelativePath = "migrations/001.breaking.sql",
+				ContentHash = 1111
+			},
+			new MigrationItemDto
+			{
+				Version = 2,
+				ItemType = MigrationItemType.Migration,
+				Status = MigrationItemStatus.Applied,
+				Name = "migration",
+				RelativePath = "migrations/002.migration.sql",
+				ContentHash = 222
+			},
+			new MigrationItemDto
+			{
+				Version = 2,
+				ItemType = MigrationItemType.Breaking,
+				Status = MigrationItemStatus.None,
+				Name = "breaking",
+				RelativePath = "migrations/002.breaking.sql",
+				ContentHash = 2222
+			}
+		]);
+
+		Migration migration1 = new()
+		{
+			Version = 1,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("1.breaking.sql", "-- content 1")
+				},
+				[MigrationItemType.BreakingSettings] = new()
+				{
+					MigrationItemType = MigrationItemType.BreakingSettings,
+					FileData = GetFileData("1.breaking.settings.json", """{ "TransactionIsolationLevel": "Serializable", "Timeout": "00:10:00" }""")
+				},
+				// settings of another item must not be used for the breaking script.
+				[MigrationItemType.MigrationSettings] = new()
+				{
+					MigrationItemType = MigrationItemType.MigrationSettings,
+					FileData = GetFileData("1.migration.settings.json", """{ "TransactionWrapLevel": "None" }""")
+				}
+			}
+		};
+
+		Migration migration2 = new()
+		{
+			Version = 2,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("2.breaking.sql", "-- content 2")
+				}
+			}
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
+
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		// Act
+		await deployer.DeployAsync(DeployParameters.Breaking);
+
+		// Assert
+		Received.InOrder(() =>
+		{
+			mockSet.MigrationItemDeployer.DeployAsync(
+				1,
+				migration1.Items[MigrationItemType.Breaking],
+				new MigrationItemSettings { TransactionIsolationLevel = TranIsolationLevel.Serializable, Timeout = TimeSpan.FromMinutes(10) }
+			);
+
+			mockSet.MigrationItemDeployer.DeployAsync(
+				2,
+				migration2.Items[MigrationItemType.Breaking],
+				new MigrationItemSettings()
+			);
+		});
 	}
 
 	private static FileData GetFileData(string relativePath, string content)

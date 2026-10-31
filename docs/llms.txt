@@ -6,7 +6,7 @@ Start with `llms-full.txt`: it is a complete, self-contained reference written f
 
 Key facts an agent must not get wrong:
 - Scripts live in a `Scripts/` folder of a .NET project; the `.csproj` copies them to `<AssemblyName>.Scripts` and embeds `ProjectDir` metadata.
-- Migration file names: `<version>.<type>.<name>.sql` with type `migration|m|undo|u|breaking|b`, or `<version>.settings.json`. Applied migrations must never be edited or deleted.
+- Migration file names: `<version>.<type>.<name>.sql` with type `migration|m|undo|u|breaking|b`; settings of one script: `<version>.<type>.settings.json` (`<version>.m.s.json`), never `<version>.settings.json`. Applied migrations must never be edited or deleted.
 - Code files are re-executed when they change, so they must be re-runnable (`create or alter`).
 - Breaking (destructive) scripts run only with `DeployParameters.DeployBreaking = true`, after the old application is gone.
 - SQL tests assert through a result set whose first column is named `assert` (`rows`, `rows-with-schema`, `has-rows`, `row-count=N`, `empty`, `single-row`).
@@ -16,7 +16,7 @@ Key facts an agent must not get wrong:
 - [Complete reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): everything in one file; read this first
 - [Getting started](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/gettingstarted.md): create a project, first migration, first deployment
 - [Project structure](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/structure.md): folders and file naming rules
-- [Project configuration](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/configuration.md): `settings.json` keys, per-migration settings, transactions
+- [Project configuration](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/configuration.md): `settings.json` keys, item settings (per migration, breaking or undo script), transactions
 - [Deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/index.md): pipeline order, `DeployParameters`, presets
 - [Migrations](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/migrations.md): versions, undo, downgrade, checksums
 - [Code deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/code.md): re-runnable objects, ordering, retries

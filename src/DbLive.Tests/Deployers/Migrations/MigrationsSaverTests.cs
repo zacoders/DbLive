@@ -170,6 +170,68 @@ public class MigrationsSaverTests
 			));
 	}
 
+	[Theory]
+	[InlineData(MigrationItemType.UndoSettings, true)]
+	[InlineData(MigrationItemType.MigrationSettings, false)]
+	[InlineData(MigrationItemType.BreakingSettings, false)]
+	public async Task Save_saves_content_of_undo_settings_only(MigrationItemType settingsType, bool contentExpected)
+	{
+		// Arrange
+		MockSet mockSet = new();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+
+		var settingsItem = new MigrationItem
+		{
+			MigrationItemType = settingsType,
+			Name = "",
+			FileData = GetFileData("/001.settings.json", """{ "TransactionWrapLevel": "None" }""")
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, settingsItem)]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
+
+		// Act
+		await saver.SaveAsync();
+
+		// Assert
+		await mockSet.DbLiveDA.Received(1)
+			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
+				dto.ItemType == settingsType &&
+				dto.ContentHash == settingsItem.FileData.ContentHash &&
+				dto.Content == (contentExpected ? settingsItem.FileData.Content : null)
+			));
+	}
+
+	[Fact]
+	public async Task Save_updates_changed_undo_settings_while_undo_is_not_applied()
+	{
+		// Arrange
+		MockSet mockSet = new();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+
+		var settingsItem = new MigrationItem
+		{
+			MigrationItemType = MigrationItemType.UndoSettings,
+			Name = "",
+			FileData = GetFileData("/001.undo.settings.json", """{ "Timeout": "00:05:00" }""")
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, settingsItem)]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDbItem(1, MigrationItemType.UndoSettings, settingsItem.FileData.ContentHash + 1, MigrationItemStatus.None)
+		]);
+
+		// Act
+		await saver.SaveAsync();
+
+		// Assert
+		await mockSet.DbLiveDA.Received(1)
+			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
+				dto.ItemType == MigrationItemType.UndoSettings &&
+				dto.Content == settingsItem.FileData.Content
+			));
+	}
+
 
 	static Migration NewMigration(
 		long version,
