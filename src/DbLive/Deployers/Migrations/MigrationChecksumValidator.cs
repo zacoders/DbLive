@@ -34,7 +34,7 @@ internal class MigrationChecksumValidator(
 				continue;
 			}
 
-			if (dbItem.ContentHash == projectItem.FileData.ContentHash)
+			if (projectItem.FileData.MatchesHash(dbItem.ContentHash))
 			{
 				continue;
 			}

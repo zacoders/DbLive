@@ -19,4 +19,11 @@ public class FileData
 	public required string FilePath { get; init; }
 	public required string RelativePath { get; init; }
 	public string FileName => Path.GetFileName(FilePath);
+
+	/// <summary>
+	/// True when a hash stored in the database belongs to this content with any line endings,
+	/// including hashes stored by DbLive versions that hashed the raw file text.
+	/// </summary>
+	public bool MatchesHash(long storedHash) =>
+		storedHash == ContentHash || _content.ComputeLegacyFileHashes().Contains(storedHash);
 }

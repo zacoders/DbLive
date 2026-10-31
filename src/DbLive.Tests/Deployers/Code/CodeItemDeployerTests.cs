@@ -37,6 +37,37 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
+	public async Task DeployCodeItem_Hash_Of_Other_Line_Endings_Is_A_Match()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		CodeItem codeItem = GetCodeItem("select 1 as a\nunion all\nselect 2;\n");
+
+		CodeItemDto codeItemDto = new()
+		{
+			// deployed from a CRLF checkout by a DbLive version that hashed the raw text.
+			ContentHash = LegacyContentHash.Of("select 1 as a\r\nunion all\r\nselect 2;\r\n"),
+			AppliedUtc = new DateTime(2023, 1, 1),
+			RelativePath = codeItem.FileData.RelativePath,
+			Status = CodeItemStatus.Applied
+		};
+
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		// Act
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
+
+		// Assert
+		Assert.True(res.IsSuccess);
+		await mockSet.DbLiveDA.Received().MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(Arg.Any<CodeItemDto>());
+	}
+
+	[Fact]
 	public async Task DeployCodeItem_DifferentHash()
 	{
 		// Arrange
@@ -118,10 +149,9 @@ public class CodeItemDeployerTests
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
 	}
 
-	private static CodeItem GetCodeItem()
+	private static CodeItem GetCodeItem(string content = "select * from table")
 	{
 		string relativePath = "/path-to/some-code-item.sql";
-		string content = "select * from table";
 
 		CodeItem codeItem = new()
 		{

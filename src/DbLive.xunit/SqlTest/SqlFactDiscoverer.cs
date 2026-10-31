@@ -74,7 +74,8 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			yield return new SqlXunitTestCase(
 				DiagnosticMessageSink,
 				testMethod,
-				Path.Combine(vsProjectPath, testItem.FileData.RelativePath),
+				// the relative path uses '/', the full path for the IDE uses the OS separator.
+				Path.GetFullPath(Path.Combine(vsProjectPath, testItem.FileData.RelativePath)),
 				testItem.FileData.RelativePath
 			);
 		}

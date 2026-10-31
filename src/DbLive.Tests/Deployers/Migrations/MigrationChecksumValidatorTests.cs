@@ -62,6 +62,31 @@ public class MigrationChecksumValidatorTests
 		await validator.ValidateAsync(DeployParameters.Default);
 	}
 
+	[Theory]
+	[InlineData("create table t1 ( id int );\r\ngo\r\n", "create table t1 ( id int );\ngo\n")]
+	[InlineData("create table t1 ( id int );\ngo\n", "create table t1 ( id int );\r\ngo\r\n")]
+	public async Task ValidateAsync_strict_passes_when_only_line_endings_differ(string appliedContent, string fileContent)
+	{
+		MockSet mockSet = new();
+		FileData fileData = GetFileData("/001.migration.sql", fileContent);
+
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			// applied by a DbLive version that hashed the raw text.
+			NewDbItem(1, MigrationItemType.Migration, LegacyContentHash.Of(appliedContent), MigrationItemStatus.Applied, "/001.migration.sql")
+		]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
+			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+		]);
+
+		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
+
+		await validator.ValidateAsync(DeployParameters.Default);
+
+		await mockSet.DbLiveDA.DidNotReceive().RepairMigrationChecksumAsync(Arg.Any<MigrationChecksumRepairDto>());
+	}
+
 	[Fact]
 	public async Task ValidateAsync_strict_ignores_not_applied_mismatch()
 	{

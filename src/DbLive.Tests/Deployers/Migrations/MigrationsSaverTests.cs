@@ -98,6 +98,37 @@ public class MigrationsSaverTests
 	}
 
 	[Fact]
+	public async Task Save_skips_not_applied_item_when_only_line_endings_differ()
+	{
+		// Arrange
+		MockSet mockSet = new();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+
+		FileData fileData = GetFileData("/001.undo.sql", "drop table t1;\ngo\n");
+		Migration migration = NewMigration(
+			1,
+			new MigrationItem
+			{
+				MigrationItemType = MigrationItemType.Undo,
+				Name = "001.undo.sql",
+				FileData = fileData
+			});
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			// saved from a CRLF checkout by a DbLive version that hashed the raw text.
+			NewDbItem(1, MigrationItemType.Undo, LegacyContentHash.Of("drop table t1;\r\ngo\r\n"), MigrationItemStatus.None)
+		]);
+
+		// Act
+		await saver.SaveAsync();
+
+		// Assert
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
+	}
+
+	[Fact]
 	public async Task Save_skips_applied_item_when_hash_differs()
 	{
 		// Arrange

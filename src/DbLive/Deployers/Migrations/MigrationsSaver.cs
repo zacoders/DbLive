@@ -26,7 +26,7 @@ internal class MigrationsSaver(
 			{
 				if (dbItemsByKey.TryGetValue((migration.Version, migrationItem.MigrationItemType), out MigrationItemDto? dbItem))
 				{
-					if (dbItem.ContentHash == migrationItem.FileData.ContentHash)
+					if (migrationItem.FileData.MatchesHash(dbItem.ContentHash))
 					{
 						continue;
 					}

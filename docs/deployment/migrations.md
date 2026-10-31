@@ -26,7 +26,7 @@ On SQL Server, scripts may contain `GO` batch separators. On PostgreSQL, a file 
 
 ## Checksums
 
-Before deploying, DbLive compares every **applied** migration and breaking script with the file in the project. The checksum covers the exact text, including whitespace, comments and line endings.
+Before deploying, DbLive compares every **applied** migration and breaking script with the file in the project. The checksum covers the text, including whitespace and comments, but not line endings: a Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same checksum.
 
 | Situation | Result |
 |-----------|--------|
@@ -37,7 +37,7 @@ Before deploying, DbLive compares every **applied** migration and breaking scrip
 
 Files that are not applied yet can be edited freely; DbLive stores their new content and checksum. That includes undo scripts of applied versions, so an undo script can be fixed after its migration went to production.
 
-Use `RepairMigrationChecksums` only when the database already matches the files, for example after a comment-only change or after normalising line endings:
+Use `RepairMigrationChecksums` only when the database already matches the files, for example after a comment-only change:
 
 ```csharp
 await deployer.DeployAsync(DeployParameters.Default with { RepairMigrationChecksums = true });

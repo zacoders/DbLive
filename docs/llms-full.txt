@@ -10,7 +10,7 @@
 
 Follow these when you create or change files in a DbLive project. Each rule names the failure you cause by breaking it.
 
-1. **Never edit a migration item after it was applied** to any shared database (`<version>.migration.sql`, `<version>.breaking.sql` once deployed). Create a new version instead. Breaking this → `MigrationChecksumMismatchException` on the next deploy (default `MigrationChecksumMode` is `Strict`). Whitespace, comments and line endings count: the checksum is a hash of the exact file text.
+1. **Never edit a migration item after it was applied** to any shared database (`<version>.migration.sql`, `<version>.breaking.sql` once deployed). Create a new version instead. Breaking this → `MigrationChecksumMismatchException` on the next deploy (default `MigrationChecksumMode` is `Strict`). Whitespace and comments count; CRLF/LF line endings do not.
 2. **Never delete an applied migration version, and never change its version number.** A version that is applied in the database but missing from the project is treated as a downgrade request → `DowngradeNotAllowedException` (unless `AllowDatabaseDowngrade = true`, which runs the stored undo script and reverts the version).
 3. **Code files must be re-runnable.** They are re-executed whenever their content changes and on every new database. Use `create or alter` (SQL Server) or `create or replace` / `drop ... if exists` + `create` (PostgreSQL).
 4. **Migrations must be backward compatible (expand only).** Put destructive changes (drop column/table/procedure, remove sync triggers) into `<version>.breaking.sql` of the same version. Breaking scripts run only when `DeployBreaking = true`.
@@ -280,14 +280,14 @@ The migration script and its status update are committed together. If a migratio
 ### 5.4 Checksums
 
 Before anything is deployed, every **applied** item (migration, breaking, applied undo) is compared with the project file by `(version, type)`:
-- Hash: XxHash64 of the file text (UTF-8). Any change, including whitespace, comments and **CRLF/LF line endings**, is a mismatch.
+- Hash: XxHash64 of the file text (UTF-8) with CRLF replaced by LF. Any change, including whitespace and comments, is a mismatch; CRLF/LF line endings are not.
 - `MigrationChecksumMode: "Strict"` (default): throws `MigrationChecksumMismatchException` listing the files.
 - `MigrationChecksumMode: "Warn"`: logs a warning per file and continues.
-- `DeployParameters.RepairMigrationChecksums = true`: overwrites the stored hashes with the current file hashes and continues. Use only when the database already matches the files (for example after a comment-only edit or a line-ending normalization).
+- `DeployParameters.RepairMigrationChecksums = true`: overwrites the stored hashes with the current file hashes and continues. Use only when the database already matches the files (for example after a comment-only edit).
 - Items not applied yet (including undo scripts of applied migrations) can be edited freely; the new content is saved.
 - Settings items are never checksum-validated.
 
-Line endings: if one machine deploys with CRLF files (Windows checkout, `core.autocrlf=true`) and another with LF (Linux CI), applied migrations mismatch. Pin line endings in `.gitattributes`, for example `*.sql text eol=lf`.
+Line endings: a Windows checkout (CRLF, `core.autocrlf=true`) and a Linux checkout (LF) of the same file have the same hash, so one database can be deployed from both; no `.gitattributes` is needed. Only CRLF is normalized: a lone CR or a Unicode line separator is a change. Scripts run, and undo content is stored, with the line endings of the file. Hashes stored by DbLive versions that hashed the raw text still match the same file with either line endings; they are not rewritten. The same comparison decides whether a code file is redeployed.
 
 ### 5.5 Undo scripts and downgrade
 
@@ -841,6 +841,8 @@ Created and upgraded automatically on every deployment. Same tables in both prov
 | `dblive.unit_test_run` | Last result per test file: `relative_path`, `pass`, `error`, `run_utc`, `execution_time_ms`. |
 | `dblive.folder_items` | Last run per BeforeDeploy/AfterDeploy file. |
 
+`relative_path` is relative to the scripts root and uses `/` on every OS (`Code/dbo/GetUser.sql`). Databases deployed from Windows by older DbLive versions get `\` replaced automatically; when one file has rows with both separators (deployed from Windows and Linux), the latest row is kept.
+
 Diagnostic queries:
 
 ```sql
@@ -876,7 +878,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `Exception: ProjectDir metadata not found!` | `.csproj` lacks the `AssemblyMetadata` `ProjectDir` item; thrown by `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery | Add the block from Section 3.1 |
 | `JsonException` reading `settings.json` | Wrong case, unknown key, or trailing comma | Section 9.1 |
 | `ProjectIdMismatchException` | Wrong database, or `ProjectId` changed | Check the connection string; rebind deliberately (Section 14) |
-| `MigrationChecksumMismatchException` | An applied migration/breaking file was edited (or line endings changed) | Revert the file and add a new migration; or `RepairMigrationChecksums = true` if the database already matches |
+| `MigrationChecksumMismatchException` | An applied migration/breaking file was edited | Revert the file and add a new migration; or `RepairMigrationChecksums = true` if the database already matches |
 | `DowngradeNotAllowedException` | The database has applied versions this build does not contain (a deleted file, or the `Migrations` folder missing from the output) | Deploy the newer build, restore the deleted file or folder, or set `AllowDatabaseDowngrade = true` intentionally |
 | `DowngradeImpossibleException` | A version to revert has no undo script stored | Cannot revert automatically; fix manually |
 | `MigrationDeploymentException` | SQL error in a migration/breaking/undo script | Read the inner SQL error and fix the script (it was not applied) |
@@ -905,7 +907,6 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 2. Create `Scripts/Migrations/<yyyyMMddHHmmss>.<name>.sql` with the first change. Optionally `Scripts/settings.json` with `ProjectId` and `"EnforceTimestampVersion": true`.
 3. Create the deployer (3.3).
 4. Create the xUnit test project with `[SqlFact]` and `[SqlDeployFact]` (Section 13).
-5. Add `*.sql text eol=lf` to `.gitattributes`.
 
 ### 18.2 Add DbLive to an existing database (brownfield)
 DbLive has no baseline command. Recommended approach:
@@ -956,5 +957,4 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - No CLI tool; deployments are started from your own C# code.
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
-- Code and test relative paths use the OS path separator, so switching the deploying OS redeploys every code file once (harmless).
 - Supported engines: SQL Server / Azure SQL and PostgreSQL. SQLite and MySQL are planned.

@@ -93,8 +93,4 @@ These scripts run on every deployment, also when only breaking changes are deplo
 
 ## Line endings
 
-DbLive checksums applied migrations byte for byte. If Windows machines check out `.sql` files with CRLF and CI uses LF, the same migration has two different checksums. Pin line endings in `.gitattributes`:
-
-```
-*.sql text eol=lf
-```
+Line endings do not matter. A Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same [checksum](../deployment/migrations.md#checksums), so developers on Windows and CI on Linux can deploy to the same database without `.gitattributes`. Scripts run with the line endings they have in the file.

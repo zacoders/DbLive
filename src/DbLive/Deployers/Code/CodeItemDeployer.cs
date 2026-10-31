@@ -19,7 +19,7 @@ public class CodeItemDeployer(
 			CodeItemDto? codeItemDto = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
 			if (codeItemDto != null
-				&& codeItemDto.ContentHash == codeItem.FileData.ContentHash
+				&& codeItem.FileData.MatchesHash(codeItemDto.ContentHash)
 				&& codeItemDto.Status == CodeItemStatus.Applied)
 			{
 				await _da.MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, _timeProvider.UtcNow()).ConfigureAwait(false);

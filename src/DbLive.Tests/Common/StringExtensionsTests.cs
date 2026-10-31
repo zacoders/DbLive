@@ -20,6 +20,16 @@ public class StringExtensionsTests
 	}
 
 	[Fact]
+	public void GetRelativePath_Uses_Forward_Slash()
+	{
+		string root = @"C:/DB";
+		string filePath = root.CombineWith("Code").CombineWith("dbo").CombineWith("f.sql");
+
+		// stored in the database, so the same on every OS.
+		Assert.Equal("Code/dbo/f.sql", filePath.GetRelativePath(root));
+	}
+
+	[Fact]
 	public void CombineWithRelative_TopLevelFolder()
 	{
 		string root = @"C:/DB";
