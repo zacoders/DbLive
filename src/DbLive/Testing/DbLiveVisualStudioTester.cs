@@ -40,10 +40,10 @@ public class DbLiveVisualStudioTester(
 
 		TestItem testItem = testsList[testFileRelativePath];
 
-		if (testItem.InitFileData is not null)
+		if (testItem.SetupFileData is not null)
 		{
-			string initFileTitle = $"Init file: {testItem.InitFileData.RelativePath}";
-			writeLine(initFileTitle);
+			string setupFileTitle = $"Setup file: {testItem.SetupFileData.RelativePath}";
+			writeLine(setupFileTitle);
 		}
 
 		TestRunResult testRunResult = await _unitTestItemRunner.RunTestAsync(testItem).ConfigureAwait(false);

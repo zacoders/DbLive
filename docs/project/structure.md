@@ -18,7 +18,7 @@ Scripts/
     dbo/GetUser.sql
     dbo/GetUser.test.sql
   Tests/                               optional
-    Orders/init.sql
+    Orders/setup.test.sql
     Orders/select-orders.test.sql
   BeforeDeploy/                        optional
   AfterDeploy/                         optional
@@ -29,8 +29,8 @@ Scripts/
 | Folder | Required | Picked up | Runs |
 |--------|----------|-----------|------|
 | `Migrations` | no | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
-| `Code` | no | `*.sql` (except test files), including subfolders | When the file is new or changed |
-| `Tests` | no | every `*.sql` except `init.sql`, including subfolders | At the end of a deployment, or from xUnit |
+| `Code` | no | `*.sql` (except test files and `setup.test.sql`), including subfolders | When the file is new or changed |
+| `Tests` | no | every `*.sql` except `setup.test.sql`, including subfolders | At the end of a deployment, or from xUnit |
 | `BeforeDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, before migrations |
 | `AfterDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, after breaking changes |
 
@@ -81,9 +81,9 @@ Any `*.sql` file under `Code` that is not a test is a code object: a procedure, 
 
 ## Test files
 
-- In `Tests`, every `.sql` file except `init.sql` is a test.
+- In `Tests`, every `.sql` file except `setup.test.sql` is a test.
 - In `Code`, files matching `TestFilePatterns` are tests: `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql` by default. Keep `GetUser.test.sql` next to `GetUser.sql`.
-- `init.sql` runs before each test in the **same** folder (not in subfolders). Put `init.sql` in `Tests` folders only: inside `Code` it would also be deployed as a code object.
+- `setup.test.sql` runs before each test in the **same** folder (not in subfolders), in `Tests` and in `Code`. It is not a test and is never deployed as code.
 
 See [Unit Testing](../unit-testing/index.md).
 

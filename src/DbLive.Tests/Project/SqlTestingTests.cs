@@ -92,7 +92,7 @@ public class SqlTestingTests
 	}
 
 	[Fact]
-	public async Task GetFolderTests_excludes_init_sql_from_test_files()
+	public async Task GetFolderTests_excludes_setup_file_from_test_files()
 	{
 		// arrange
 		MockSet mockSet = new();
@@ -103,12 +103,12 @@ public class SqlTestingTests
 		string folder = projectPath.CombineWith("Tests");
 		mockSet.FileSystem.PathExists(folder).Returns(true);
 
-		mockSet.FileSystem.FileExists(folder.CombineWith("init.sql")).Returns(true);
+		mockSet.FileSystem.FileExists(folder.CombineWith("setup.test.sql")).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
 				folder,
 				Arg.Any<IEnumerable<string>>(),
-				Arg.Any<IEnumerable<string>>(),
+				MyArg.SequenceEqual(["setup.test.sql"]),
 				false
 			).Returns([
 				folder.CombineWith("test1.sql"),
@@ -137,7 +137,7 @@ public class SqlTestingTests
 	}
 
 	[Fact]
-	public async Task GetFolderTests_init_sql_is_attached_to_all_tests()
+	public async Task GetFolderTests_setup_file_is_attached_to_all_tests()
 	{
 		// arrange
 		MockSet mockSet = new();
@@ -146,10 +146,10 @@ public class SqlTestingTests
 		mockSet.ProjectPath.Path.Returns(projectPath);
 
 		string folder = projectPath.CombineWith("Tests");
-		string initPath = folder.CombineWith("init.sql");
+		string setupPath = folder.CombineWith("setup.test.sql");
 
 		mockSet.FileSystem.PathExists(folder).Returns(true);
-		mockSet.FileSystem.FileExists(initPath).Returns(true);
+		mockSet.FileSystem.FileExists(setupPath).Returns(true);
 
 		mockSet.FileSystem.EnumerateFiles(
 			folder,
@@ -161,11 +161,11 @@ public class SqlTestingTests
 		folder.CombineWith("b.sql")
 		]);
 
-		mockSet.FileSystem.ReadFileDataAsync(initPath, projectPath)
+		mockSet.FileSystem.ReadFileDataAsync(setupPath, projectPath)
 			.Returns(new FileData
 			{
-				FilePath = initPath,
-				Content = "init",
+				FilePath = setupPath,
+				Content = "setup",
 				RelativePath = ""
 			});
 
@@ -184,7 +184,7 @@ public class SqlTestingTests
 
 		// assert
 		Assert.Equal(2, tests.Count);
-		Assert.All(tests, t => Assert.NotNull(t.InitFileData));
+		Assert.All(tests, t => Assert.NotNull(t.SetupFileData));
 	}
 
 }

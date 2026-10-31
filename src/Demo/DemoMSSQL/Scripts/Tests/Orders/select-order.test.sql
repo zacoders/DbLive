@@ -1,5 +1,5 @@
 -- Arrange
--- Note: Test data was prepared in init.sql file.
+-- Note: Test data was prepared in setup.test.sql file.
 
 
 -- Act

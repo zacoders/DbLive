@@ -23,7 +23,7 @@ Key facts an agent must not get wrong:
 - [Code deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/code.md): re-runnable objects, ordering, retries
 - [Breaking changes](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/breaking-changes.md): the contract phase
 - [Zero-downtime deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/zero-downtime.md): step-by-step runbook
-- [SQL unit testing](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/unit-testing/index.md): assertions, `init.sql`, xUnit integration
+- [SQL unit testing](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/unit-testing/index.md): assertions, `setup.test.sql`, xUnit integration
 - [Database as a Service](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/database-as-service.md): the idea behind DbLive, ways to use it (classic, zero downtime, full model), versioned procedure interface, expand/contract
 
 ## Examples

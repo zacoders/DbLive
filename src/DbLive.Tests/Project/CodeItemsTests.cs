@@ -100,4 +100,47 @@ public class CodeItemsTests
 		// other items
 		Assert.Equal(2, codeGroups[2].CodeItems.Count);
 	}
+
+	[Fact]
+	public async Task GetCodeItems_Excludes_TestSetupFile()
+	{
+		MockSet mockSet = new();
+
+		// custom patterns do not match the setup file, it must be excluded anyway.
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			TestFilePatterns = ["*.spec.sql"]
+		});
+
+		string projectPath = @"C:/DB";
+		mockSet.ProjectPath.Path.Returns(projectPath);
+
+		string codePath = projectPath.CombineWith("Code");
+		mockSet.FileSystem.PathExists(codePath).Returns(true);
+
+		mockSet.FileSystem.EnumerateFiles(
+			codePath,
+			MyArg.SequenceEqual(["*.sql"]),
+			MyArg.SequenceEqual(["*.spec.sql", "setup.test.sql"]),
+			true
+		).Returns([
+			codePath.CombineWith(@"item1.sql")
+		]);
+
+		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
+			.ReturnsForAnyArgs(call =>
+			new FileData
+			{
+				FilePath = call.Args()[0].ToString()!,
+				Content = "code item content",
+				RelativePath = ""
+			});
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
+
+		Assert.Single(codeGroups);
+		Assert.Single(codeGroups[0].CodeItems);
+	}
 }

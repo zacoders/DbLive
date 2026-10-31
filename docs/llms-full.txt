@@ -16,7 +16,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 4. **Migrations must be backward compatible (expand only).** Put destructive changes (drop column/table/procedure, remove sync triggers) into `<version>.breaking.sql` of the same version. Breaking scripts run only when `DeployBreaking = true`.
 5. **Write `<version>.undo.sql` for every migration you may need to roll back**, and make it work in both states: breaking script applied and not applied (use existence checks).
 6. **BeforeDeploy and AfterDeploy scripts run on every deployment** (not once). They must be idempotent.
-7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `init.sql`.)
+7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `setup.test.sql`.)
 8. **The assertion marker column is named `assert` and must be the first column** of its result set (case does not matter; `select 'rows' as assert` works on both engines). A misspelled name (`asstert`) or a missing alias (`select 'rows'`) → the test fails with "... looks like an assert result set ..." (Section 8.3).
 9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, the `Migrations` folder was not copied to the output), it is treated as a downgrade → `DowngradeNotAllowedException`.
 10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must copy it to `<AssemblyName>.Scripts` in the output and embed the `ProjectDir` assembly metadata (Section 3). Without that metadata, `SetProject(..., useVsProjectPath: true)` and `[SqlFact]` discovery throw `Exception("ProjectDir metadata not found!")`.
@@ -185,9 +185,9 @@ Paths below are relative to the scripts root. Folder names are configurable in `
 | Folder (default name) | Required | Files picked up | Search | Order |
 |---|---|---|---|---|
 | `Migrations` | no | `*.sql`, `*.json`; any subfolder | recursive | by version number |
-| `Code` | no | `*.sql` except files matching `TestFilePatterns` | recursive | groups from `CodeSubFoldersDeploymentOrder` first, then the rest; inside a group parallel with retries |
-| `Tests` | no | every `*.sql` except `init.sql` | each folder, all subfolders | parallel |
-| `Code` (tests) | no | files matching `TestFilePatterns` (default `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql`) | each folder, all subfolders | parallel |
+| `Code` | no | `*.sql` except files matching `TestFilePatterns` and `setup.test.sql` | recursive | groups from `CodeSubFoldersDeploymentOrder` first, then the rest; inside a group parallel with retries |
+| `Tests` | no | every `*.sql` except `setup.test.sql` | each folder, all subfolders | parallel |
+| `Code` (tests) | no | files matching `TestFilePatterns` (default `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql`) except `setup.test.sql` | each folder, all subfolders | parallel |
 | `BeforeDeploy` | no | `*.sql` | recursive | alphabetical by full path |
 | `AfterDeploy` | no | `*.sql` | recursive | alphabetical by full path |
 | root | no | `settings.json` | root only | — |
@@ -196,7 +196,7 @@ A missing folder is skipped. A project without `Migrations` deploys only code, t
 
 Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`: a `.json` file there that is not an item settings file `<version>.<item>.settings.json` (Section 5.1) fails the deployment (`UnknownMigrationSettingsException`; the old `<version>.settings.json` / `<version>.s.json` → `ObsoleteMigrationSettingsFileException`). A `.txt` in `Migrations` is ignored (the demos keep `002.notes.txt` next to migrations).
 
-`init.sql` inside `Code/` is not excluded from code deployment: it would be deployed as a code object and also used as the init script for tests in that folder. Keep `init.sql` in `Tests/` folders only.
+`setup.test.sql` is the test setup file of its folder (Section 8.1), in `Tests/` and in `Code/`. It is never a test and never deployed as code, whatever `TestFilePatterns` contains. The name is fixed: an `init.sql` (the old name) is a test in `Tests/` and a code object in `Code/`.
 
 ---
 
@@ -312,7 +312,7 @@ Line endings: if one machine deploys with CRLF files (Windows checkout, `core.au
 
 ## 6. Code objects
 
-- Every `*.sql` under `Code/` that does not match `TestFilePatterns` is a code item, identified by its relative path (for example `Code\dbo\GetUser.sql`).
+- Every `*.sql` under `Code/` that does not match `TestFilePatterns` and is not `setup.test.sql` is a code item, identified by its relative path (for example `Code\dbo\GetUser.sql`).
 - A code item is executed when no `applied` record with the same relative path and content hash exists in `dblive.code`. Unchanged files are skipped (logged as `[hash match]`).
 - A changed, moved or renamed file is executed again. **DbLive never drops code objects.** A procedure removed from the repository stays in the database until a breaking script drops it.
 - Manual changes made directly in the database are not detected: the file hash still matches, so the file is not re-run. To force a redeploy, change the file, or delete its row from `dblive.code`.
@@ -372,21 +372,21 @@ $$;
 
 ### 8.1 Discovery
 
-- `Tests/` and all of its subfolders: every `*.sql` except `init.sql` is a test. Names do not matter.
-- `Code/` and all of its subfolders: only files matching `TestFilePatterns`. Convention: put `GetUser.test.sql` next to `GetUser.sql`.
-- `init.sql` in a folder runs before **each** test in that same folder, in the same transaction. It is not inherited by subfolders.
+- `Tests/` and all of its subfolders: every `*.sql` except `setup.test.sql` is a test. Names do not matter.
+- `Code/` and all of its subfolders: only files matching `TestFilePatterns`, except `setup.test.sql`. Convention: put `GetUser.test.sql` next to `GetUser.sql`.
+- `setup.test.sql` in a folder (in `Tests/` or `Code/`) runs before **each** test in that same folder, in the same transaction. It is not inherited by subfolders.
 - A test is identified by its relative path (for example `Tests\Orders\select-order.test.sql`).
 
 ### 8.2 Execution
 
 For each test:
 1. Open a transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and timeout `UnitTestItemTimeout` (1 minute).
-2. Execute `init.sql` of the folder, if any (SQL Server: `GO` allowed).
+2. Execute `setup.test.sql` of the folder, if any (SQL Server: `GO` allowed).
 3. Execute the test script and collect all result sets (SQL Server: **no `GO`**, the whole file is one batch).
 4. Evaluate the assertion (8.3).
 5. **Always roll back.** Tests leave no data behind and can be re-run.
 
-`init.sql` and the test run on separate connections inside the same transaction. Data changes made by `init.sql` are visible to the test; session state is not (temporary tables, variables, `SET` options). Use permanent tables in `init.sql`.
+`setup.test.sql` and the test run on separate connections inside the same transaction. Data changes made by `setup.test.sql` are visible to the test; session state is not (temporary tables, variables, `SET` options). Use permanent tables in `setup.test.sql`. If the setup file fails, the test fails with `ERROR: Setup file error. ...`.
 
 During `DeployAsync`, tests run after the deployment is committed, `NumberOfThreadsForTestsRun` (10) at a time. Each result is stored in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). The deployment itself is already committed at that point, so catch this type to tell "deployed, tests failed" from "deployment failed":
 
@@ -436,7 +436,7 @@ Value comparison in `rows`: each value is serialized to JSON and the strings are
 - Column names must match exactly. SQL Server gives unnamed expressions an empty name, so `select dbo.F(1)` against `select cast('x' as nvarchar(10))` compares fine. PostgreSQL names them (`?column?`, or the function name), so alias both sides explicitly.
 - Row order matters. Make the act deterministic (`order by`).
 - Counts are checked before values: `Expected 2 result set(s), but 1 received.`, then per result set the columns, then `Expected 1 row(s), but 3 received.`, then the values. With several expected result sets the message starts with `Result set N:`. No result set after the assert result set: `No expected result set after the 'assert' result set.`
-- Every result set returned before the assert result set is actual, including output from the Arrange part (`update ... output`, a `select` used for debugging). Remove such output, or move data setup into `init.sql`, whose result sets are ignored.
+- Every result set returned before the assert result set is actual, including output from the Arrange part (`update ... output`, a `select` used for debugging). Remove such output, or move data setup into `setup.test.sql`, whose result sets are ignored.
 
 ### 8.4 Examples
 
@@ -475,7 +475,7 @@ declare @cnt int = (select count(*) from dbo.Users where Name = 'Admin');
 if @cnt != 1 throw 50000, 'Expected one admin user.', 0;
 ```
 
-Folder setup shared by several tests (`Tests/Orders/init.sql` inserts three orders):
+Folder setup shared by several tests (`Tests/Orders/setup.test.sql` inserts three orders):
 
 ```sql
 -- Tests/Orders/select-orders.test.sql
@@ -890,7 +890,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL, in `settings.json` (at the start of the deployment) or in an item settings file (when that script runs) | Choose another level |
 | `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout` or the item's `Timeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10) | Raise that timeout (for one script: `Timeout` in its item settings file), or `TransactionWrapLevel: None` for that script |
 | `JsonException: The JSON property 'DowngradeTimeout' could not be mapped` reading `settings.json` | `DowngradeTimeout` was removed | Delete the key; undo scripts use `MigrationTimeout` or `Timeout` in `<version>.undo.settings.json` |
-| SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `init.sql` |
+| SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `setup.test.sql` |
 | Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
 

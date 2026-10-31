@@ -35,4 +35,4 @@ Docs: `docs/llms-full.txt` §8.3, §17, §19; `docs/unit-testing/index.md` (the 
 
 Release note (there is no release notes file in the repo yet, copy this into the release):
 
-> **Breaking: `rows` and `rows-with-schema` now compare the whole actual output.** A test fails when the actual results have more or fewer result sets or rows than expected (before, only the expected rows were compared, and extra output passed unnoticed). Output from the Arrange part, such as `update ... output`, now counts as an actual result set: remove it or move the setup into `init.sql`.
+> **Breaking: `rows` and `rows-with-schema` now compare the whole actual output.** A test fails when the actual results have more or fewer result sets or rows than expected (before, only the expected rows were compared, and extra output passed unnoticed). Output from the Arrange part, such as `update ... output`, now counts as an actual result set: remove it or move the setup into `setup.test.sql`.

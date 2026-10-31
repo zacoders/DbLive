@@ -41,7 +41,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test1.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		mockSet.DbLiveProject.GetTestsAsync().Returns([
@@ -82,7 +82,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test1.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		mockSet.DbLiveProject.GetTestsAsync().Returns([
@@ -151,7 +151,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test2.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		TestItem testItem3 = new()

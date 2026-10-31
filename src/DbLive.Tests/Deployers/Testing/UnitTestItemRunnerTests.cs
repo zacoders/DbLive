@@ -25,7 +25,7 @@ public class UnitTestItemRunnerTests
 		{
 			Name = "test1",
 			FileData = GetFileData("/test/folder/test1.sql"),
-			InitFileData = null
+			SetupFileData = null
 		};
 
 		// Act
@@ -50,7 +50,7 @@ public class UnitTestItemRunnerTests
 
 
 	[Fact]
-	public async Task RunTest_With_InitFileData()
+	public async Task RunTest_With_SetupFileData()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -72,7 +72,7 @@ public class UnitTestItemRunnerTests
 		{
 			Name = "test1",
 			FileData = GetFileData("/test/folder/test1.sql"),
-			InitFileData = GetFileData("/test/folder/init.sql"),
+			SetupFileData = GetFileData("/test/folder/setup.test.sql"),
 		};
 
 		// Act
@@ -85,7 +85,7 @@ public class UnitTestItemRunnerTests
 		Received.InOrder(() =>
 		{
 			mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(
-				Arg.Is(testItem.InitFileData.Content),
+				Arg.Is(testItem.SetupFileData.Content),
 				TranIsolationLevel.Serializable,
 				TimeSpan.FromMinutes(1)
 			);
@@ -127,7 +127,7 @@ public class UnitTestItemRunnerTests
 		{
 			Name = "test1",
 			FileData = GetFileData("/test/folder/test1.sql"),
-			InitFileData = null
+			SetupFileData = null
 		};
 
 		// Act
@@ -173,7 +173,7 @@ public class UnitTestItemRunnerTests
 		{
 			Name = "test1",
 			FileData = GetFileData("/test/folder/test1.sql"),
-			InitFileData = null
+			SetupFileData = null
 		};
 
 		_ = await runner.RunTestAsync(testItem);

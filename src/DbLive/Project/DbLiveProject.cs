@@ -8,6 +8,11 @@ public class DbLiveProject(
 	IMigrationVersionValidator migrationVersionValidator
 ) : IDbLiveProject
 {
+	/// <summary>
+	/// Runs before each test in the same folder. Never deployed as code.
+	/// </summary>
+	internal const string TestSetupFileName = "setup.test.sql";
+
 	private readonly string _projectPath = projectPath.Path;
 	private readonly Lazy<string> _visualStudioProjectPath = new(() => projectPath.VisualStudioProjectPath);
 
@@ -31,7 +36,7 @@ public class DbLiveProject(
 			.. _fileSystem.EnumerateFiles(
 					codePath,
 					["*.sql"],
-					projectSettings.TestFilePatterns,
+					[.. projectSettings.TestFilePatterns, TestSetupFileName],
 					true
 				)
 		];
@@ -193,18 +198,18 @@ public class DbLiveProject(
 
 		List<TestItem> tests = [];
 
-		FileData? initFileData = null;
-		string initializeFilePath = folderPath.CombineWith("init.sql");
-		if (_fileSystem.FileExists(initializeFilePath))
+		FileData? setupFileData = null;
+		string setupFilePath = folderPath.CombineWith(TestSetupFileName);
+		if (_fileSystem.FileExists(setupFilePath))
 		{
-			initFileData = await _fileSystem.ReadFileDataAsync(initializeFilePath, _projectPath).ConfigureAwait(false);
+			setupFileData = await _fileSystem.ReadFileDataAsync(setupFilePath, _projectPath).ConfigureAwait(false);
 		}
 
-		// in Tests folder, any .sql file is considered as a test (except 'init.sql').
+		// in Tests folder, any .sql file is considered as a test (except the setup file).
 		IEnumerable<string> testFiles = _fileSystem.EnumerateFiles(
 			folderPath,
 			isTestsFolder ? ["*.sql"] : projectSettings.TestFilePatterns,
-			["init.sql"],
+			[TestSetupFileName],
 			subfolders: false
 		);
 
@@ -214,7 +219,7 @@ public class DbLiveProject(
 			{
 				Name = Path.GetFileName(testFilePath),
 				FileData = await _fileSystem.ReadFileDataAsync(testFilePath, _projectPath).ConfigureAwait(false),
-				InitFileData = initFileData
+				SetupFileData = setupFileData
 			};
 
 			tests.Add(testItem);

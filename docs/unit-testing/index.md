@@ -13,8 +13,8 @@ Tutorial: [Add a Stored Procedure and a Unit Test](stored-proc-and-unit-test.md)
 
 | Location | Which files are tests |
 |----------|-----------------------|
-| `Tests` and its subfolders | every `.sql` file except `init.sql` |
-| `Code` and its subfolders | files matching `TestFilePatterns`: `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql` by default |
+| `Tests` and its subfolders | every `.sql` file except `setup.test.sql` |
+| `Code` and its subfolders | files matching `TestFilePatterns`: `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql` by default, except `setup.test.sql` |
 
 Keep a test next to the object it tests (`Code/dbo/GetUser.sql` and `Code/dbo/GetUser.test.sql`). Use `Tests` for checks that span several objects or verify data rules.
 
@@ -38,7 +38,7 @@ The **assert result set** is a result set whose first column is named `assert` (
 A misspelled column (`select asstert = 'rows'`) or a missing alias (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column.
 
 !!! warning "No `GO` in SQL Server test files"
-    A test file is executed as a single batch, so `GO` is a syntax error there. `init.sql`, migrations and code files may use `GO`.
+    A test file is executed as a single batch, so `GO` is a syntax error there. `setup.test.sql`, migrations and code files may use `GO`.
 
 ## Assertions
 
@@ -87,7 +87,7 @@ end $$;
 - Column names must match exactly. SQL Server gives an unnamed expression an empty name, so `select dbo.GetFullName('a', 'b')` can be compared with `select cast('a b' as nvarchar(255))`. PostgreSQL names such columns (`?column?` or the function name), so give both sides an alias.
 
 !!! note "`rows` compares all actual output"
-    `rows` fails on extra or missing result sets and rows, for example `Expected 1 row(s), but 3 received.` Every result set returned before the assert counts as actual, including output from the Arrange part (`update ... output`, a debugging `select`). Remove such output, or move the setup into `init.sql`.
+    `rows` fails on extra or missing result sets and rows, for example `Expected 1 row(s), but 3 received.` Every result set returned before the assert counts as actual, including output from the Arrange part (`update ... output`, a debugging `select`). Remove such output, or move the setup into `setup.test.sql`.
 
 `row-count` counts rows of the actual result set: `select count(*) from dbo.Orders` returns **one** row. To check that there are three orders, select the orders themselves:
 
@@ -96,21 +96,26 @@ select OrderId from dbo.Orders;
 select assert = 'row-count=3';
 ```
 
-## Shared setup with `init.sql`
+## Shared setup with `setup.test.sql`
 
-An `init.sql` file runs before **each** test in the same folder, inside the test's transaction:
+A `setup.test.sql` file runs before **each** test in the same folder, inside the test's transaction. It works in `Tests` and in `Code`:
 
 ```text
 Tests/
   Orders/
-    init.sql                 inserts three orders
+    setup.test.sql           inserts three orders
     select-orders.test.sql
     update-order.test.sql
+Code/
+  dbo/
+    GetUser.sql
+    GetUser.test.sql
+    setup.test.sql           inserts test users
 ```
 
 - It applies to tests in its own folder only, not to subfolders.
 - It runs on a separate connection within the same transaction. Rows it inserts are visible to the test; session state is not (temporary tables, variables, `SET` options).
-- Put `init.sql` in `Tests` folders only. Inside `Code` it would also be deployed as a code object.
+- It is never a test itself and never deployed as code, whatever `TestFilePatterns` contains.
 
 ## Isolation and parallelism
 

@@ -40,7 +40,7 @@ public class DbLiveTesterTests
 			{
 				Name = "first",
 				FileData = GetFileData("/test/first.sql"),
-				InitFileData = GetFileData("/test/init.sql")
+				SetupFileData = GetFileData("/test/setup.test.sql")
 			},
 			new TestItem { Name = "second", FileData = GetFileData("/test/second.sql") },
 			new TestItem { Name = "third", FileData = GetFileData("/test/third.sql") }

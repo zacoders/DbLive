@@ -210,24 +210,24 @@ declare @cnt int = (
 if @cnt != 1 throw 50000, 'Expected one admin user.', 0
 ```
 
-### Shared test data with `init.sql`
+### Shared test data with `setup.test.sql`
 
-You can place `init.sql` inside a test folder. It is executed before each test in that folder, so one setup script can be reused by many tests.
+You can place `setup.test.sql` in any folder with tests, in `Tests` or next to code tests in `Code`. It is executed before each test in that folder, so one setup script can be reused by many tests. It is never a test itself and never deployed as code.
 
 ```text
 Scripts/
   Tests/
     Orders/
-      init.sql
+      setup.test.sql
       select-order.test.sql
       update-order.test.sql
 ```
 
-Example test that relies on folder-level initialization:
+Example test that relies on the folder setup:
 
 ```sql
 -- Arrange
--- Note: Test data was prepared in init.sql file.
+-- Note: Test data was prepared in setup.test.sql file.
 
 -- Act
 select OrderId from dbo.Orders
@@ -240,7 +240,7 @@ select assert = 'row-count=3'
 
 Each SQL test runs inside a transaction. The transaction is always rolled back after test execution.
 
-- `init.sql` and the test script run in the same transaction.
+- `setup.test.sql` and the test script run in the same transaction.
 - Test data is isolated between tests.
 - No manual cleanup is needed.
 - Tests are safe to re-run repeatedly.

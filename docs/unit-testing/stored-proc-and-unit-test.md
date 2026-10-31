@@ -133,6 +133,6 @@ To run the same tests against SQL Server in Docker, replace the builder with the
 
 ## Next steps
 
-- [Unit Testing](index.md): all assertions, `init.sql`, deployment tests
+- [Unit Testing](index.md): all assertions, `setup.test.sql`, deployment tests
 - [Code Deployment](../deployment/code.md): ordering, retries, versioned procedures
 - [Project Configuration](../project/configuration.md): `settings.json`
