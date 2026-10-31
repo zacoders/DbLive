@@ -3,7 +3,6 @@ namespace DbLive.Project;
 
 public class DbLiveProject(
 	IProjectPath projectPath,
-	IFileSystem _fileSystem,
 	ISettingsAccessor settingsAccessor,
 	IMigrationVersionValidator migrationVersionValidator,
 	ILogger logger
@@ -15,8 +14,9 @@ public class DbLiveProject(
 	internal const string TestSetupFileName = "setup.test.sql";
 
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
+	private readonly IFileSystem _fileSystem = projectPath.FileSystem;
 	private readonly string _projectPath = projectPath.Path;
-	private readonly Lazy<string> _visualStudioProjectPath = new(() => projectPath.VisualStudioProjectPath);
+	private readonly string? _visualStudioProjectPath = projectPath.VisualStudioProjectPath;
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
@@ -268,8 +268,8 @@ public class DbLiveProject(
 	}
 
 	[ExcludeFromCodeCoverage]
-	public string GetVisualStudioProjectPath()
+	public string? GetVisualStudioProjectPath()
 	{
-		return _visualStudioProjectPath.Value;
+		return _visualStudioProjectPath;
 	}
 }

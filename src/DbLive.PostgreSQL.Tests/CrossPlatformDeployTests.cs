@@ -114,7 +114,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 			.ConfigureServices(s => s.AddXUnitLogger(_output))
 			.PostgreSQL()
 			.SetDbConnection(_dbCnnString)
-			.ConfigureServices(s => s.AddSingleton(project.ProjectPath));
+			.SetScriptsFolder(project.Path);
 	}
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)

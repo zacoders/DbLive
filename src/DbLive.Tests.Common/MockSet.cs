@@ -44,6 +44,8 @@ public class MockSet
 	{
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
 
+		ProjectPath.FileSystem.Returns(FileSystem);
+
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
 
 		TransactionSettingsValidator

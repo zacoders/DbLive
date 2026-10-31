@@ -1,77 +1,91 @@
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using System.Reflection.Emit;
 
 namespace DbLive.Tests.Builder;
 
 public class DbLiveBuilderExtensionsTests
 {
 	[Fact]
-	public void SetProject_ReadsScriptsNextToApplication_NotFromCurrentDirectory()
+	public async Task SetProject_ReadsScriptsEmbeddedInAssembly()
 	{
 		using DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(CreateAssembly("MyDb", projectDir: "c:/src/MyDb/"));
+			.SetProject(typeof(DbLiveBuilderExtensionsTests).Assembly);
 
-		IProjectPath projectPath = GetRegisteredProjectPath(builder);
+		IReadOnlyCollection<TestItem> tests = await builder.CreateProject().GetTestsAsync();
 
-		Assert.Equal(Path.Combine(AppContext.BaseDirectory, "MyDb.Scripts"), projectPath.Path);
-		Assert.Equal(Path.Combine("c:/src/MyDb/", "Scripts"), projectPath.VisualStudioProjectPath);
+		TestItem test = Assert.Single(tests);
+		Assert.Equal("Tests/example.sql", test.FileData.RelativePath);
+		Assert.Equal("select 1 as x;", test.FileData.Content);
 	}
 
 	[Fact]
-	public void SetProject_UseVsProjectPath_ReadsScriptsFromSourceProject()
+	public void SetProject_WithProjectDirMetadata_GoToSourceUsesScriptsFolder()
 	{
 		using DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(CreateAssembly("MyDb", projectDir: "c:/src/MyDb/"), useVsProjectPath: true);
+			.SetProject(Assembly.Load("DemoMSSQLEmpty"));
 
-		IProjectPath projectPath = GetRegisteredProjectPath(builder);
+		string? sourcePath = builder.CreateProject().GetVisualStudioProjectPath();
 
-		Assert.Equal(Path.Combine("c:/src/MyDb/", "Scripts"), projectPath.Path);
-		Assert.Equal(Path.Combine("c:/src/MyDb/", "Scripts"), projectPath.VisualStudioProjectPath);
+		Assert.NotNull(sourcePath);
+		Assert.EndsWith(Path.Combine("DemoMSSQLEmpty", "Scripts"), sourcePath);
+		Assert.True(Directory.Exists(sourcePath));
 	}
 
 	[Fact]
-	public void SetProject_WithoutProjectDirMetadata_ThrowsOnlyWhenSourceFolderIsNeeded()
+	public void SetProject_WithoutProjectDirMetadata_NoGoToSource()
 	{
 		using DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(CreateAssembly("MyDb", projectDir: null));
+			.SetProject(typeof(DbLiveBuilderExtensionsTests).Assembly);
 
-		IDbLiveProject project = builder.CreateProject();
-
-		Exception ex = Assert.Throws<Exception>(project.GetVisualStudioProjectPath);
-		Assert.Equal("ProjectDir metadata not found!", ex.Message);
+		Assert.Null(builder.CreateProject().GetVisualStudioProjectPath());
 	}
 
 	[Fact]
-	public void SetProject_UseVsProjectPath_WithoutProjectDirMetadata_Throws()
+	public void SetProject_AssemblyWithoutScripts_Throws()
 	{
 		using DbLiveBuilder builder = new();
 
-		Exception ex = Assert.Throws<Exception>(() =>
-			builder.SetProject(CreateAssembly("MyDb", projectDir: null), useVsProjectPath: true));
-		Assert.Equal("ProjectDir metadata not found!", ex.Message);
+		ScriptsNotEmbeddedException ex = Assert.Throws<ScriptsNotEmbeddedException>(() =>
+			builder.SetProject(typeof(DbLiveBuilder).Assembly));
+
+		Assert.Equal("DbLive", ex.AssemblyName);
+		Assert.Contains("'DbLive'", ex.Message);
+		Assert.Contains("""<EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />""", ex.Message);
 	}
 
-	private static IProjectPath GetRegisteredProjectPath(DbLiveBuilder builder)
+	[Fact]
+	public async Task SetScriptsFolder_ReadsScriptsFromFolder()
 	{
-		IProjectPath? projectPath = null;
-		builder.ConfigureServices(services =>
-			projectPath = (IProjectPath)services.Last(s => s.ServiceType == typeof(IProjectPath)).ImplementationInstance!);
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
 
-		_ = builder.CreateProject();
+		using DbLiveBuilder builder = new DbLiveBuilder()
+			.SetScriptsFolder(project.Path);
 
-		return projectPath!;
+		IDbLiveProject dbLiveProject = builder.CreateProject();
+
+		Migration migration = Assert.Single(await dbLiveProject.GetMigrationsAsync());
+		Assert.Equal("Migrations/001.migration.sql", migration.Items[MigrationItemType.Migration].FileData.RelativePath);
+		Assert.Equal(project.Path, dbLiveProject.GetVisualStudioProjectPath());
 	}
 
-	private static AssemblyBuilder CreateAssembly(string name, string? projectDir)
+	[Fact]
+	public void SetScriptsFolder_RelativePath_ResolvedAgainstCurrentDirectory()
 	{
-		List<CustomAttributeBuilder> attributes = [];
-		if (projectDir is not null)
-		{
-			ConstructorInfo ctor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
-			attributes.Add(new CustomAttributeBuilder(ctor, ["ProjectDir", projectDir]));
-		}
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
 
-		return AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run, attributes);
+		using DbLiveBuilder builder = new DbLiveBuilder()
+			.SetScriptsFolder(Path.GetRelativePath(Directory.GetCurrentDirectory(), project.Path));
+
+		Assert.Equal(project.Path, builder.CreateProject().GetVisualStudioProjectPath());
+	}
+
+	[Fact]
+	public void SetScriptsFolder_MissingFolder_Throws()
+	{
+		using TempProject project = new();
+		using DbLiveBuilder builder = new();
+
+		_ = Assert.Throws<DirectoryNotFoundException>(() => builder.SetScriptsFolder(project.Path));
 	}
 }

@@ -125,7 +125,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 			.ConfigureServices(s => s.AddXUnitLogger(_output))
 			.PostgreSQL()
 			.SetDbConnection(_dbCnnString)
-			.ConfigureServices(s => s.AddSingleton(project.ProjectPath));
+			.SetScriptsFolder(project.Path);
 	}
 
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)

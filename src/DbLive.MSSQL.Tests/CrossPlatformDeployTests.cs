@@ -114,7 +114,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(_dbCnnString)
-			.ConfigureServices(s => s.AddSingleton(project.ProjectPath));
+			.SetScriptsFolder(project.Path);
 	}
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)

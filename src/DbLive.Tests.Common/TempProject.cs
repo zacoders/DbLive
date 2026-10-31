@@ -7,8 +7,6 @@ public sealed class TempProject : IDisposable
 {
 	public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dblive-tests", Guid.NewGuid().ToString());
 
-	public IProjectPath ProjectPath => new ProjectPath(Path, Path);
-
 	public TempProject AddFile(string relativePath, string content)
 	{
 		string filePath = System.IO.Path.Combine(Path, relativePath);

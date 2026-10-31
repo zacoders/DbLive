@@ -26,23 +26,17 @@ All three folders are optional; a project can, for example, contain only code. S
 
 ## 4. Configure Project
 
-Add the following code to the `.csproj`; it will prepare the project and make sure all files in the `Scripts` folder will be copied to the output directory.
+Add the following code to the `.csproj`; it embeds all files in the `Scripts` folder in the project assembly.
 
 ```xml
-<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName).Scripts" />
-</Target>
-
 <ItemGroup>
+  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+
+  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
   <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
     <_Parameter1>ProjectDir</_Parameter1>
     <_Parameter2>$(ProjectDir)</_Parameter2>
   </AssemblyAttribute>
-
-  <None Include="Scripts\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-  </None>
 </ItemGroup>
 ```
 
@@ -92,7 +86,7 @@ await deployer.DeployAsync(new DeployParameters
 
 ## 7. Run App
 
-Run the app from Visual Studio or with `dotnet run`. DbLive reads the scripts from the `<AssemblyName>.Scripts` folder next to the executable (see [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts)).
+Run the app from Visual Studio or with `dotnet run`. DbLive reads the scripts embedded in the assembly, so the build has to run after you change a script; Visual Studio and `dotnet run` build first (see [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts)).
 
 You will see deployment process in the console app output:
 

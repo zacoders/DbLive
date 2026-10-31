@@ -95,7 +95,7 @@ Running every test through a deployment is fine for CI, but while you work on SQ
             return Task.FromResult(new DbLiveBuilder()
                 .SqlServer()
                 .SetDbConnection(connectionString)
-                .SetProject(GetProjectAssembly(), useVsProjectPath: true));
+                .SetProject(GetProjectAssembly()));
         }
 
         public Assembly GetProjectAssembly() => Assembly.Load("MyDb");
@@ -127,7 +127,7 @@ Running every test through a deployment is fine for CI, but while you work on SQ
     }
     ```
 
-4. Build and open Test Explorer. Each `.test.sql` file is a separate test named after its path. Because the builder uses `useVsProjectPath: true`, edits to the SQL files are picked up the next time you run a test, without a rebuild. Before the tests, the fixture deploys `MyDb` into a new `DbLive--<guid>` database on that server, and drops it afterwards, so the tests never touch your development database.
+4. Build and open Test Explorer. Each `.test.sql` file is a separate test named after its path. The tests read the scripts embedded in the `MyDb` dll; Test Explorer builds before running, so edits to the SQL files are picked up the next time you run a test. Before the tests, the fixture deploys `MyDb` into a new `DbLive--<guid>` database on that server, and drops it afterwards, so the tests never touch your development database.
 
 To run the same tests against SQL Server in Docker, replace the builder with the Testcontainers one from [Unit Testing](index.md#running-tests-in-visual-studio-and-ci-xunit).
 

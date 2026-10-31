@@ -20,5 +20,8 @@ public interface IDbLiveProject
 	/// <returns>Read only list of items. Items sorted by full file path.</returns>
 	Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder);
 
-	string GetVisualStudioProjectPath();
+	/// <summary>
+	/// The scripts folder in the source project, used by "Go to source" of SQL tests. Null when unknown.
+	/// </summary>
+	string? GetVisualStudioProjectPath();
 }

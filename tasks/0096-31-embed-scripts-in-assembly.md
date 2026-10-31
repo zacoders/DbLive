@@ -53,27 +53,27 @@ DbLive identifies scripts in the database by `RelativePath` (`Migrations/001.mig
 - Tests: `src/DbLive.Tests/Builder/DbLiveBuilderExtensionsTests.cs`, `src/DbLive.Tests/Builder/DbLiveBuilderTests.cs`, `src/DbLive.Tests.Common/TempProject.cs`, `src/DbLive.Tests.Common/MockSet.cs`.
 
 ## Plan
-- [ ] `EmbeddedFileSystem : IFileSystem` over the resources with the `DbLive/` prefix, so `DbLiveProject` stays as it is.
+- [x] `EmbeddedFileSystem : IFileSystem` over the resources with the `DbLive/` prefix, so `DbLiveProject` stays as it is.
   - Normalize `\` to `/` in resource names: `%(RecursiveDir)` uses `\` when the project is built on Windows.
   - Return paths under a virtual root, joined with `Path.DirectorySeparatorChar` like the physical file system: `DbLiveProject.cs:51` matches subfolders by `subPath + Path.DirectorySeparatorChar`, and `DbLiveProject.cs:267` sorts BeforeDeploy/AfterDeploy items by full path.
-  - Match patterns (`*.sql`, `*.test.sql`, exclude patterns) with `FileSystemName.MatchesSimpleExpression`, the matcher behind `Directory.EnumerateFiles`. Derive directories from file paths.
+  - Match patterns (`*.sql`, `*.test.sql`, exclude patterns) with `FileSystemName.MatchesSimpleExpression`, the matcher behind `Directory.EnumerateFiles`. Derive directories from file paths. Done with `MatchesWin32Expression`, see Notes.
   - Read with `StreamReader` and BOM detection, as `File.ReadAllTextAsync` does, so content hashes do not change.
-- [ ] Separate the project's file system from DbLive's own. For example, `IProjectPath` gets `IFileSystem FileSystem`, and `DbLiveProject` and `SettingsAccessor` take it from there; `InternalDbLiveProject` keeps the physical `FileSystem`.
-- [ ] `SetProject(assembly)` reads embedded scripts. When the assembly has no `DbLive/` resources, it throws an exception that names the assembly and shows the `EmbeddedResource` line, instead of deploying an empty project.
-- [ ] `SetScriptsFolder(path)` uses the physical file system on that folder. It replaces registering `IProjectPath` by hand (`docs/llms-full.txt` §3.4).
-- [ ] Remove `useVsProjectPath`.
-- [ ] `[SqlFact]` discovery without `ProjectDir`: leave `SourceInformation` empty instead of throwing "ProjectDir metadata not found!".
-- [ ] Demos: the new `.csproj` block; fixture builders call `SetProject(assembly)`.
-- [ ] Check with an experiment that `WithCulture="false"` keeps `name.fr.sql` in the main assembly. Without it, MSBuild treats such a file as a French resource and moves it to a satellite assembly: the script silently disappears.
-- [ ] Is `<None Remove="Scripts\**\*" />` needed so that Visual Studio does not list the files twice?
-- [ ] Virtual root: which string? It appears in `FileData.FilePath`, in logs and in exception messages.
-- [ ] `SetScriptsFolder` with a relative path: resolve it against the current directory (expected for a CLI argument)?
+- [x] Separate the project's file system from DbLive's own. For example, `IProjectPath` gets `IFileSystem FileSystem`, and `DbLiveProject` and `SettingsAccessor` take it from there; `InternalDbLiveProject` keeps the physical `FileSystem`.
+- [x] `SetProject(assembly)` reads embedded scripts. When the assembly has no `DbLive/` resources, it throws an exception that names the assembly and shows the `EmbeddedResource` line, instead of deploying an empty project. (`ScriptsNotEmbeddedException`)
+- [x] `SetScriptsFolder(path)` uses the physical file system on that folder. It replaces registering `IProjectPath` by hand (`docs/llms-full.txt` §3.4).
+- [x] Remove `useVsProjectPath`.
+- [x] `[SqlFact]` discovery without `ProjectDir`: leave `SourceInformation` empty instead of throwing "ProjectDir metadata not found!".
+- [x] Demos: the new `.csproj` block; fixture builders call `SetProject(assembly)`.
+- [x] Check with an experiment that `WithCulture="false"` keeps `name.fr.sql` in the main assembly. Without it, MSBuild treats such a file as a French resource and moves it to a satellite assembly: the script silently disappears. Verified, see Notes; also covered by `EmbeddedFileSystemTests.FromAssembly_KeepsCultureNamedScriptsInMainAssembly`.
+- [x] Is `<None Remove="Scripts\**\*" />` needed so that Visual Studio does not list the files twice? No, see Notes.
+- [x] Virtual root: which string? It appears in `FileData.FilePath`, in logs and in exception messages. `<AssemblyName>.dll`, see Notes.
+- [x] `SetScriptsFolder` with a relative path: resolve it against the current directory (expected for a CLI argument)? Yes.
 
 ### Tests
-- [ ] Parity test: load each demo project from its dll and from its source folder, then compare `RelativePath` and `ContentHash` of all migrations, code items, tests, BeforeDeploy/AfterDeploy items, and the settings. Equal lists mean existing databases will not notice the change.
-- [ ] Unit tests for `EmbeddedFileSystem`: patterns, exclude patterns, subfolders, directories, a file with a BOM, `\` in resource names.
-- [ ] `SetProject` throws when the assembly has no scripts; `[SqlFact]` discovery works without `ProjectDir`.
-- [ ] Demo deployment tests and `[SqlFact]` tests pass with scripts read from the dll.
+- [x] Parity test: load each demo project from its dll and from its source folder, then compare `RelativePath` and `ContentHash` of all migrations, code items, tests, BeforeDeploy/AfterDeploy items, and the settings. Equal lists mean existing databases will not notice the change. (`EmbeddedScriptsParityTests`)
+- [x] Unit tests for `EmbeddedFileSystem`: patterns, exclude patterns, subfolders, directories, a file with a BOM, `\` in resource names.
+- [x] `SetProject` throws when the assembly has no scripts; `[SqlFact]` discovery works without `ProjectDir`.
+- [x] Demo deployment tests and `[SqlFact]` tests pass with scripts read from the dll.
 
 ## Docs to update
 - `README.md` ("3. Configure .csproj")
@@ -91,10 +91,10 @@ DbLive identifies scripts in the database by `RelativePath` (`Migrations/001.mig
 - **A standalone deployer (CLI)** that deploys from a folder. It will use `SetScriptsFolder`.
 
 ## Done when
-- [ ] `SetProject(assembly)` reads embedded scripts, `SetScriptsFolder(path)` reads a folder, and `useVsProjectPath` is removed
-- [ ] The parity test passes for all demos
-- [ ] Demos and docs use the new `.csproj` block; no `ClearOutput` is left in code, demos or docs
-- [ ] "Go to source" still opens the `.sql` file (check in Visual Studio)
+- [x] `SetProject(assembly)` reads embedded scripts, `SetScriptsFolder(path)` reads a folder, and `useVsProjectPath` is removed
+- [x] The parity test passes for all demos
+- [x] Demos and docs use the new `.csproj` block; no `ClearOutput` is left in code, demos or docs
+- [x] "Go to source" still opens the `.sql` file (check in Visual Studio)
 
 ## Notes
 2026-11-01, decided with the maintainer while reviewing 0096-10:
@@ -105,3 +105,16 @@ Experiments on a copy of `DemoMSSQLEmpty`, .NET SDK 10.0.402:
 - In a normal incremental build, the `IncrementalClean` target deletes a removed script from `bin/` (it tracks written files in `obj/*.FileListAbsolute.txt`), both in the SQL project and in a project that references it.
 - With `obj/` deleted and `bin/` kept, the removed script stays in `bin/` with the demos' `ClearOutput`, and is deleted with `$(TargetDir)$(AssemblyName).Scripts`. In a referencing project, it stays with both.
 - A dll built without `ProjectDir` already contains the absolute path of its `.pdb`, in Release too and with `ContinuousIntegrationBuild=true` in a folder without git. So `ProjectDir` is not what puts a build path into the dll.
+
+2026-11-01, implementation:
+- **`WithCulture`, verified** (copy of the new block, .NET SDK 10.0.402): without `WithCulture="false"`, `Code/dbo/name.fr.sql` and `Code/dbo/proc.de-DE.sql` went to `fr/` and `de-DE/` satellite assemblies and were missing from the main dll; with it, both stay. Resource names built on Windows look like `DbLive/Code\dbo\name.fr.sql`. `DbLive.Tests` embeds `Scripts/Code/v_fr.fr.sql` with the documented block, so a test fails if this ever changes.
+- **`None Remove` is not needed**: without it, every script is both a `None` and an `EmbeddedResource` item (checked with `dotnet msbuild -getItem`), but Visual Studio lists each file once (checked by the maintainer in Solution Explorer). Not in the block.
+- **Virtual root** is `<AssemblyName>.dll`, for example `DemoMSSQL.dll\Migrations\001.migration.sql` in `FileData.FilePath` and in `InvalidMigrationVersionException`. Relative, so it reads as "inside the dll"; `EmbeddedFileSystem` computes relative paths itself and never resolves the root against the current directory.
+- **Pattern matching** uses `FileSystemName.MatchesWin32Expression(TranslateWin32Expression(pattern))`, not `MatchesSimpleExpression`: the legacy `Directory.EnumerateFiles(path, pattern)` overloads use `MatchType.Win32`. Same results for every pattern DbLive uses; differs for `*.*` and patterns with `?` at the end.
+- **Case**: paths and patterns are matched ignoring case on every OS, like the physical file system on Windows. On Linux the physical file system was case-sensitive.
+- **Order**: files and directories come in the order of `Directory.EnumerateFiles` on Windows (breadth-first, each folder sorted by name ignoring case, pattern by pattern), so code groups deploy in the same order as before on Windows. On Linux the order of the physical file system is arbitrary, so the parity test compares the items of each code group as a set (CI runs on Ubuntu).
+- **Decoding**: `StreamReader` strips the UTF-8 preamble even without BOM detection; detection matters for UTF-16 files. Three demos contain UTF-8 BOM files. Mutation check: decoding as Latin-1 makes the parity test fail for those three demos.
+- `SetScriptsFolder` resolves a relative path against the current directory and throws `DirectoryNotFoundException` for a missing folder, for the same reason `SetProject` throws `ScriptsNotEmbeddedException`.
+- API: `IProjectPath` got `IFileSystem FileSystem`; `VisualStudioProjectPath` and `IDbLiveProject.GetVisualStudioProjectPath()` are nullable (null without `ProjectDir`); `ProjectPath(path, fileSystem, visualStudioProjectPath)` replaces both old constructors. `DbLiveProject` and `SettingsAccessor` no longer take `IFileSystem`; the `IFileSystem` singleton serves only `InternalDbLiveProject`. `TempProject.ProjectPath` is gone: integration tests call `SetScriptsFolder(project.Path)`.
+- Tests: `DbLive.Tests` references `DbLive.xunit` and the four demo SQL projects (parity test), and is itself a SQL project without `ProjectDir` (`Scripts/`) for the `SetProject` and `[SqlFact]` discovery tests. All 380 tests pass locally (`dotnet test DbLive.sln --filter "Category!=LocalOnly"`, Docker): DbLive.Tests 311, DbLive.MSSQL.Tests 22, DbLive.PostgreSQL.Tests 11, DemoMSSQL.Tests 17, Demo.PostgreSQL.Chinook.Tests 10, AdventureWorks.Tests 9.
+- "Go to source" in Visual Studio opens the `.sql` file with scripts read from the dll (checked by the maintainer).

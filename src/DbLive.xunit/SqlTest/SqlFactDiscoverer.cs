@@ -67,7 +67,8 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
 
-		string vsProjectPath = project.GetVisualStudioProjectPath();
+		// null without the ProjectDir metadata: the tests run, but "Go to source" does not open the file.
+		string? vsProjectPath = project.GetVisualStudioProjectPath();
 
 		foreach (Project.TestItem testItem in tests)
 		{
@@ -75,7 +76,7 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 				DiagnosticMessageSink,
 				testMethod,
 				// the relative path uses '/', the full path for the IDE uses the OS separator.
-				Path.GetFullPath(Path.Combine(vsProjectPath, testItem.FileData.RelativePath)),
+				vsProjectPath is null ? null : Path.GetFullPath(Path.Combine(vsProjectPath, testItem.FileData.RelativePath)),
 				testItem.FileData.RelativePath
 			);
 		}

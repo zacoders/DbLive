@@ -1,0 +1,83 @@
+using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
+using System.Text.Json;
+
+namespace DbLive.Tests.Project;
+
+/// <summary>
+/// Databases identify scripts by relative path and content hash, so the scripts embedded in a dll must give
+/// the same project as the folder they were built from. Otherwise existing databases see changed or new scripts.
+/// </summary>
+public class EmbeddedScriptsParityTests
+{
+	[Theory]
+	[InlineData("AdventureWorks.Database")]
+	[InlineData("Demo.PostgreSQL.Chinook")]
+	[InlineData("DemoMSSQL")]
+	[InlineData("DemoMSSQLEmpty")]
+	public async Task Project_from_dll_equals_project_from_source_folder(string assemblyName)
+	{
+		Assembly assembly = Assembly.Load(assemblyName);
+		string sourceFolder = DbLiveBuilderExtensions.GetSourceScriptsPath(assembly)!;
+
+		using DbLiveBuilder fromDll = new DbLiveBuilder().SetProject(assembly);
+		using DbLiveBuilder fromFolder = new DbLiveBuilder().SetScriptsFolder(sourceFolder);
+
+		List<string> expected = await DescribeAsync(fromFolder);
+		List<string> actual = await DescribeAsync(fromDll);
+
+		Assert.Contains(expected, item => item.StartsWith("migration ", StringComparison.Ordinal));
+		Assert.Equal(expected, actual);
+	}
+
+	private static async Task<List<string>> DescribeAsync(DbLiveBuilder builder)
+	{
+		IProjectPath projectPath = GetRegisteredProjectPath(builder);
+		IDbLiveProject project = builder.CreateProject();
+
+		DbLiveSettings settings = await new SettingsAccessor(projectPath).GetProjectSettingsAsync();
+		List<string> items = [$"settings {JsonSerializer.Serialize(settings)}"];
+
+		foreach (Migration migration in await project.GetMigrationsAsync())
+		{
+			items.AddRange(migration.Items.Values
+				.OrderBy(item => item.MigrationItemType)
+				.Select(item => $"migration {migration.Version} {item.MigrationItemType} {item.Name} {Describe(item.FileData)}"));
+		}
+
+		int groupNumber = 0;
+		foreach (CodeGroup group in await project.GetCodeGroupsAsync())
+		{
+			groupNumber++;
+			// the order of files within a folder depends on the OS, so the groups are compared as sets.
+			items.AddRange(group.CodeItems
+				.Select(item => $"code group {groupNumber} {item.Name} {Describe(item.FileData)}")
+				.Order(StringComparer.Ordinal));
+		}
+
+		items.AddRange((await project.GetTestsAsync())
+			.Select(test => $"test {test.Name} {Describe(test.FileData)} setup {(test.SetupFileData is null ? "none" : Describe(test.SetupFileData))}")
+			.Order(StringComparer.Ordinal));
+
+		foreach (ProjectFolder folder in Enum.GetValues<ProjectFolder>())
+		{
+			items.AddRange((await project.GetFolderItemsAsync(folder))
+				.Select(item => $"{folder} {item.Name} {Describe(item.FileData)}"));
+		}
+
+		return items;
+	}
+
+	private static string Describe(FileData fileData) => $"{fileData.RelativePath} {fileData.ContentHash}";
+
+	private static IProjectPath GetRegisteredProjectPath(DbLiveBuilder builder)
+	{
+		IProjectPath? projectPath = null;
+		builder.ConfigureServices(services =>
+			projectPath = (IProjectPath)services.Last(s => s.ServiceType == typeof(IProjectPath)).ImplementationInstance!);
+
+		_ = builder.CreateProject();
+
+		return projectPath!;
+	}
+}

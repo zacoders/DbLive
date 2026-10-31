@@ -3,20 +3,28 @@ namespace DbLive.Common;
 
 public interface IProjectPath
 {
+	/// <summary>
+	/// Root of the scripts in <see cref="FileSystem"/>.
+	/// </summary>
 	string Path { get; }
-	string VisualStudioProjectPath { get; }
+
+	/// <summary>
+	/// Reads the scripts: the resources of the SQL project assembly or a folder.
+	/// </summary>
+	IFileSystem FileSystem { get; }
+
+	/// <summary>
+	/// The scripts folder in the source project, used by "Go to source" of SQL tests. Null when unknown.
+	/// </summary>
+	string? VisualStudioProjectPath { get; }
 }
 
 
-public class ProjectPath(string projectPath, Func<string> visualStudioProjectPath) : IProjectPath
+public class ProjectPath(string projectPath, IFileSystem fileSystem, string? visualStudioProjectPath) : IProjectPath
 {
-	public ProjectPath(string projectPath, string visualStudioProjectPath)
-		: this(projectPath, () => visualStudioProjectPath)
-	{
-	}
-
 	public string Path => projectPath;
 
-	public string VisualStudioProjectPath => visualStudioProjectPath();
-}
+	public IFileSystem FileSystem => fileSystem;
 
+	public string? VisualStudioProjectPath => visualStudioProjectPath;
+}

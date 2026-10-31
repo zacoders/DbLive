@@ -13,7 +13,7 @@ IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()
     .SqlServer()                                  // or .PostgreSQL()
     .SetDbConnection(connectionString)
-    .SetProject(Assembly.GetExecutingAssembly())  // project with a Scripts folder
+    .SetProject(Assembly.GetExecutingAssembly())  // project that embeds its Scripts folder
     .CreateDeployer();
 
 await deployer.DeployAsync(DeployParameters.Default);

@@ -1,6 +1,6 @@
 # Project
 
-A **DbLive project** is an ordinary .NET project that contains a `Scripts` folder with your SQL. A few lines in the `.csproj` copy the scripts to the build output, and a small piece of C# (the *deployer*) tells DbLive which database to deploy them to.
+A **DbLive project** is an ordinary .NET project that contains a `Scripts` folder with your SQL. A few lines in the `.csproj` embed the scripts in the project assembly, and a small piece of C# (the *deployer*) tells DbLive which database to deploy them to.
 
 - [Project Structure](structure.md): folders and file naming rules
 - [Project Configuration](configuration.md): `settings.json`, item settings, transactions
@@ -35,51 +35,46 @@ The deployer and the tests find the SQL project through its assembly, for exampl
 Add this to the project that contains the `Scripts` folder:
 
 ```xml
-<!-- Remove previously copied scripts so deleted or renamed files do not linger in the output. -->
-<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName).Scripts" />
-</Target>
-
 <ItemGroup>
-  <!-- Lets DbLive find the source folder (used by useVsProjectPath: true and [SqlFact] tests). -->
+  <!-- Embeds Scripts\** in the assembly; SetProject(assembly) reads the scripts from there. -->
+  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+
+  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
   <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
     <_Parameter1>ProjectDir</_Parameter1>
     <_Parameter2>$(ProjectDir)</_Parameter2>
   </AssemblyAttribute>
-
-  <!-- Copies Scripts\** to <output>\<AssemblyName>.Scripts\** -->
-  <None Include="Scripts\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-  </None>
 </ItemGroup>
 ```
 
+What each part does:
+
+- `LogicalName` keeps the folder structure: DbLive identifies scripts in the database by their path relative to `Scripts` (`Migrations/001.migration.sql`), so it must be the same as in the folder.
+- `WithCulture="false"` keeps a file like `name.fr.sql` in the assembly. Without it, MSBuild treats the file as a French resource, moves it to a satellite assembly, and the script is not deployed.
+- `ProjectDir` is used only by `[SqlFact]` tests: double-clicking a SQL test in Test Explorer opens its `.sql` file. Without it, the tests still run, but "Go to source" does not open the `.sql` file.
+
 !!! note
-    The folder in your project must be named `Scripts`. The `ProjectDir` metadata tells DbLive where the source folder is: `useVsProjectPath: true` and `[SqlFact]` tests need it and throw `ProjectDir metadata not found!` without it.
+    The folder in your project must be named `Scripts`. `SetProject` throws `ScriptsNotEmbeddedException` when the assembly has no embedded scripts, so a missing block does not deploy an empty project.
 
 ## How DbLive finds the scripts
 
-`SetProject(Assembly projectAssembly, bool useVsProjectPath = false)` picks one of two locations:
+| Call | Scripts are read from | Use it for |
+|------|-----------------------|------------|
+| `SetProject(Assembly projectAssembly)` | the resources embedded in `projectAssembly` | Deployers and tests |
+| `SetScriptsFolder(string path)` | the folder; a relative path is resolved against the current directory | Scripts that are not built into an assembly |
 
-| `useVsProjectPath` | Scripts are read from | Use it for |
-|--------------------|-----------------------|------------|
-| `false` (default) | `<AssemblyName>.Scripts` next to the application (`AppContext.BaseDirectory`) | Deployers, `dotnet test` |
-| `true` | `<project source folder>/Scripts` | Tests and local development: script edits are picked up without a rebuild |
+With `SetProject` there is nothing to copy or clean: your scripts travel inside the dll, also through `dotnet publish` (DbLive's own scripts are still files, see [Provider files](#provider-files)), and a script deleted from the project is gone from the next build. The deployer does not depend on the current working directory. Because the scripts are part of the build, change a script and build before you deploy; Visual Studio, `dotnet run` and `dotnet test` build first.
 
-The default does not depend on the current working directory, so a deployer finds its scripts when it is started from Visual Studio, with `dotnet run`, as a Windows service or as a scheduled task. To read scripts from another folder, register the path explicitly instead of calling `SetProject`:
+Test projects reference the SQL project, so they read the same scripts from its dll.
+
+To read scripts from a folder instead:
 
 ```csharp
-using DbLive.Common;
-using Microsoft.Extensions.DependencyInjection;
-
-string scripts = @"D:\Deploy\MyDb.Scripts";
-
 var deployer = new DbLiveBuilder()
     .LogToConsole()
     .SqlServer()
     .SetDbConnection(connectionString)
-    .ConfigureServices(s => s.AddSingleton<IProjectPath>(new ProjectPath(scripts, scripts)))
+    .SetScriptsFolder(@"D:\Deploy\MyDb\Scripts")
     .CreateDeployer();
 ```
 

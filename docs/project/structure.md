@@ -39,7 +39,7 @@ Every folder is optional; a missing folder is skipped. A project without `Migrat
 Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
 
 !!! warning "Ship applied migrations with every build"
-    Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because the `Migrations` folder was not copied to the output, DbLive treats this as a [downgrade](../deployment/migrations.md#downgrade) and the deployment fails with `DowngradeNotAllowedException`.
+    Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because a migration file was deleted or the deployer was built from an older commit, DbLive treats this as a [downgrade](../deployment/migrations.md#downgrade) and the deployment fails with `DowngradeNotAllowedException`.
 
 ## Migration files
 

@@ -26,8 +26,22 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
+    <ProjectReference Include="..\DbLive.xunit\DbLive.xunit.csproj" />
   </ItemGroup>
-  
+
+  <!-- The demos are loaded from their dll and from their source folder by EmbeddedScriptsParityTests. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Demo\AdventureWorks\AdventureWorks.Database\AdventureWorks.Database.csproj" />
+    <ProjectReference Include="..\Demo\Demo.PostgreSQL.Chinook\Demo.PostgreSQL.Chinook.csproj" />
+    <ProjectReference Include="..\Demo\DemoMSSQL\DemoMSSQL.csproj" />
+    <ProjectReference Include="..\Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj" />
+  </ItemGroup>
+
+  <!-- This assembly is also a SQL project, without the ProjectDir metadata. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
   </ItemGroup>

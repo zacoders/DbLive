@@ -56,23 +56,17 @@ Scripts/
 ```
 ### 3. Configure .csproj
 
-Add the following code; it will prepare the project and make sure all files in the `Scripts` folder will be copied to the output directory.
+Add the following code; it embeds all files in the `Scripts` folder in the project assembly, so the dll you build is the dll you deploy.
 
 ```xml
-<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName).Scripts" />
-</Target>
-
 <ItemGroup>
+  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+
+  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
   <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
     <_Parameter1>ProjectDir</_Parameter1>
     <_Parameter2>$(ProjectDir)</_Parameter2>
   </AssemblyAttribute>
-
-  <None Include="Scripts\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-  </None>
 </ItemGroup>
 ```
 

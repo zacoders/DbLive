@@ -10,7 +10,7 @@ public class DbLiveBuilderTests
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", "c:/db/vs-scripts"));
+				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
 			});
 
 		IDbLiveProject project1 = builder.CreateProject();
@@ -25,14 +25,14 @@ public class DbLiveBuilderTests
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", "c:/db/vs-scripts"));
+				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
 			});
 
 		IDbLiveProject project1 = builder.CreateProject();
 
 		builder.ConfigureServices(services =>
 		{
-			services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/changed", "c:/db/changed-vs"));
+			services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/changed", new FileSystem(), "c:/db/changed-vs"));
 		});
 
 		IDbLiveProject project2 = builder.CreateProject();
@@ -47,7 +47,7 @@ public class DbLiveBuilderTests
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", "c:/db/vs-scripts"));
+				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
 			});
 
 		_ = builder.CreateProject();
@@ -55,6 +55,6 @@ public class DbLiveBuilderTests
 
 		Assert.Throws<ObjectDisposedException>(() => builder.CreateProject());
 		Assert.Throws<ObjectDisposedException>(() =>
-			builder.ConfigureServices(services => services.AddSingleton<IProjectPath>(new ProjectPath("a", "b"))));
+			builder.ConfigureServices(services => services.AddSingleton<IProjectPath>(new ProjectPath("a", new FileSystem(), "b"))));
 	}
 }

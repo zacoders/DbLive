@@ -27,38 +27,63 @@ public static class DbLiveBuilderExtensions
 	}
 
 	/// <summary>
-	/// Configures the base path for SQL scripts using the specified project assembly.
+	/// Reads the scripts embedded in the SQL project assembly: resources named <c>DbLive/&lt;path relative to Scripts&gt;</c>.
 	/// </summary>
 	/// <param name="builder">The builder instance to configure.</param>
-	/// <param name="projectAssembly">The assembly of the SQL Project used to resolve paths. Cannot be null.</param>
-	/// <param name="useVsProjectPath">
-	/// Set to <see langword="true"/> to use the Visual Studio source project directory (best for unit testing);
-	/// otherwise, <see langword="false"/> to use the <c>&lt;AssemblyName&gt;.Scripts</c> folder next to the application
-	/// (<see cref="AppContext.BaseDirectory"/>), whatever the current working directory is.
-	/// </param>
+	/// <param name="projectAssembly">The assembly of the SQL Project. Cannot be null.</param>
 	/// <returns>The same builder instance for chaining.</returns>
-	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly, bool useVsProjectPath = false)
+	/// <exception cref="ScriptsNotEmbeddedException">The assembly has no embedded scripts.</exception>
+	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly)
 	{
-		// ProjectDir metadata is read only when the source folder is needed: useVsProjectPath or [SqlFact] test discovery.
-		string GetVsProjectPath() => Path.Combine(GetVisualStudioProjectPath(projectAssembly), "Scripts");
+		EmbeddedFileSystem fileSystem = EmbeddedFileSystem.FromAssembly(projectAssembly);
 
-		string scriptsPath = useVsProjectPath
-			? GetVsProjectPath()
-			: Path.Combine(AppContext.BaseDirectory, projectAssembly.GetName().Name + ".Scripts");
+		// otherwise a forgotten EmbeddedResource item deploys an empty project.
+		if (fileSystem.IsEmpty)
+		{
+			throw new ScriptsNotEmbeddedException(projectAssembly.GetName().Name ?? projectAssembly.FullName ?? "");
+		}
+
+		ProjectPath projectPath = new(fileSystem.Root, fileSystem, GetSourceScriptsPath(projectAssembly));
 
 		return builder.ConfigureServices(services =>
 		{
-			ProjectPath projectPath = new(scriptsPath, GetVsProjectPath);
 			_ = services.AddSingleton<IProjectPath>(projectPath);
 		});
 	}
 
-	private static string GetVisualStudioProjectPath(Assembly projectAssembly)
+	/// <summary>
+	/// Reads the scripts from a folder.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <param name="scriptsPath">The scripts folder. A relative path is resolved against the current directory.</param>
+	/// <returns>The same builder instance for chaining.</returns>
+	/// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
+	public static DbLiveBuilder SetScriptsFolder(this DbLiveBuilder builder, string scriptsPath)
 	{
-		var attr = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-						   .FirstOrDefault(a => a.Key == "ProjectDir");
+		string fullPath = Path.GetFullPath(scriptsPath);
 
-		return attr?.Value ?? throw new Exception("ProjectDir metadata not found!");
+		if (!Directory.Exists(fullPath))
+		{
+			throw new DirectoryNotFoundException($"Scripts folder '{fullPath}' not found.");
+		}
+
+		ProjectPath projectPath = new(fullPath, new FileSystem(), fullPath);
+
+		return builder.ConfigureServices(services =>
+		{
+			_ = services.AddSingleton<IProjectPath>(projectPath);
+		});
+	}
+
+	/// <summary>
+	/// The Scripts folder in the source project, from the <c>ProjectDir</c> assembly metadata. Null without the metadata.
+	/// </summary>
+	internal static string? GetSourceScriptsPath(Assembly projectAssembly)
+	{
+		string? projectDir = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+			.FirstOrDefault(a => a.Key == "ProjectDir")?.Value;
+
+		return string.IsNullOrEmpty(projectDir) ? null : Path.Combine(projectDir, "Scripts");
 	}
 }
 

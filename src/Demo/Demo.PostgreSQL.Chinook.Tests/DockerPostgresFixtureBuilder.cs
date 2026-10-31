@@ -22,7 +22,7 @@ public class DockerPostgresFixtureBuilder : IDbLiveFixtureBuilder
 		return new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(connectionString)
-			.SetProject(GetProjectAssembly(), useVsProjectPath: true);
+			.SetProject(GetProjectAssembly());
 	}
 
 	public Assembly GetProjectAssembly() => typeof(DemoPostgreSQLChinookLink).Assembly;

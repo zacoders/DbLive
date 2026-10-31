@@ -120,7 +120,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(_dbCnnString)
-			.ConfigureServices(s => s.AddSingleton(project.ProjectPath));
+			.SetScriptsFolder(project.Path);
 	}
 
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
