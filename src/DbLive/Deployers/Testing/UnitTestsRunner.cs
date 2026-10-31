@@ -26,6 +26,7 @@ public class UnitTestsRunner(
 		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync().ConfigureAwait(false);
 
 		TestsRunResults runResults = new();
+		ConcurrentBag<string> failedTests = [];
 
 		var parallelOptions = new ParallelOptions
 		{
@@ -46,6 +47,7 @@ public class UnitTestsRunner(
 			else
 			{
 				runResults.IncremenFailed();
+				failedTests.Add(test.FileData.RelativePath);
 				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
 
@@ -67,7 +69,11 @@ public class UnitTestsRunner(
 
 		if (runResults.FailedCount > 0)
 		{
-			throw new UnitTestsFailedException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
+			throw new UnitTestsFailedException(
+				runResults.FailedCount,
+				runResults.Total,
+				[.. failedTests.Order(StringComparer.Ordinal)]
+			);
 		}
 	}
 }

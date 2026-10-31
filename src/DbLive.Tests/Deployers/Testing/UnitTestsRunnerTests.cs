@@ -173,7 +173,12 @@ public class UnitTestsRunnerTests
 				});
 			});
 
-		await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+
+		Assert.Equal(1, ex.FailedCount);
+		Assert.Equal(3, ex.TotalCount);
+		Assert.Equal(testItem2.FileData.RelativePath, Assert.Single(ex.FailedTests));
+		Assert.Equal("Unit test run failed. Failed test count 1 of 3.", ex.Message);
 
 		await mockSet.UnitTestItemRunner.Received(3).RunTestAsync(Arg.Any<TestItem>());
 		await mockSet.DbLiveDA.Received(3).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());

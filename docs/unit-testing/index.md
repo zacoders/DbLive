@@ -116,7 +116,7 @@ Tests/
 
 - Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result.
 - During a deployment, tests run in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
-- Results are saved in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws after all tests have run. The deployment itself has already been committed at that point.
+- Results are saved in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws `UnitTestsFailedException` after all tests have run. The deployment itself has already been committed at that point, so catching this type tells "deployed, tests failed" apart from "deployment failed". The exception has `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files).
 
 ## Running tests in Visual Studio and CI (xUnit)
 

@@ -388,7 +388,18 @@ For each test:
 
 `init.sql` and the test run on separate connections inside the same transaction. Data changes made by `init.sql` are visible to the test; session state is not (temporary tables, variables, `SET` options). Use permanent tables in `init.sql`.
 
-During `DeployAsync`, tests run after the deployment is committed, `NumberOfThreadsForTestsRun` (10) at a time. Each result is stored in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws an exception of type `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y."). That type is internal, so catch `Exception`. The deployment itself is already committed at that point.
+During `DeployAsync`, tests run after the deployment is committed, `NumberOfThreadsForTestsRun` (10) at a time. Each result is stored in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). The deployment itself is already committed at that point, so catch this type to tell "deployed, tests failed" from "deployment failed":
+
+```csharp
+try
+{
+    await deployer.DeployAsync(new DeployParameters { RunTests = true });
+}
+catch (UnitTestsFailedException ex)
+{
+    // Schema and code are deployed; ex.FailedTests lists the failed files.
+}
+```
 
 Parallel tests with `Serializable` isolation that touch the same tables can deadlock. If they do, set `"NumberOfThreadsForTestsRun": 1` or `"TestsTransactionIsolationLevel": "ReadCommitted"`.
 
@@ -868,7 +879,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `DowngradeImpossibleException` | A version to revert has no undo script stored | Cannot revert automatically; fix manually |
 | `MigrationDeploymentException` | SQL error in a migration/breaking/undo script | Read the inner SQL error and fix the script (it was not applied) |
 | `CodeDeploymentAggregateException` | A code file failed `MaxCodeDeployRetries` times | Read the inner exceptions; check dependencies and syntax |
-| `UnitTestsFailedException` (internal type) | One or more SQL tests failed after deployment | See the logs or `dblive.unit_test_run`; the deployment is already committed |
+| `UnitTestsFailedException` | One or more SQL tests failed after deployment | `FailedTests` lists the failed files; details are in the logs and `dblive.unit_test_run`. The deployment is already committed |
 | `DuplicateMigrationItemException` | Two files with the same version and type | Renumber the newer file (only if not applied anywhere) |
 | `MigrationItemMustExistsException` | Undo/breaking/settings without a migration for that version | Add the migration file or fix the version |
 | `ObsoleteMigrationSettingsFileException` | Old per-version `<version>.settings.json` / `<version>.s.json` | Rename to `<version>.migration.settings.json` (the message names it); add `.breaking.settings.json` / `.undo.settings.json` if those scripts need settings too; rename the key `MigrationTimeout` to `Timeout` |
