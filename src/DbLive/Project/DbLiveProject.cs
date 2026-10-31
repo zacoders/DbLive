@@ -5,7 +5,8 @@ public class DbLiveProject(
 	IProjectPath projectPath,
 	IFileSystem _fileSystem,
 	ISettingsAccessor settingsAccessor,
-	IMigrationVersionValidator migrationVersionValidator
+	IMigrationVersionValidator migrationVersionValidator,
+	ILogger logger
 ) : IDbLiveProject
 {
 	/// <summary>
@@ -13,6 +14,7 @@ public class DbLiveProject(
 	/// </summary>
 	internal const string TestSetupFileName = "setup.test.sql";
 
+	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
 	private readonly string _projectPath = projectPath.Path;
 	private readonly Lazy<string> _visualStudioProjectPath = new(() => projectPath.VisualStudioProjectPath);
 
@@ -20,16 +22,12 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
+		string codePath = _projectPath.CombineWithRelative(projectSettings.CodeFolder);
 
 		if (!_fileSystem.PathExists(codePath))
 		{
 			return [];
 		}
-
-		var subPaths = projectSettings.CodeSubFoldersDeploymentOrder
-			.Select(codePath.CombineWith)
-			.ToList();
 
 		List<string> codeFiles =
 		[
@@ -43,14 +41,24 @@ public class DbLiveProject(
 
 		var result = new List<CodeGroup>();
 
-		foreach (string subPath in subPaths)
+		foreach (string subFolder in projectSettings.CodeSubFoldersDeploymentOrder)
 		{
+			string subPath = codePath.CombineWithRelative(subFolder);
+
 			List<string> files = codeFiles
 				.RemoveWhere(f =>
 					f.StartsWith(
 						subPath + Path.DirectorySeparatorChar,
 						StringComparison.OrdinalIgnoreCase
 					));
+
+			if (files.Count == 0)
+			{
+				_logger.Warning(
+					"Code subfolder '{SubFolder}' from CodeSubFoldersDeploymentOrder matches no code files.",
+					subFolder
+				);
+			}
 
 			result.Add(new CodeGroup
 			{
@@ -87,7 +95,7 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string migrationsPath = _projectPath.CombineWith(projectSettings.MigrationsFolder);
+		string migrationsPath = _projectPath.CombineWithRelative(projectSettings.MigrationsFolder);
 
 		// a project without migrations (code only) is valid.
 		if (!_fileSystem.PathExists(migrationsPath))
@@ -164,8 +172,8 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string testsPath = _projectPath.CombineWith(projectSettings.TestsFolder);
-		string codePath = _projectPath.CombineWith(projectSettings.CodeFolder);
+		string testsPath = _projectPath.CombineWithRelative(projectSettings.TestsFolder);
+		string codePath = _projectPath.CombineWithRelative(projectSettings.CodeFolder);
 
 		List<TestItem> testGroups = [];
 
@@ -242,7 +250,7 @@ public class DbLiveProject(
 			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
-		string fullPath = Path.Combine(_projectPath, folderPath);
+		string fullPath = _projectPath.CombineWithRelative(folderPath);
 
 		if (_fileSystem.PathExists(fullPath))
 		{

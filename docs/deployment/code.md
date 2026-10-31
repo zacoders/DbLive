@@ -63,7 +63,7 @@ When only the implementation changes and the contract stays the same, keep the n
 
 ## Order, parallelism and retries
 
-- Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order. Everything else forms the last group.
+- Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order. Everything else forms the last group. Nested subfolders such as `"dbo/functions"` work with either `/` or `\`.
 - Within a group, up to `NumberOfThreadsForCodeDeploy` files (10 by default) are deployed in parallel.
 - A file that fails goes to the end of the queue and is retried, up to `MaxCodeDeployRetries` attempts (5 by default). Dependencies therefore usually resolve themselves: a view that uses a function deployed later succeeds on its second attempt.
 - When a file still fails after the last attempt, the deployment stops with `CodeDeploymentAggregateException`, which contains the SQL errors.

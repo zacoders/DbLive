@@ -51,7 +51,7 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 | `TestFilePatterns` | `["test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql"]`: which files in `Code` are tests |
 | `CodeSubFoldersDeploymentOrder` | `[]`: `Code` subfolders deployed first, in the listed order, before all other code |
 
-Entries in `CodeSubFoldersDeploymentOrder` are compared using the operating system's path separator. A nested entry such as `"dbo\\functions"` works only on Windows; prefer top-level folder names if you deploy from Linux too.
+Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymentOrder` entries are relative to `Code`. Both can be nested paths written with either separator: `"dbo/functions"` and `"dbo\\functions"` work the same on Windows and Linux. An entry in `CodeSubFoldersDeploymentOrder` that matches no code files is logged as a warning.
 
 ### Transactions
 

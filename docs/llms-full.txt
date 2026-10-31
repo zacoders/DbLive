@@ -180,7 +180,7 @@ builder.ConfigureServices(s => s.AddSingleton<IProjectPath>(new ProjectPath(scri
 
 ## 4. Scripts folder: discovery rules
 
-Paths below are relative to the scripts root. Folder names are configurable in `settings.json` (Section 9).
+Paths below are relative to the scripts root. Folder names are configurable in `settings.json` (Section 9), also as nested paths written with `/` or `\` (both work on any OS).
 
 | Folder (default name) | Required | Files picked up | Search | Order |
 |---|---|---|---|---|
@@ -318,7 +318,7 @@ Line endings: if one machine deploys with CRLF files (Windows checkout, `core.au
 - Manual changes made directly in the database are not detected: the file hash still matches, so the file is not re-run. To force a redeploy, change the file, or delete its row from `dblive.code`.
 - Execution order: groups listed in `CodeSubFoldersDeploymentOrder` (in that order), then everything else. Inside a group, up to `NumberOfThreadsForCodeDeploy` (10) files run in parallel. A failed file goes to the end of the queue and is retried up to `MaxCodeDeployRetries` (5) attempts in total. This resolves most dependency orders (a view that uses a function deployed later succeeds on retry). After the last attempt: `CodeDeploymentAggregateException`.
 - Put objects other code depends on, such as schemas and types, in a group listed first: `"CodeSubFoldersDeploymentOrder": ["schemas"]`.
-- `CodeSubFoldersDeploymentOrder` entries are matched as path prefixes with the OS path separator. Nested entries like `"dbo\\functions"` only work on Windows; prefer top-level folder names for cross-platform projects.
+- `CodeSubFoldersDeploymentOrder` entries are folder paths relative to `Code`, matched as path prefixes (case-insensitive). Nested entries may use `/` or `\`: `"dbo/functions"` and `"dbo\\functions"` work on any OS. An entry that matches no code files logs a warning and forms an empty group.
 - Code items are not wrapped in a transaction (each file is its own command) unless `TransactionWrapLevel` is `Deployment`, in which case code deploys single-threaded inside the deployment transaction.
 - Per-file command timeout: `CodeItemTimeout` (30 seconds by default).
 - One file can create several objects. SQL Server: separate batches with `GO`. Keep one logical object per file so that redeploys stay small.
@@ -529,7 +529,7 @@ select 'has-rows' as assert;
 | `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command; default for every migration, breaking and undo script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | same | `Serializable` | Isolation of test transactions. |
 | `TestFilePatterns` | string[] | `["test.*.sql","t.*.sql","*.test.sql","*.t.sql"]` | Which files in `Code/` are tests (and excluded from code deployment). |
-| `MigrationsFolder` | string | `Migrations` | Folder name under the scripts root. |
+| `MigrationsFolder` | string | `Migrations` | Folder path relative to the scripts root (same for the other `*Folder` settings). |
 | `CodeFolder` | string | `Code` | |
 | `TestsFolder` | string | `Tests` | |
 | `BeforeDeployFolder` | string | `BeforeDeploy` | |
@@ -546,6 +546,8 @@ select 'has-rows' as assert;
 | `UnitTestItemTimeout` | TimeSpan | `00:01:00` | Command and transaction timeout per test. |
 | `BeforeDeployFolderTimeout` | TimeSpan | `06:00:00` | Command timeout per BeforeDeploy file. |
 | `AfterDeployFolderTimeout` | TimeSpan | `06:00:00` | Command timeout per AfterDeploy file. |
+
+Folder settings and `CodeSubFoldersDeploymentOrder` entries are relative paths. Nested paths may use `/` or `\` on any OS: `"db/Code"` and `"db\\Code"` are the same folder. Leading and trailing separators are ignored.
 
 Example:
 
@@ -954,6 +956,5 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 - No CLI tool; deployments are started from your own C# code.
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
-- `CodeSubFoldersDeploymentOrder` entries with nested paths are OS-specific.
 - Code and test relative paths use the OS path separator, so switching the deploying OS redeploys every code file once (harmless).
 - Supported engines: SQL Server / Azure SQL and PostgreSQL. SQLite and MySQL are planned.
