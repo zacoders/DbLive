@@ -87,7 +87,7 @@ Entries in `CodeSubFoldersDeploymentOrder` are compared using the operating syst
 
 ## Choosing a transaction level
 
-DbLive does not wrap a deployment in one transaction by default, and that is intentional (see [Philosophy](../philosophy.md)):
+DbLive does not wrap a deployment in one transaction by default, and that is intentional (see [Database as a Service](../database-as-service.md#transactions)):
 
 - **`Migration`** (default): each migration, breaking and undo script commits or rolls back on its own, together with its bookkeeping. If version 5 fails, versions 1 to 4 stay applied and the next deployment continues with version 5. A downgrade works the same way: if the undo of version 3 fails, the undo of version 4 stays committed and the next downgrade continues with version 3. The database stays consistent between scripts, which is what a 24/7 system needs.
 - **`Deployment`**: all or nothing, including downgrades and breaking scripts. Simple for small databases and test environments, but it holds locks for the whole deployment and runs code deployment single-threaded.

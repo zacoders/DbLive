@@ -57,7 +57,9 @@ create or alter proc dbo.GetUsers_v2 as
 go
 ```
 
-After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone. See [Philosophy](../philosophy.md) and [Zero-Downtime Deployment](zero-downtime.md).
+After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)).
+
+When only the implementation changes and the contract stays the same, keep the name: the object is redeployed and its callers do not notice. See [Database as a Service](../database-as-service.md#a-procedure-is-a-module-with-a-history) and [Zero-Downtime Deployment](zero-downtime.md).
 
 ## Order, parallelism and retries
 

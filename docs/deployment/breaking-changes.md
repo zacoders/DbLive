@@ -1,6 +1,6 @@
 # Breaking Changes
 
-A **breaking change** removes something a running application may still use: a column, a table, a procedure version, a temporary sync trigger. DbLive keeps those changes out of the normal deployment and runs them in a separate **breaking** deployment, after the old application version has been shut down. This is the *contract* half of the expand/contract pattern described in [Philosophy](../philosophy.md).
+A **breaking change** removes something a running application may still use: a column, a table, a procedure version, a temporary sync trigger. DbLive keeps those changes out of the normal deployment and runs them in a separate **breaking** deployment, after the old application version has been shut down. This is the *contract* half of the expand/contract pattern described in [Database as a Service](../database-as-service.md#the-release-cycle).
 
 ## Writing a breaking script
 
@@ -27,6 +27,19 @@ go
 
 Make breaking scripts tolerant (`if exists`), and make the version's undo script handle both states: breaking applied and not applied.
 
+### Dropping an old procedure version
+
+When a procedure's contract changes, its file deploys `_v2` and the old `_v1` stays in the database for the old application (see [Code Deployment](code.md#versioned-interface)). Drop `_v1` in the breaking script of the migration version you ship together with it:
+
+```sql
+-- <version>.breaking.sql
+drop proc if exists dbo.GetPerson_v1;
+```
+
+A breaking script needs a migration of the same version (`MigrationItemMustExistsException` otherwise). If the release changes only code, add a new version with a trivial migration, for example a file containing only `select 1;`, and put the drop into its breaking script.
+
+Do not drop old versions in `AfterDeploy`: AfterDeploy scripts run on every deployment, including `DeployParameters.Default`, so the drop would run before the old application is gone.
+
 ## When breaking scripts run
 
 - Only when `DeployBreaking = true`, for example with `DeployParameters.Breaking`.
@@ -44,19 +57,7 @@ await deployer.DeployAsync(DeployParameters.Breaking);
 
 ## Release flow
 
-```mermaid
-flowchart LR
-    subgraph safe [Non-breaking SQL Deployment]
-        M[Migrations]
-        C[Code]
-    end
-    A[New App Deploy]
-    D[Drop Old App]
-    subgraph unsafe [Breaking SQL Deployment]
-        B[Breaking]
-    end
-    M --> C --> A --> D --> B
-```
+The [release cycle](../database-as-service.md#the-release-cycle) in four steps:
 
 1. Deploy with `DeployParameters.Default` (migrations and code).
 2. Deploy the new application; old and new instances run side by side.

@@ -4,7 +4,9 @@
 
 DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
 
-> **New to DbLive?** Start with [Philosophy](docs/philosophy.md) to understand zero-downtime deployment principles.
+DbLive is built around one idea: the database is a **separate service** with its own interface, release cycle and tests, so it can be deployed without stopping the applications that use it. The model is optional: you can use DbLive as an ordinary migration tool and adopt the rest later.
+
+> **The idea:** [Database as a Service](docs/database-as-service.md) explains the model, zero-downtime releases and the ways to use DbLive.
 >
 > **Using an AI coding assistant?** Give it [llms-full.txt](https://zacoders.github.io/DbLive/llms-full.txt): the complete reference in one file, written for agents (index: [llms.txt](https://zacoders.github.io/DbLive/llms.txt)).
 
@@ -251,7 +253,7 @@ Each SQL test runs inside a transaction. The transaction is always rolled back a
 
 ## Deployment flow
 
-See [Philosophy](docs/philosophy.md) for why breaking changes run in a separate phase and how migrations, code, and applications fit together.
+See [Database as a Service](docs/database-as-service.md) for why breaking changes run in a separate phase and how migrations, code, and applications fit together.
 
 A single `DeployAsync` run typically does (in order):
 
@@ -292,7 +294,7 @@ DbLive fits into a release pipeline like this:
 
 ## Design goals
 
-DbLive design follows [zero-downtime, backward-compatible delivery](docs/philosophy.md).
+DbLive design follows [zero-downtime, backward-compatible delivery](docs/database-as-service.md).
 
 - **Database is not a special snowflake** — it is code: versioned in repo, reviewed, and deployed like application code.
 - **SQL is testable** — procedures, views, and migrations can have automated tests.

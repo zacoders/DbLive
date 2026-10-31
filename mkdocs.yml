@@ -57,7 +57,33 @@ theme:
     #- content.code.annotate
     - navigation.expand
     - navigation.indexes
-    
+
+# Site navigation; without it pages are sorted alphabetically
+nav:
+  - Home: index.md
+  - Getting Started: gettingstarted.md
+  - Database as a Service: database-as-service.md
+  - Project:
+      - project/index.md
+      - project/structure.md
+      - project/configuration.md
+  - Deployment:
+      - deployment/index.md
+      - deployment/migrations.md
+      - deployment/code.md
+      - deployment/breaking-changes.md
+      - deployment/zero-downtime.md
+  - Unit Testing:
+      - unit-testing/index.md
+      - unit-testing/stored-proc-and-unit-test.md
+  - Features:
+      - features/index.md
+      - features/project-id.md
+  - Examples:
+      - examples/index.md
+      - examples/table-split.md
+  - For AI agents: ai-agents.md
+
 # Markdown extensions (extra syntax and rendering features)
 markdown_extensions:
   # Admonition/callout blocks (!!! note, warning, tip, etc.)

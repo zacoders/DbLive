@@ -4,6 +4,8 @@
 
 DbLive treats the database as versioned, testable, deployable code. Your SQL lives in a .NET project, is reviewed like any other code, is tested in CI, and is deployed by a few lines of C#.
 
+DbLive is built around one idea: the database is a **separate service** with its own interface, release cycle and tests, so it can be deployed without stopping the applications that use it. The model is optional: you can use DbLive as an ordinary migration tool and adopt the rest later. See [Database as a Service](database-as-service.md).
+
 ```csharp
 IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()
@@ -30,7 +32,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 
 - **[Getting Started](gettingstarted.md)**: create a project, add a migration, run the first deployment.
 - **[Add a stored procedure and a unit test](unit-testing/stored-proc-and-unit-test.md)**: continue the tutorial with code and tests.
-- **[Philosophy](philosophy.md)**: why DbLive separates migrations, code and breaking changes.
+- **[Database as a Service](database-as-service.md)**: the idea behind DbLive, and the ways to use it, from classic migrations to an independently released database.
 - **[Zero-Downtime Deployment](deployment/zero-downtime.md)**: the release runbook for 24/7 systems.
 
 ## Documentation map

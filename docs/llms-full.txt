@@ -23,6 +23,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production** (`RunTests = false` there). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
 13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json` (short `<version>.m.s.json`, `.b.s.json`, `.u.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`. A script that reverts a no-transaction change (concurrent/online index, `ALTER DATABASE`) usually needs its own `<version>.undo.settings.json`.
+14. **Follow the way the project uses DbLive** (Section 1). In a classic project (no `_vN` object names in `Code/`, no breaking scripts) change procedures in place and do not introduce versioned names or breaking scripts unless asked. In a project with a versioned interface: when the **contract** of an interface object changes (new required parameter, other result columns, other meaning), rename the object in the same file to the next version (`MyProc_v1` → `MyProc_v2`) and drop the old version in a breaking script (Section 18.6); when only the **implementation** changes, keep the name. Breaking this → running applications that still call the old name fail (missing parameter, changed result set), or a classic project collects versions that nobody drops.
 
 ---
 
@@ -36,7 +37,17 @@ Follow these when you create or change files in a DbLive project. Each rule name
 - **ProjectId**: binds a project to a database to prevent deploying to the wrong one.
 - **No CLI.** You write a small console app (the "deployer") or call DbLive from tests. `src/DbLive.Console` in the repository is an empty stub.
 
-Model DbLive recommends (not enforced): the database is a service; applications call versioned procedures/functions/views (`GetUsers_v1`, `GetUsers_v2`) and do not query tables directly; migrations reshape tables freely behind that interface.
+Model DbLive is built around (recommended, not enforced): the database is a separate service with its own interface, release cycle and tests; applications call versioned procedures/functions/views (`GetUsers_v1`, `GetUsers_v2`) and do not query tables directly; migrations reshape tables freely behind that interface. One file holds one interface object and is changed in place; git history is the object's history. Direct table access is possible, but then a table used by applications is part of the interface and is hard to change without downtime.
+
+Ways a project can use DbLive (each adds to the previous one; find out which one the project uses before changing it, rule 14):
+
+| Way | What the project uses | How to recognize it |
+|---|---|---|
+| Classic | Migrations and code | No breaking scripts, no `_vN` names in `Code/` |
+| Zero downtime | Backward-compatible (expand-only) migrations, breaking scripts, scripts without a transaction where needed (Section 10) | `<version>.breaking.sql` files, sync triggers, item settings with `"TransactionWrapLevel": "None"` |
+| Database as a service | Plus a versioned interface of procedures/functions | `_v1`/`_v2` (or `Name2`) object names in `Code/`, breaking scripts that drop old versions |
+
+SQL tests, undo scripts and rollback, checksums and ProjectId are available in every way.
 
 ---
 
@@ -352,6 +363,8 @@ $$;
 - Not wrapped in a transaction (unless `TransactionWrapLevel` is `Deployment`). Command timeout: `BeforeDeployFolderTimeout` / `AfterDeployFolderTimeout` (6 hours).
 - The database can be empty when BeforeDeploy runs (first deployment).
 - Use them for idempotent maintenance: permissions, refreshing reference data with `merge`, enabling database options, statistics.
+- Not a place for breaking changes such as dropping an old procedure version: AfterDeploy also runs with `DeployParameters.Default`, before the old application is gone. Use a breaking script (Section 18.6).
+- Only the folder names `BeforeDeploy` and `AfterDeploy` (or the names set by `BeforeDeployFolder` / `AfterDeployFolder`) are run. Another folder in the scripts root, for example `PostDeployment`, is ignored without a warning.
 
 ---
 
@@ -901,7 +914,7 @@ Migration: add a nullable column, or a non-null column with a default. Undo: dro
 5. Release: deploy `Default` → deploy the new app → drain the old app → deploy `Breaking`.
 
 ### 18.6 Change a procedure's contract
-Rename the object in its file (`GetUser_v1` → `GetUser_v2`), update the test file, and add `drop proc if exists dbo.GetUser_v1` to the breaking script of the migration version you ship together with it. A breaking script needs a migration of the same version; if the release has no schema change, add a trivial one (for example a file containing only `select 1;`).
+Rename the object in its file (`GetUser_v1` → `GetUser_v2`), update the test file, and add `drop proc if exists dbo.GetUser_v1` to the breaking script of the migration version you ship together with it. A breaking script needs a migration of the same version; if the release has no schema change, add a trivial one (for example a file containing only `select 1;`). Do not put the drop into AfterDeploy (Section 7). If only the implementation changes and the contract stays the same, keep the name and just edit the file.
 
 ### 18.7 Long-running index / data backfill
 Own migration version with `<v>.migration.settings.json` `{ "TransactionWrapLevel": "None", "Timeout": "01:00:00" }`. SQL Server: `with (online = on)`. PostgreSQL: `create index concurrently if not exists ...`, alone in its file. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied and the next deployment runs the whole script again. If the undo drops the index online/concurrently, give it `<v>.undo.settings.json` `{ "TransactionWrapLevel": "None" }` too; the migration's settings file does not apply to the undo. Batch large updates.

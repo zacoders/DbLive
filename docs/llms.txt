@@ -10,6 +10,7 @@ Key facts an agent must not get wrong:
 - Code files are re-executed when they change, so they must be re-runnable (`create or alter`).
 - Breaking (destructive) scripts run only with `DeployParameters.DeployBreaking = true`, after the old application is gone.
 - SQL tests assert through a result set whose first column is named `assert` (`rows`, `rows-with-schema`, `has-rows`, `row-count=N`, `empty`, `single-row`).
+- The "database as a service" model (versioned procedure names `_v1`/`_v2`, breaking scripts) is optional. Follow the way the project already uses DbLive; do not introduce the model into a project that does not use it.
 
 ## Docs
 
@@ -23,7 +24,7 @@ Key facts an agent must not get wrong:
 - [Breaking changes](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/breaking-changes.md): the contract phase
 - [Zero-downtime deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/zero-downtime.md): step-by-step runbook
 - [SQL unit testing](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/unit-testing/index.md): assertions, `init.sql`, xUnit integration
-- [Philosophy](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/philosophy.md): database as a service, versioned procedure interface, expand/contract
+- [Database as a Service](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/database-as-service.md): the idea behind DbLive, ways to use it (classic, zero downtime, full model), versioned procedure interface, expand/contract
 
 ## Examples
 

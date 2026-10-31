@@ -119,6 +119,7 @@ You will see deployment process in the console app output:
 
 * [Add Stored Procedure and Unit Test](unit-testing/stored-proc-and-unit-test.md)
 * [Configure Project](project/configuration.md)
+* [Database as a Service](database-as-service.md): what to do beyond classic migrations, for releases without downtime
 
 See the **Demo** projects in this repository (`src/Demo`) for full examples with MSSQL and PostgreSQL.
 

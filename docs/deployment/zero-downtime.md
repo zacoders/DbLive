@@ -4,35 +4,17 @@ This is the practical runbook for shipping database changes to an **always-on** 
 
 It all works because of **one rule**: every migration and every code deploy is **backward-compatible**, and anything destructive is deferred to an explicit **breaking** phase that runs only after the old application is gone.
 
-For the reasoning behind this model ([Database-as-a-service](../database-as-service.md), the versioned procedure interface, expand/contract), see [Philosophy](../philosophy.md). This page focuses on *how* to do it.
+For the reasoning behind this model (the database as a service, the versioned procedure interface, expand/contract), see [Database as a Service](../database-as-service.md). This page focuses on *how* to do it.
 
 ## The golden rule
 
 > Never break a running caller. Add the new; remove the old later.
 
-- The database is a **service** with a **versioned SQL interface** (procedures, functions, views). Applications call named, versioned objects - not internal tables.
+- The database is a **service** with a **versioned SQL interface** (procedures, functions, views). Applications call named, versioned objects rather than internal tables.
 - **Migrations only expand** internal state (add tables, columns, indexes, sync triggers). They never remove or rename what a running app still depends on.
 - **Breaking contracts** the schema (drop legacy procedures, columns, triggers) and runs **last**, once no old app instances remain.
 
-## Deploy order DbLive enforces
-
-Every deploy runs in this fixed order: **migrations, then code, then (optionally) breaking**.
-
-```mermaid
-flowchart LR
-    subgraph safe [Non-breaking SQL Deployment]
-        M[Migrations]
-        C[Code]
-    end
-    A[New App Deploy]
-    D[Drop Old App]
-    subgraph unsafe [Breaking SQL Deployment]
-        B[Breaking]
-    end
-    M --> C --> A --> D --> B
-```
-
-You run the non-breaking part (migrations + code) **before** the application rollout, and the breaking part **after** the old application is drained. See [Deployment flow](../../README.md#deployment-flow) for the full step list.
+Every deploy runs in a fixed order: **migrations, then code, then (optionally) breaking**. You run the non-breaking part (migrations + code) **before** the application rollout, and the breaking part **after** the old application is drained. See [What a deployment does](index.md#what-a-deployment-does) for the full step list.
 
 ## The recipe
 
@@ -62,11 +44,11 @@ end
 go
 ```
 
-Building an index on a large, live table? Create it online so writers are not blocked - see the transactions note below.
+Building an index or moving data in a large, live table? Run the script without a transaction so writers are not blocked - see [Transactions](#transactions) below.
 
 ### Step 2 - Add a new procedure version, do not mutate the old one
 
-The interface is versioned. When the contract changes, **add a new version** (`GetUsers_v2`) instead of editing the version old apps still call (`GetUsers_v1`). Keep one file per logical object; git history is your change log.
+The interface is versioned. When the **contract** changes, **add a new version** (`GetUsers_v2`) instead of editing the version old apps still call (`GetUsers_v1`). Keep one file per logical object and change it in place; git history is your change log. When only the implementation changes and the contract stays the same, keep the name.
 
 ```sql
 -- Earlier commit: GetUsers_v1 (still called by old apps)
@@ -99,7 +81,7 @@ var deployer = new DbLiveBuilder()
     .CreateDeployer();
 
 // Migrations + Code, no breaking. Run this BEFORE the app rollout.
-await deployer.DeployAsync(DeployParameters.Default);
+await deployer.DeployAsync(DeployParameters.Default with { RunTests = false });
 ```
 
 After this step the database serves **both** `GetUsers_v1` and `GetUsers_v2`. The old application is still fully functional.
@@ -122,42 +104,21 @@ await deployer.DeployAsync(DeployParameters.Breaking);
 ```
 
 ```sql
--- Example breaking script content
+-- <version>.breaking.sql
 drop proc if exists dbo.GetUsers_v1
 ```
 
-## Deploy presets
+A breaking script belongs to a migration version. If the release changes only code, see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version).
 
-DbLive ships presets that map directly onto this workflow (see [`DeployParameters`](../../src/DbLive/DeployParameters.cs)):
+Both presets are described in [Deployment](index.md#presets). Tests are not recommended against production databases.
 
-| Preset | Migrations | Code | Breaking | Tests |
-|--------|------------|------|----------|-------|
-| `DeployParameters.Default` | Yes | Yes | No | Yes |
-| `DeployParameters.Breaking` | No | No | Yes | No |
-| `DeployParameters.BreakingAndTests` | No | No | Yes | Yes |
+## Transactions
 
-Run **Default** before the application deploy (Step 3). Run **Breaking** only after the old application is gone (Step 6). Tests are not recommended against production databases.
+DbLive does **not** wrap the whole deployment in a single transaction: each migration commits or rolls back on its own, and the system stays operational between migrations. A script that builds an index online or moves data in a busy table can run without a transaction (`"TransactionWrapLevel": "None"` in its item settings file); write it to be re-runnable, because after a failure the next deployment runs it again from the start. See [Choosing a transaction level](../project/configuration.md#choosing-a-transaction-level) and [Item settings](../project/configuration.md#item-settings).
 
-## A note on transactions
+## Worked example
 
-DbLive does **not** wrap the whole deployment in a single transaction, and that is intentional for 24/7 systems:
-
-- The default `TransactionWrapLevel` is **`Migration`** - each migration commits or rolls back on its own (see [Project Configuration](../project/configuration.md)).
-- Between migrations the system stays **operational**. That is a feature, not a missing safeguard.
-- A migration can override the level when needed - for example, set `"TransactionWrapLevel": "none"` for online index creation so building an index does not hold a long transaction against a live table.
-
-## Worked example: splitting a column into a table
-
-The move phone data out of `Person` into a dedicated `PersonPhones` table is a complete zero-downtime change:
-
-| Step | Artifact | What happens |
-|------|----------|--------------|
-| Migration | [007.migration.sql](../../src/Demo/DemoMSSQL/Scripts/Migrations/007.migration.sql) | New `PersonPhones` table and sync trigger; legacy `PhoneNumber` column stays |
-| Deploy (Default) | your pipeline | Database now serves both old and new procedure versions |
-| App deploy | your pipeline | New app version calls the updated procedures |
-| Breaking | [007.breaking.sql](../../src/Demo/DemoMSSQL/Scripts/Migrations/007.breaking.sql) | Drop the sync trigger and the legacy `PhoneNumber` column |
-
-For a fuller narrative of the same transition, see [Table Split Example](../examples/table-split.md).
+Moving phone numbers out of `Person` into a dedicated `PersonPhones` table is a complete zero-downtime change; DemoMSSQL migration 007 implements it. See [Table Split Example](../examples/table-split.md).
 
 ## Pre-flight checklist
 
@@ -165,7 +126,7 @@ Before you deploy, confirm each of these - DbLive provides the rails, but backwa
 
 - [ ] The migration only **expands** (no dropped or renamed columns/tables that a running app uses).
 - [ ] Reshaped storage has a **sync trigger** keeping old and new in step during the transition.
-- [ ] Interface changes add a **new procedure version** rather than mutating the old one.
+- [ ] Interface contract changes add a **new procedure version** rather than mutating the old one; implementation-only changes keep the name.
 - [ ] Procedures stay **thin** - data access and atomic DB operations, not application business logic.
 - [ ] The new application references the **correct version** (`_v2`, not `_v1`) and never queries internal tables directly.
 - [ ] Old application instances are **fully drained** before the breaking deploy.
@@ -195,8 +156,8 @@ Run **Default** as part of (or just before) the application release. Gate **Brea
 
 ## Next steps
 
-- [Philosophy](../philosophy.md) - the why behind zero-downtime and database-as-a-service
+- [Database as a Service](../database-as-service.md) - the why behind zero-downtime and the versioned interface
 - [Getting Started](../gettingstarted.md) - set up a project and run your first deploy
 - [Table Split Example](../examples/table-split.md) - expand/contract in practice
 - [Project Configuration](../project/configuration.md) - `TransactionWrapLevel` and other settings
-- [DemoMSSQL](../../src/Demo/DemoMSSQL/) - migrations, code, breaking, and tests
+- [DemoMSSQL](https://github.com/zacoders/DbLive/tree/main/src/Demo/DemoMSSQL) - migrations, code, breaking, and tests
