@@ -30,7 +30,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 
 - **Migrations**: versioned, ordered, applied once per database. Optional undo (rollback) and breaking (contract phase) scripts for each version.
 - **Code**: stored procedures, functions, views, triggers, schemas. One file per object, re-executed when the file changes. Never dropped automatically.
-- **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run at the end of a deployment and/or as individual xUnit tests in Visual Studio / `dotnet test`.
+- **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run at the end of a deployment and/or as individual xUnit tests in Visual Studio / `dotnet test`. For xUnit, a fixture deploys the project into a new database (Docker via Testcontainers, or a local server) and drops it afterwards, so no shared test database is needed (Section 13).
 - **Breaking phase**: destructive changes run in a separate deployment, after the old application version is gone (zero-downtime expand/contract).
 - **Downgrade**: deploying an older build with fewer migrations reverts the extra versions using undo scripts stored in the database.
 - **ProjectId**: binds a project to a database to prevent deploying to the wrong one.
@@ -694,6 +694,8 @@ Task<TestRunResult> RunTestAsync(Action<string> writeLine, string testFileRelati
 ---
 
 ## 13. xUnit integration (`DbLive.xunit`, xUnit v2)
+
+SQL tests run like ordinary C# unit tests: the fixture builds a temporary database from the project scripts (in a Docker container or on a local server, with a random name), the tests run against it, and the database is dropped at the end. No shared test database is needed, and every developer machine and CI run starts from the same database.
 
 Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.x), `xunit.runner.visualstudio`, `DbLive.xunit`, the provider package, and usually `Testcontainers.MsSql` or `Testcontainers.PostgreSql`. Reference the SQL project.
 

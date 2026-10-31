@@ -21,7 +21,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 |------|------------------|
 | **Migrations** | Applies versioned scripts once per database, in order. Each version can have an **undo** script for rollback and a **breaking** script for the contract phase. |
 | **Code** | Deploys procedures, functions, views and triggers from one file per object, and re-runs a file only when it changes. |
-| **SQL tests** | Runs `.sql` tests in transactions that are always rolled back, at the end of a deployment or as individual xUnit tests in Visual Studio. |
+| **SQL tests** | Runs `.sql` tests in transactions that are always rolled back: at the end of a deployment, or as ordinary xUnit tests in Visual Studio and CI against a temporary database built from your scripts (in Docker or on a local server). |
 | **Zero downtime** | Destructive changes run in a separate **breaking** deployment, after the old application version is gone. |
 | **Rollback** | Deploying an older build reverts newer versions using the undo scripts stored in the database. |
 | **Safety** | Checksums of applied migrations, and an optional `ProjectId` that blocks deployment to the wrong database. |

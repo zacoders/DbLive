@@ -1,6 +1,6 @@
 # DbLive
 
-> DbLive is a .NET library (NuGet: DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit) for database lifecycle management on SQL Server and PostgreSQL: versioned SQL migrations with undo scripts, re-runnable code objects (procedures, functions, views), SQL unit tests that run in rolled-back transactions and as xUnit tests, and a separate "breaking changes" phase for zero-downtime releases.
+> DbLive is a .NET library (NuGet: DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit) for database lifecycle management on SQL Server and PostgreSQL: versioned SQL migrations with undo scripts, re-runnable code objects (procedures, functions, views), SQL unit tests that run in rolled-back transactions, also as xUnit tests against a temporary database built from the scripts (Docker or a local server), and a separate "breaking changes" phase for zero-downtime releases.
 
 Start with `llms-full.txt`: it is a complete, self-contained reference written for AI coding agents (setup, file naming grammar, settings, transactions, test assertions, exceptions, recipes). The pages below are the human documentation; they cover the same facts in narrative form.
 

@@ -16,7 +16,7 @@ DbLive treats the database as **versioned, testable, deployable code**. Use it w
 |------|-------------|
 | **Migrations** | Versioned schema changes with optional undo scripts; ordered, repeatable deployments. |
 | **Code** | Deploy stored procedures, views, functions, and other code objects separately from migrations. |
-| **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI. |
+| **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI, against a temporary database built from your scripts (Docker or a local server). |
 | **Breaking changes** | Deploy breaking changes in a dedicated phase (e.g. after app rollout). |
 | **Rollback** | Downgrade to a target version using undo scripts; rollback is part of the system, not a manual fix. |
 | **CI/CD** | Works with GitHub Actions, Azure DevOps, TeamCity, Jenkins, or any build system that runs `dotnet`. |
@@ -131,6 +131,7 @@ DbLive lets you **write tests in SQL** and run them as normal C# tests:
 - In **Visual Studio** Test Explorer
 - In **CI** (e.g. `dotnet test`)
 - With the same tooling as the rest of your solution
+- Against a **temporary database** built from your scripts, in Docker (Testcontainers) or on a local server, and dropped after the run: no shared test database to maintain
 
 Use SQL tests to:
 

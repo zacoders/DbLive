@@ -5,6 +5,8 @@ DbLive tests are plain `.sql` files with Arrange, Act and Assert sections. Every
 - at the end of a deployment, when `RunTests` is true;
 - as normal xUnit tests in Visual Studio Test Explorer and in `dotnet test`, one test case per file (package `DbLive.xunit`).
 
+With xUnit you need no shared test database. The test fixture deploys your scripts into a new database, in Docker (Testcontainers) or on a local server, runs the tests against it and drops it at the end. SQL tests then work like ordinary C# unit tests: every developer and every CI run gets the same database, built from the same scripts.
+
 Tutorial: [Add a Stored Procedure and a Unit Test](stored-proc-and-unit-test.md).
 
 ## Where tests live
