@@ -4,7 +4,7 @@ Code objects are the **interface** of the database: procedures, functions, views
 
 ## How it works
 
-- Every `*.sql` file under `Code` that is not a [test file](../project/structure.md#test-files) is a code item, identified by its path relative to `Scripts`, ignoring case (for example `Code/dbo/GetUser.sql`).
+- Every `*.sql` file under `Code` that is not a [test file](../project/structure.md#test-files) and not a [breaking script](breaking-changes.md#dropping-an-old-procedure-version) (`breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql`) is a code item, identified by its path relative to `Scripts`, ignoring case (for example `Code/dbo/GetUser.sql`).
 - DbLive executes a code file when the database has no successful run of that path with the same content. Unchanged files are skipped and logged as `[hash match]`.
 - A file is executed again when its content changes, when it is moved or renamed, and on every new database. A rename that changes only case (`GetUser.sql` to `getUser.sql`) is not a change. **Code files must be re-runnable.**
 - Code runs after migrations, so it can use the tables they create.
@@ -33,11 +33,14 @@ if schema_id('sales') is null
 
 ## Code is never dropped
 
-DbLive does not drop objects. When you delete a file, rename an object in its file, or move the file, the old object stays in the database. That is deliberate: old application instances may still call it. Remove superseded objects explicitly in a [breaking script](breaking-changes.md):
+DbLive does not drop objects. When you delete a file, rename an object in its file, or move the file, the old object stays in the database. That is deliberate: old application instances may still call it, and DBAs may create objects outside DbLive. Remove superseded objects explicitly in a breaking script of the Code folder, next to the file ([Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)):
 
 ```sql
+-- Code/dbo/GetUser.breaking.sql
 drop proc if exists dbo.GetUser_v1;
 ```
+
+When code is deployed, the row of a file deleted from the project is marked `removed` in `dblive.code`. If the file comes back, for example with a rollback to the build that still had it, it is executed again, so the object it creates is restored.
 
 ## Versioned interface
 
@@ -57,7 +60,12 @@ create or alter proc dbo.GetUsers_v2 as
 go
 ```
 
-After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)).
+```sql
+-- Code/dbo/GetUsers.breaking.sql, this commit
+drop proc if exists dbo.GetUsers_v1;
+```
+
+After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)). Rolling back to the previous build redeploys `GetUsers.sql` with `_v1`; `_v2` stays.
 
 When only the implementation changes and the contract stays the same, keep the name: the object is redeployed and its callers do not notice. See [Database as a Service](../database-as-service.md#a-procedure-is-a-module-with-a-history) and [Zero-Downtime Deployment](zero-downtime.md).
 
@@ -82,4 +90,4 @@ Each code file runs as its own command, without a transaction, with a timeout of
 
 - **Manual changes are not detected.** If someone alters a procedure directly in the database, the file's checksum still matches and DbLive will not redeploy it. Change the file, or delete its row from `dblive.code`, to force a redeploy. Paths are stored there in lower case: `delete from dblive.code where relative_path = lower('Code/dbo/GetUser.sql');`.
 - **One object per file** keeps redeployments small and errors easy to locate. On SQL Server, a file may contain several batches separated by `GO`.
-- **Status** of every file is in `dblive.code`; the last error of a failed file is in its `error` column.
+- **Status** of every file is in `dblive.code` (`applied`, `error`, or `removed` for a file no longer in the project), together with the breaking scripts of the Code folder (`item_type = 'breaking'`); the last error of a failed file is in its `error` column.

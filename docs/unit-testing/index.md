@@ -233,6 +233,8 @@ It produces six test cases: with and without breaking changes, each in three und
 |-----------|---------------------------------------------------|
 | `None` | migration |
 | `MigrationUndoMigration` | migration, undo, migration |
-| `MigrationBreakingUndoMigration` | migration, breaking, undo, migration |
+| `MigrationBreakingUndoMigration` | migration, breaking, breaking, undo, migration |
 
 Each case deploys to a fresh database and then runs all SQL tests. Together they prove that migrations apply cleanly, that undo scripts revert them (with and without the breaking part), and that a version can be re-applied after an undo.
+
+In the cases with breaking changes, a second, separate deployment with `DeployParameters.Breaking` follows, as in production. It proves that the [breaking scripts of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) survive a second run (they run on every breaking deployment), that the breaking deployment is allowed after a normal one, and that BeforeDeploy and AfterDeploy scripts survive a second run too. The breaking script of a migration runs twice in `MigrationBreakingUndoMigration`, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment. The database is new, so an old object version such as `_v1` never existed in it: these tests do not prove that dropping an `_v1` that really exists works.

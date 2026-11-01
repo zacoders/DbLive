@@ -2,9 +2,14 @@
 
 A **breaking change** removes something a running application may still use: a column, a table, a procedure version, a temporary sync trigger. DbLive keeps those changes out of the normal deployment and runs them in a separate **breaking** deployment, after the old application version has been shut down. This is the *contract* half of the expand/contract pattern described in [Database as a Service](../database-as-service.md#the-release-cycle).
 
-## Writing a breaking script
+There are two kinds of breaking scripts, and both run in the same breaking phase:
 
-A breaking script belongs to a migration version and is named `<version>.breaking.sql` (or `<version>.b.sql`):
+- a breaking script of a **migration** changes tables: drops an old column, a table, a temporary sync trigger;
+- a breaking script of the **Code folder** drops old versions of code objects, next to the code it cleans up.
+
+## Breaking scripts of migrations
+
+A breaking script of a migration belongs to its version and is named `<version>.breaking.sql` (or `<version>.b.sql`):
 
 ```
 Migrations/
@@ -20,23 +25,35 @@ go
 
 alter table dbo.Person drop column if exists PhoneNumber;
 go
-
-drop proc if exists dbo.GetPerson_v1;
-go
 ```
 
 Make breaking scripts tolerant (`if exists`), and make the version's undo script handle both states: breaking applied and not applied.
 
-### Dropping an old procedure version
+## Dropping an old procedure version
 
-When a procedure's contract changes, its file deploys `_v2` and the old `_v1` stays in the database for the old application (see [Code Deployment](code.md#versioned-interface)). Drop `_v1` in the breaking script of the migration version you ship together with it:
+When a procedure's contract changes, its file deploys `_v2` and the old `_v1` stays in the database for the old application (see [Code Deployment](code.md#versioned-interface)). Drop `_v1` in a breaking script of the Code folder, next to the file:
+
+```
+Code/
+  dbo/
+    GetPerson.sql             create or alter proc dbo.GetPerson_v2 (was GetPerson_v1)
+    GetPerson.breaking.sql    drop proc if exists dbo.GetPerson_v1
+```
 
 ```sql
--- <version>.breaking.sql
+-- Code/dbo/GetPerson.breaking.sql
 drop proc if exists dbo.GetPerson_v1;
 ```
 
-A breaking script needs a migration of the same version (`MigrationItemMustExistsException` otherwise). If the release changes only code, add a new version with a trivial migration, for example a file containing only `select 1;`, and put the drop into its breaking script.
+A code-only release needs no migration for it.
+
+- **Names.** `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its whole folder; short forms `<name>.b.sql` and `b.sql`. Any subfolder of `Code` works. The pair is only a naming convention: DbLive does not link a breaking script to a code file, so a breaking script without a code file is valid (a procedure retired together with its file).
+- **Not code, not tests.** These files are never deployed as code and never run as tests. A name that is also a [test file name](../project/structure.md#test-files) (`test.breaking.sql`, `t.b.sql` with the default `TestFilePatterns`) fails the deployment with `BreakingScriptMatchesTestPatternException`, before anything is deployed.
+- **Every breaking deployment.** There is no "applied once": every code breaking script runs on every breaking deployment, the way AfterDeploy runs on every deployment. **Write them idempotent** (`drop ... if exists`): on a new database `_v1` never existed. A script that fails halfway leaves some old objects dropped and others not; the next breaking deployment finishes the job.
+- **Order.** By relative path, before the breaking scripts of migrations, so dependents are dropped before what they depend on: on PostgreSQL a view `_v1` blocks the `drop column` of a migration breaking script.
+- **Execution.** Each file is one command without a transaction of its own, like a code file, with the `CodeItemTimeout` timeout. With `TransactionWrapLevel: Deployment` it runs inside the deployment transaction. A failed script stops the deployment with `CodeDeploymentException`.
+- **Record.** Each run is written to the file's row in `dblive.code` (`item_type = 'breaking'`, `status` `applied` or `error`, the error text in `error`).
+- **No undo.** A rollback restores the code by itself. Deploying the previous build runs its `GetPerson.sql` again, because its content differs from what was last deployed, and `_v1` is back; `_v2` stays and does not disturb the old application. If the old version lived in a file of its own that the newer build deleted (`GetPerson_v1.sql`), that file's row was marked `removed` when the newer build deployed its code, so the file is executed again when the previous build brings it back.
 
 Do not drop old versions in `AfterDeploy`: AfterDeploy scripts run on every deployment, including `DeployParameters.Default`, so the drop would run before the old application is gone.
 
@@ -44,9 +61,11 @@ Do not drop old versions in `AfterDeploy`: AfterDeploy scripts run on every depl
 
 - Only when `DeployBreaking = true`, for example with `DeployParameters.Breaking`.
 - After migrations and code, in the same deployment.
-- For every version whose **migration is already applied** and whose breaking script is not. A breaking script never runs before its migration.
-- In version order, **each in its own transaction** with the default `TransactionWrapLevel: Migration`, so the breaking scripts that ran before a failed one stay applied. `<version>.breaking.settings.json` sets the [transaction level, isolation level and timeout](../project/configuration.md#item-settings) of one breaking script; the migration's settings file does not apply to it.
-- Once applied, a breaking script is protected by a [checksum](migrations.md#checksums) like a migration. Before it is applied you can still edit it.
+- **Only after the normal deployment of the same build.** Every code file of the project must be deployed with its current content: it has an `applied` row with its current checksum in `dblive.code`. Otherwise the deployment fails with `CodeNotDeployedException`, which says how many code files differ and names a few, and no breaking script runs. It stops a breaking stage that would drop what the running application still uses: started although the `Default` deployment of the build failed, run before `Default`, or a stale breaking job of a newer build after a rollback. A run that also deploys code (`DeployParameters.Default with { DeployBreaking = true }`) always passes, and so does a project without code files.
+- First every breaking script of the Code folder, then the breaking scripts of migrations.
+- A breaking script of a migration runs for every version whose **migration is already applied** and whose breaking script is not. It never runs before its migration.
+- Breaking scripts of migrations run in version order, **each in its own transaction** with the default `TransactionWrapLevel: Migration`, so the ones that ran before a failed one stay applied. `<version>.breaking.settings.json` sets the [transaction level, isolation level and timeout](../project/configuration.md#item-settings) of one breaking script; the migration's settings file does not apply to it.
+- Once applied, a breaking script of a migration is protected by a [checksum](migrations.md#checksums) like a migration. Before it is applied you can still edit it. Breaking scripts of the Code folder have no checksum protection: edit them like code.
 
 ```csharp
 // The old application is gone: contract the schema.
@@ -64,15 +83,17 @@ The [release cycle](../database-as-service.md#the-release-cycle) in four steps:
 3. Drain and remove the old application.
 4. Deploy with `DeployParameters.Breaking`.
 
-The breaking deployment is safe to repeat: when nothing is pending, it logs `No breaking changes to apply.`
+The breaking deployment is safe to repeat: the breaking scripts of the Code folder run again (they are idempotent), and the breaking scripts of migrations that are already applied are skipped (`No migration breaking scripts to apply.`).
 
 ## In tests
 
-Test databases usually get everything at once. The `[SqlFact]` fixture deploys migrations, code **and** breaking scripts before the SQL tests run, and the `[SqlDeployFact]` deployment test runs every scenario with and without breaking changes. See [Unit Testing](../unit-testing/index.md).
+Test databases usually get everything at once. The `[SqlFact]` fixture deploys migrations, code **and** breaking scripts before the SQL tests run.
+
+The `[SqlDeployFact]` deployment test runs every scenario with and without breaking changes. In the cases with breaking it then runs a second, separate deployment with `DeployParameters.Breaking`, as in production: every breaking script of the Code folder runs twice, and the guard above must pass after a normal deployment. In the undo mode `MigrationBreakingUndoMigration` every breaking script of a migration runs twice too: migration, breaking, breaking, undo, migration. A script that does not survive a second run fails the test. The test database is new, so an old version such as `_v1` never existed there: dropping an `_v1` that really exists is not tested. See [Unit Testing](../unit-testing/index.md#deployment-tests).
 
 ## What DbLive cannot check
 
-DbLive guarantees the order (breaking runs last and only on request), not the content. Your team still has to make sure that:
+DbLive guarantees the order (breaking runs last, only on request, and only after the normal deployment of the build), not the content. Your team still has to make sure that:
 
 - migrations and code are really backward compatible;
 - no old application instance is running when the breaking deployment starts;

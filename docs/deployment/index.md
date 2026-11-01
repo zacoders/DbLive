@@ -45,7 +45,7 @@ Every `DeployAsync` call runs these steps in this order:
 6. **BeforeDeploy** scripts.
 7. **Migrations**: pending versions in ascending order (`DeployMigrations`).
 8. **Code**: new and changed code files (`DeployCode`).
-9. **Breaking**: pending breaking scripts (`DeployBreaking`).
+9. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
 10. **AfterDeploy** scripts.
 11. **Tests**: all SQL tests (`RunTests`). If any test fails, `DeployAsync` throws after all tests have run.
 
@@ -60,7 +60,7 @@ Steps 1 to 6 and 10 run whatever the flags say. A breaking-only deployment there
 | `CreateDbIfNotExists` | `true` | Create the database if missing. SQL Server connects to `master`, PostgreSQL to `postgres`; the login needs permission to create databases. |
 | `DeployMigrations` | `true` | Apply pending migrations. |
 | `DeployCode` | `true` | Deploy new and changed code files. |
-| `DeployBreaking` | `false` | Apply pending breaking scripts. |
+| `DeployBreaking` | `false` | Run the breaking phase: the breaking scripts of the Code folder and the pending breaking scripts of migrations. |
 | `RunTests` | `true` | Run all SQL tests after the deployment. |
 | `AllowDatabaseDowngrade` | `false` | Allow reverting versions that are applied in the database but missing from the project. |
 | `RepairMigrationChecksums` | `false` | Accept changed applied migration files by updating their stored checksums. |

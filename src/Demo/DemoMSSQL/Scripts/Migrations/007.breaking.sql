@@ -5,7 +5,7 @@
 	
 */
 
-drop trigger dbo.TMP_DataMigration_Person_To_PersonPhones
+drop trigger if exists dbo.TMP_DataMigration_Person_To_PersonPhones
 go
 
 alter table dbo.Person

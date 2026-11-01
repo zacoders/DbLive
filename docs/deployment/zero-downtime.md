@@ -104,11 +104,13 @@ await deployer.DeployAsync(DeployParameters.Breaking);
 ```
 
 ```sql
--- <version>.breaking.sql
+-- Code/dbo/GetUsers.breaking.sql, next to GetUsers.sql
 drop proc if exists dbo.GetUsers_v1
 ```
 
-A breaking script belongs to a migration version. If the release changes only code, see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version).
+The old procedure version is dropped by a breaking script of the Code folder, next to its file; legacy columns and sync triggers by the breaking script of their migration (`<version>.breaking.sql`). Code breaking scripts run on every breaking deployment, so write them with `if exists`. See [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version).
+
+The breaking deployment fails with `CodeNotDeployedException` if the code of this build is not deployed yet (step 3 failed or was skipped), so a breaking stage started too early cannot drop `GetUsers_v1` under the running old application.
 
 Both presets are described in [Deployment](index.md#presets). Tests are not recommended against production databases.
 

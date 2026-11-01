@@ -57,11 +57,14 @@ as
 go
 ```
 
-DbLive never drops code objects, so after the deployment the database has both versions: old applications call `_v1`, new ones call `_v2`. `_v1` is dropped in the [breaking phase](deployment/breaking-changes.md), once no application calls it:
+DbLive never drops code objects, so after the deployment the database has both versions: old applications call `_v1`, new ones call `_v2`. `_v1` is dropped in the [breaking phase](deployment/breaking-changes.md#dropping-an-old-procedure-version), once no application calls it, by a breaking script next to the procedure's file:
 
 ```sql
+-- Code/dbo/my-stored-proc.breaking.sql
 drop proc if exists dbo.MyStoredProc_v1;
 ```
+
+The breaking script runs on every breaking deployment, so it is written with `if exists`. Rolling back to the previous build redeploys `my-stored-proc.sql` with `_v1`; `_v2` stays and does not disturb the old application.
 
 In DemoMSSQL, [`GetUser.sql`](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Code/dbo/stored-procedures/GetUser.sql) deploys `GetUser2`, and [`005.breaking.sql`](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Migrations/005.breaking.sql) drops the old `GetUser`.
 
@@ -117,7 +120,7 @@ DbLive allows and encourages zero-downtime releases: its defaults (one transacti
 ### DbLive enforces
 
 - Deploy order: migrations → code → (optional) breaking.
-- Breaking only when `DeployBreaking = true`, and a breaking script never before its migration.
+- Breaking only when `DeployBreaking = true`, only after the normal deployment of the same build, and a breaking script never before its migration.
 - Checksums of applied migrations, undo scripts stored in the database, optional [ProjectId](features/project-id.md) binding.
 
 ### The team must ensure

@@ -16,6 +16,7 @@ public class CodeItemDeployerTests
 			AppliedUtc = new DateTime(2023, 1, 1),
 			ExecutionTimeMs = 5,
 			RelativePath = codeItem.FileData.RelativePath,
+			ItemType = CodeItemType.Code,
 			Status = CodeItemStatus.Applied,
 			CreatedUtc = new DateTime(2023, 1, 1, 1, 1, 1),
 			ErrorMessage = null,
@@ -50,6 +51,7 @@ public class CodeItemDeployerTests
 			ContentHash = LegacyContentHash.Of("select 1 as a\r\nunion all\r\nselect 2;\r\n"),
 			AppliedUtc = new DateTime(2023, 1, 1),
 			RelativePath = codeItem.FileData.RelativePath,
+			ItemType = CodeItemType.Code,
 			Status = CodeItemStatus.Applied
 		};
 
@@ -83,6 +85,7 @@ public class CodeItemDeployerTests
 			AppliedUtc = new DateTime(2023, 1, 1),
 			ExecutionTimeMs = 5,
 			RelativePath = codeItem.FileData.RelativePath,
+			ItemType = CodeItemType.Code,
 			Status = CodeItemStatus.Applied,
 			CreatedUtc = new DateTime(2023, 1, 1, 1, 1, 1),
 			ErrorMessage = null,
@@ -102,6 +105,40 @@ public class CodeItemDeployerTests
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
 	}
 
+
+	[Fact]
+	public async Task DeployCodeItem_Removed_File_Is_Executed_Again()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		CodeItem codeItem = GetCodeItem();
+
+		// the file was deleted by a newer build, and a rollback brought it back with the same content.
+		CodeItemDto codeItemDto = new()
+		{
+			ContentHash = codeItem.FileData.ContentHash,
+			AppliedUtc = new DateTime(2023, 1, 1),
+			RelativePath = codeItem.FileData.RelativePath,
+			ItemType = CodeItemType.Code,
+			Status = CodeItemStatus.Removed,
+			VerifiedUtc = new DateTime(2023, 1, 2)
+		};
+
+		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		// Act
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
+
+		// Assert
+		Assert.True(res.IsSuccess);
+		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync(codeItem.FileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received(1).SaveCodeItemAsync(Arg.Is<CodeItemDto>(i =>
+			i.Status == CodeItemStatus.Applied && i.ItemType == CodeItemType.Code));
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkCodeAsVerifiedAsync(default!, default);
+	}
 
 	[Fact]
 	public async Task Deploy_New_CodeItem_Success()

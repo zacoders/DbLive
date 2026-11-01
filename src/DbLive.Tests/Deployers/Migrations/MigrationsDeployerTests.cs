@@ -244,10 +244,11 @@ public class MigrationsDeployerTests
 		// Act
 		await deployer.DeployAsync(migration, parameters);
 
-		// Assert
+		// Assert: the breaking script runs twice, it must survive a second run.
 		Received.InOrder(() =>
 		{
 			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem, new MigrationItemSettings());
+			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, undoItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem, new MigrationItemSettings());

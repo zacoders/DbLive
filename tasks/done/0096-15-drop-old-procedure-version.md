@@ -2,6 +2,8 @@
 type: feature
 priority: medium
 created: 2026-10-31
+closed: 2026-11-01
+breaking: true
 ---
 # Breaking scripts in the Code folder: drop an old procedure version without a migration
 
@@ -57,13 +59,45 @@ Rejected:
 - `docs/deployment/breaking-changes.md` ("Dropping an old procedure version": replace the workaround; "When breaking scripts run": the guard; "In tests"), `docs/deployment/code.md` ("Code is never dropped", "Versioned interface"), `docs/deployment/migrations.md` ("Undo scripts": the test sequence), `docs/deployment/zero-downtime.md` (step 6), `docs/database-as-service.md` ("A procedure is a module with a history"), `docs/project/structure.md` ("Code files"), `docs/unit-testing/index.md` ("Deployment tests")
 
 ## Done when
-- [ ] Implemented with unit tests: discovery (full and short names, a name that is also a test), order before migration breaking scripts, guard (passes, fails, also for migration breaking scripts), status `removed` (a breaking script of the project is not marked), rows of breaking scripts in `dblive.code`
-- [ ] `[SqlDeployFact]` runs a second breaking deployment in the cases with breaking, and each migration breaking script twice in `MigrationBreakingUndoMigration`
-- [ ] Integration tests on SQL Server and PostgreSQL: `_v1` → `_v2` with a code breaking script; a rollback to the previous build restores `_v1`; upgrading again and the breaking deployment drop it again; an old version kept in its own deleted file is restored by a rollback; `Breaking` before `Default` fails
-- [ ] Docs updated
-- [ ] Release note written (0096-19): the guard for migration breaking scripts; code files named like breaking scripts stop deploying as code
+- [x] Implemented with unit tests: discovery (full and short names, a name that is also a test), order before migration breaking scripts, guard (passes, fails, also for migration breaking scripts), status `removed` (a breaking script of the project is not marked), rows of breaking scripts in `dblive.code`
+- [x] `[SqlDeployFact]` runs a second breaking deployment in the cases with breaking, and each migration breaking script twice in `MigrationBreakingUndoMigration`
+- [x] Integration tests on SQL Server and PostgreSQL: `_v1` → `_v2` with a code breaking script; a rollback to the previous build restores `_v1`; upgrading again and the breaking deployment drop it again; an old version kept in its own deleted file is restored by a rollback; `Breaking` before `Default` fails
+- [x] Docs updated
+- [x] Release note written (0096-19): the guard for migration breaking scripts; code files named like breaking scripts stop deploying as code
 
 ## Notes
 - PostgreSQL, not part of this task: after a rollback `_v2` stays. If it is a view or a SQL function with `BEGIN ATOMIC` that depends on a column the undo of a migration drops, that `drop column` fails; the undo must drop such code first.
 - No warning for an existing code file whose name now makes it a breaking script (`*.breaking.sql`, `*.b.sql`, `breaking.sql`, `b.sql`): DbLive has no users besides the maintainer yet, so the release note is enough.
 - Related: `tasks/0096-32-undo-test-schema-compare.md`, `tasks/ideas/undo-test-data-round-trip.md` (came up in the same discussion).
+
+2026-11-01, while implementing:
+- Marking `removed` compares the project paths with the stored ones in the database, not in C#: 0096-31-02 decided that `lower()` runs only in the database and no C# code compares a path read from the database with a project path. A mismatch here would be worse than a redeploy: a present file marked `removed` is executed and marked again on every deployment, and the guard fails for it forever. The paths are sent as one parameter: xml on SQL Server (works at any compatibility level, unlike `openjson`/`string_split`, and has no 2100-parameter limit), `text[]` on PostgreSQL. Verified on both engines with a path containing `&` and Cyrillic letters.
+- The guard calls `FindCodeItemAsync` per code file and applies the skip check of `CodeItemDeployer` (status `applied`, `MatchesHash`, so legacy hashes of CRLF checkouts pass): it passes exactly when the code deployment has nothing left to execute. One query per code file in a breaking run, like the code deployment itself.
+- Rows are marked `removed` after the code deployed successfully; `verified_utc` is set to the time the file was found missing, `applied_utc` keeps the last execution.
+- The self-migrations (`10.code-item-type.sql`, `07.code-item-type.sql`) are re-runnable (`col_length(...) is null`, `add column if not exists`): the integration tests that simulate an older DbLive lower `dblive.version` and run the later scripts again.
+- A failed code breaking script saves an `error` row, throws `CodeDeploymentException` (reused, the message names the file) and the scripts after it do not run. No retries: the order is by path and the author controls it.
+- The log line `No breaking changes to apply.` became `No migration breaking scripts to apply.`: code breaking scripts run every time.
+- Found by the new `[SqlDeployFact]` steps: `src/Demo/DemoMSSQL/Scripts/Migrations/007.breaking.sql` dropped the trigger without `if exists` and failed its second run. Fixed (demo only, databases are created by the tests).
+- Demo: `DemoMSSQL/Scripts/Code/dbo/stored-procedures/GetUser.breaking.sql` drops `dbo.GetUser`, the version before `GetUser2`. `005.breaking.sql` keeps the same drop: it is applied history.
+- The unit test `GetCodeItems_SortedByRelativePath_OrdinalIgnoreCase` used `Code/b.sql` as a code file; it is a breaking script now (the release-note case), renamed to `Code/c.sql`.
+- `breaking: true` and `## Release note` follow the task format planned in 0096-19, which is not in `tasks/README.md` yet.
+- The PostgreSQL note above (an undo blocked by a `_v2` view) is documented for agents in `docs/llms-full.txt` §5.5; DbLive does nothing about it.
+
+## Release note
+Breaking scripts in the `Code` folder. `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its folder (short forms `<name>.b.sql`, `b.sql`), drops an old version of a code object in the breaking phase, for example `drop proc if exists dbo.GetUser_v1;`. They run on every breaking deployment, before the breaking scripts of migrations, so they must be idempotent. A code-only release no longer needs a migration to carry the drop.
+
+Breaking changes:
+- The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build, or after a rollback, no longer drops anything.
+- Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
+- `[SqlDeployFact]`: the cases with breaking run a second deployment with `DeployParameters.Breaking`, and `MigrationBreakingUndoMigration` runs each migration breaking script twice. A breaking script that fails on a second run (for example `drop trigger` without `if exists`) now fails these tests.
+
+Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that comes back with a rollback is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
+
+## Result
+- Discovery (`DbLiveProject`): `breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql` in `Code/` are excluded from code groups and returned by the new `IDbLiveProject.GetCodeBreakingItemsAsync()`, sorted by relative path. Every read of the project throws `BreakingScriptMatchesTestPatternException` for a file of `Code/` that also matches `TestFilePatterns`.
+- Breaking phase (`BreakingChangesDeployer`): the guard (`CodeNotDeployedException` with `Count` and the first 5 paths), then `CodeBreakingDeployer` (new: every script, every run, one command, `CodeItemTimeout`, row in `dblive.code` with `item_type = 'breaking'`), then the breaking scripts of migrations as before.
+- `CodeDeployer` marks the rows of files that are neither code files nor code breaking scripts as `removed` (`IDbLiveDA.MarkMissingCodeAsRemovedAsync`); `CodeItemStatus.Removed`, `CodeItemType`, `CodeItemDto.ItemType`.
+- `dblive` schema: column `dblive.code.item_type` (`src/DbLive.MSSQL/SQL/10.code-item-type.sql`, `src/DbLive.PostgreSQL/SQL/07.code-item-type.sql`); both DAs write and read it.
+- `DeployFixture` runs a second deployment with `DeployParameters.Breaking` when `deployBreaking`; `MigrationVersionDeployer` runs the breaking script twice in `MigrationBreakingUndoMigration`.
+- Tests: unit (`CodeBreakingItemsTests`, `CodeBreakingDeployerTests`, `DeployFixtureTests`, guard and order in `BreakingChangesDeployerTests`, `removed` in `CodeDeployerTests` and `CodeItemDeployerTests`, the undo sequence, the parity test of embedded scripts); integration `CodeBreakingTests` on SQL Server and PostgreSQL (`_v1` → `_v2`, rollback restores `_v1`, upgrade and breaking drop it again, an old version in its own deleted file restored by a rollback, `Breaking` before `Default` fails, a failed code deployment blocks the migration breaking script, a path with special characters is not marked `removed`). All 445 tests pass, including the Docker integration tests and the demo tests.
+- Docs: `docs/llms-full.txt` §0 (rules 4, 14, new 15), §1, §4, §5.3, §5.5, §5.6, §6, new §6.1, §7, §8.1, §9.2, §10, §11.3, §12, §13.3, §15, §17, §18.5, §18.6, §18.8, §18.10; `docs/llms.txt`; `docs/deployment/breaking-changes.md`, `code.md`, `migrations.md`, `zero-downtime.md`, `index.md`; `docs/database-as-service.md`; `docs/project/structure.md`, `configuration.md`; `docs/unit-testing/index.md`; `README.md`.

@@ -6,9 +6,15 @@ public class BreakingChangesDeployer(
 		ILogger _logger,
 		IDbLiveProject _project,
 		IDbLiveDA _da,
-		IMigrationItemDeployer _migrationItemDeployer
+		IMigrationItemDeployer _migrationItemDeployer,
+		ICodeBreakingDeployer _codeBreakingDeployer
 	) : IBreakingChangesDeployer
 {
+	/// <summary>
+	/// How many of the code files that are not deployed <see cref="CodeNotDeployedException"/> names.
+	/// </summary>
+	internal const int NamedNotDeployedFiles = 5;
+
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
 	public async Task DeployAsync(DeployParameters parameters)
@@ -20,6 +26,50 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
+		await ValidateCodeDeployedAsync().ConfigureAwait(false);
+
+		// dependents are dropped before what they depend on: on PostgreSQL a view of the old version blocks the 'drop column'
+		// of a migration breaking script.
+		await _codeBreakingDeployer.DeployAsync().ConfigureAwait(false);
+
+		await DeployMigrationBreakingAsync().ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// The breaking phase runs only after the normal deployment of this build completed: every code file has an applied row with its
+	/// current hash. Otherwise a breaking run started too early (the Default run failed, Breaking before Default, a stale Breaking job
+	/// after a rollback) drops what the running application still uses. A failure, not a skip: a skipped phase leaves the pipeline green.
+	/// </summary>
+	/// <exception cref="CodeNotDeployedException"/>
+	private async Task ValidateCodeDeployedAsync()
+	{
+		List<string> notDeployed = [];
+
+		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
+		{
+			foreach (CodeItem codeItem in group.CodeItems)
+			{
+				CodeItemDto? row = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
+
+				// the check of CodeItemDeployer: the guard passes exactly when the code deployment has nothing left to execute.
+				if (row is null || row.Status != CodeItemStatus.Applied || !codeItem.FileData.MatchesHash(row.ContentHash))
+				{
+					notDeployed.Add(codeItem.FileData.RelativePath);
+				}
+			}
+		}
+
+		if (notDeployed.Count > 0)
+		{
+			throw new CodeNotDeployedException(
+				notDeployed.Count,
+				[.. notDeployed.Order(StringComparer.OrdinalIgnoreCase).Take(NamedNotDeployedFiles)]
+			);
+		}
+	}
+
+	private async Task DeployMigrationBreakingAsync()
+	{
 		IReadOnlyCollection<MigrationItemDto> migrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
 		HashSet<long> notAppliedBreakingVersions =
@@ -54,7 +104,7 @@ public class BreakingChangesDeployer(
 
 		if (breakingToApply.Count == 0)
 		{
-			_logger.Information("No breaking changes to apply.");
+			_logger.Information("No migration breaking scripts to apply.");
 			return;
 		}
 

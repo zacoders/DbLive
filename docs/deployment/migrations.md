@@ -67,7 +67,7 @@ drop trigger if exists dbo.TMP_DataMigration_Person_To_PersonPhones;
 drop table if exists dbo.PersonPhones;
 ```
 
-Undo scripts are tested by the `[SqlDeployFact]` deployment test, which applies each version as migration, (breaking,) undo, migration again; each step runs with its own settings, in its own transaction. See [Unit Testing](../unit-testing/index.md#deployment-tests).
+Undo scripts are tested by the `[SqlDeployFact]` deployment test, which applies each version as migration, undo, migration again, and in the mode with breaking as migration, breaking, breaking, undo, migration; each step runs with its own settings, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so it must survive a second run. See [Unit Testing](../unit-testing/index.md#deployment-tests).
 
 ## Downgrade
 
@@ -77,7 +77,7 @@ A downgrade happens when you deploy a build whose `Migrations` folder lacks vers
 - With `AllowDatabaseDowngrade = true`, DbLive runs the stored undo scripts of those versions, newest first, **each in its own transaction**, with the stored undo settings over the current project settings. If any of them has no undo script, it stops with `DowngradeImpossibleException` before running anything.
 - If an undo script fails, the versions undone before it stay undone, and the database is consistent at that version. Fix the cause and deploy the older build again: the downgrade continues with the failed version. With `"TransactionWrapLevel": "Deployment"` the whole downgrade is one transaction instead.
 - After the undo, the version's migration and breaking items are marked `reverted`. Deploying the newer build again re-applies them.
-- Code objects are not dropped. Code files of the older build are redeployed if they differ from what was last deployed.
+- Code objects are not dropped. Code files of the older build are redeployed if they differ from what was last deployed, or if the newer build had deleted them (their rows are `removed`).
 
 ```csharp
 // Roll back to the previous release: deploy its build with downgrade allowed.

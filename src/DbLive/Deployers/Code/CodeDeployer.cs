@@ -5,7 +5,9 @@ public class CodeDeployer(
 	ILogger logger,
 	IDbLiveProject _project,
 	ICodeItemDeployer _codeItemDeployer,
-	ISettingsAccessor settingsAccessor
+	ISettingsAccessor settingsAccessor,
+	IDbLiveDA _da,
+	ITimeProvider _timeProvider
 ) : ICodeDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
@@ -19,12 +21,40 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
+		IReadOnlyList<CodeGroup> codeGroups = await _project.GetCodeGroupsAsync().ConfigureAwait(false);
+
+		foreach (CodeGroup group in codeGroups)
 		{
 			await DeployGroupAsync(group.CodeItems).ConfigureAwait(false);
 		}
 
+		await MarkRemovedFilesAsync(codeGroups).ConfigureAwait(false);
+
 		_logger.Information("Code deploy successfully completed.");
+	}
+
+	/// <summary>
+	/// A file deleted from the project keeps its applied row, so the same file coming back with a rollback to the build that had it
+	/// would be skipped by its hash, and the object it creates would not be restored. Its row is marked removed instead,
+	/// and a removed file is executed again. Breaking scripts of the Code folder are files of the project too.
+	/// </summary>
+	private async Task MarkRemovedFilesAsync(IReadOnlyList<CodeGroup> codeGroups)
+	{
+		List<string> projectFiles =
+		[
+			.. codeGroups.SelectMany(g => g.CodeItems).Select(i => i.FileData.RelativePath),
+			.. (await _project.GetCodeBreakingItemsAsync().ConfigureAwait(false)).Select(i => i.FileData.RelativePath)
+		];
+
+		IReadOnlyCollection<string> removedFiles = await _da.MarkMissingCodeAsRemovedAsync(projectFiles, _timeProvider.UtcNow()).ConfigureAwait(false);
+
+		if (removedFiles.Count > 0)
+		{
+			_logger.Information(
+				"Code files removed from the project, marked as removed in dblive.code: {RelativePaths}",
+				string.Join(", ", removedFiles.Order(StringComparer.Ordinal))
+			);
+		}
 	}
 
 	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)

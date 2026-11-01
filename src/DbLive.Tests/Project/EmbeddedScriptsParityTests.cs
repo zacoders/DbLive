@@ -55,6 +55,9 @@ public class EmbeddedScriptsParityTests
 				.Select(item => $"code group {groupNumber} {group.Path} {item.Name} {Describe(item.FileData)}"));
 		}
 
+		items.AddRange((await project.GetCodeBreakingItemsAsync())
+			.Select(item => $"code breaking {item.Name} {Describe(item.FileData)}"));
+
 		items.AddRange((await project.GetTestsAsync())
 			.Select(test => $"test {test.Name} {Describe(test.FileData)} setup {(test.SetupFileData is null ? "none" : Describe(test.SetupFileData))}"));
 

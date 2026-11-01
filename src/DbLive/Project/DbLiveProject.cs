@@ -14,6 +14,11 @@ public class DbLiveProject(
 	/// </summary>
 	internal const string TestSetupFileName = "setup.test.sql";
 
+	/// <summary>
+	/// Breaking scripts of the Code folder: run in the breaking phase, never deployed as code and never tests.
+	/// </summary>
+	internal static readonly IReadOnlyList<string> CodeBreakingFilePatterns = ["breaking.sql", "b.sql", "*.breaking.sql", "*.b.sql"];
+
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
@@ -23,10 +28,10 @@ public class DbLiveProject(
 		string codeFolder = ToFolder(projectSettings.CodeFolder);
 
 		List<string> codeFiles = GetFolderFiles(
-			GetFiles(),
+			GetFiles(projectSettings),
 			codeFolder,
 			["*.sql"],
-			[.. projectSettings.TestFilePatterns, TestSetupFileName]
+			[.. projectSettings.TestFilePatterns, TestSetupFileName, .. CodeBreakingFilePatterns]
 		);
 
 		if (codeFiles.Count == 0)
@@ -84,13 +89,33 @@ public class DbLiveProject(
 		return codeItems;
 	}
 
+	/// <inheritdoc/>
+	public async Task<IReadOnlyList<GenericItem>> GetCodeBreakingItemsAsync()
+	{
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		List<GenericItem> items = [];
+
+		foreach (string relativePath in GetFolderFiles(GetFiles(projectSettings), ToFolder(projectSettings.CodeFolder), CodeBreakingFilePatterns, []))
+		{
+			var item = new GenericItem
+			{
+				Name = Path.GetFileName(relativePath),
+				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+			};
+			items.Add(item);
+		}
+
+		return items.AsReadOnly();
+	}
+
 	public async Task<IReadOnlyList<Migration>> GetMigrationsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		// a project without migrations (code only) is valid.
 		List<string> migrationFiles = GetFolderFiles(
-			GetFiles(),
+			GetFiles(projectSettings),
 			ToFolder(projectSettings.MigrationsFolder),
 			["*.sql", "*.json"],
 			[]
@@ -163,7 +188,7 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		IReadOnlyList<string> files = GetFiles();
+		IReadOnlyList<string> files = GetFiles(projectSettings);
 
 		List<string> testFiles =
 		[
@@ -223,7 +248,7 @@ public class DbLiveProject(
 
 		List<GenericItem> items = [];
 
-		foreach (string relativePath in GetFolderFiles(GetFiles(), ToFolder(folder), ["*.sql"], []))
+		foreach (string relativePath in GetFolderFiles(GetFiles(projectSettings), ToFolder(folder), ["*.sql"], []))
 		{
 			var item = new GenericItem
 			{
@@ -244,7 +269,11 @@ public class DbLiveProject(
 	/// Two paths differ only by case (possible on Linux): DbLive finds files and identifies them in the database
 	/// ignoring case, so they would be one item.
 	/// </exception>
-	private IReadOnlyList<string> GetFiles()
+	/// <exception cref="BreakingScriptMatchesTestPatternException">
+	/// A file of the Code folder is named as a breaking script and matches TestFilePatterns (test.breaking.sql),
+	/// so it would be both.
+	/// </exception>
+	private IReadOnlyList<string> GetFiles(DbLiveSettings projectSettings)
 	{
 		IReadOnlyList<string> files = scriptSource.GetFiles();
 
@@ -257,6 +286,14 @@ public class DbLiveProject(
 				_ = paths.TryGetValue(file, out string? otherFile);
 				throw new ScriptPathsDifferOnlyByCaseException(otherFile!, file);
 			}
+		}
+
+		string? breakingTestFile = GetFolderFiles(files, ToFolder(projectSettings.CodeFolder), CodeBreakingFilePatterns, [])
+			.FirstOrDefault(f => MatchesAny(f, projectSettings.TestFilePatterns));
+
+		if (breakingTestFile is not null)
+		{
+			throw new BreakingScriptMatchesTestPatternException(breakingTestFile);
 		}
 
 		return files;

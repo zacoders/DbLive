@@ -17,6 +17,7 @@ Scripts/
     schemas/sales.sql
     dbo/GetUser.sql
     dbo/GetUser.test.sql
+    dbo/GetUser.breaking.sql
   Tests/                               optional
     Orders/setup.test.sql
     Orders/select-orders.test.sql
@@ -29,7 +30,8 @@ Scripts/
 | Folder | Required | Picked up | Runs |
 |--------|----------|-----------|------|
 | `Migrations` | no | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
-| `Code` | no | `*.sql` (except test files and `setup.test.sql`), including subfolders | When the file is new or changed |
+| `Code` | no | `*.sql` (except test files, breaking scripts and `setup.test.sql`), including subfolders | When the file is new or changed |
+| `Code` (breaking scripts) | no | `breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql`, including subfolders, sorted by relative path | On **every** breaking deployment, before the breaking scripts of migrations |
 | `Tests` | no | every `*.sql` except `setup.test.sql`, including subfolders | At the end of a deployment, or from xUnit |
 | `BeforeDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, before migrations |
 | `AfterDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, after breaking changes |
@@ -81,7 +83,9 @@ Migrations are matched by version and type, not by path. You can move old migrat
 
 ## Code files
 
-Any `*.sql` file under `Code` that is not a test is a code object: a procedure, function, view, trigger or schema. Organise subfolders as you like (by schema, by object type). A file is executed again whenever its content changes, so it must be safe to run repeatedly: `create or alter` on SQL Server, `create or replace` (or `drop ... if exists` followed by `create`) on PostgreSQL. See [Code Deployment](../deployment/code.md).
+Any `*.sql` file under `Code` that is not a test and not a breaking script is a code object: a procedure, function, view, trigger or schema. Organise subfolders as you like (by schema, by object type). A file is executed again whenever its content changes, so it must be safe to run repeatedly: `create or alter` on SQL Server, `create or replace` (or `drop ... if exists` followed by `create`) on PostgreSQL. See [Code Deployment](../deployment/code.md).
+
+`breaking.sql`, `b.sql`, `*.breaking.sql` and `*.b.sql` under `Code` are breaking scripts: they drop old versions of code objects in the breaking phase, on every breaking deployment, so they must be idempotent (`drop ... if exists`). Keep `GetUser.breaking.sql` next to `GetUser.sql`, or one `breaking.sql` per folder. A name that is also a test file name (`test.breaking.sql`, `t.b.sql` with the default patterns) stops the deployment with `BreakingScriptMatchesTestPatternException`. See [Dropping an old procedure version](../deployment/breaking-changes.md#dropping-an-old-procedure-version).
 
 ## Test files
 

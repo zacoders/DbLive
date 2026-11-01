@@ -40,7 +40,7 @@ The version number comes from commit messages: `feat:` → minor, `feat!` or `br
 - [ ] Optional, can come later: on a PR, write the notes to the job summary, and fail when a task has `breaking: true` but the PR title has no `BREAKING CHANGE:`.
 
 ### Versions
-- [ ] Next release (#96): 2.0.0 (three breaking changes already, plus 0096-17).
+- [ ] Next release (#96): 2.0.0 (three breaking changes already, plus 0096-15 and 0096-17).
 - [ ] Versioning policy: what is public API (`DbLiveBuilder`, `DeployParameters`, `IDbLive`, `settings.json` keys, file naming, assert semantics, the `dblive` schema); breaking changes only in a major version.
 
 ### Cleanup

@@ -20,6 +20,72 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await deployer.DeployAsync(new DeployParameters { DeployCode = false });
+
+		await mockSet.DbLiveProject.DidNotReceive().GetCodeGroupsAsync();
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkMissingCodeAsRemovedAsync(default!, default);
+	}
+
+	[Fact]
+	public async Task DeployCode_Marks_Rows_Of_Files_Missing_From_The_Project_As_Removed()
+	{
+		MockSet mockSet = new();
+
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
+			new CodeGroup { Path = "Code/schemas", CodeItems = [GetCodeItem("dbo.sql")] },
+			new CodeGroup { Path = "Code", CodeItems = [GetCodeItem("GetUser.sql"), GetCodeItem("GetOrder.sql")] }
+		]);
+
+		// a breaking script of the Code folder is a file of the project too: its row is not marked.
+		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([
+			new GenericItem
+			{
+				Name = "GetUser.breaking.sql",
+				FileData = new FileData { RelativePath = "Code/GetUser.breaking.sql", Content = "drop proc if exists dbo.GetUser_v1" }
+			}
+		]);
+
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
+
+		DateTime now = new(2026, 11, 1, 10, 0, 0, DateTimeKind.Utc);
+		mockSet.TimeProvider.UtcNow().Returns(now);
+
+		mockSet.DbLiveDA.MarkMissingCodeAsRemovedAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<DateTime>())
+			.Returns(["code/getuser-v1.sql"]);
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		await deployer.DeployAsync(DeployParameters.Default);
+
+		await mockSet.DbLiveDA.Received(1).MarkMissingCodeAsRemovedAsync(
+			Arg.Is<IReadOnlyCollection<string>>(paths => paths.SequenceEqual(new[]
+			{
+				"/some_path/dbo.sql",
+				"/some_path/GetUser.sql",
+				"/some_path/GetOrder.sql",
+				"Code/GetUser.breaking.sql"
+			})),
+			now
+		);
+
+		mockSet.Logger.Received(1).Information(Arg.Any<string>(), "code/getuser-v1.sql");
+	}
+
+	[Fact]
+	public async Task DeployCode_Without_Code_Files_Marks_All_Rows_As_Removed()
+	{
+		MockSet mockSet = new();
+
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([]);
+		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([]);
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		await deployer.DeployAsync(DeployParameters.Default);
+
+		await mockSet.DbLiveDA.Received(1).MarkMissingCodeAsRemovedAsync(
+			Arg.Is<IReadOnlyCollection<string>>(paths => paths.Count == 0),
+			Arg.Any<DateTime>()
+		);
 	}
 
 	[Fact]
@@ -134,6 +200,9 @@ public class CodeDeployerTests
 		);
 
 		await mockSet.CodeItemDeployer.Received().DeployAsync(Arg.Any<CodeItem>());
+
+		// rows of missing files are marked only by a code deployment that completed.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkMissingCodeAsRemovedAsync(default!, default);
 	}
 
 	[Fact]

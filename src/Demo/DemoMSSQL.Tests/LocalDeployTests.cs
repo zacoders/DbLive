@@ -32,5 +32,7 @@ public class LocalDeployTests(ITestOutputHelper _output)
 				RunTests = true
 			}
 		);
+
+		await deployer.DeployAsync(DeployParameters.Breaking);
 	}
 }

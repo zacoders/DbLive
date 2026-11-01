@@ -51,5 +51,12 @@ public class DeployFixture(
 		};
 
 		await deployer.DeployAsync(deployParams).ConfigureAwait(false);
+
+		if (deployBreaking)
+		{
+			// a separate breaking run, as in production: code breaking scripts run again (they must be idempotent),
+			// the breaking phase guard passes after a normal deployment, and BeforeDeploy/AfterDeploy scripts run a second time.
+			await deployer.DeployAsync(DeployParameters.Breaking).ConfigureAwait(false);
+		}
 	}
 }

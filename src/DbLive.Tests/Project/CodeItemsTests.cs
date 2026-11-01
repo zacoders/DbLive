@@ -36,7 +36,7 @@ public class CodeItemsTests
 		mockSet.ScriptSource.AddFiles(
 			"Code/sub/c.sql",
 			"Code/z.sql",
-			"Code/b.sql",
+			"Code/c.sql",
 			"Code/a-b/d.sql",
 			"Code/A.sql",
 			"Code/a_b.sql"
@@ -48,7 +48,7 @@ public class CodeItemsTests
 
 		// the same on every OS and in every culture: '-' < '.' < '/' < letters < '_'.
 		Assert.Equal(
-			["Code/a-b/d.sql", "Code/A.sql", "Code/a_b.sql", "Code/b.sql", "Code/sub/c.sql", "Code/z.sql"],
+			["Code/a-b/d.sql", "Code/A.sql", "Code/a_b.sql", "Code/c.sql", "Code/sub/c.sql", "Code/z.sql"],
 			group.CodeItems.Select(i => i.FileData.RelativePath)
 		);
 	}

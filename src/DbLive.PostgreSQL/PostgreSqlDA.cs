@@ -344,14 +344,15 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 				insert into dblive.code (
-					relative_path, status, content_hash, applied_utc,
+					relative_path, item_type, status, content_hash, applied_utc,
 					execution_time_ms, created_utc, error
 				)
 				values (
-					lower(@relative_path), @status, @content_hash, @applied_utc,
+					lower(@relative_path), @item_type, @status, @content_hash, @applied_utc,
 					@execution_time_ms, @created_utc, @error
 				)
 				on conflict (relative_path) do update set
+					item_type = excluded.item_type,
 					status = excluded.status,
 					content_hash = excluded.content_hash,
 					applied_utc = excluded.applied_utc,
@@ -361,6 +362,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				relative_path = item.RelativePath,
+				item_type = item.ItemType.ToString().ToLower(),
 				status = item.Status.ToString().ToLower(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
@@ -383,12 +385,31 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new { relative_path = relativePath, verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
+
+	// the project paths are sent as one text[] parameter: lower() runs in the database, like in every other query.
+	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		return (await cnn.QueryAsync<string>(
+			"""
+			update dblive.code
+			set status = 'removed'
+			  , verified_utc = @verified_utc
+			where status <> 'removed'
+			  and relative_path not in ( select lower(p) from unnest(@paths) as p )
+			returning relative_path
+			""",
+			new { paths = projectRelativePaths.ToArray(), verified_utc = verifiedUtc }
+		).ConfigureAwait(false)).ToList();
+	}
+
 	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
 			"""
 			select relative_path
+				 , item_type
 				 , content_hash
 				 , applied_utc
 				 , created_utc

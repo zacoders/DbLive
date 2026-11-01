@@ -34,6 +34,8 @@ public class MigrationVersionDeployer(
 				await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
 				if (breakingItem is not null)
 				{
+					// twice: a failed breaking script with TransactionWrapLevel None runs again on the next deployment.
+					await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
 					await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
 				}
 				await DeployItemAsync(migration, undoItem).ConfigureAwait(false);

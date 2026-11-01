@@ -9,7 +9,7 @@ public record DeployParameters
 		DeployBreaking = false,
 		DeployCode = true,
 		DeployMigrations = true,
-		RunTests = true
+		RunTests = true // todo: we should not run tests by default. No tests on prod.
 	};
 
 	public static DeployParameters Breaking => new()

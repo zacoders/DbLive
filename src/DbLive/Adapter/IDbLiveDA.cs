@@ -26,6 +26,13 @@ public interface IDbLiveDA
 
 	Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc);
 
+	/// <summary>
+	/// Marks the rows of <c>dblive.code</c> whose file is not one of <paramref name="projectRelativePaths"/> as removed,
+	/// with <paramref name="verifiedUtc"/> as the time the file was found missing. Rows already removed are not changed.
+	/// </summary>
+	/// <returns>The stored (lower-case) paths of the rows marked now.</returns>
+	Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc);
+
 	Task CreateDBAsync(bool skipIfExists = true);
 
 	Task DropDbAsync(bool skipIfNotExists = true);

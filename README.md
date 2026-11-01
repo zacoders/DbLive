@@ -108,7 +108,7 @@ DbLive expects a clear separation of **migrations**, **code**, and **tests**. Yo
 | Folder | Purpose |
 |--------|--------|
 | **Migrations** | Schema and data changes in version order. Optional `*.undo.sql` per version for rollback, `*.breaking.sql` for breaking changes. |
-| **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests. |
+| **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests, paired `*.breaking.sql` files drop old object versions in the breaking phase. |
 | **Tests** | Standalone SQL tests (e.g. cross-object checks, data rules). |
 | **BeforeDeploy** / **AfterDeploy** | Scripts run on every deployment, before migrations or after breaking changes (optional; must be idempotent). |
 
@@ -255,7 +255,7 @@ A single `DeployAsync` run typically does (in order):
 2. **BeforeDeploy** — run once-before scripts
 3. **Migrations** — apply pending migrations in version order
 4. **Code** — deploy or update code objects (procedures, views, etc.)
-5. **Breaking changes** — apply breaking migration steps (if enabled)
+5. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
 6. **AfterDeploy** — run once-after scripts
 7. **Unit tests** — run all SQL tests (unless disabled)
 

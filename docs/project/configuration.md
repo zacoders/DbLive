@@ -73,9 +73,9 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 
 | Setting | Default | Applies to |
 |---------|---------|------------|
-| `MigrationTimeout` | `12:00:00` | Each migration, breaking and undo script: its command and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
+| `MigrationTimeout` | `12:00:00` | Each migration, breaking and undo script of a migration: its command and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
 | `DeploymentTimeout` | `1.00:00:00` | The transaction of the whole deployment (`TransactionWrapLevel: Deployment`) |
-| `CodeItemTimeout` | `00:00:30` | Each code file |
+| `CodeItemTimeout` | `00:00:30` | Each code file and each [breaking script of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) |
 | `UnitTestItemTimeout` | `00:01:00` | Each SQL test, including its transaction |
 | `BeforeDeployFolderTimeout` | `06:00:00` | Each BeforeDeploy script |
 | `AfterDeployFolderTimeout` | `06:00:00` | Each AfterDeploy script |

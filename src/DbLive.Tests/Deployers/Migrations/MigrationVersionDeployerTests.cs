@@ -204,6 +204,7 @@ public class MigrationVersionDeployerTests
 		{
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Migration], migrationSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Breaking], breakingSettings);
+			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Breaking], breakingSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Undo], undoSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Migration], migrationSettings);
 		});

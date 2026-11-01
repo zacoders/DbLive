@@ -2,6 +2,7 @@
 using DbLive.Common;
 using DbLive.Project;
 using System.Data;
+using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
@@ -353,15 +354,17 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
 			using ( select 1 ) s(c) on t.relative_path = lower(@relative_path)
-			when matched then update 
-				set status = @status
+			when matched then update
+				set item_type = @item_type
+					, status = @status
 					, content_hash = @content_hash
 					, applied_utc = @applied_utc
 					, execution_time_ms = @execution_time_ms
 					, error = @error
-			when not matched then 
+			when not matched then
 				insert (
 					relative_path
+					, item_type
 					, status
 					, content_hash
 					, applied_utc
@@ -371,6 +374,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				)
 				values (
 					lower(@relative_path)
+					, @item_type
 					, @status
 					, @content_hash
 					, @applied_utc
@@ -382,6 +386,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				relative_path = item.RelativePath,
+				item_type = item.ItemType.ToString().ToLower(),
 				status = item.Status.ToString().ToLower(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
@@ -405,12 +410,38 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
+	// the project paths are sent as one xml parameter: lower() runs in the database, like in every other query,
+	// and the number of files is not limited by the 2100 parameters of a command. xml works with any compatibility level.
+	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
+	{
+		string paths = new XElement("paths", projectRelativePaths.Select(p => new XElement("p", p))).ToString(SaveOptions.DisableFormatting);
+
+		using var cnn = GetConnection();
+		return (await cnn.QueryAsync<string>(
+			"""
+			declare @project_paths xml = @paths;
+
+			update dblive.code
+			set status = 'removed'
+			  , verified_utc = @verified_utc
+			output inserted.relative_path
+			where status <> 'removed'
+			  and relative_path not in (
+				select lower(p.value('.', 'nvarchar(4000)'))
+				from @project_paths.nodes('/paths/p') as x(p)
+			  );
+			""",
+			new { paths, verified_utc = verifiedUtc }
+		).ConfigureAwait(false)).ToList();
+	}
+
 	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
 	{
 		using var cnn = GetConnection();
 		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
 			"""
 			select relative_path
+				 , item_type
 				 , content_hash
 				 , applied_utc
 				 , created_utc

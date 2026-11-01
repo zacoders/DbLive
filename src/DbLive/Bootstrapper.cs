@@ -12,6 +12,7 @@ public static class Bootstrapper
 		// ordered alphabetically
 		_ = container
 			.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>()
+			.AddSingleton<ICodeBreakingDeployer, CodeBreakingDeployer>()
 			.AddSingleton<ICodeDeployer, CodeDeployer>()
 			.AddSingleton<ICodeItemDeployer, CodeItemDeployer>()
 			.AddSingleton<IDbLive, DbLive>()

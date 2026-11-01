@@ -16,6 +16,12 @@ public interface IDbLiveProject
 	Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync();
 
 	/// <summary>
+	/// Breaking scripts of the Code folder and its subfolders (<c>breaking.sql</c>, <c>b.sql</c>, <c>*.breaking.sql</c>, <c>*.b.sql</c>),
+	/// sorted by relative path, ordinal, ignoring case. They are not code items and not tests.
+	/// </summary>
+	Task<IReadOnlyList<GenericItem>> GetCodeBreakingItemsAsync();
+
+	/// <summary>
 	/// Tests of the Tests folder, then tests of the Code folder, each sorted by relative path, ordinal, ignoring case.
 	/// </summary>
 	Task<IReadOnlyCollection<TestItem>> GetTestsAsync();

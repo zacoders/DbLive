@@ -41,6 +41,7 @@ public class CodeItemDeployer(
 			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
+				ItemType = CodeItemType.Code,
 				Status = CodeItemStatus.Applied,
 				ContentHash = codeItem.FileData.ContentHash,
 				AppliedUtc = appliedUtc,
@@ -60,6 +61,7 @@ public class CodeItemDeployer(
 			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
+				ItemType = CodeItemType.Code,
 				Status = CodeItemStatus.Error,
 				ContentHash = codeItem.FileData.ContentHash,
 				AppliedUtc = appliedUtc,
