@@ -22,37 +22,42 @@ public class MigrationVersionDeployer(
 		}
 
 		// each item is deployed by its own settings, in its own transaction.
-		if (undoItem is not null)
+		if (undoItem is not null && parameters.UndoTestDeployment == UndoTestMode.UndoCycle)
 		{
-			if (parameters.UndoTestDeployment == UndoTestMode.MigrationUndoMigration)
-			{
-				SchemaSnapshot beforeMigration = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
-				await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
-				await DeployItemAsync(migration, undoItem).ConfigureAwait(false);
-				await EnsureUndoRestoredSchemaAsync(migrationItem, undoItem, beforeMigration).ConfigureAwait(false);
-			}
+			SchemaSnapshot beforeMigration = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
 
-			if (parameters.UndoTestDeployment == UndoTestMode.MigrationBreakingUndoMigration)
-			{
-				SchemaSnapshot beforeMigration = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
-				await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
-				if (breakingItem is not null)
-				{
-					// twice: a failed breaking script with TransactionWrapLevel None runs again on the next deployment.
-					// the second run must not change the schema, so the undo below is tested against the state after one run, as in production.
-					await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
-					SchemaSnapshot afterFirstRun = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
-					await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
-					await EnsureSchemaNotChangedAsync(
-						afterFirstRun,
-						SchemaCheck.BreakingSecondRun,
-						$"Undo test: the breaking script {breakingItem.FileData.RelativePath} is not idempotent, its second run changed the schema:"
-					).ConfigureAwait(false);
-				}
-				await DeployItemAsync(migration, undoItem).ConfigureAwait(false);
-				await EnsureUndoRestoredSchemaAsync(migrationItem, undoItem, beforeMigration).ConfigureAwait(false);
-			}
+			// a rollback before the breaking phase: the release is deployed, its breaking script is not.
+			await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
+			await DeployItemAsync(migration, undoItem).ConfigureAwait(false);
+			await EnsureSchemaNotChangedAsync(
+				beforeMigration,
+				SchemaCheck.Undo,
+				$"Undo test: {undoItem.FileData.RelativePath} does not restore the schema. The schema after the undo differs from the schema before {migrationItem.FileData.RelativePath}:"
+			).ConfigureAwait(false);
 
+			if (breakingItem is not null)
+			{
+				// a rollback after the breaking phase.
+				await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
+
+				// twice: a failed breaking script with TransactionWrapLevel None runs again on the next deployment.
+				// the second run must not change the schema, so the undo below is tested against the state after one run, as in production.
+				await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
+				SchemaSnapshot afterFirstRun = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
+				await DeployItemAsync(migration, breakingItem).ConfigureAwait(false);
+				await EnsureSchemaNotChangedAsync(
+					afterFirstRun,
+					SchemaCheck.BreakingSecondRun,
+					$"Undo test: the breaking script {breakingItem.FileData.RelativePath} is not idempotent, its second run changed the schema:"
+				).ConfigureAwait(false);
+
+				await DeployItemAsync(migration, undoItem).ConfigureAwait(false);
+				await EnsureSchemaNotChangedAsync(
+					beforeMigration,
+					SchemaCheck.Undo,
+					$"Undo test: {undoItem.FileData.RelativePath} does not restore the schema after the breaking script {breakingItem.FileData.RelativePath}. The schema after the undo differs from the schema before {migrationItem.FileData.RelativePath}:"
+				).ConfigureAwait(false);
+			}
 		}
 
 		await DeployItemAsync(migration, migrationItem).ConfigureAwait(false);
@@ -63,13 +68,6 @@ public class MigrationVersionDeployer(
 			migration.Version,
 			item,
 			migration.GetItemSettings(item.MigrationItemType)
-		);
-
-	private Task EnsureUndoRestoredSchemaAsync(MigrationItem migrationItem, MigrationItem undoItem, SchemaSnapshot beforeMigration)
-		=> EnsureSchemaNotChangedAsync(
-			beforeMigration,
-			SchemaCheck.Undo,
-			$"Undo test: {undoItem.FileData.RelativePath} does not restore the schema. The schema after the undo differs from the schema before {migrationItem.FileData.RelativePath}:"
 		);
 
 	private async Task EnsureSchemaNotChangedAsync(SchemaSnapshot expected, SchemaCheck check, string message)

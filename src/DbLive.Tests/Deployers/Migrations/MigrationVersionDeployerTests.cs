@@ -191,7 +191,7 @@ public class MigrationVersionDeployerTests
 
 		DeployParameters parameters = DeployParameters.Default with
 		{
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
+			UndoTestDeployment = UndoTestMode.UndoCycle
 		};
 
 		await deploy.DeployAsync(migration, parameters);
@@ -202,6 +202,8 @@ public class MigrationVersionDeployerTests
 
 		Received.InOrder(() =>
 		{
+			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Migration], migrationSettings);
+			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Undo], undoSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Migration], migrationSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Breaking], breakingSettings);
 			mockSet.MigrationItemDeployer.DeployAsync(1, migration.Items[MigrationItemType.Breaking], breakingSettings);
@@ -225,26 +227,26 @@ public class MigrationVersionDeployerTests
 	}
 
 	[Theory]
-	[InlineData(UndoTestMode.MigrationUndoMigration)]
-	[InlineData(UndoTestMode.MigrationBreakingUndoMigration)]
-	public async Task Undo_that_restores_the_schema_passes(UndoTestMode undoTestMode)
+	[InlineData(false, 2, 3)]
+	[InlineData(true, 5, 7)]
+	public async Task Undo_that_restores_the_schema_passes(bool withBreaking, int snapshots, int deployments)
 	{
 		MockSet mockSet = new();
 		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
-		// before the migration, after the undo: other instances with the same objects.
-		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(new SchemaSnapshot(SchemaWithPhone.Objects), new SchemaSnapshot(SchemaWithPhone.Objects));
+		// every snapshot: other instances with the same objects.
+		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot(SchemaWithPhone.Objects));
 
-		await deploy.DeployAsync(GetMigrationWithUndo(withBreaking: false), DeployParameters.Default with { UndoTestDeployment = undoTestMode });
+		await deploy.DeployAsync(GetMigrationWithUndo(withBreaking), DeployParameters.Default with { UndoTestDeployment = UndoTestMode.UndoCycle });
 
-		await mockSet.DbLiveDA.Received(2).GetSchemaSnapshotAsync();
-		await mockSet.MigrationItemDeployer.Received(3).DeployAsync(1, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
+		await mockSet.DbLiveDA.Received(snapshots).GetSchemaSnapshotAsync();
+		await mockSet.MigrationItemDeployer.Received(deployments).DeployAsync(1, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Theory]
-	[InlineData(UndoTestMode.MigrationUndoMigration)]
-	[InlineData(UndoTestMode.MigrationBreakingUndoMigration)]
-	public async Task Undo_that_does_not_restore_the_schema_fails(UndoTestMode undoTestMode)
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task Undo_that_does_not_restore_the_schema_before_the_breaking_script_fails(bool withBreaking)
 	{
 		MockSet mockSet = new();
 		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
@@ -252,7 +254,7 @@ public class MigrationVersionDeployerTests
 		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, EmptySchema);
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => deploy.DeployAsync(GetMigrationWithUndo(withBreaking: false), DeployParameters.Default with { UndoTestDeployment = undoTestMode })
+			() => deploy.DeployAsync(GetMigrationWithUndo(withBreaking), DeployParameters.Default with { UndoTestDeployment = UndoTestMode.UndoCycle })
 		);
 
 		Assert.Equal(SchemaCheck.Undo, ex.Check);
@@ -264,7 +266,7 @@ public class MigrationVersionDeployerTests
 			ex.Message
 		);
 
-		// the migration is not deployed again.
+		// neither the breaking script nor the migration is deployed again.
 		await mockSet.MigrationItemDeployer.Received(2).DeployAsync(1, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
@@ -275,19 +277,19 @@ public class MigrationVersionDeployerTests
 		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 		Migration migration = GetMigrationWithUndo(withBreaking: true);
 
-		// before the migration, after the first breaking run, after the second one.
-		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, SchemaWithPhone, EmptySchema);
+		// before the migration, after the first undo, after the first breaking run, after the second one.
+		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, SchemaWithPhone, SchemaWithPhone, EmptySchema);
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => deploy.DeployAsync(migration, DeployParameters.Default with { UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration })
+			() => deploy.DeployAsync(migration, DeployParameters.Default with { UndoTestDeployment = UndoTestMode.UndoCycle })
 		);
 
 		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
 		Assert.StartsWith("Undo test: the breaking script 001.breaking.sql is not idempotent, its second run changed the schema:", ex.Message);
 		Assert.Contains("missing column dbo.Person.Phone", ex.Message);
 
-		// the undo is not deployed.
-		await mockSet.MigrationItemDeployer.DidNotReceive().DeployAsync(1, migration.Items[MigrationItemType.Undo], Arg.Any<MigrationItemSettings>());
+		// the undo runs only in the cycle before the breaking script.
+		await mockSet.MigrationItemDeployer.Received(1).DeployAsync(1, migration.Items[MigrationItemType.Undo], Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
@@ -296,15 +298,25 @@ public class MigrationVersionDeployerTests
 		MockSet mockSet = new();
 		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
 
-		// the breaking runs drop the column, the undo does not add it back.
-		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, EmptySchema, EmptySchema, EmptySchema);
+		// the undo before the breaking script restores the schema; the breaking runs drop the column, the undo after them does not add it back.
+		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, SchemaWithPhone, EmptySchema, EmptySchema, EmptySchema);
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => deploy.DeployAsync(GetMigrationWithUndo(withBreaking: true), DeployParameters.Default with { UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration })
+			() => deploy.DeployAsync(GetMigrationWithUndo(withBreaking: true), DeployParameters.Default with { UndoTestDeployment = UndoTestMode.UndoCycle })
 		);
 
 		Assert.Equal(SchemaCheck.Undo, ex.Check);
-		await mockSet.DbLiveDA.Received(4).GetSchemaSnapshotAsync();
+		Assert.Equal(
+			"""
+			Undo test: 001.undo.sql does not restore the schema after the breaking script 001.breaking.sql. The schema after the undo differs from the schema before 001.migration.sql:
+			  missing column dbo.Person.Phone: varchar(20) null
+			""".ReplaceLineEndings().TrimEnd(),
+			ex.Message
+		);
+		await mockSet.DbLiveDA.Received(5).GetSchemaSnapshotAsync();
+
+		// the migration is not deployed again.
+		await mockSet.MigrationItemDeployer.Received(6).DeployAsync(1, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	private static Migration GetMigrationWithUndo(bool withBreaking)

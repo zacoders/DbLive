@@ -36,11 +36,11 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
-		// migration, breaking, undo and migration again, each by its own settings.
+		// the undo cycle (migration, undo, migration, breaking, breaking, undo), the migration and the breaking phase, each item by its own settings.
 		await builder.CreateDeployer().DeployAsync(new DeployParameters
 		{
 			DeployBreaking = true,
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
+			UndoTestDeployment = UndoTestMode.UndoCycle
 		});
 
 		IDbLiveDA da = builder.CreateDbLiveDA();

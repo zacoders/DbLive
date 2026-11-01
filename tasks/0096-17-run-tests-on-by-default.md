@@ -18,7 +18,7 @@ An outside review of the project (2026-10-31) named this as the first place wher
 ## Where
 - `src/DbLive/DeployParameters.cs:12` (`Default` preset), `:39` (property default)
 - `src/Demo/DemoMSSQL/Program.cs:19`, `src/Demo/Demo.PostgreSQL.Chinook/Program.cs:19`
-- Not affected: `DbLiveTestFixture` sets `RunTests = false` and `DeployFixture` sets `RunTests = true` explicitly (`src/DbLive.xunit`).
+- Not affected: `DbLiveTestFixture` sets `RunTests = false` and `DeploymentTestFixture` sets `RunTests = true` explicitly (`src/DbLive.xunit`).
 
 ## Fix
 `RunTests` defaults to `false`, in the property and in `DeployParameters.Default`. Tests at the end of a deployment become an explicit choice for local and test databases; CI runs them through xUnit against a disposable database.

@@ -2,6 +2,7 @@
 type: bug
 priority: low
 created: 2026-11-01
+closed: 2026-11-01
 ---
 # `[SqlDeployFact]` cases are all named `(breaking=False, undo=None)`
 
@@ -15,4 +16,9 @@ created: 2026-11-01
 Build the display name from `TestMethodArguments`, or override `Serialize`/`Deserialize` to keep the two values.
 
 ## Done when
-- [ ] The six cases have distinct names in `dotnet test` and Test Explorer, with a unit test
+- [x] A failed case can be told apart in `dotnet test` and Test Explorer (since 0096-32-02 there is one case)
+
+## Result
+Resolved by 0096-32-02: the deployment test is one case without parameters, `[SqlDeployFact]` is a plain `FactAttribute`, and `SqlDeployFactDiscoverer` and `SqlDeployXunitTestCase` are deleted, so there is nothing to name apart. The test is named like any xUnit fact; the demos and the docs call it `DeploymentTests.ReleaseDeploysAndRollsBack`.
+
+On the way, before the case count was settled, the name was built from `TestMethodArguments` and checked after a serialization round trip (`Deploy(undoTestMode: None)` / `Deploy(undoTestMode: UndoCycle)` in `dotnet test`); that code went away with the second case.

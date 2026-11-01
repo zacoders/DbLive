@@ -14,7 +14,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 2. **Never delete an applied migration version, and never change its version number.** A version that is applied in the database but missing from the project is treated as a downgrade request → `DowngradeNotAllowedException` (unless `AllowDatabaseDowngrade = true`, which runs the stored undo script and reverts the version).
 3. **Code files must be re-runnable.** They are re-executed whenever their content changes and on every new database. Use `create or alter` (SQL Server) or `create or replace` / `drop ... if exists` + `create` (PostgreSQL).
 4. **Migrations must be backward compatible (expand only).** Put destructive changes to tables (drop column/table, remove sync triggers) into `<version>.breaking.sql` of the same version; drop an old version of a code object in a breaking script of the Code folder next to its file (`Code/dbo/GetUser.breaking.sql`, Section 6.1). Breaking scripts run only when `DeployBreaking = true`.
-5. **Write `<version>.undo.sql` for every migration you may need to roll back**, and make it work in both states: breaking script applied and not applied (use existence checks). It must restore the schema as it was before the migration: add back what the migration and its breaking script dropped, drop what the migration added. Breaking this → `[SqlDeployFact]` fails with `SchemaChangedException` listing the objects (Section 13.3).
+5. **Write `<version>.undo.sql` for every migration you may need to roll back**, and make it work in both states: breaking script applied and not applied (use existence checks). It must restore the schema as it was before the migration: add back what the migration and its breaking script dropped, drop what the migration added. Breaking this → `[SqlDeployFact]`, which runs the undo in both states, fails with `SchemaChangedException` listing the objects (Section 13.3).
 6. **BeforeDeploy and AfterDeploy scripts run on every deployment** (not once). They must be idempotent: a second run must not fail and must not change the schema.
 7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `setup.test.sql`.)
 8. **The assertion marker column is named `assert` and must be the first column** of its result set (case does not matter; `select 'rows' as assert` works on both engines). A misspelled name (`asstert`) or a missing alias (`select 'rows'`) → the test fails with "... looks like an assert result set ..." (Section 8.3).
@@ -59,7 +59,7 @@ SQL tests, undo scripts and rollback, checksums and ProjectId are available in e
 | `DbLive` | Core engine. Pulled in automatically by the provider packages. | `DbLiveBuilder`, `DeployParameters`, `IDbLive` |
 | `DbLive.MSSQL` | SQL Server / Azure SQL provider (Microsoft.Data.SqlClient + SMO). | `.SqlServer()` |
 | `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()` |
-| `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeployFixture` |
+| `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` |
 
 - Target frameworks: `net8.0`, `net9.0`, `net10.0`.
 - Logging: Serilog (`Serilog.ILogger`). Default is no logging.
@@ -272,7 +272,7 @@ For each pending version, in order:
 
 The migration script and its status update are committed together. If a migration fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error); earlier versions stay committed (with the default `Migration` level). A failed item is not marked `applied`, so the next deployment runs the **whole** script again: an item with `TransactionWrapLevel: None` must be re-runnable (`if not exists`, `create index concurrently if not exists`).
 
-`[SqlDeployFact]` undo modes (`UndoTestMode`) deploy a version as migration → undo → migration (`MigrationUndoMigration`) or migration → breaking → breaking → undo → migration (`MigrationBreakingUndoMigration`); each step runs with its own settings file, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment: its second run must not fail and must not change the schema. The schema is compared: after the undo it must equal the schema before the migration, after the second breaking run the schema after the first run; otherwise `SchemaChangedException` (Section 13.3).
+The `[SqlDeployFact]` deployment test deploys every version that has an undo script through the undo cycle before its final migration: migration → undo (a rollback before the breaking phase), then, if the version has a breaking script, migration → breaking → breaking → undo (a rollback after it), then the migration. Each step runs with its own settings file, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment: its second run must not fail and must not change the schema. The schema is compared: after each undo it must equal the schema before the migration, after the second breaking run the schema after the first run; otherwise `SchemaChangedException` (Section 13.3).
 
 ### 5.4 Checksums
 
@@ -628,7 +628,7 @@ Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
 
 | `TransactionWrapLevel` (project) | Behavior |
 |---|---|
-| `Migration` (default) | Each migration, breaking and undo script runs in its own transaction, by its item settings (Section 9.3). This applies to migrations, to the breaking step (one transaction per breaking script of a migration, in version order), to the downgrade (one transaction per undo script, newest version first) and to every step of `UndoTestMode`. Code, breaking scripts of the Code folder, BeforeDeploy and AfterDeploy are not transactional. |
+| `Migration` (default) | Each migration, breaking and undo script runs in its own transaction, by its item settings (Section 9.3). This applies to migrations, to the breaking step (one transaction per breaking script of a migration, in version order), to the downgrade (one transaction per undo script, newest version first) and to every step of the undo cycle of `[SqlDeployFact]` (Section 5.3). Code, breaking scripts of the Code folder, BeforeDeploy and AfterDeploy are not transactional. |
 | `Deployment` | Checksum validation, migration saving, downgrade, BeforeDeploy, migrations, code (single-threaded), breaking and AfterDeploy run in one transaction (all or nothing). Item files cannot opt out (`None` → warning, runs inside). Tests run after it. Use for small databases or test environments, not for 24/7 production. |
 | `None` | No transactions, except self-deployment and tests. An item file with `"TransactionWrapLevel": "Migration"` still gets its own transaction. |
 
@@ -824,35 +824,48 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 ### 13.3 Deployment test: `[SqlDeployFact]`
 
 ```csharp
-using DbLive.Common;
 using DbLive.xunit.Deploy;
 using Xunit;
 using Xunit.Abstractions;
 
 public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 {
-    private readonly DeployFixture _fixture = new(
+    private readonly DeploymentTestFixture _fixture = new(
         builderProvider: new DockerMsSqlFixtureBuilder(),
         dropDatabaseOnComplete: true);
 
     public Task InitializeAsync() => _fixture.InitializeAsync();
     public Task DisposeAsync() => _fixture.DisposeAsync();
 
+    /// <summary>
+    /// Deploys the project to an empty database as production does, in three deployments:
+    /// 1. migrations, code and the SQL tests. Before its final run, every migration with an undo script goes through
+    ///    migration → undo and, if it has a breaking script, migration → breaking → breaking → undo;
+    ///    the schema after each undo must equal the schema before the migration;
+    /// 2. the breaking phase and the SQL tests again;
+    /// 3. the breaking phase once more, which must not change the schema.
+    /// </summary>
     [SqlDeployFact]
-    public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
-        => await _fixture.DeployAsync(output, deployBreaking, undoTestMode);
+    public async Task ReleaseDeploysAndRollsBack()
+        => await _fixture.DeployAsync(output);
 }
 ```
 
-`[SqlDeployFact]` generates 6 cases: `deployBreaking` in {false, true} × `undoTestMode` in {`None`, `MigrationUndoMigration`, `MigrationBreakingUndoMigration`}. Each case deploys the whole project to a fresh database and runs all SQL tests. In the undo modes, every migration version that has an undo script is deployed as migration → undo → migration, or migration → breaking → breaking → undo → migration in `MigrationBreakingUndoMigration`, which proves that undo scripts restore the schema, that migrations can be re-applied after an undo, and that a migration breaking script gives the same schema on a second run. In the cases with `deployBreaking = true`, a second, separate deployment with `DeployParameters.Breaking` follows, as in production: every breaking script of the Code folder runs again (catches a non-idempotent one), the breaking phase guard must pass after a normal deployment, and BeforeDeploy/AfterDeploy scripts run a second time. Migration breaking scripts are already applied and do not run in that second deployment. Limit: on a fresh database an old version such as `_v1` never existed, so dropping an `_v1` that really exists is not tested (it needs the build of the previous release). Keep this test in CI.
+`[SqlDeployFact]` is a plain xUnit fact (a `FactAttribute` without parameters); the test is one case. `DeploymentTestFixture.DeployAsync` deploys to a fresh database as production does, in three deployments:
+
+1. `DeployParameters.Default` with all SQL tests: migrations and code. The release is deployed, its breaking changes are not: old application instances still run. Every migration version that has an undo script first goes through the undo cycle: migration → undo (a rollback before the breaking phase), then, if the version has a breaking script, migration → breaking → breaking → undo (a rollback after it), and then the migration for good. It proves that undo scripts restore the schema in both states a rollback can find, that migrations can be re-applied after an undo, and that a migration breaking script gives the same schema on a second run (Section 5.3). A project without undo scripts deploys every version once.
+2. `DeployParameters.BreakingAndTests`: the breaking phase, then all SQL tests again. The breaking phase guard must pass after a normal deployment.
+3. `DeployParameters.Breaking` once more: every breaking script of the Code folder runs again (catches a non-idempotent one) and BeforeDeploy/AfterDeploy scripts run a third time; migration breaking scripts are already applied and do not run. The schema must not change.
+
+The SQL tests of this test run on data the undo cycles went through (data is not compared). A deployment where every migration runs once, in one run with the breaking phase, followed by every SQL test on that data, is what the `[SqlFact]` fixture does (Section 13.2): keep both. A failed undo stops this test before the code, the SQL tests and the breaking phase; the `[SqlFact]` tests still show whether the release deploys. Limit: on a fresh database an old version such as `_v1` never existed, so dropping an `_v1` that really exists is not tested (it needs the build of the previous release). Keep this test in CI.
 
 Schema checks. A script that runs without an error is not enough: the deployment test reads the schema from the catalog (`sys.*` views, `pg_catalog`) and compares it at three points. A difference fails the case with `SchemaChangedException` (namespace `DbLive.Schema`; `Check`, `Diff`):
 
 | `Check` | When | Must be equal |
 |---|---|---|
-| `Undo` | both undo modes, every version with an undo script | the schema before the migration and the schema after the undo |
-| `BreakingSecondRun` | `MigrationBreakingUndoMigration`, a version with an undo and a breaking script | the schema after the first breaking run and after the second one. So the undo is tested against the state after one breaking run, as in a production rollback |
-| `BreakingSecondDeployment` | `deployBreaking = true` | the schema before and after the second deployment with `DeployParameters.Breaking` (breaking scripts of the Code folder, BeforeDeploy, AfterDeploy run again) |
+| `Undo` | undo cycle, every version with an undo script, after each undo | the schema before the migration and the schema after the undo |
+| `BreakingSecondRun` | undo cycle, a version with an undo and a breaking script | the schema after the first breaking run and after the second one. So the undo is tested against the state after one breaking run, as in a production rollback |
+| `BreakingSecondDeployment` | the last deployment, `DeployParameters.Breaking` | the schema before and after it (breaking scripts of the Code folder, BeforeDeploy, AfterDeploy run again) |
 
 - Compared: schemas; tables (partitioning, unlogged, system versioning); columns (type with length/precision/scale, nullability, default, identity seed and increment, computed or generated expression, collation); primary keys, unique, foreign key (columns, referenced table, actions, disabled/not trusted) and check constraints, PostgreSQL exclusion constraints; indexes (key columns and their order, included columns, filter, unique, index type, disabled); views, functions, procedures and triggers (definition text, disabled); user types (SQL Server alias and table types; PostgreSQL enums, domains, composite and range types); sequences (options); SQL Server synonyms and database DDL triggers; PostgreSQL extensions (version, schema) and event triggers.
 - Not compared: DbLive's own schema `dblive`; data (a breaking script whose second run deletes more rows passes); object ids; column order (an undo adds a dropped column back at the end of the table); names that SQL Server generates for unnamed constraints (`DF__Person__Phone__3A81B327`): such a default belongs to its column, a primary key to its table, an unnamed unique, foreign key or check constraint is identified by its table and definition; current identity and sequence values; statistics; permissions; extended properties and comments; objects that belong to a PostgreSQL extension; physical options (fill factor, compression, filegroup, partition scheme).
@@ -865,8 +878,14 @@ Failure message (one line per object; `missing`: in the earlier schema only, `ex
 DbLive.Schema.SchemaChangedException : Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
   missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
   missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
-  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
   extra table dbo.PersonPhones (with 3 columns, 1 primary key)
+```
+
+The undo after the breaking script names it; typically the breaking script dropped a column and the undo does not add it back:
+
+```
+DbLive.Schema.SchemaChangedException : Undo test: Migrations/002.undo.sql does not restore the schema after the breaking script Migrations/002.breaking.sql. The schema after the undo differs from the schema before Migrations/002.migration.sql:
+  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
 ```
 
 Other messages start with `Undo test: the breaking script <path> is not idempotent, its second run changed the schema:` and `Deployment test: a second breaking deployment changed the schema. ...`.

@@ -153,7 +153,7 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public async Task DeployVersion_migration_undo_migration()
+	public async Task DeployVersion_undo_cycle_without_breaking_item()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -183,7 +183,7 @@ public class MigrationsDeployerTests
 
 		DeployParameters parameters = DeployParameters.Default with
 		{
-			UndoTestDeployment = UndoTestMode.MigrationUndoMigration
+			UndoTestDeployment = UndoTestMode.UndoCycle
 		};
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
@@ -201,7 +201,7 @@ public class MigrationsDeployerTests
 	}
 
 	[Fact]
-	public async Task DeployVersion_migration_breaking_undo_migration()
+	public async Task DeployVersion_undo_cycle()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -238,66 +238,22 @@ public class MigrationsDeployerTests
 
 		DeployParameters parameters = DeployParameters.Default with
 		{
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
+			UndoTestDeployment = UndoTestMode.UndoCycle
 		};
 
 		// Act
 		await deployer.DeployAsync(migration, parameters);
 
-		// Assert: the breaking script runs twice, it must survive a second run.
+		// Assert: the undo before and after the breaking script; the breaking script runs twice, it must survive a second run.
 		Received.InOrder(() =>
 		{
+			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem, new MigrationItemSettings());
+			mockSet.MigrationItemDeployer.DeployAsync(3, undoItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, undoItem, new MigrationItemSettings());
 			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem, new MigrationItemSettings());
-		});
-	}
-
-	[Fact]
-	public async Task DeployVersion_breaking_mode_without_breaking_item()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = GetFileData("004.migration.sql", "-- content")
-		};
-
-		MigrationItem undoItem = new()
-		{
-			MigrationItemType = MigrationItemType.Undo,
-			FileData = GetFileData("004.undo.sql", "-- content")
-		};
-
-		var migration = new Migration
-		{
-			Version = 4,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
-			{
-				[MigrationItemType.Migration] = migrationItem,
-				[MigrationItemType.Undo] = undoItem
-			}
-		};
-
-		DeployParameters parameters = DeployParameters.Default with
-		{
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
-		};
-
-		// Act
-		await deployer.DeployAsync(migration, parameters);
-
-		// Assert
-		Received.InOrder(() =>
-		{
-			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem, new MigrationItemSettings());
-			mockSet.MigrationItemDeployer.DeployAsync(4, undoItem, new MigrationItemSettings());
-			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem, new MigrationItemSettings());
 		});
 	}
 

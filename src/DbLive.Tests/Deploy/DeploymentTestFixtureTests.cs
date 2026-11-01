@@ -6,33 +6,34 @@ using Xunit.Abstractions;
 
 namespace DbLive.Tests.Deploy;
 
-public class DeployFixtureTests
+public class DeploymentTestFixtureTests
 {
-	[Theory]
-	[InlineData(UndoTestMode.None)]
-	[InlineData(UndoTestMode.MigrationUndoMigration)]
-	[InlineData(UndoTestMode.MigrationBreakingUndoMigration)]
-	public async Task With_breaking_a_separate_breaking_deployment_follows(UndoTestMode undoTestMode)
+	[Fact]
+	public async Task Deploys_as_production_release_then_breaking_twice()
 	{
 		IDbLive dbLive = Substitute.For<IDbLive>();
 		IDbLiveDA da = Substitute.For<IDbLiveDA>();
 		da.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
-		DeployFixture fixture = new(new FixtureBuilder(dbLive, da), dropDatabaseOnComplete: false);
+		DeploymentTestFixture fixture = new(new FixtureBuilder(dbLive, da), dropDatabaseOnComplete: false);
 		await fixture.InitializeAsync();
 
-		await fixture.DeployAsync(Substitute.For<ITestOutputHelper>(), deployBreaking: true, undoTestMode);
+		await fixture.DeployAsync(Substitute.For<ITestOutputHelper>());
 
 		Received.InOrder(() =>
 		{
+			// the release with the SQL tests and the undo cycle, without breaking changes.
 			dbLive.DeployAsync(Arg.Is<DeployParameters>(p =>
-				p.DeployMigrations && p.DeployCode && p.DeployBreaking && p.RunTests && p.UndoTestDeployment == undoTestMode));
+				p.CreateDbIfNotExists && p.DeployMigrations && p.DeployCode && !p.DeployBreaking && p.RunTests && p.UndoTestDeployment == UndoTestMode.UndoCycle));
 
-			// as in production: a run of its own, without migrations and code, which must not change the schema.
+			// the breaking phase as a run of its own, with the SQL tests after it.
+			dbLive.DeployAsync(DeployParameters.BreakingAndTests);
+
+			// the second breaking run must not change the schema.
 			da.GetSchemaSnapshotAsync();
 			dbLive.DeployAsync(DeployParameters.Breaking);
 			da.GetSchemaSnapshotAsync();
 		});
-		await dbLive.Received(2).DeployAsync(Arg.Any<DeployParameters>());
+		await dbLive.Received(3).DeployAsync(Arg.Any<DeployParameters>());
 	}
 
 	[Fact]
@@ -42,31 +43,16 @@ public class DeployFixtureTests
 		IDbLiveDA da = Substitute.For<IDbLiveDA>();
 		SchemaObject phone = new(SchemaObjectType.Column, "dbo.Person.Phone", "varchar(20) null", "dbo.Person");
 		da.GetSchemaSnapshotAsync().Returns(new SchemaSnapshot([phone]), new SchemaSnapshot([]));
-		DeployFixture fixture = new(new FixtureBuilder(dbLive, da), dropDatabaseOnComplete: false);
+		DeploymentTestFixture fixture = new(new FixtureBuilder(dbLive, da), dropDatabaseOnComplete: false);
 		await fixture.InitializeAsync();
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => fixture.DeployAsync(Substitute.For<ITestOutputHelper>(), deployBreaking: true, UndoTestMode.None)
+			() => fixture.DeployAsync(Substitute.For<ITestOutputHelper>())
 		);
 
 		Assert.Equal(SchemaCheck.BreakingSecondDeployment, ex.Check);
 		Assert.StartsWith("Deployment test: a second breaking deployment changed the schema.", ex.Message);
 		Assert.EndsWith("  missing column dbo.Person.Phone: varchar(20) null", ex.Message);
-	}
-
-	[Fact]
-	public async Task Without_breaking_one_deployment()
-	{
-		IDbLive dbLive = Substitute.For<IDbLive>();
-		IDbLiveDA da = Substitute.For<IDbLiveDA>();
-		DeployFixture fixture = new(new FixtureBuilder(dbLive, da), dropDatabaseOnComplete: false);
-		await fixture.InitializeAsync();
-
-		await fixture.DeployAsync(Substitute.For<ITestOutputHelper>(), deployBreaking: false, UndoTestMode.None);
-
-		await dbLive.Received(1).DeployAsync(Arg.Is<DeployParameters>(p => !p.DeployBreaking && p.DeployCode && p.RunTests));
-		await dbLive.Received(1).DeployAsync(Arg.Any<DeployParameters>());
-		await da.DidNotReceive().GetSchemaSnapshotAsync();
 	}
 
 	private sealed class FixtureBuilder(IDbLive dbLive, IDbLiveDA da) : IDbLiveFixtureBuilder

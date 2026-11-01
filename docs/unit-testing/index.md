@@ -207,37 +207,52 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 `[SqlDeployFact]` checks that the whole project deploys to an empty database, and that undo scripts restore the schema:
 
 ```csharp
-using DbLive.Common;
 using DbLive.xunit.Deploy;
 using Xunit;
 using Xunit.Abstractions;
 
 public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 {
-    private readonly DeployFixture _fixture = new(
+    private readonly DeploymentTestFixture _fixture = new(
         builderProvider: new DockerMsSqlFixtureBuilder(),
         dropDatabaseOnComplete: true);
 
     public Task InitializeAsync() => _fixture.InitializeAsync();
     public Task DisposeAsync() => _fixture.DisposeAsync();
 
+    /// <summary>
+    /// Deploys the project to an empty database as production does, in three deployments:
+    /// 1. migrations, code and the SQL tests. Before its final run, every migration with an undo script goes through
+    ///    migration → undo and, if it has a breaking script, migration → breaking → breaking → undo;
+    ///    the schema after each undo must equal the schema before the migration;
+    /// 2. the breaking phase and the SQL tests again;
+    /// 3. the breaking phase once more, which must not change the schema.
+    /// </summary>
     [SqlDeployFact]
-    public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
-        => await _fixture.DeployAsync(output, deployBreaking, undoTestMode);
+    public async Task ReleaseDeploysAndRollsBack()
+        => await _fixture.DeployAsync(output);
 }
 ```
 
-It produces six test cases: with and without breaking changes, each in three undo modes:
+The test deploys to a fresh database the way production does, in three deployments:
 
-| Undo mode | Sequence for every version that has an undo script |
-|-----------|---------------------------------------------------|
-| `None` | migration |
-| `MigrationUndoMigration` | migration, undo, migration |
-| `MigrationBreakingUndoMigration` | migration, breaking, breaking, undo, migration |
+1. `DeployParameters.Default`: migrations, code, and all SQL tests. The release is deployed, its breaking changes are not yet: the old application still runs.
+2. `DeployParameters.BreakingAndTests`: the breaking phase, then all SQL tests again.
+3. `DeployParameters.Breaking` once more. It must not change the schema.
 
-Each case deploys to a fresh database and then runs all SQL tests. Together they prove that migrations apply cleanly, that undo scripts revert them (with and without the breaking part), and that a version can be re-applied after an undo.
+In the first deployment, every migration version that has an undo script goes through the undo cycle before it is applied for good:
 
-In the cases with breaking changes, a second, separate deployment with `DeployParameters.Breaking` follows, as in production. It proves that the [breaking scripts of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) can run again (they run on every breaking deployment), that the breaking deployment is allowed after a normal one, and that BeforeDeploy and AfterDeploy scripts can run again too. The breaking script of a migration runs twice in `MigrationBreakingUndoMigration`, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment. The database is new, so an old object version such as `_v1` never existed in it: these tests do not prove that dropping an `_v1` that really exists works.
+| Step | Sequence |
+|------|----------|
+| Rollback before the breaking phase | migration, undo |
+| Rollback after the breaking phase (versions with a breaking script) | migration, breaking, breaking, undo |
+| Final | migration |
+
+It proves that migrations apply cleanly, that undo scripts revert them in both states a rollback can find the database in, and that a version can be re-applied after an undo. Versions without an undo script are deployed once.
+
+Data is not compared, so the SQL tests of the deployment test run on data the undo cycles went through. The [`[SqlFact]` tests](#2-sql-tests-sqlfact) run on a database where every migration ran once; keep both. They also show whether the release deploys when a failing undo stops the deployment test early.
+
+The breaking deployments run on their own, as in production. They prove that the breaking deployment is allowed after a normal one, that the [breaking scripts of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) can run again (they run on every breaking deployment), and that BeforeDeploy and AfterDeploy scripts can run again too. The breaking script of a migration runs twice in the undo cycle, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment. The database is new, so an old object version such as `_v1` never existed in it: these tests do not prove that dropping an `_v1` that really exists works.
 
 #### Schema checks
 
@@ -245,9 +260,9 @@ A script that runs without an error can still be wrong: an undo that forgets to 
 
 | Check | Must be equal |
 |-------|---------------|
-| Undo (both undo modes) | the schema before the migration and the schema after its undo |
-| Second breaking run (`MigrationBreakingUndoMigration`) | the schema after the first and after the second run of a migration breaking script |
-| Second breaking deployment (cases with breaking) | the schema before and after the second deployment with `DeployParameters.Breaking` |
+| Undo (after each undo of the cycle) | the schema before the migration and the schema after its undo |
+| Second breaking run (undo cycle) | the schema after the first and after the second run of a migration breaking script |
+| Second breaking deployment | the schema before and after the last deployment, `DeployParameters.Breaking` |
 
 The second check matters for rollbacks: in production a breaking script runs once and the rollback runs the undo after that one run. If the second run of the script changes more than the first one, the test would check the undo against a state production never has, so it fails instead.
 
@@ -259,6 +274,12 @@ A difference fails the test case with `SchemaChangedException`, which names the 
 Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
   missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
   missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
+```
+
+An undo that fails only after the breaking script says so; usually the breaking script dropped a column and the undo does not add it back:
+
+```
+Undo test: Migrations/002.undo.sql does not restore the schema after the breaking script Migrations/002.breaking.sql. The schema after the undo differs from the schema before Migrations/002.migration.sql:
   missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
 ```
 

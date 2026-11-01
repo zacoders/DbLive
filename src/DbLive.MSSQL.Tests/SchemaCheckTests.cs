@@ -37,14 +37,17 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 		if object_id('dbo.CK_Person_Name') is null alter table dbo.Person add constraint CK_Person_Name check (Name <> '');
 		if indexproperty(object_id('dbo.Person'), 'IX_Person_Name', 'IndexID') is null create index IX_Person_Name on dbo.Person (Name);
 		""";
+	private const string UndoWithoutPhone = """
+		alter table dbo.Person drop column if exists Email;
+		if object_id('dbo.CK_Person_Name') is null alter table dbo.Person add constraint CK_Person_Name check (Name <> '');
+		if indexproperty(object_id('dbo.Person'), 'IX_Person_Name', 'IndexID') is null create index IX_Person_Name on dbo.Person (Name);
+		""";
 	private const string UndoWithoutRestore = "alter table dbo.Person drop column if exists Email;";
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
-	[Theory]
-	[InlineData(UndoTestMode.MigrationUndoMigration)]
-	[InlineData(UndoTestMode.MigrationBreakingUndoMigration)]
-	public async Task Undo_that_restores_the_schema_passes(UndoTestMode undoTestMode)
+	[Fact]
+	public async Task Undo_that_restores_the_schema_passes()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
@@ -52,11 +55,11 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.breaking.sql", Breaking)
 			.AddFile("Migrations/002.undo.sql", Undo);
 
-		await DeployAsync(project, undoTestMode);
+		await DeployAsync(project, UndoTestMode.UndoCycle);
 	}
 
 	[Fact]
-	public async Task Undo_that_does_not_restore_a_column_an_index_and_a_constraint_fails()
+	public async Task Undo_that_does_not_restore_an_index_and_a_constraint_fails()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
@@ -64,8 +67,9 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.breaking.sql", Breaking)
 			.AddFile("Migrations/002.undo.sql", UndoWithoutRestore);
 
+		// the undo before the breaking script fails.
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.MigrationBreakingUndoMigration)
+			() => DeployAsync(project, UndoTestMode.UndoCycle)
 		);
 
 		Assert.Equal(SchemaCheck.Undo, ex.Check);
@@ -74,6 +78,29 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
 			  missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
 			  missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
+			""".ReplaceLineEndings().TrimEnd(),
+			ex.Message
+		);
+	}
+
+	[Fact]
+	public async Task Undo_that_does_not_restore_a_column_dropped_by_the_breaking_script_fails()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", CreatePerson)
+			.AddFile("Migrations/002.migration.sql", Migration)
+			.AddFile("Migrations/002.breaking.sql", Breaking)
+			.AddFile("Migrations/002.undo.sql", UndoWithoutPhone);
+
+		// the undo before the breaking script passes, the one after it fails.
+		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
+			() => DeployAsync(project, UndoTestMode.UndoCycle)
+		);
+
+		Assert.Equal(SchemaCheck.Undo, ex.Check);
+		Assert.Equal(
+			"""
+			Undo test: Migrations/002.undo.sql does not restore the schema after the breaking script Migrations/002.breaking.sql. The schema after the undo differs from the schema before Migrations/002.migration.sql:
 			  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
 			""".ReplaceLineEndings().TrimEnd(),
 			ex.Message
@@ -93,7 +120,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.breaking.sql", Breaking)
 			.AddFile("Migrations/002.undo.sql", undo);
 
-		Exception? ex = await Record.ExceptionAsync(() => DeployAsync(project, UndoTestMode.MigrationBreakingUndoMigration));
+		Exception? ex = await Record.ExceptionAsync(() => DeployAsync(project, UndoTestMode.UndoCycle));
 
 		if (fails)
 		{
@@ -114,7 +141,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.undo.sql", "select 1;");
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.MigrationUndoMigration)
+			() => DeployAsync(project, UndoTestMode.UndoCycle)
 		);
 
 		Assert.Equal(SchemaCheck.Undo, ex.Check);
@@ -139,7 +166,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 				""");
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.MigrationBreakingUndoMigration)
+			() => DeployAsync(project, UndoTestMode.UndoCycle)
 		);
 
 		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
@@ -205,12 +232,12 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 
 	private async Task DeployWithFixtureAsync(TempProject project)
 	{
-		DeployFixture fixture = new(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true);
+		DeploymentTestFixture fixture = new(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true);
 		await fixture.InitializeAsync();
 
 		try
 		{
-			await fixture.DeployAsync(_output, deployBreaking: true, UndoTestMode.None);
+			await fixture.DeployAsync(_output);
 		}
 		finally
 		{
