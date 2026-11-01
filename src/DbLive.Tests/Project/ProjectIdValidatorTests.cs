@@ -148,4 +148,80 @@ public class ProjectIdValidatorTests
 		Assert.Contains("Deployment blocked", ex.Message);
 		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
 	}
+
+	[Fact]
+	public async Task ValidateBeforeTestsAsync_skips_when_project_id_not_set()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		await validator.ValidateBeforeTestsAsync();
+
+		_ = mockSet.DbLiveDA.DidNotReceive().GetProjectIdAsync();
+	}
+
+	[Fact]
+	public async Task ValidateBeforeTestsAsync_throws_when_database_has_no_project_id()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = "my-app-prod"
+		});
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns((string?)null);
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		ProjectIdMismatchException ex = await Assert.ThrowsAsync<ProjectIdMismatchException>(
+			validator.ValidateBeforeTestsAsync
+		);
+
+		Assert.Equal(
+			"The database has no ProjectId, settings ProjectId: my-app-prod. The database was not deployed by this project. Tests blocked to prevent running them against the wrong database.",
+			ex.Message
+		);
+		// the tests only compare: binding the ProjectId is the job of a deployment.
+		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
+	}
+
+	[Fact]
+	public async Task ValidateBeforeTestsAsync_succeeds_when_project_id_matches_database()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = "My-App-Prod"
+		});
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns("my-app-prod");
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		await validator.ValidateBeforeTestsAsync();
+
+		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
+	}
+
+	[Fact]
+	public async Task ValidateBeforeTestsAsync_throws_when_project_id_mismatch()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = "my-app-prod"
+		});
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns("other-app-prod");
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		ProjectIdMismatchException ex = await Assert.ThrowsAsync<ProjectIdMismatchException>(
+			validator.ValidateBeforeTestsAsync
+		);
+
+		Assert.Equal(
+			"ProjectId mismatch. Settings ProjectId: my-app-prod, database ProjectId: other-app-prod. Tests blocked to prevent running them against the wrong database.",
+			ex.Message
+		);
+	}
 }

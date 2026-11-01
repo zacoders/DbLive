@@ -68,20 +68,21 @@ using System.Reflection;
 
 string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
 
-var deployer = new DbLiveBuilder()
+var builder = new DbLiveBuilder()
 	.LogToConsole()
 	.SqlServer()
 	.SetDbConnection(dbCnnString)
-	.SetProject(Assembly.GetExecutingAssembly())
-	.CreateDeployer();
+	.SetProject(Assembly.GetExecutingAssembly());
 
-await deployer.DeployAsync(new DeployParameters
+await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
 	CreateDbIfNotExists = true,
 	DeployCode = true,
-	DeployMigrations = true,
-	RunTests = true // tests are not recommended to run on prod databases.
+	DeployMigrations = true
 });
+
+// the SQL tests are a call of their own, here against a local database. A production deployer does not run them.
+await builder.CreateTester().RunAllTestsAsync();
 ```
 
 ## 7. Run App
@@ -103,9 +104,9 @@ You will see deployment process in the console app output:
 [23:09:43 INF] Code deploy successfully completed.
 [23:09:43 INF] Deploying folder AfterDeploy.
 [23:09:43 INF] Folder AfterDeploy is empty.
+[23:09:43 INF] Project deploy completed.
 [23:09:43 INF] Running Tests.
 [23:09:43 INF] Tests Run Result> Passed: 0, Failed: 0.
-[23:09:43 INF] Project deploy completed.
 ```
 
 

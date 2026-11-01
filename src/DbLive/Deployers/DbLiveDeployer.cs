@@ -5,7 +5,6 @@ public class DbLiveDeployer(
 		IBreakingChangesDeployer _breakingChangesDeployer,
 		IMigrationsDeployer _migrationsDeployer,
 		IFolderDeployer _folderDeployer,
-		IUnitTestsRunner _unitTestsRunner,
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
@@ -53,8 +52,6 @@ public class DbLiveDeployer(
 				await _folderDeployer.DeployAsync(ProjectFolder.AfterDeploy, parameters).ConfigureAwait(false);
 			}
 		).ConfigureAwait(false);
-
-		await _unitTestsRunner.RunAllTestsAsync(parameters).ConfigureAwait(false);
 
 		_logger.Information("Project deploy completed.");
 	}

@@ -39,8 +39,7 @@ public class DbLiveTestFixture(
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,
 			DeployCode = true,
-			DeployMigrations = true,
-			RunTests = false // do not need to run tests, they will be run in VS UI.
+			DeployMigrations = true
 		}).ConfigureAwait(false);
 	}
 

@@ -72,7 +72,7 @@ Do not drop old versions in `AfterDeploy`: AfterDeploy scripts run on every depl
 await deployer.DeployAsync(DeployParameters.Breaking);
 ```
 
-`DeployParameters.Breaking` deploys no migrations, no code and runs no tests. `DeployParameters.BreakingAndTests` also runs the SQL tests afterwards. BeforeDeploy and AfterDeploy scripts run in both cases.
+`DeployParameters.Breaking` deploys no migrations and no code. BeforeDeploy and AfterDeploy scripts run.
 
 ## Release flow
 
@@ -89,7 +89,7 @@ The breaking deployment is safe to repeat: the breaking scripts of the Code fold
 
 Test databases usually get everything at once. The `[SqlFact]` fixture deploys migrations, code **and** breaking scripts before the SQL tests run.
 
-The `[SqlDeployFact]` deployment test deploys as production does: `DeployParameters.Default`, then `DeployParameters.BreakingAndTests` (the breaking phase and the SQL tests after it), then `DeployParameters.Breaking` once more. So the guard above must pass after a normal deployment, and every breaking script of the Code folder runs twice. In the undo cycle every breaking script of a migration runs twice too: migration, breaking, breaking, undo. A script whose second run fails or changes the schema fails the test: the test compares the schema after the first and the second run, and before and after the second breaking deployment ([schema checks](../unit-testing/index.md#schema-checks)). A typical cause is a condition on an object that the script itself drops later:
+The `[SqlDeployFact]` deployment test deploys as production does: `DeployParameters.Default`, then `DeployParameters.Breaking` (with the SQL tests after each of them), then `DeployParameters.Breaking` once more. So the guard above must pass after a normal deployment, and every breaking script of the Code folder runs twice. In the undo cycle every breaking script of a migration runs twice too: migration, breaking, breaking, undo. A script whose second run fails or changes the schema fails the test: the test compares the schema after the first and the second run, and before and after the second breaking deployment ([schema checks](../unit-testing/index.md#schema-checks)). A typical cause is a condition on an object that the script itself drops later:
 
 ```sql
 -- wrong: the first run drops only the trigger, the second one also drops the column

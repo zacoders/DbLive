@@ -2,7 +2,7 @@
 
 DbLive tests are plain `.sql` files with Arrange, Act and Assert sections. Every test runs inside a transaction that is **always rolled back**, so tests need no cleanup and can run again and again. Tests run in two places:
 
-- at the end of a deployment, when `RunTests` is true;
+- after a deployment, with a call of their own: `RunAllTestsAsync()` ([see below](#running-all-tests-after-a-deployment)); a deployment never runs them, so a production deployer does not;
 - as normal xUnit tests in Visual Studio Test Explorer and in `dotnet test`, one test case per file (package `DbLive.xunit`).
 
 With xUnit you need no shared test database. The test fixture deploys your scripts into a new database, in Docker (Testcontainers) or on a local server, runs the tests against it and drops it at the end. SQL tests then work like ordinary C# unit tests: every developer and every CI run gets the same database, built from the same scripts.
@@ -120,8 +120,31 @@ Code/
 ## Isolation and parallelism
 
 - Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result.
-- During a deployment, tests run in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
-- Results are saved in `dblive.unit_test_run`. If any test fails, `DeployAsync` throws `UnitTestsFailedException` after all tests have run. The deployment itself has already been committed at that point, so catching this type tells "deployed, tests failed" apart from "deployment failed". The exception has `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files).
+- `RunAllTestsAsync()` runs tests in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
+
+## Running all tests after a deployment
+
+`DeployAsync` only deploys. To run the SQL tests against the deployed database, for example in a CI step or after deploying to a local database, call the tester of the same builder:
+
+```csharp
+DbLiveBuilder builder = new DbLiveBuilder()
+    .SqlServer()
+    .SetDbConnection(connectionString)
+    .SetProject(typeof(MyDbMarker).Assembly);
+
+await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+await builder.CreateTester().RunAllTestsAsync();
+```
+
+Do not call it in a production deployer (see [Isolation and parallelism](#isolation-and-parallelism)).
+
+Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
+
+- The DbLive tables exist. Otherwise `DatabaseNotDeployedException`: the project was never deployed there, or the connection string points to another database.
+- The [ProjectId](../features/project-id.md) matches. The check only compares: with a `ProjectId` in `settings.json`, a database with another value or with none fails with `ProjectIdMismatchException`. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
+- The isolation levels in `settings.json` are supported by the database engine, as at the start of a deployment.
+
+Results are saved in `dblive.unit_test_run`. If any test fails, `RunAllTestsAsync` throws `UnitTestsFailedException` after all tests have run, so a console app exits with a non-zero code. The exception has `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files). The deployment was a separate call and stays committed.
 
 ## Running tests in Visual Studio and CI (xUnit)
 
@@ -222,10 +245,10 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 
     /// <summary>
     /// Deploys the project to an empty database as production does, in three deployments:
-    /// 1. migrations, code and the SQL tests. Before its final run, every migration with an undo script goes through
+    /// 1. migrations and code, then the SQL tests. Before its final run, every migration with an undo script goes through
     ///    migration → undo and, if it has a breaking script, migration → breaking → breaking → undo;
     ///    the schema after each undo must equal the schema before the migration;
-    /// 2. the breaking phase and the SQL tests again;
+    /// 2. the breaking phase, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
     /// </summary>
     [SqlDeployFact]
@@ -236,8 +259,8 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 
 The test deploys to a fresh database the way production does, in three deployments:
 
-1. `DeployParameters.Default`: migrations, code, and all SQL tests. The release is deployed, its breaking changes are not yet: the old application still runs.
-2. `DeployParameters.BreakingAndTests`: the breaking phase, then all SQL tests again.
+1. `DeployParameters.Default`: migrations and code, then all SQL tests. The release is deployed, its breaking changes are not yet: the old application still runs.
+2. `DeployParameters.Breaking`: the breaking phase, then all SQL tests again.
 3. `DeployParameters.Breaking` once more. It must not change the schema.
 
 In the first deployment, every migration version that has an undo script goes through the undo cycle before it is applied for good:

@@ -8,8 +8,7 @@ public record DeployParameters
 		CreateDbIfNotExists = true,
 		DeployBreaking = false,
 		DeployCode = true,
-		DeployMigrations = true,
-		RunTests = true // todo: we should not run tests by default. No tests on prod.
+		DeployMigrations = true
 	};
 
 	public static DeployParameters Breaking => new()
@@ -17,17 +16,7 @@ public record DeployParameters
 		CreateDbIfNotExists = false,
 		DeployBreaking = true,
 		DeployCode = false,
-		DeployMigrations = false,
-		RunTests = false
-	};
-
-	public static DeployParameters BreakingAndTests => new()
-	{
-		CreateDbIfNotExists = false,
-		DeployBreaking = true,
-		DeployCode = false,
-		DeployMigrations = false,
-		RunTests = true
+		DeployMigrations = false
 	};
 
 	internal bool RecreateDatabase { get; set; } = false;
@@ -35,8 +24,6 @@ public record DeployParameters
 	public bool DeployCode { get; set; } = true;
 
 	public bool DeployMigrations { get; set; } = true;
-
-	public bool RunTests { get; set; } = true;
 
 	public bool DeployBreaking { get; set; } = false;
 

@@ -81,20 +81,21 @@ using System.Reflection;
 
 string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
 
-var deployer = new DbLiveBuilder()
+var builder = new DbLiveBuilder()
 	.LogToConsole()
 	.SqlServer()
 	.SetDbConnection(dbCnnString)
-	.SetProject(Assembly.GetExecutingAssembly())
-	.CreateDeployer();
+	.SetProject(Assembly.GetExecutingAssembly());
 
-await deployer.DeployAsync(new DeployParameters
+await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
 	CreateDbIfNotExists = true,
 	DeployCode = true,
-	DeployMigrations = true,
-	RunTests = true // tests are not recommended to run on prod databases.
+	DeployMigrations = true
 });
+
+// the SQL tests are a call of their own, here against a local database. A production deployer does not run them.
+await builder.CreateTester().RunAllTestsAsync();
 ```
 
 See the **Demo** projects in this repository (`src/Demo`) for full examples with MSSQL and PostgreSQL.
@@ -257,9 +258,10 @@ A single `DeployAsync` run typically does (in order):
 4. **Code** — deploy or update code objects (procedures, views, etc.)
 5. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
 6. **AfterDeploy** — run once-after scripts
-7. **Unit tests** — run all SQL tests (unless disabled)
 
-You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `RunTests`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
+You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
+
+SQL tests are not part of a deployment: `IDbLiveTester.RunAllTestsAsync()` runs them, in CI or against a local database. A production deployer does not call it.
 
 ### Typical CI/CD pipeline
 

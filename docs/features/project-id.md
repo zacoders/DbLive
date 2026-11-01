@@ -35,6 +35,10 @@ When `ProjectId` is configured and `dblive.version.project_id` is null in the ta
 
 On every deploy, DbLive compares the settings value with `dblive.version.project_id`. If they differ, deployment is blocked with a `ProjectIdMismatchException`.
 
+### Before the SQL tests
+
+[`RunAllTestsAsync()`](../unit-testing/index.md#running-all-tests-after-a-deployment) only compares, it never stores the value. A database with another value or with none fails with `ProjectIdMismatchException`, and no test runs. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
+
 ## Storage
 
 The value is stored in the `project_id` column on the singleton `dblive.version` table. The column is added automatically during DbLive self-deploy (internal migration). Values are normalized to lowercase on write; comparison is case insensitive.

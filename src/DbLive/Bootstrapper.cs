@@ -19,7 +19,7 @@ public static class Bootstrapper
 			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
 			.AddSingleton<IDbLiveProject, DbLiveProject>()
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
-			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()
+			.AddSingleton<IDbLiveTester, DbLiveTester>()
 			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
 			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()

@@ -85,8 +85,7 @@ A downgrade happens when you deploy a build whose `Migrations` folder lacks vers
 // Roll back to the previous release: deploy its build with downgrade allowed.
 await deployer.DeployAsync(DeployParameters.Default with
 {
-    AllowDatabaseDowngrade = true,
-    RunTests = false
+    AllowDatabaseDowngrade = true
 });
 ```
 

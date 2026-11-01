@@ -6,24 +6,6 @@ namespace DbLive.Tests.Deployers.Testing;
 public class UnitTestsRunnerTests
 {
 	[Fact]
-	public async Task RunTest_Tests_Disabled()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
-
-		DeployParameters parameters = new() { RunTests = false };
-
-		// Act
-		await runner.RunAllTestsAsync(parameters);
-
-		// Assert
-		await mockSet.DbLiveProject.DidNotReceive().GetTestsAsync();
-	}
-
-
-	[Fact]
 	public async Task RunTest_Simple_Success()
 	{
 		// Arrange
@@ -53,10 +35,8 @@ public class UnitTestsRunnerTests
 		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
-		DeployParameters parameters = new() { RunTests = true };
-
 		// Act
-		await runner.RunAllTestsAsync(parameters);
+		await runner.RunAllTestsAsync();
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
@@ -94,10 +74,8 @@ public class UnitTestsRunnerTests
 		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
-		DeployParameters parameters = new() { RunTests = true };
-
 		// Act
-		await runner.RunAllTestsAsync(parameters);
+		await runner.RunAllTestsAsync();
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
@@ -173,7 +151,7 @@ public class UnitTestsRunnerTests
 				});
 			});
 
-		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(runner.RunAllTestsAsync);
 
 		Assert.Equal(1, ex.FailedCount);
 		Assert.Equal(3, ex.TotalCount);
@@ -234,11 +212,24 @@ public class UnitTestsRunnerTests
 		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult { IsSuccess = false, ErrorMessage = "failed" });
 
-		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(runner.RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
 		await mockSet.DbLiveDA.Received()
 			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto => dto.RelativePath == "Tests/Orders/Select-Order.sql"));
+	}
+
+	[Fact]
+	public async Task RunTest_Logs_Under_Its_Own_Context()
+	{
+		MockSet mockSet = new();
+
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+
+		await runner.RunAllTestsAsync();
+
+		_ = mockSet.Logger.Received().ForContext(typeof(UnitTestsRunner));
+		_ = mockSet.Logger.DidNotReceive().ForContext(typeof(UnitTestItemRunner));
 	}
 
 	private static FileData GetFileData(string relativePath)

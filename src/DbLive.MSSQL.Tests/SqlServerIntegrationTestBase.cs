@@ -1,3 +1,4 @@
+using DbLive.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
 using System.Reflection;
@@ -18,6 +19,8 @@ public class SqlServerIntegrationTestBase : IDisposable
 
 	protected IDbLive DbLiveDeployer;
 
+	protected IDbLiveTester DbLiveTester;
+
 	public ITestOutputHelper Output { get; }
 
 	public SqlServerIntegrationTestBase(ITestOutputHelper output, string masterDbConnectionString, string? dbName = null, bool keepDatabaseAfterTests = false)
@@ -28,13 +31,15 @@ public class SqlServerIntegrationTestBase : IDisposable
 
 		Output = output;
 
-		DbLiveDeployer = new DbLiveBuilder()
+		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(Output)
 			//.AddTestingMsSqlConnection() //todo: looks like cnn string added 2 times?
 			.SqlServer()
 			.SetDbConnection(_masterDbConnectionString.SetMsSqlDatabaseName(_testingDbName))
-			.SetProject(_projectAssembly)
-			.CreateDeployer();
+			.SetProject(_projectAssembly);
+
+		DbLiveDeployer = builder.CreateDeployer();
+		DbLiveTester = builder.CreateTester();
 	}
 
 	public void Dispose()

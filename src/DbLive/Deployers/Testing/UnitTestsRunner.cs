@@ -10,16 +10,11 @@ public class UnitTestsRunner(
 		ISettingsAccessor settingsAccessor
 	) : IUnitTestsRunner
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
+	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestsRunner));
 
-	public async Task RunAllTestsAsync(DeployParameters parameters)
+	public async Task RunAllTestsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-
-		if (!parameters.RunTests)
-		{
-			return;
-		}
 
 		_logger.Information("Running Tests.");
 

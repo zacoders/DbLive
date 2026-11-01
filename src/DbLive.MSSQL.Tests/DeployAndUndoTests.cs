@@ -17,19 +17,20 @@ public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutpu
 	[Fact]
 	public async Task Deploy_MSSQL_demo_and_undo_to_empty_database()
 	{
-		IDbLive deployer = new DbLiveBuilder()
+		DbLiveBuilder builder = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProject(Assembly.Load("DemoMSSQL"))
-			.CreateDeployer();
+			.SetProject(Assembly.Load("DemoMSSQL"));
 
-		IDbLive deployerEmptyDb = new DbLiveBuilder()
+		DbLiveBuilder builderEmptyDb = new DbLiveBuilder()
 			.LogToXUnitOutput(_output)
 			.SqlServer()
 			.SetDbConnection(dbCnnString)
-			.SetProject(Assembly.Load(assemblyString: "DemoMSSQLEmpty"))
-			.CreateDeployer();
+			.SetProject(Assembly.Load(assemblyString: "DemoMSSQLEmpty"));
+
+		IDbLive deployer = builder.CreateDeployer();
+		IDbLive deployerEmptyDb = builderEmptyDb.CreateDeployer();
 
 
 		// First deploy the full project to create the database
@@ -40,10 +41,12 @@ public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutpu
 				DeployBreaking = true,
 				DeployCode = true,
 				DeployMigrations = true,
-				RunTests = true, // checking database state using unit db unit tests
 				RecreateDatabase = true
 			}
 		);
+
+		// checking database state using unit db unit tests
+		await builder.CreateTester().RunAllTestsAsync();
 
 
 		// Now undo the deployment back to empty database
@@ -54,10 +57,12 @@ public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutpu
 				DeployBreaking = true,
 				DeployCode = false,
 				DeployMigrations = true,
-				RunTests = true, // some special tests added, it will check that database is empty
 				AllowDatabaseDowngrade = true
 			}
 		);
+
+		// some special tests added, it will check that database is empty
+		await builderEmptyDb.CreateTester().RunAllTestsAsync();
 
 		// redeploy again
 		await deployer.DeployAsync(
@@ -66,9 +71,11 @@ public class DeployAndUndoTests(SqlServerIntegrationFixture _fixture, ITestOutpu
 				CreateDbIfNotExists = true,
 				DeployBreaking = true,
 				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = true // checking database state using unit db unit tests
+				DeployMigrations = true
 			}
 		);
+
+		// checking database state using unit db unit tests
+		await builder.CreateTester().RunAllTestsAsync();
 	}
 }

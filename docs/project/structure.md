@@ -32,7 +32,7 @@ Scripts/
 | `Migrations` | no | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
 | `Code` | no | `*.sql` (except test files, breaking scripts and `setup.test.sql`), including subfolders | When the file is new or changed |
 | `Code` (breaking scripts) | no | `breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql`, including subfolders, sorted by relative path | On **every** breaking deployment, before the breaking scripts of migrations |
-| `Tests` | no | every `*.sql` except `setup.test.sql`, including subfolders | At the end of a deployment, or from xUnit |
+| `Tests` | no | every `*.sql` except `setup.test.sql`, including subfolders | After a deployment (`RunAllTestsAsync()`), or from xUnit |
 | `BeforeDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, before migrations |
 | `AfterDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, after breaking changes |
 

@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Schema;
+using DbLive.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -33,8 +34,8 @@ public class DeploymentTestFixture(
 	}
 
 	/// <summary>
-	/// Deploys the project to the database as production does: the release with the SQL tests, then the breaking phase
-	/// with the SQL tests, then the breaking phase again, which must not change the schema.
+	/// Deploys the project to the database as production does: the release, then the breaking phase, then the breaking
+	/// phase again, which must not change the schema. The SQL tests run after the release and after the first breaking phase.
 	/// Every migration version that has an undo script goes through the undo cycle first: migration → undo, then, if it has
 	/// a breaking script, migration → breaking → breaking → undo; the schema after each undo must equal the schema before the migration.
 	/// </summary>
@@ -46,6 +47,7 @@ public class DeploymentTestFixture(
 		}
 
 		var deployer = _builder.LogToXUnitOutput(output).CreateDeployer();
+		IDbLiveTester tester = _builder.CreateTester();
 
 		// the release is deployed, its breaking changes are not: old application instances still run.
 		// a deployment where every migration runs once is done by the [SqlFact] fixture.
@@ -55,14 +57,15 @@ public class DeploymentTestFixture(
 			DeployBreaking = false,
 			DeployCode = true,
 			DeployMigrations = true,
-			RunTests = true,
 			UndoTestDeployment = UndoTestMode.UndoCycle
 		};
 
 		await deployer.DeployAsync(deployParams).ConfigureAwait(false);
+		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		// a separate breaking run, as in production: the breaking phase guard passes after a normal deployment.
-		await deployer.DeployAsync(DeployParameters.BreakingAndTests).ConfigureAwait(false);
+		await deployer.DeployAsync(DeployParameters.Breaking).ConfigureAwait(false);
+		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		IDbLiveDA da = _builder.CreateDbLiveDA();
 		SchemaSnapshot beforeSecondRun = await da.GetSchemaSnapshotAsync().ConfigureAwait(false);

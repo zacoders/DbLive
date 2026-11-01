@@ -28,10 +28,11 @@ public class LocalDeployTests(ITestOutputHelper _output)
 				CreateDbIfNotExists = true,
 				DeployBreaking = false,
 				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = true
+				DeployMigrations = true
 			}
 		);
+
+		await builder.CreateTester().RunAllTestsAsync();
 
 		await deployer.DeployAsync(DeployParameters.Breaking);
 	}

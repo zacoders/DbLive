@@ -1,15 +1,39 @@
-﻿
+﻿using DbLive.Deployers;
+
 namespace DbLive.Testing;
 
 /// <summary>
-/// This class used to run unit tests in Visual Studio. Designed for xunit.
+/// Runs the SQL tests of the project against a deployed database: all of them (a CI step after the deployment),
+/// or one by one from xUnit (<c>[SqlFact]</c>).
 /// </summary>
-public class DbLiveVisualStudioTester(
+public class DbLiveTester(
 		IDbLiveProject _project,
-		IUnitTestItemRunner _unitTestItemRunner
+		IUnitTestItemRunner _unitTestItemRunner,
+		IUnitTestsRunner _unitTestsRunner,
+		IDbLiveDA _da,
+		ISettingsAccessor _projectSettings,
+		IProjectIdValidator _projectIdValidator,
+		ITransactionSettingsValidator _transactionSettingsValidator
 	) : IDbLiveTester
 {
 	private ReadOnlyDictionary<string, TestItem>? _testsList = null;
+
+	public async Task RunAllTestsAsync()
+	{
+		// otherwise the first test fails on saving its result to dblive.unit_test_run.
+		if (!await _da.DbLiveInstalledAsync().ConfigureAwait(false))
+		{
+			throw new DatabaseNotDeployedException();
+		}
+
+		await _projectIdValidator.ValidateBeforeTestsAsync().ConfigureAwait(false);
+
+		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
+
+		await _transactionSettingsValidator.ValidateAsync(projectSettings).ConfigureAwait(false);
+
+		await _unitTestsRunner.RunAllTestsAsync().ConfigureAwait(false);
+	}
 
 	private async Task<ReadOnlyDictionary<string, TestItem>> LoadTestsAsync()
 	{

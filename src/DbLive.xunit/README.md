@@ -3,7 +3,7 @@
 xUnit v2 integration for [DbLive](https://github.com/zacoders/DbLive):
 
 - `[SqlFact]` turns every SQL test file of a DbLive project into its own test case in Visual Studio Test Explorer and `dotnet test`.
-- `[SqlDeployFact]` deploys the whole project to an empty database the way production does (the release with the SQL tests, the breaking phase with the SQL tests, the breaking phase again) and runs every undo script before and after the breaking phase. It compares the schema: an undo must restore it, and a breaking script must not change it on a second run.
+- `[SqlDeployFact]` deploys the whole project to an empty database the way production does (the release, the breaking phase, the breaking phase again; the SQL tests run after the first two) and runs every undo script before and after the breaking phase. It compares the schema: an undo must restore it, and a breaking script must not change it on a second run.
 - `LogToXUnitOutput(ITestOutputHelper)` sends DbLive logs to the test output.
 
 ```csharp

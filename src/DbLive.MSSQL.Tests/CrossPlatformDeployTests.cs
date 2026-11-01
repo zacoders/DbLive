@@ -193,6 +193,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		DbLiveBuilder builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		await builder.CreateTester().RunAllTestsAsync();
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
 		Assert.Equal(["migrations/001.migration.sql:migration"], await RowsAsync(da, "select relative_path, item_type from dblive.migration"));
@@ -267,8 +268,10 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
 		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(
-			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default));
+			builder.CreateTester().RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
 		Assert.Equal(

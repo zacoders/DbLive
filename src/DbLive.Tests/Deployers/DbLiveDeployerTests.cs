@@ -3,7 +3,7 @@
 public class DbLiveDeployerTests
 {
 	[Fact]
-	public async Task Deploy_executes_all_steps_in_correct_order_and_runs_tests_after_transaction()
+	public async Task Deploy_executes_all_steps_in_correct_order()
 	{
 		// arrange
 		MockSet mockSet = new();
@@ -51,10 +51,6 @@ public class DbLiveDeployerTests
 			.When(x => x.DeployAsync(ProjectFolder.AfterDeploy, parameters))
 			.Do(_ => calls.Add("folder-after"));
 
-		mockSet.UnitTestsRunner
-			.When(x => x.RunAllTestsAsync(parameters))
-			.Do(_ => calls.Add("tests"));
-
 		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
@@ -71,11 +67,13 @@ public class DbLiveDeployerTests
 				"migrations",
 				"code",
 				"breaking",
-				"folder-after",
-				"tests"
+				"folder-after"
 			],
 			calls
 		);
+
+		// the SQL tests are not a step of the deployment: IDbLiveTester.RunAllTestsAsync runs them.
+		await mockSet.UnitTestsRunner.DidNotReceive().RunAllTestsAsync();
 	}
 
 
