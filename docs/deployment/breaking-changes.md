@@ -89,7 +89,14 @@ The breaking deployment is safe to repeat: the breaking scripts of the Code fold
 
 Test databases usually get everything at once. The `[SqlFact]` fixture deploys migrations, code **and** breaking scripts before the SQL tests run.
 
-The `[SqlDeployFact]` deployment test runs every scenario with and without breaking changes. In the cases with breaking it then runs a second, separate deployment with `DeployParameters.Breaking`, as in production: every breaking script of the Code folder runs twice, and the guard above must pass after a normal deployment. In the undo mode `MigrationBreakingUndoMigration` every breaking script of a migration runs twice too: migration, breaking, breaking, undo, migration. A script that does not survive a second run fails the test. The test database is new, so an old version such as `_v1` never existed there: dropping an `_v1` that really exists is not tested. See [Unit Testing](../unit-testing/index.md#deployment-tests).
+The `[SqlDeployFact]` deployment test runs every scenario with and without breaking changes. In the cases with breaking it then runs a second, separate deployment with `DeployParameters.Breaking`, as in production: every breaking script of the Code folder runs twice, and the guard above must pass after a normal deployment. In the undo mode `MigrationBreakingUndoMigration` every breaking script of a migration runs twice too: migration, breaking, breaking, undo, migration. A script whose second run fails or changes the schema fails the test: the test compares the schema after the first and the second run, and before and after the second breaking deployment ([schema checks](../unit-testing/index.md#schema-checks)). A typical cause is a condition on an object that the script itself drops later:
+
+```sql
+-- wrong: the first run drops only the trigger, the second one also drops the column
+if object_id('dbo.TMP_sync') is null
+    alter table dbo.Person drop column if exists Phone;
+drop trigger if exists dbo.TMP_sync;
+``` The test database is new, so an old version such as `_v1` never existed there: dropping an `_v1` that really exists is not tested. See [Unit Testing](../unit-testing/index.md#deployment-tests).
 
 ## What DbLive cannot check
 

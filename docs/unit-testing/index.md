@@ -204,7 +204,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 
 ### Deployment tests
 
-`[SqlDeployFact]` checks that the whole project deploys to an empty database, and that undo scripts work:
+`[SqlDeployFact]` checks that the whole project deploys to an empty database, and that undo scripts restore the schema:
 
 ```csharp
 using DbLive.Common;
@@ -237,4 +237,29 @@ It produces six test cases: with and without breaking changes, each in three und
 
 Each case deploys to a fresh database and then runs all SQL tests. Together they prove that migrations apply cleanly, that undo scripts revert them (with and without the breaking part), and that a version can be re-applied after an undo.
 
-In the cases with breaking changes, a second, separate deployment with `DeployParameters.Breaking` follows, as in production. It proves that the [breaking scripts of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) survive a second run (they run on every breaking deployment), that the breaking deployment is allowed after a normal one, and that BeforeDeploy and AfterDeploy scripts survive a second run too. The breaking script of a migration runs twice in `MigrationBreakingUndoMigration`, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment. The database is new, so an old object version such as `_v1` never existed in it: these tests do not prove that dropping an `_v1` that really exists works.
+In the cases with breaking changes, a second, separate deployment with `DeployParameters.Breaking` follows, as in production. It proves that the [breaking scripts of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) can run again (they run on every breaking deployment), that the breaking deployment is allowed after a normal one, and that BeforeDeploy and AfterDeploy scripts can run again too. The breaking script of a migration runs twice in `MigrationBreakingUndoMigration`, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment. The database is new, so an old object version such as `_v1` never existed in it: these tests do not prove that dropping an `_v1` that really exists works.
+
+#### Schema checks
+
+A script that runs without an error can still be wrong: an undo that forgets to add back the column the breaking script dropped runs fine, and so does the migration after it. So the deployment test also reads the schema of the database from its catalog and compares it at three points:
+
+| Check | Must be equal |
+|-------|---------------|
+| Undo (both undo modes) | the schema before the migration and the schema after its undo |
+| Second breaking run (`MigrationBreakingUndoMigration`) | the schema after the first and after the second run of a migration breaking script |
+| Second breaking deployment (cases with breaking) | the schema before and after the second deployment with `DeployParameters.Breaking` |
+
+The second check matters for rollbacks: in production a breaking script runs once and the rollback runs the undo after that one run. If the second run of the script changes more than the first one, the test would check the undo against a state production never has, so it fails instead.
+
+The comparison covers tables, columns (type, nullability, default, identity, computed expression, collation), keys, foreign keys, check constraints, indexes, views, functions, procedures, triggers, user types and sequences. It ignores DbLive's own `dblive` schema, data, column order (an undo can only add a column back at the end of the table), the names SQL Server generates for unnamed constraints, and current identity and sequence values. The full list is in the [agent reference](https://zacoders.github.io/DbLive/llms-full.txt), Section 13.3.
+
+A difference fails the test case with `SchemaChangedException`, which names the check and the script and lists what differs:
+
+```
+Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
+  missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
+  missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
+  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
+```
+
+`missing` objects were in the earlier schema only, `extra` objects are in the later one only, and `changed` objects show the old and the new definition. Data is not compared. The checks need SQL Server 2017 or later (every SQL Server Docker image) or PostgreSQL 12 or later.

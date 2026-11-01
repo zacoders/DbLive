@@ -34,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
     <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
+    <ProjectReference Include="..\DbLive.xunit\DbLive.xunit.csproj" />
   </ItemGroup>
 
 </Project>

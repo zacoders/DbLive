@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using DbLive.Schema;
 using Npgsql.Schema;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -574,6 +575,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			error = item.ErrorMessage
 		}).ConfigureAwait(false);
 	}
+
+	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		IEnumerable<SchemaObjectRow> rows = await cnn.QueryAsync<SchemaObjectRow>(PostgreSqlSchemaSnapshot.Query).ConfigureAwait(false);
+		return new SchemaSnapshot(rows.Select(r => PostgreSqlSchemaSnapshot.Normalize(r.ToSchemaObject())));
+	}
+
 	public async Task MarkItemAsAppliedAsync(
 		ProjectFolder projectFolder,
 		string relativePath,

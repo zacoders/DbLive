@@ -67,7 +67,9 @@ drop trigger if exists dbo.TMP_DataMigration_Person_To_PersonPhones;
 drop table if exists dbo.PersonPhones;
 ```
 
-Undo scripts are tested by the `[SqlDeployFact]` deployment test, which applies each version as migration, undo, migration again, and in the mode with breaking as migration, breaking, breaking, undo, migration; each step runs with its own settings, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so it must survive a second run. See [Unit Testing](../unit-testing/index.md#deployment-tests).
+Undo scripts are tested by the `[SqlDeployFact]` deployment test, which applies each version as migration, undo, migration again, and in the mode with breaking as migration, breaking, breaking, undo, migration; each step runs with its own settings, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so its second run must not fail and must not change the schema.
+
+The test compares the schema before the migration with the schema after the undo, so an undo that runs without errors but does not restore the schema fails it with `SchemaChangedException` and a list of the missing, extra and changed objects. Column order is not compared: adding a dropped column back at the end of the table, as in the example above, is enough. See [Unit Testing](../unit-testing/index.md#schema-checks).
 
 ## Downgrade
 

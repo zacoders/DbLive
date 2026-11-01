@@ -68,6 +68,11 @@ public interface IDbLiveDA
 
 	Task SaveUnitTestResultAsync(UnitTestItemDto item);
 
+	/// <summary>
+	/// Reads the schema of the database from its catalog, for the schema checks of the deployment tests (<see cref="SchemaCheck"/>).
+	/// </summary>
+	Task<SchemaSnapshot> GetSchemaSnapshotAsync();
+
 	Task MarkItemAsAppliedAsync(
 		ProjectFolder projectFolder,
 		string relativePath,

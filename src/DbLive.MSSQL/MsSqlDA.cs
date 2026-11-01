@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using DbLive.Schema;
 using System.Data;
 using System.Xml.Linq;
 
@@ -639,6 +640,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				error = item.ErrorMessage
 			}
 		).ConfigureAwait(false);
+	}
+
+	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()
+	{
+		using var cnn = GetConnection();
+		IEnumerable<SchemaObjectRow> rows = await cnn.QueryAsync<SchemaObjectRow>(MsSqlSchemaSnapshot.Query).ConfigureAwait(false);
+		return new SchemaSnapshot(rows.Select(r => MsSqlSchemaSnapshot.Normalize(r.ToSchemaObject())));
 	}
 
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash)

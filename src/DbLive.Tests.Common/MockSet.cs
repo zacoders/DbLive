@@ -1,6 +1,7 @@
 ﻿
 using DbLive.Deployers;
 using DbLive.Deployers.Folder;
+using DbLive.Schema;
 using DbLive.SelfDeployer;
 using System.Reflection;
 
@@ -45,6 +46,9 @@ public class MockSet
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
+
+		// the schema checks of the undo test modes compare equal snapshots unless a test sets them.
+		DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 
 		TransactionSettingsValidator
 			.ValidateAsync(Arg.Any<DbLiveSettings>())
