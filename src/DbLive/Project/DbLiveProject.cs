@@ -23,7 +23,7 @@ public class DbLiveProject(
 		string codeFolder = ToFolder(projectSettings.CodeFolder);
 
 		List<string> codeFiles = GetFolderFiles(
-			scriptSource.GetFiles(),
+			GetFiles(),
 			codeFolder,
 			["*.sql"],
 			[.. projectSettings.TestFilePatterns, TestSetupFileName]
@@ -90,7 +90,7 @@ public class DbLiveProject(
 
 		// a project without migrations (code only) is valid.
 		List<string> migrationFiles = GetFolderFiles(
-			scriptSource.GetFiles(),
+			GetFiles(),
 			ToFolder(projectSettings.MigrationsFolder),
 			["*.sql", "*.json"],
 			[]
@@ -163,7 +163,7 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		IReadOnlyList<string> files = scriptSource.GetFiles();
+		IReadOnlyList<string> files = GetFiles();
 
 		List<string> testFiles =
 		[
@@ -223,7 +223,7 @@ public class DbLiveProject(
 
 		List<GenericItem> items = [];
 
-		foreach (string relativePath in GetFolderFiles(scriptSource.GetFiles(), ToFolder(folder), ["*.sql"], []))
+		foreach (string relativePath in GetFolderFiles(GetFiles(), ToFolder(folder), ["*.sql"], []))
 		{
 			var item = new GenericItem
 			{
@@ -234,6 +234,32 @@ public class DbLiveProject(
 		}
 
 		return items.AsReadOnly();
+	}
+
+	/// <summary>
+	/// All files of the project. Every read checks all of them, so the deployment stops at its first read (migrations),
+	/// before anything is deployed, whatever folder the files are in.
+	/// </summary>
+	/// <exception cref="ScriptPathsDifferOnlyByCaseException">
+	/// Two paths differ only by case (possible on Linux): DbLive finds files and identifies them in the database
+	/// ignoring case, so they would be one item.
+	/// </exception>
+	private IReadOnlyList<string> GetFiles()
+	{
+		IReadOnlyList<string> files = scriptSource.GetFiles();
+
+		HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
+
+		foreach (string file in files)
+		{
+			if (!paths.Add(file))
+			{
+				_ = paths.TryGetValue(file, out string? otherFile);
+				throw new ScriptPathsDifferOnlyByCaseException(otherFile!, file);
+			}
+		}
+
+		return files;
 	}
 
 	/// <summary>
@@ -252,8 +278,6 @@ public class DbLiveProject(
 			.. files
 				.Where(f => IsInFolder(f, folder) && MatchesAny(f, patterns) && !MatchesAny(f, excludePatterns))
 				.OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-				// files that differ only by case, possible on Linux.
-				.ThenBy(f => f, StringComparer.Ordinal)
 		];
 	}
 
