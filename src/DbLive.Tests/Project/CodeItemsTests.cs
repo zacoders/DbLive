@@ -214,7 +214,7 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = ["sub1"]
 		});
 
-		mockSet.ScriptSource.AddFiles("Migrations/001.migration.sql", "Code/a.test.sql", "CodeX/a.sql");
+		mockSet.ScriptSource.AddFiles("Migrations/001.migration.sql", "Code/a.test.sql");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 

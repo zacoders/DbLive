@@ -25,13 +25,7 @@ public class ProjectFoldersTests
 			"db/Code/v1.sql",
 			"db/Tests/t1.sql",
 			"db/BeforeDeploy/before.sql",
-			"db/AfterDeploy/after.sql",
-			// the same folders in the root are not part of the project.
-			"Migrations/002.migration.sql",
-			"Code/v2.sql",
-			"Tests/t2.sql",
-			"BeforeDeploy/before2.sql",
-			"AfterDeploy/after2.sql"
+			"db/AfterDeploy/after.sql"
 		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();

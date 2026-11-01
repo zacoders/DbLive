@@ -2,7 +2,7 @@
 
 public class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 {
-	private const string SettingsFileName = "settings.json";
+	internal const string SettingsFileName = "settings.json";
 
 	private readonly DbLiveSettings _defaultSettings = new();
 

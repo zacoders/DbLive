@@ -38,9 +38,11 @@ Scripts/
 
 Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code, tests and the BeforeDeploy/AfterDeploy scripts.
 
+Nothing else may be in `Scripts`. A file outside these folders, other than `settings.json` in the root, stops the deployment with `FilesOutsideProjectFoldersException` before anything is deployed, because DbLive would never read it: a `PostDeployment` folder would never run, and a misspelled `setting.json` would leave every setting at its default. Keep other scripts and documents outside `Scripts`. Hidden files and folders, whose names start with a dot (`.DS_Store`, `.gitkeep`), are skipped.
+
 Folder names and file patterns are matched ignoring case. "Sorted by relative path" compares the path with `/` character by character, ignoring case, so the order is the same on every OS and machine: `01-users.sql`, `02-roles.sql`, `sub/01.sql`. Number the files to control the order.
 
-Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
+Files with other extensions (`.txt`, `.md`) inside these folders are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
 
 Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`, stop the deployment with `ScriptPathsDifferOnlyByCaseException` before anything is deployed, whatever their folder or extension. Such files can exist only on a case-sensitive file system (Linux), and DbLive identifies files ignoring case, so they would be one item. Rename or delete one of them.
 

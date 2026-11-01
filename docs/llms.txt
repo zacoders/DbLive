@@ -5,7 +5,7 @@
 Start with `llms-full.txt`: it is a complete, self-contained reference written for AI coding agents (setup, file naming grammar, settings, transactions, test assertions, exceptions, recipes). The pages below are the human documentation; they cover the same facts in narrative form.
 
 Key facts an agent must not get wrong:
-- Scripts live in a `Scripts/` folder of a .NET project; the `.csproj` embeds them in the assembly as resources named `DbLive/<path>` (`LogicalName` and `WithCulture="false"` are required) and adds `ProjectDir` metadata; `SetProject(assembly)` reads them from the dll.
+- Scripts live in a `Scripts/` folder of a .NET project; the `.csproj` embeds them in the assembly as resources named `DbLive/<path>` (`LogicalName` and `WithCulture="false"` are required) and adds `ProjectDir` metadata; `SetProject(assembly)` reads them from the dll. `Scripts/` holds only `settings.json` and the folders `Migrations`, `Code`, `Tests`, `BeforeDeploy`, `AfterDeploy`: any other file or folder stops the deployment.
 - Migration file names: `<version>.<type>.<name>.sql` with type `migration|m|undo|u|breaking|b`; settings of one script: `<version>.<type>.settings.json` (`<version>.m.s.json`), never `<version>.settings.json`. Applied migrations must never be edited or deleted.
 - Code files are re-executed when they change, so they must be re-runnable (`create or alter`).
 - Breaking (destructive) scripts run only with `DeployParameters.DeployBreaking = true`, after the old application is gone: `<version>.breaking.sql` for tables, `Code/**/<name>.breaking.sql` (run on every breaking deployment, so idempotent) to drop an old procedure version.

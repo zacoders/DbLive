@@ -95,7 +95,7 @@ public class CodeBreakingItemsTests
 			CodeFolder = @"db\Code"
 		});
 
-		mockSet.ScriptSource.AddFiles("db/Code/GetUser.sql", "db/Code/GetUser.b.sql", "Code/GetOrder.b.sql");
+		mockSet.ScriptSource.AddFiles("db/Code/GetUser.sql", "db/Code/GetUser.b.sql");
 
 		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
