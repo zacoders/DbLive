@@ -1,8 +1,9 @@
+using System.IO.Enumeration;
 
 namespace DbLive.Project;
 
 public class DbLiveProject(
-	IProjectPath projectPath,
+	IScriptSource scriptSource,
 	ISettingsAccessor settingsAccessor,
 	IMigrationVersionValidator migrationVersionValidator,
 	ILogger logger
@@ -14,43 +15,32 @@ public class DbLiveProject(
 	internal const string TestSetupFileName = "setup.test.sql";
 
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
-	private readonly IFileSystem _fileSystem = projectPath.FileSystem;
-	private readonly string _projectPath = projectPath.Path;
-	private readonly string? _visualStudioProjectPath = projectPath.VisualStudioProjectPath;
 
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string codePath = _projectPath.CombineWithRelative(projectSettings.CodeFolder);
+		string codeFolder = ToFolder(projectSettings.CodeFolder);
 
-		if (!_fileSystem.PathExists(codePath))
+		List<string> codeFiles = GetFolderFiles(
+			scriptSource.GetFiles(),
+			codeFolder,
+			["*.sql"],
+			[.. projectSettings.TestFilePatterns, TestSetupFileName]
+		);
+
+		if (codeFiles.Count == 0)
 		{
 			return [];
 		}
-
-		List<string> codeFiles =
-		[
-			.. _fileSystem.EnumerateFiles(
-					codePath,
-					["*.sql"],
-					[.. projectSettings.TestFilePatterns, TestSetupFileName],
-					true
-				)
-		];
 
 		var result = new List<CodeGroup>();
 
 		foreach (string subFolder in projectSettings.CodeSubFoldersDeploymentOrder)
 		{
-			string subPath = codePath.CombineWithRelative(subFolder);
+			string subFolderPath = Combine(codeFolder, ToFolder(subFolder));
 
-			List<string> files = codeFiles
-				.RemoveWhere(f =>
-					f.StartsWith(
-						subPath + Path.DirectorySeparatorChar,
-						StringComparison.OrdinalIgnoreCase
-					));
+			List<string> files = codeFiles.RemoveWhere(f => IsInFolder(f, subFolderPath));
 
 			if (files.Count == 0)
 			{
@@ -62,7 +52,7 @@ public class DbLiveProject(
 
 			result.Add(new CodeGroup
 			{
-				Path = subPath,
+				Path = subFolderPath,
 				CodeItems = await GetCodeGroupItemsAsync(files).ConfigureAwait(false)
 			});
 		}
@@ -70,21 +60,24 @@ public class DbLiveProject(
 		// everything else as a separate group
 		result.Add(new CodeGroup
 		{
-			Path = codePath,
+			Path = codeFolder,
 			CodeItems = await GetCodeGroupItemsAsync(codeFiles).ConfigureAwait(false)
 		});
 
 		return result;
 	}
 
-	internal async Task<List<CodeItem>> GetCodeGroupItemsAsync(List<string> codeFiles)
+	private async Task<List<CodeItem>> GetCodeGroupItemsAsync(List<string> codeFiles)
 	{
 		List<CodeItem> codeItems = [];
 
-		foreach (string filePath in codeFiles)
+		foreach (string relativePath in codeFiles)
 		{
-			string fileName = Path.GetFileName(filePath);
-			var codeItem = new CodeItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath).ConfigureAwait(false) };
+			var codeItem = new CodeItem
+			{
+				Name = Path.GetFileName(relativePath),
+				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+			};
 			codeItems.Add(codeItem);
 		}
 
@@ -95,25 +88,23 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string migrationsPath = _projectPath.CombineWithRelative(projectSettings.MigrationsFolder);
-
 		// a project without migrations (code only) is valid.
-		if (!_fileSystem.PathExists(migrationsPath))
-		{
-			return [];
-		}
-
-		IEnumerable<string> migrationFiles = _fileSystem.EnumerateFiles(migrationsPath, ["*.sql", "*.json"], subfolders: true);
+		List<string> migrationFiles = GetFolderFiles(
+			scriptSource.GetFiles(),
+			ToFolder(projectSettings.MigrationsFolder),
+			["*.sql", "*.json"],
+			[]
+		);
 
 		List<MigrationItemInfo> migrationItems = [];
 
-		foreach (string filePath in migrationFiles)
+		foreach (string relativePath in migrationFiles)
 		{
-			MigrationItemInfo migrationItemInfo = MigrationFileNameParser.GetMigrationInfo(filePath);
+			MigrationItemInfo migrationItemInfo = MigrationFileNameParser.GetMigrationInfo(relativePath);
 
 			if (projectSettings.EnforceTimestampVersion)
 			{
-				migrationVersionValidator.Validate(migrationItemInfo.Version, migrationItemInfo.FilePath);
+				migrationVersionValidator.Validate(migrationItemInfo.Version, migrationItemInfo.RelativePath);
 			}
 
 			migrationItems.Add(migrationItemInfo);
@@ -134,7 +125,7 @@ public class DbLiveProject(
 				{
 					MigrationItemType = item.MigrationItemType,
 					Name = item.Name,
-					FileData = await _fileSystem.ReadFileDataAsync(item.FilePath, _projectPath).ConfigureAwait(false)
+					FileData = await scriptSource.ReadFileDataAsync(item.RelativePath).ConfigureAwait(false)
 				};
 				items.Add(item.MigrationItemType, migrationItem);
 			}
@@ -172,68 +163,50 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		string testsPath = _projectPath.CombineWithRelative(projectSettings.TestsFolder);
-		string codePath = _projectPath.CombineWithRelative(projectSettings.CodeFolder);
+		IReadOnlyList<string> files = scriptSource.GetFiles();
 
-		List<TestItem> testGroups = [];
+		List<string> testFiles =
+		[
+			// in Tests folder, any .sql file is considered as a test (except the setup file).
+			.. GetFolderFiles(files, ToFolder(projectSettings.TestsFolder), ["*.sql"], [TestSetupFileName]),
+			.. GetFolderFiles(files, ToFolder(projectSettings.CodeFolder), projectSettings.TestFilePatterns, [TestSetupFileName])
+		];
 
-		if (_fileSystem.PathExists(testsPath))
-		{
-			IEnumerable<string> testInTestFolder = _fileSystem.EnumerateDirectories(testsPath, "*", SearchOption.AllDirectories);
-			foreach (var folderPath in testInTestFolder.Union([testsPath]))
-			{
-				testGroups.AddRange(await GetFolderTestsAsync(folderPath, true).ConfigureAwait(false));
-			}
-		}
-
-		if (_fileSystem.PathExists(codePath))
-		{
-			IEnumerable<string> testsInCodeFolder = _fileSystem.EnumerateDirectories(codePath, "*", SearchOption.AllDirectories);
-			foreach (var folderPath in testsInCodeFolder.Union([codePath]))
-			{
-				testGroups.AddRange(await GetFolderTestsAsync(folderPath, false).ConfigureAwait(false));
-			}
-		}
-
-		return testGroups.AsReadOnly();
-	}
-
-	internal async Task<List<TestItem>> GetFolderTestsAsync(string folderPath, bool isTestsFolder)
-	{
-		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-
-		if (!_fileSystem.PathExists(folderPath)) return [];
+		// the setup file of each folder, read once for all its tests.
+		Dictionary<string, FileData?> setupFiles = new(StringComparer.OrdinalIgnoreCase);
 
 		List<TestItem> tests = [];
 
-		FileData? setupFileData = null;
-		string setupFilePath = folderPath.CombineWith(TestSetupFileName);
-		if (_fileSystem.FileExists(setupFilePath))
+		foreach (string relativePath in testFiles)
 		{
-			setupFileData = await _fileSystem.ReadFileDataAsync(setupFilePath, _projectPath).ConfigureAwait(false);
-		}
+			string folder = GetFolder(relativePath);
 
-		// in Tests folder, any .sql file is considered as a test (except the setup file).
-		IEnumerable<string> testFiles = _fileSystem.EnumerateFiles(
-			folderPath,
-			isTestsFolder ? ["*.sql"] : projectSettings.TestFilePatterns,
-			[TestSetupFileName],
-			subfolders: false
-		);
+			if (!setupFiles.TryGetValue(folder, out FileData? setupFileData))
+			{
+				setupFileData = await ReadSetupFileAsync(files, folder).ConfigureAwait(false);
+				setupFiles.Add(folder, setupFileData);
+			}
 
-		foreach (string testFilePath in testFiles)
-		{
 			TestItem testItem = new()
 			{
-				Name = Path.GetFileName(testFilePath),
-				FileData = await _fileSystem.ReadFileDataAsync(testFilePath, _projectPath).ConfigureAwait(false),
+				Name = Path.GetFileName(relativePath),
+				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false),
 				SetupFileData = setupFileData
 			};
 
 			tests.Add(testItem);
 		}
 
-		return tests;
+		return tests.AsReadOnly();
+	}
+
+	private async Task<FileData?> ReadSetupFileAsync(IReadOnlyList<string> files, string folder)
+	{
+		string setupFilePath = Combine(folder, TestSetupFileName);
+
+		string? setupFile = files.FirstOrDefault(f => f.Equals(setupFilePath, StringComparison.OrdinalIgnoreCase));
+
+		return setupFile is null ? null : await scriptSource.ReadFileDataAsync(setupFile).ConfigureAwait(false);
 	}
 
 	/// <inheritdoc/>
@@ -241,35 +214,79 @@ public class DbLiveProject(
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		Dictionary<string, GenericItem> items = [];
-
-		string folderPath = projectFolder switch
+		string folder = projectFolder switch
 		{
 			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolder,
 			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolder,
 			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
 		};
 
-		string fullPath = _projectPath.CombineWithRelative(folderPath);
+		List<GenericItem> items = [];
 
-		if (_fileSystem.PathExists(fullPath))
+		foreach (string relativePath in GetFolderFiles(scriptSource.GetFiles(), ToFolder(folder), ["*.sql"], []))
 		{
-			IEnumerable<string> files = _fileSystem.EnumerateFiles(fullPath, "*.sql", true);
-			foreach (string filePath in files)
+			var item = new GenericItem
 			{
-				string fileName = Path.GetFileName(filePath);
-				var item = new GenericItem { Name = fileName, FileData = await _fileSystem.ReadFileDataAsync(filePath, _projectPath).ConfigureAwait(false) };
-				items.Add(filePath, item);
-			}
+				Name = Path.GetFileName(relativePath),
+				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+			};
+			items.Add(item);
 		}
 
-		// sorting the items by full path which is in the key of the dictionary.
-		return items.OrderBy(i => i.Key).Select(i => i.Value).ToList().AsReadOnly();
+		return items.AsReadOnly();
 	}
 
-	[ExcludeFromCodeCoverage]
-	public string? GetVisualStudioProjectPath()
+	/// <summary>
+	/// The files of the folder and its subfolders whose names match one of the patterns and none of the exclude patterns,
+	/// sorted by relative path the same way on every OS and in every culture.
+	/// </summary>
+	private static List<string> GetFolderFiles(
+		IReadOnlyList<string> files,
+		string folder,
+		IEnumerable<string> patterns,
+		IEnumerable<string> excludePatterns
+	)
 	{
-		return _visualStudioProjectPath;
+		return
+		[
+			.. files
+				.Where(f => IsInFolder(f, folder) && MatchesAny(f, patterns) && !MatchesAny(f, excludePatterns))
+				.OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+				// files that differ only by case, possible on Linux.
+				.ThenBy(f => f, StringComparer.Ordinal)
+		];
+	}
+
+	/// <summary>
+	/// A folder from the settings ("Code", "db\Code", "/Code/") as a relative path: "Code", "db/Code".
+	/// </summary>
+	private static string ToFolder(string folder) => folder.Replace('\\', '/').Trim('/');
+
+	private static string Combine(string folder, string relativePath) =>
+		folder.Length == 0 ? relativePath
+		: relativePath.Length == 0 ? folder
+		: $"{folder}/{relativePath}";
+
+	private static bool IsInFolder(string relativePath, string folder) =>
+		folder.Length == 0
+		|| (relativePath.Length > folder.Length
+			&& relativePath[folder.Length] == '/'
+			&& relativePath.StartsWith(folder, StringComparison.OrdinalIgnoreCase));
+
+	private static string GetFolder(string relativePath)
+	{
+		int separatorIndex = relativePath.LastIndexOf('/');
+		return separatorIndex < 0 ? "" : relativePath[..separatorIndex];
+	}
+
+	/// <summary>
+	/// Matches the file name the way Directory.EnumerateFiles does on Windows, ignoring case on every OS.
+	/// </summary>
+	private static bool MatchesAny(string relativePath, IEnumerable<string> patterns)
+	{
+		string fileName = Path.GetFileName(relativePath);
+
+		return patterns.Any(pattern =>
+			FileSystemName.MatchesWin32Expression(FileSystemName.TranslateWin32Expression(pattern), fileName, ignoreCase: true));
 	}
 }

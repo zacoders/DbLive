@@ -96,7 +96,7 @@ public class DbLiveDeployerTests
 
 		// assert
 		await mockSet.ProjectIdValidator.Received(1).ValidateAsync();
-		mockSet.Logger.Received(1).Information("Starting project deploy.");
+		mockSet.Logger.Received(1).Information("Starting project deploy from {Location}.", "memory");
 		mockSet.Logger.Received(1).Information("Project deploy completed.");
 	}
 

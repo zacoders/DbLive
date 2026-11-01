@@ -73,8 +73,7 @@ public class FileDataTests
 		return new FileData
 		{
 			Content = content,
-			RelativePath = "Migrations/001.migration.sql",
-			FilePath = "c:/db/Migrations/001.migration.sql"
+			RelativePath = "Migrations/001.migration.sql"
 		};
 	}
 }

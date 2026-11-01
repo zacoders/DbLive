@@ -11,13 +11,12 @@ public class MockSet
 	private readonly IServiceCollection _container = new ServiceCollection();
 
 	public readonly ILogger Logger = Substitute.For<ILogger>();
-	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
+	public readonly InMemoryScriptSource ScriptSource = new();
+	public readonly InMemoryScriptSource InternalScriptSource = new();
 	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
 	public readonly IInternalDbLiveProject IInternalDbLiveProject = Substitute.For<IInternalDbLiveProject>();
 	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
-	public readonly IInternalProjectPath InternalProjectPath = Substitute.For<IInternalProjectPath>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
-	public readonly IProjectPath ProjectPath = Substitute.For<IProjectPath>();
 	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
@@ -43,8 +42,6 @@ public class MockSet
 	public MockSet()
 	{
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
-
-		ProjectPath.FileSystem.Returns(FileSystem);
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
 
@@ -72,6 +69,10 @@ public class MockSet
 			//		_container.AddTransient(_ => Logger);
 			_container.AddTransient(fld.FieldType, _ => fld.GetValue(this)!);
 		}
+
+		// both script sources have the same field type, so they are registered by their interfaces.
+		_container.AddTransient<IScriptSource>(_ => ScriptSource);
+		_container.AddTransient<IInternalScriptSource>(_ => InternalScriptSource);
 
 		// Simplifying testing, ForContext() method returns the same mocked logger.
 		Logger.ForContext(Arg.Any<Type>()).Returns(Logger);

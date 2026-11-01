@@ -36,25 +36,10 @@
         <PackageReference Include="Dapper" />
     </ItemGroup>
   
-    <!-- For development -->
-    <ItemGroup>
-        <None Include="SQL\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-        </None>
-    </ItemGroup>
-
-	<!-- For nuget -->
+	<!-- DbLive's own scripts (the dblive schema), read by the self-deployer from this assembly. -->
 	<ItemGroup>
-		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts" />
-		<None Include="DbLive.MSSQL.targets" Pack="true" PackagePath="buildTransitive\" />
+		<EmbeddedResource Include="SQL\**\*.sql" LogicalName="DbLive.Internal/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
 	</ItemGroup>
-
-	<!-- Disable false positive nuget warning in github action -->
-	<PropertyGroup>
-		<NoWarn>$(NoWarn);NU5129</NoWarn>
-	</PropertyGroup>
 	
     <ItemGroup>
 	    <ProjectReference Include="..\DbLive\DbLive.csproj" />

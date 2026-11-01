@@ -13,14 +13,15 @@ public class DbLiveDeployer(
 		IMigrationsSaver _migrationsSaver,
 		IMigrationChecksumValidator _migrationChecksumValidator,
 		IProjectIdValidator _projectIdValidator,
-		ITransactionSettingsValidator _transactionSettingsValidator
+		ITransactionSettingsValidator _transactionSettingsValidator,
+		IScriptSource _scriptSource
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
 
 	public async Task DeployAsync(DeployParameters parameters)
 	{
-		_logger.Information("Starting project deploy.");
+		_logger.Information("Starting project deploy from {Location}.", _scriptSource.Location);
 
 		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
 

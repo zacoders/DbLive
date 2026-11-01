@@ -177,7 +177,6 @@ public class DbLiveSelfDeployerTests
 			FileData = new FileData
 			{
 				Content = sql,
-				FilePath = $"c:/project/{version}.migration.sql",
 				RelativePath = $"project/{version}.migration.sql"
 			}
 		};

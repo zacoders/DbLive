@@ -220,8 +220,7 @@ public class UnitTestsRunnerTests
 		return new FileData
 		{
 			Content = $"-- unit test mock content {Guid.NewGuid()}",
-			RelativePath = relativePath,
-			FilePath = "c:/data" + relativePath
+			RelativePath = relativePath
 		};
 	}
 }

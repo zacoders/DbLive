@@ -35,19 +35,17 @@ public static class DbLiveBuilderExtensions
 	/// <exception cref="ScriptsNotEmbeddedException">The assembly has no embedded scripts.</exception>
 	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly)
 	{
-		EmbeddedFileSystem fileSystem = EmbeddedFileSystem.FromAssembly(projectAssembly);
+		AssemblyScriptSource scriptSource = new(projectAssembly, AssemblyScriptSource.ProjectPrefix);
 
 		// otherwise a forgotten EmbeddedResource item deploys an empty project.
-		if (fileSystem.IsEmpty)
+		if (scriptSource.GetFiles().Count == 0)
 		{
 			throw new ScriptsNotEmbeddedException(projectAssembly.GetName().Name ?? projectAssembly.FullName ?? "");
 		}
 
-		ProjectPath projectPath = new(fileSystem.Root, fileSystem, GetSourceScriptsPath(projectAssembly));
-
 		return builder.ConfigureServices(services =>
 		{
-			_ = services.AddSingleton<IProjectPath>(projectPath);
+			_ = services.AddSingleton<IScriptSource>(scriptSource);
 		});
 	}
 
@@ -67,23 +65,12 @@ public static class DbLiveBuilderExtensions
 			throw new DirectoryNotFoundException($"Scripts folder '{fullPath}' not found.");
 		}
 
-		ProjectPath projectPath = new(fullPath, new FileSystem(), fullPath);
+		FolderScriptSource scriptSource = new(fullPath);
 
 		return builder.ConfigureServices(services =>
 		{
-			_ = services.AddSingleton<IProjectPath>(projectPath);
+			_ = services.AddSingleton<IScriptSource>(scriptSource);
 		});
-	}
-
-	/// <summary>
-	/// The Scripts folder in the source project, from the <c>ProjectDir</c> assembly metadata. Null without the metadata.
-	/// </summary>
-	internal static string? GetSourceScriptsPath(Assembly projectAssembly)
-	{
-		string? projectDir = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-			.FirstOrDefault(a => a.Key == "ProjectDir")?.Value;
-
-		return string.IsNullOrEmpty(projectDir) ? null : Path.Combine(projectDir, "Scripts");
 	}
 }
 

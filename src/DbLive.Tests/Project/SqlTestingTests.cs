@@ -9,9 +9,6 @@ public class SqlTestingTests
 		// arrange
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(
 			new DbLiveSettings
 			{
@@ -21,44 +18,13 @@ public class SqlTestingTests
 			}
 		);
 
-		string testsRoot = projectPath.CombineWith("Tests");
-		string codeRoot = projectPath.CombineWith("Code");
-
-		mockSet.FileSystem.PathExists(testsRoot).Returns(true);
-		mockSet.FileSystem.PathExists(codeRoot).Returns(true);
-		mockSet.FileSystem.PathExists(testsRoot.CombineWith("Orders")).Returns(true);
-		mockSet.FileSystem.PathExists(codeRoot.CombineWith("Users")).Returns(true);
-
-		mockSet.FileSystem.EnumerateDirectories(testsRoot, "*", SearchOption.AllDirectories)
-			.Returns([testsRoot.CombineWith("Orders")]);
-
-		mockSet.FileSystem.EnumerateDirectories(codeRoot, "*", SearchOption.AllDirectories)
-			.Returns([codeRoot.CombineWith("Users")]);
-
-		mockSet.FileSystem.EnumerateFiles(
-				Arg.Any<string>(),
-				Arg.Any<IEnumerable<string>>(),
-				Arg.Any<IEnumerable<string>>(),
-				false)
-			.Returns(call =>
-			{
-				string folder = call.ArgAt<string>(0);
-
-				return folder switch
-				{
-					var f when f.Contains("Orders") => [f.CombineWith("orders.sql")],
-					var f when f.Contains("Users") => [f.CombineWith("users.test.sql")],
-					_ => []
-				};
-			});
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), projectPath)
-			.Returns(call => new FileData
-			{
-				FilePath = call.ArgAt<string>(0),
-				Content = "sql",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFiles(
+			"Tests/Orders/orders.sql",
+			"Tests/readme.md",
+			"Code/Users/users.test.sql",
+			"Code/Users/users.sql",
+			"Migrations/001.migration.sql"
+		);
 
 		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -68,123 +34,98 @@ public class SqlTestingTests
 		// assert
 		Assert.Equal(2, tests.Count);
 
-		Assert.Contains(tests, t => t.Name == "orders.sql");
-		Assert.Contains(tests, t => t.Name == "users.test.sql");
+		Assert.Contains(tests, t => t.Name == "orders.sql" && t.FileData.RelativePath == "Tests/Orders/orders.sql");
+		Assert.Contains(tests, t => t.Name == "users.test.sql" && t.FileData.RelativePath == "Code/Users/users.test.sql");
 	}
 
 	[Fact]
-	public async Task GetFolderTests_folder_does_not_exist_returns_empty()
+	public async Task GetTests_tests_folder_does_not_exist_returns_empty()
 	{
 		// arrange
 		MockSet mockSet = new();
 
-		string folder = @"C:/DB/Tests";
-		mockSet.FileSystem.PathExists(folder).Returns(false);
+		mockSet.ScriptSource.AddFile("Migrations/001.migration.sql");
 
 		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
+		IReadOnlyCollection<TestItem> tests = await project.GetTestsAsync();
 
 		// assert
-		Assert.NotNull(tests);
 		Assert.Empty(tests);
 	}
 
 	[Fact]
-	public async Task GetFolderTests_excludes_setup_file_from_test_files()
+	public async Task GetTests_excludes_setup_file_from_test_files()
 	{
 		// arrange
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string folder = projectPath.CombineWith("Tests");
-		mockSet.FileSystem.PathExists(folder).Returns(true);
-
-		mockSet.FileSystem.FileExists(folder.CombineWith("setup.test.sql")).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-				folder,
-				Arg.Any<IEnumerable<string>>(),
-				MyArg.SequenceEqual(["setup.test.sql"]),
-				false
-			).Returns([
-				folder.CombineWith("test1.sql"),
-				folder.CombineWith("test2.sql"),
-				folder.CombineWith("test3.sql")
-			]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), projectPath)
-			.Returns(call => new FileData
-			{
-				FilePath = call.ArgAt<string>(0),
-				Content = "sql",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFiles(
+			"Tests/test2.sql",
+			"Tests/setup.test.sql",
+			"Tests/test3.sql",
+			"Tests/test1.sql",
+			"Code/setup.test.sql"
+		);
 
 		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
+		IReadOnlyCollection<TestItem> tests = await project.GetTestsAsync();
 
 		// assert
-		Assert.Equal(3, tests.Count);
-		Assert.Equal("test1.sql", tests[0].Name);
-		Assert.Equal("test2.sql", tests[1].Name);
-		Assert.Equal("test3.sql", tests[2].Name);
+		Assert.Equal(["test1.sql", "test2.sql", "test3.sql"], tests.Select(t => t.Name));
 	}
 
 	[Fact]
-	public async Task GetFolderTests_setup_file_is_attached_to_all_tests()
+	public async Task GetTests_setup_file_is_attached_to_the_tests_of_its_folder()
 	{
 		// arrange
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string folder = projectPath.CombineWith("Tests");
-		string setupPath = folder.CombineWith("setup.test.sql");
-
-		mockSet.FileSystem.PathExists(folder).Returns(true);
-		mockSet.FileSystem.FileExists(setupPath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-			folder,
-			Arg.Any<IEnumerable<string>>(),
-			Arg.Any<IEnumerable<string>>(),
-			false)
-		.Returns([
-			folder.CombineWith("a.sql"),
-		folder.CombineWith("b.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(setupPath, projectPath)
-			.Returns(new FileData
-			{
-				FilePath = setupPath,
-				Content = "setup",
-				RelativePath = ""
-			});
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), projectPath)
-			.Returns(call => new FileData
-			{
-				FilePath = call.ArgAt<string>(0),
-				Content = "sql",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource
+			.AddFile("Tests/Orders/Setup.Test.sql", "setup")
+			.AddFile("Tests/Orders/a.sql")
+			.AddFile("Tests/Orders/b.sql")
+			.AddFile("Tests/Orders/Sub/c.sql")
+			.AddFile("Tests/d.sql");
 
 		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		// act
-		List<TestItem> tests = await project.GetFolderTestsAsync(folder, true);
+		IReadOnlyCollection<TestItem> tests = await project.GetTestsAsync();
 
 		// assert
-		Assert.Equal(2, tests.Count);
-		Assert.All(tests, t => Assert.NotNull(t.SetupFileData));
+		Assert.Equal(4, tests.Count);
+
+		TestItem[] withSetup = [.. tests.Where(t => t.SetupFileData is not null)];
+		Assert.Equal(["a.sql", "b.sql"], withSetup.Select(t => t.Name));
+		Assert.All(withSetup, t => Assert.Equal("setup", t.SetupFileData!.Content));
+		Assert.All(withSetup, t => Assert.Equal("Tests/Orders/Setup.Test.sql", t.SetupFileData!.RelativePath));
+
+		// read once for the folder.
+		Assert.Same(withSetup[0].SetupFileData, withSetup[1].SetupFileData);
 	}
 
+	[Fact]
+	public async Task GetTests_setup_file_in_code_folder()
+	{
+		// arrange
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource
+			.AddFile("Code/dbo/setup.test.sql", "setup")
+			.AddFile("Code/dbo/GetUser.sql")
+			.AddFile("Code/dbo/GetUser.test.sql");
+
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// act
+		TestItem test = Assert.Single(await project.GetTestsAsync());
+
+		// assert
+		Assert.Equal("Code/dbo/GetUser.test.sql", test.FileData.RelativePath);
+		Assert.Equal("Code/dbo/setup.test.sql", test.SetupFileData?.RelativePath);
+	}
 }

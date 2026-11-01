@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Project;
 using DbLive.Testing;
+using System.Reflection;
 using Xunit;
 
 namespace DbLive.xunit.SqlTest;
@@ -19,9 +20,11 @@ public class DbLiveTestFixture(
 	public IDbLiveProject GetProject()
 	{
 		DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(fixtureBuilder.GetProjectAssembly());
+			.SetProject(GetProjectAssembly());
 		return builder.CreateProject();
 	}
+
+	internal Assembly GetProjectAssembly() => fixtureBuilder.GetProjectAssembly();
 
 	public async Task InitializeAsync()
 	{

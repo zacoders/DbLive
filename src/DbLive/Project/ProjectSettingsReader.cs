@@ -1,9 +1,8 @@
 ﻿namespace DbLive.Project;
 
-public class SettingsAccessor(IProjectPath projectPath) : ISettingsAccessor
+public class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 {
-	private readonly string _projectPath = projectPath.Path;
-	private readonly IFileSystem _fileSystem = projectPath.FileSystem;
+	private const string SettingsFileName = "settings.json";
 
 	private readonly DbLiveSettings _defaultSettings = new();
 
@@ -21,11 +20,12 @@ public class SettingsAccessor(IProjectPath projectPath) : ISettingsAccessor
 
 	private async Task<DbLiveSettings> LoadSettingsAsync()
 	{
-		string settingsPath = _projectPath.CombineWith("settings.json");
+		string? settingsPath = scriptSource.GetFiles()
+			.FirstOrDefault(f => f.Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase));
 
-		if (_fileSystem.FileExists(settingsPath))
+		if (settingsPath is not null)
 		{
-			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath).ConfigureAwait(false);
+			string settingsJson = await scriptSource.ReadAsync(settingsPath).ConfigureAwait(false);
 
 			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
 				settingsJson,

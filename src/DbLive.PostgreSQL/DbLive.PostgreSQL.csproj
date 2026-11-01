@@ -34,25 +34,10 @@
 	</ItemGroup>
 
 
-	<!-- For development -->
+	<!-- DbLive's own scripts (the dblive schema), read by the self-deployer from this assembly. -->
 	<ItemGroup>
-		<None Include="SQL\**">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-			<TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
+		<EmbeddedResource Include="SQL\**\*.sql" LogicalName="DbLive.Internal/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
 	</ItemGroup>
-
-	<!-- For nuget -->
-	<ItemGroup>
-		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts" />
-		<None Include="DbLive.PostgreSQL.targets" Pack="true" PackagePath="buildTransitive\" />
-	</ItemGroup>
-
-	<!-- Disable false positive nuget warning in github action -->
-	<PropertyGroup>
-		<NoWarn>$(NoWarn);NU5129</NoWarn>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbLive\DbLive.csproj" />

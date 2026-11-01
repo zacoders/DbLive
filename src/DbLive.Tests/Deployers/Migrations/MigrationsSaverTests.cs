@@ -303,8 +303,7 @@ public class MigrationsSaverTests
 		return new FileData
 		{
 			Content = content,
-			RelativePath = relativePath,
-			FilePath = "c:/db/migrations" + relativePath
+			RelativePath = relativePath
 		};
 	}
 }

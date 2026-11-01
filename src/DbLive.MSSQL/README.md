@@ -16,7 +16,7 @@ IDbLive deployer = new DbLiveBuilder()
 await deployer.DeployAsync(DeployParameters.Default);
 ```
 
-Scripts may use `GO` batch separators, except SQL test files. The package copies its internal SQL scripts to `DbLive.MSSQL/` in the build and publish output; keep that folder next to your deployer.
+Scripts may use `GO` batch separators, except SQL test files. DbLive's own SQL scripts (the `dblive` schema) are embedded in `DbLive.MSSQL.dll`; nothing needs to be copied next to your deployer.
 
 - Documentation: https://zacoders.github.io/DbLive/
 - Complete reference for AI coding agents: https://zacoders.github.io/DbLive/llms-full.txt

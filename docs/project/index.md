@@ -63,7 +63,7 @@ What each part does:
 | `SetProject(Assembly projectAssembly)` | the resources embedded in `projectAssembly` | Deployers and tests |
 | `SetScriptsFolder(string path)` | the folder; a relative path is resolved against the current directory | Scripts that are not built into an assembly |
 
-With `SetProject` there is nothing to copy or clean: your scripts travel inside the dll, also through `dotnet publish` (DbLive's own scripts are still files, see [Provider files](#provider-files)), and a script deleted from the project is gone from the next build. The deployer does not depend on the current working directory. Because the scripts are part of the build, change a script and build before you deploy; Visual Studio, `dotnet run` and `dotnet test` build first.
+With `SetProject` there is nothing to copy or clean: your scripts travel inside the dll, also through `dotnet publish` (DbLive's own scripts travel inside the provider dll, see [Provider files](#provider-files)), and a script deleted from the project is gone from the next build. The deployer does not depend on the current working directory. Because the scripts are part of the build, change a script and build before you deploy; Visual Studio, `dotnet run` and `dotnet test` build first.
 
 Test projects reference the SQL project, so they read the same scripts from its dll.
 
@@ -78,6 +78,10 @@ var deployer = new DbLiveBuilder()
     .CreateDeployer();
 ```
 
+The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are picked up.
+
+Both calls give DbLive the same scripts. DbLive works only with paths relative to the scripts root, such as `Migrations/001.migration.sql`, with `/` on every OS: they are stored in the database and shown in logs and error messages. Folders and file patterns are matched ignoring case, and a relative path keeps the real names of the files and folders.
+
 ## Provider files
 
-The provider packages (`DbLive.MSSQL`, `DbLive.PostgreSQL`) contain DbLive's own SQL scripts, which create the `dblive` schema in your database. Their build targets copy them to `<output>/DbLive.MSSQL/` or `<output>/DbLive.PostgreSQL/` on build and on `dotnet publish`. Keep that folder next to the deployer when you copy it to a server.
+The provider packages (`DbLive.MSSQL`, `DbLive.PostgreSQL`) contain DbLive's own SQL scripts, which create the `dblive` schema in your database. They are embedded in the provider dll, so nothing needs to be copied next to the deployer. A `DbLive.MSSQL/` or `DbLive.PostgreSQL/` folder left in `bin/` by an older package version is no longer read and can be deleted.

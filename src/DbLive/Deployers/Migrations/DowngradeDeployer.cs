@@ -104,7 +104,6 @@ public class DowngradeDeployer(
 				FileData = new FileData
 				{
 					Content = undoContents[undoDto.Version],
-					FilePath = "",
 					RelativePath = undoDto.RelativePath
 				},
 				Name = undoDto.Name

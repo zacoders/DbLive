@@ -25,8 +25,7 @@ public class MigrationItemDeployerTests
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration content",
-				RelativePath = "db/migrations/001.m.some-migration.sql",
-				FilePath = "c:/db/migrations/001.m.some-migration.sql"
+				RelativePath = "db/migrations/001.m.some-migration.sql"
 			}
 		};
 
@@ -79,8 +78,7 @@ public class MigrationItemDeployerTests
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/u.1.sql",
-				FilePath = "c:/db/migrations/001.demo/u.1.sql"
+				RelativePath = "db/migrations/001.demo/u.1.sql"
 			}
 		};
 
@@ -152,8 +150,7 @@ public class MigrationItemDeployerTests
 			FileData = new FileData
 			{
 				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql",
-				FilePath = "c:/db/migrations/001.demo/m.1.sql"
+				RelativePath = "db/migrations/001.demo/m.1.sql"
 			}
 		};
 
@@ -223,8 +220,7 @@ public class MigrationItemDeployerTests
 			FileData = new FileData
 			{
 				Content = "-- broken sql",
-				RelativePath = "db/migrations/002.m.broken.sql",
-				FilePath = "c:/db/migrations/002.m.broken.sql"
+				RelativePath = "db/migrations/002.m.broken.sql"
 			}
 		};
 
@@ -402,8 +398,7 @@ public class MigrationItemDeployerTests
 			FileData = new FileData
 			{
 				Content = "-- some sql migration content",
-				RelativePath = "db/migrations/001.m.some-migration.sql",
-				FilePath = "c:/db/migrations/001.m.some-migration.sql"
+				RelativePath = "db/migrations/001.m.some-migration.sql"
 			}
 		};
 	}

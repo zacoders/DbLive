@@ -65,8 +65,7 @@ public class DbLiveTesterTests
 		return new FileData
 		{
 			Content = $"-- unit test mock content {Guid.NewGuid()}",
-			RelativePath = relativePath,
-			FilePath = "c:/somepath" + relativePath
+			RelativePath = relativePath
 		};
 	}
 }

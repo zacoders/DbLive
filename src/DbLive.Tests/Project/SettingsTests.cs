@@ -7,20 +7,11 @@ public class SettingsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string settingsPath = projectPath.CombineWith("settings.json");
-
-		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
-
-		mockSet.FileSystem.FileReadAllTextAsync(settingsPath)
-			.Returns("""
-				{
-					"TransactionWrapLevel": "None"
-				}
-				"""
-			);
+		mockSet.ScriptSource.AddFile("settings.json", """
+			{
+				"TransactionWrapLevel": "None"
+			}
+			""");
 
 		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
@@ -38,18 +29,15 @@ public class SettingsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string settingsPath = projectPath.CombineWith("settings.json");
-
-		mockSet.FileSystem.FileExists(settingsPath).Returns(false);
+		// only the settings file in the root counts.
+		mockSet.ScriptSource.AddFile("Code/settings.json", """{ "TransactionWrapLevel": "None" }""");
 
 		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 
 		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
 
 		Assert.NotNull(settings);
+		Assert.Equal(TransactionWrapLevel.Migration, settings.TransactionWrapLevel);
 	}
 
 	[Fact]
@@ -57,20 +45,11 @@ public class SettingsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string settingsPath = projectPath.CombineWith("settings.json");
-
-		mockSet.FileSystem.FileExists(settingsPath).Returns(true);
-
-		mockSet.FileSystem.FileReadAllTextAsync(settingsPath)
-			.Returns("""
-				{
-					"ProjectId": "my-operational-db"
-				}
-				"""
-			);
+		mockSet.ScriptSource.AddFile("Settings.JSON", """
+			{
+				"ProjectId": "my-operational-db"
+			}
+			""");
 
 		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
 

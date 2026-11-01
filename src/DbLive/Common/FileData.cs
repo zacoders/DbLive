@@ -16,9 +16,11 @@ public class FileData
 
 	public long ContentHash { get; private set; }
 
-	public required string FilePath { get; init; }
+	/// <summary>
+	/// Path relative to the scripts root, with '/': "Code/dbo/GetUser.sql".
+	/// </summary>
 	public required string RelativePath { get; init; }
-	public string FileName => Path.GetFileName(FilePath);
+	public string FileName => Path.GetFileName(RelativePath);
 
 	/// <summary>
 	/// True when a hash stored in the database belongs to this content with any line endings,

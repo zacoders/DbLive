@@ -225,8 +225,7 @@ public class CodeDeployerTests
 			FileData = new FileData
 			{
 				Content = $"-- code item {name}",
-				RelativePath = relativePath,
-				FilePath = "c:/data" + relativePath
+				RelativePath = relativePath
 			}
 		};
 	}

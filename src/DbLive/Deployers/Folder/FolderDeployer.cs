@@ -33,7 +33,7 @@ public class FolderDeployer(
 
 	private async Task DeployItemAsync(ProjectFolder projectFolder, GenericItem item)
 	{
-		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
+		_logger.Information("Deploying item: {RelativePath}", item.FileData.RelativePath);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
 

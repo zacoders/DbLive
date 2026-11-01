@@ -9,19 +9,21 @@ public interface IDbLiveProject
 	/// migrations are found.</returns>
 	Task<IReadOnlyList<Migration>> GetMigrationsAsync();
 
+	/// <summary>
+	/// Code groups in the deployment order: one per entry of CodeSubFoldersDeploymentOrder, then the rest of the code.
+	/// Items of a group are sorted by relative path, ordinal, ignoring case. Empty when the project has no code.
+	/// </summary>
 	Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync();
 
+	/// <summary>
+	/// Tests of the Tests folder, then tests of the Code folder, each sorted by relative path, ordinal, ignoring case.
+	/// </summary>
 	Task<IReadOnlyCollection<TestItem>> GetTestsAsync();
 
 	/// <summary>
-	/// Gets list of items from the folder. Items ordered alphabetically by the path.
+	/// Gets list of items from the folder and its subfolders.
 	/// </summary>
 	/// <param name="projectFolder"></param>
-	/// <returns>Read only list of items. Items sorted by full file path.</returns>
+	/// <returns>Read only list of items. Items sorted by relative path, ordinal, ignoring case.</returns>
 	Task<ReadOnlyCollection<GenericItem>> GetFolderItemsAsync(ProjectFolder projectFolder);
-
-	/// <summary>
-	/// The scripts folder in the source project, used by "Go to source" of SQL tests. Null when unknown.
-	/// </summary>
-	string? GetVisualStudioProjectPath();
 }

@@ -1,4 +1,5 @@
 ﻿using DbLive.Project;
+using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -68,7 +69,7 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
 
 		// null without the ProjectDir metadata: the tests run, but "Go to source" does not open the file.
-		string? vsProjectPath = project.GetVisualStudioProjectPath();
+		string? sourceScriptsPath = GetSourceScriptsPath(fixture.GetProjectAssembly());
 
 		foreach (Project.TestItem testItem in tests)
 		{
@@ -76,9 +77,20 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 				DiagnosticMessageSink,
 				testMethod,
 				// the relative path uses '/', the full path for the IDE uses the OS separator.
-				vsProjectPath is null ? null : Path.GetFullPath(Path.Combine(vsProjectPath, testItem.FileData.RelativePath)),
+				sourceScriptsPath is null ? null : Path.GetFullPath(Path.Combine(sourceScriptsPath, testItem.FileData.RelativePath)),
 				testItem.FileData.RelativePath
 			);
 		}
+	}
+
+	/// <summary>
+	/// The Scripts folder in the source project, from the <c>ProjectDir</c> assembly metadata. Null without the metadata.
+	/// </summary>
+	internal static string? GetSourceScriptsPath(Assembly projectAssembly)
+	{
+		string? projectDir = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+			.FirstOrDefault(a => a.Key == "ProjectDir")?.Value;
+
+		return string.IsNullOrEmpty(projectDir) ? null : Path.Combine(projectDir, "Scripts");
 	}
 }

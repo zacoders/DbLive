@@ -20,7 +20,6 @@ public static class Bootstrapper
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
 			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()
 			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
-			.AddSingleton<IFileSystem, FileSystem>() // DbLive's own scripts; the project's scripts are read by IProjectPath.FileSystem
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
 			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()
 			.AddSingleton<IMigrationChecksumValidator, MigrationChecksumValidator>()

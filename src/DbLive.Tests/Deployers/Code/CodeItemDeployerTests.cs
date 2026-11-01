@@ -159,8 +159,7 @@ public class CodeItemDeployerTests
 			FileData = new FileData
 			{
 				Content = content,
-				RelativePath = relativePath,
-				FilePath = "c:/data" + relativePath
+				RelativePath = relativePath
 			}
 		};
 

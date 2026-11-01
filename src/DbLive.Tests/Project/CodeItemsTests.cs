@@ -7,42 +7,51 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string codePath = projectPath.CombineWith("Code");
-		mockSet.FileSystem.PathExists(codePath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-			codePath,
-			MyArg.SequenceEqual(["*.sql"]),
-			Arg.Any<IEnumerable<string>>(),
-			true
-		).Returns([
-			codePath.CombineWith(@"item1.sql"),
-			codePath.CombineWith(@"item2.sql"),
-			codePath.CombineWith(@"sub").CombineWith("item1.sql"),
-			codePath.CombineWith(@"sub").CombineWith("item2.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
-			.ReturnsForAnyArgs(call =>
-			new FileData
-			{
-				FilePath = call.Args()[0].ToString()!,
-				Content = "code item content",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource
+			.AddFile("Code/item1.sql", "code item content")
+			.AddFile("Code/item2.sql")
+			.AddFile("Code/sub/item1.sql")
+			.AddFile("Code/sub/item2.sql")
+			.AddFile("Migrations/001.migration.sql");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
-		Assert.NotNull(codeGroups);
-		Assert.Single(codeGroups);
-		Assert.Equal(4, codeGroups[0].CodeItems.Count);
+		CodeGroup group = Assert.Single(codeGroups);
+		Assert.Equal("Code", group.Path);
+		Assert.Equal(4, group.CodeItems.Count);
+
+		CodeItem item = group.CodeItems.First();
+		Assert.Equal("item1.sql", item.Name);
+		Assert.Equal("Code/item1.sql", item.FileData.RelativePath);
+		Assert.Equal("code item content", item.FileData.Content);
 	}
 
+	[Fact]
+	public async Task GetCodeItems_SortedByRelativePath_OrdinalIgnoreCase()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFiles(
+			"Code/sub/c.sql",
+			"Code/z.sql",
+			"Code/b.sql",
+			"Code/a-b/d.sql",
+			"Code/A.sql",
+			"Code/a_b.sql"
+		);
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		CodeGroup group = Assert.Single(await sqlProject.GetCodeGroupsAsync());
+
+		// the same on every OS and in every culture: '-' < '.' < '/' < letters < '_'.
+		Assert.Equal(
+			["Code/a-b/d.sql", "Code/A.sql", "Code/a_b.sql", "Code/b.sql", "Code/sub/c.sql", "Code/z.sql"],
+			group.CodeItems.Select(i => i.FileData.RelativePath)
+		);
+	}
 
 	[Fact]
 	public async Task GetCodeItems_With_CodeSubFoldersDeploymentOrder()
@@ -54,51 +63,34 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = ["sub2", "sub1"]
 		});
 
-		string projekt = @"C:/DB";
-		string projektPath = projekt;
-		mockSet.ProjectPath.Path.Returns(projektPath);
-
-		string codePath = projektPath.CombineWith("Code");
-		mockSet.FileSystem.PathExists(codePath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-			codePath,
-			MyArg.SequenceEqual(["*.sql"]),
-			Arg.Any<IEnumerable<string>>(),
-			true
-		).Returns([
-			codePath.CombineWith(@"item1.sql"),
-			codePath.CombineWith(@"item2.sql"),
-			codePath.CombineWith(@"sub1").CombineWith("item1.sql"),
-			codePath.CombineWith(@"sub1").CombineWith("item2.sql"),
-			codePath.CombineWith(@"sub1").CombineWith("item3.sql"),
-			codePath.CombineWith(@"sub2").CombineWith("item1.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
-			.ReturnsForAnyArgs(call =>
-			new FileData
-			{
-				FilePath = call.Args()[0].ToString()!,
-				Content = "code item content",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFiles(
+			"Code/item1.sql",
+			"Code/item2.sql",
+			"Code/sub1/item1.sql",
+			"Code/sub1/item2.sql",
+			"Code/sub1/item3.sql",
+			"Code/sub2/item1.sql",
+			"Code/sub10/item1.sql"
+		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
-		Assert.NotNull(codeGroups);
 		Assert.Equal(3, codeGroups.Count);
 
-		Assert.Contains("sub2", codeGroups[0].Path);
+		Assert.Equal("Code/sub2", codeGroups[0].Path);
 		Assert.Single(codeGroups[0].CodeItems);
 
-		Assert.Contains("sub1", codeGroups[1].Path);
+		Assert.Equal("Code/sub1", codeGroups[1].Path);
 		Assert.Equal(3, codeGroups[1].CodeItems.Count);
 
-		// other items
-		Assert.Equal(2, codeGroups[2].CodeItems.Count);
+		// other items, sub10 is not in sub1
+		Assert.Equal("Code", codeGroups[2].Path);
+		Assert.Equal(
+			["Code/item1.sql", "Code/item2.sql", "Code/sub10/item1.sql"],
+			codeGroups[2].CodeItems.Select(i => i.FileData.RelativePath)
+		);
 	}
 
 	[Theory]
@@ -106,6 +98,7 @@ public class CodeItemsTests
 	[InlineData("dbo/functions")]
 	[InlineData("dbo/functions/")]
 	[InlineData(@"\dbo\functions\")]
+	[InlineData("DBO/Functions")]
 	public async Task GetCodeItems_With_Nested_CodeSubFoldersDeploymentOrder(string subFolder)
 	{
 		MockSet mockSet = new();
@@ -115,34 +108,12 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = [subFolder]
 		});
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string codePath = projectPath.CombineWith("Code");
-		mockSet.FileSystem.PathExists(codePath).Returns(true);
-
-		// enumerated files always use the OS path separator.
-		string functionsPath = codePath.CombineWith("dbo").CombineWith("functions");
-		mockSet.FileSystem.EnumerateFiles(
-			codePath,
-			MyArg.SequenceEqual(["*.sql"]),
-			Arg.Any<IEnumerable<string>>(),
-			true
-		).Returns([
-			codePath.CombineWith("item1.sql"),
-			codePath.CombineWith("dbo").CombineWith("table1.sql"),
-			functionsPath.CombineWith("function1.sql"),
-			functionsPath.CombineWith("function2.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
-			.ReturnsForAnyArgs(call =>
-			new FileData
-			{
-				FilePath = call.Args()[0].ToString()!,
-				Content = "code item content",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFiles(
+			"Code/item1.sql",
+			"Code/dbo/table1.sql",
+			"Code/dbo/functions/function1.sql",
+			"Code/dbo/functions/function2.sql"
+		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -150,8 +121,10 @@ public class CodeItemsTests
 
 		Assert.Equal(2, codeGroups.Count);
 
-		Assert.Equal(functionsPath, codeGroups[0].Path);
-		Assert.Equal(2, codeGroups[0].CodeItems.Count);
+		Assert.Equal(
+			["Code/dbo/functions/function1.sql", "Code/dbo/functions/function2.sql"],
+			codeGroups[0].CodeItems.Select(i => i.FileData.RelativePath)
+		);
 
 		// other items
 		Assert.Equal(2, codeGroups[1].CodeItems.Count);
@@ -169,29 +142,7 @@ public class CodeItemsTests
 			CodeSubFoldersDeploymentOrder = ["missing"]
 		});
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string codePath = projectPath.CombineWith("Code");
-		mockSet.FileSystem.PathExists(codePath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-			codePath,
-			MyArg.SequenceEqual(["*.sql"]),
-			Arg.Any<IEnumerable<string>>(),
-			true
-		).Returns([
-			codePath.CombineWith("item1.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
-			.ReturnsForAnyArgs(call =>
-			new FileData
-			{
-				FilePath = call.Args()[0].ToString()!,
-				Content = "code item content",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFile("Code/item1.sql");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -215,35 +166,60 @@ public class CodeItemsTests
 			TestFilePatterns = ["*.spec.sql"]
 		});
 
-		string projectPath = @"C:/DB";
-		mockSet.ProjectPath.Path.Returns(projectPath);
-
-		string codePath = projectPath.CombineWith("Code");
-		mockSet.FileSystem.PathExists(codePath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(
-			codePath,
-			MyArg.SequenceEqual(["*.sql"]),
-			MyArg.SequenceEqual(["*.spec.sql", "setup.test.sql"]),
-			true
-		).Returns([
-			codePath.CombineWith(@"item1.sql")
-		]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), Arg.Any<string>())
-			.ReturnsForAnyArgs(call =>
-			new FileData
-			{
-				FilePath = call.Args()[0].ToString()!,
-				Content = "code item content",
-				RelativePath = ""
-			});
+		mockSet.ScriptSource.AddFiles(
+			"Code/item1.sql",
+			"Code/item1.spec.sql",
+			"Code/Setup.Test.sql",
+			"Code/notes.txt",
+			"Code/item2.sqlx"
+		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		var codeGroups = (await sqlProject.GetCodeGroupsAsync()).ToList();
 
-		Assert.Single(codeGroups);
-		Assert.Single(codeGroups[0].CodeItems);
+		CodeGroup group = Assert.Single(codeGroups);
+		CodeItem item = Assert.Single(group.CodeItems);
+		Assert.Equal("Code/item1.sql", item.FileData.RelativePath);
+	}
+
+	[Fact]
+	public async Task GetCodeItems_Matches_Files_Ignoring_Case()
+	{
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			CodeFolder = "code"
+		});
+
+		mockSet.ScriptSource.AddFiles("Code/dbo/V1.SQL", "Code/dbo/v1.Test.Sql");
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		CodeGroup group = Assert.Single(await sqlProject.GetCodeGroupsAsync());
+
+		// the real names of the files and folders, not the casing from the settings.
+		CodeItem item = Assert.Single(group.CodeItems);
+		Assert.Equal("Code/dbo/V1.SQL", item.FileData.RelativePath);
+	}
+
+	[Fact]
+	public async Task GetCodeItems_No_Code_No_Groups()
+	{
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			CodeSubFoldersDeploymentOrder = ["sub1"]
+		});
+
+		mockSet.ScriptSource.AddFiles("Migrations/001.migration.sql", "Code/a.test.sql", "CodeX/a.sql");
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		Assert.Empty(await sqlProject.GetCodeGroupsAsync());
+
+		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>(), Arg.Any<string>());
 	}
 }

@@ -87,8 +87,7 @@ public class MigrationVersionDeployerTests
 		return new FileData
 		{
 			Content = content,
-			RelativePath = relativePath,
-			FilePath = "c:/data" + relativePath
+			RelativePath = relativePath
 		};
 	}
 

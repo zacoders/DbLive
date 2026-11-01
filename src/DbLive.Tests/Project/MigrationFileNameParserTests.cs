@@ -23,7 +23,7 @@ public class MigrationFileNameParserTests
 
 		Assert.Equal(1, result.Version);
 		Assert.Equal(expectedType, result.MigrationItemType);
-		Assert.Equal(file, result.FilePath);
+		Assert.Equal(file, result.RelativePath);
 	}
 
 	[Theory]
@@ -42,7 +42,7 @@ public class MigrationFileNameParserTests
 
 		Assert.Equal(expectedType, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
-		Assert.Equal(file, result.FilePath);
+		Assert.Equal(file, result.RelativePath);
 	}
 
 	[Theory]

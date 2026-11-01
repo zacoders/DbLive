@@ -3,9 +3,9 @@ namespace DbLive.Project;
 
 internal static class MigrationFileNameParser
 {
-	public static MigrationItemInfo GetMigrationInfo(string filePath)
+	public static MigrationItemInfo GetMigrationInfo(string relativePath)
 	{
-		string fileName = Path.GetFileName(filePath);
+		string fileName = Path.GetFileName(relativePath);
 		string fileExtension = Path.GetExtension(fileName);
 		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 		string[] fileParts = fileNameWithoutExtension.Split('.');
@@ -50,7 +50,7 @@ internal static class MigrationFileNameParser
 				Version = version,
 				MigrationItemType = MigrationItemTypeMapper.GetSettingsType(migrationType.Value),
 				Name = migrationFilePart4,
-				FilePath = filePath
+				RelativePath = relativePath
 			};
 		}
 
@@ -66,7 +66,7 @@ internal static class MigrationFileNameParser
 				Version = version,
 				MigrationItemType = migrationType.Value,
 				Name = migrationFilePart3,
-				FilePath = filePath
+				RelativePath = relativePath
 			};
 		}
 
@@ -77,7 +77,7 @@ internal static class MigrationFileNameParser
 				Version = version,
 				MigrationItemType = MigrationItemType.Migration,
 				Name = migrationFilePart2,
-				FilePath = filePath
+				RelativePath = relativePath
 			};
 		}
 

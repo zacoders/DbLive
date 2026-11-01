@@ -63,7 +63,7 @@ SQL tests, undo scripts and rollback, checksums and ProjectId are available in e
 - Target frameworks: `net8.0`, `net9.0`, `net10.0`.
 - Logging: Serilog (`Serilog.ILogger`). Default is no logging.
 - DI: Microsoft.Extensions.DependencyInjection (internal container, all services are singletons).
-- The provider package ships internal SQL scripts (DbLive's own schema) and an MSBuild `buildTransitive` target that copies them to `<output>/DbLive.MSSQL/` or `<output>/DbLive.PostgreSQL/` on build and publish. They must be present next to the application at run time (`AppContext.BaseDirectory`).
+- The provider package embeds DbLive's own SQL scripts (the `dblive` schema, Section 15) in its assembly as resources named `DbLive.Internal/...`. Nothing is copied next to the application. A `DbLive.MSSQL/` or `DbLive.PostgreSQL/` folder left in `bin/` by an older package version is not read and can be deleted.
 
 ```bash
 dotnet add package DbLive.MSSQL        # or: dotnet add package DbLive.PostgreSQL
@@ -152,17 +152,18 @@ An unhandled exception gives a non-zero exit code, so CI steps fail correctly.
 
 ### 3.4 Where DbLive reads scripts from (`SetProject`, `SetScriptsFolder`)
 
-| Call | Scripts are read from | "Go to source" of `[SqlFact]` tests | Typical use |
-|---|---|---|---|
-| `SetProject(Assembly projectAssembly)` | the resources of `projectAssembly` named `DbLive/...` (Section 3.1) | `<ProjectDir>/Scripts/<relative path>`; none without the `ProjectDir` metadata | Deployers and test projects |
-| `SetScriptsFolder(string path)` | the folder; a relative path is resolved against the current directory | `<path>/<relative path>` | Scripts that are not built into an assembly |
+| Call | Scripts are read from | Typical use |
+|---|---|---|
+| `SetProject(Assembly projectAssembly)` | the resources of `projectAssembly` named `DbLive/...` (Section 3.1) | Deployers and test projects |
+| `SetScriptsFolder(string path)` | the folder; a relative path is resolved against the current directory | Scripts that are not built into an assembly |
 
 Notes:
 - `SetProject` does not depend on the current working directory or on files next to the application: the dll you build is what gets deployed, also after `dotnet publish` or in a Docker image. A script change needs a build; Visual Studio, `dotnet run` and `dotnet test` build first.
 - Test projects reference the SQL project and call `SetProject` with its assembly, so they deploy and test the same scripts as the deployer.
-- `SetProject` throws `ScriptsNotEmbeddedException` (it names the assembly and shows the `EmbeddedResource` line) when the assembly has no `DbLive/` resources, instead of deploying an empty project.
-- `SetScriptsFolder` throws `DirectoryNotFoundException` when the folder does not exist.
-- Paths of embedded scripts (`FileData.FilePath`, some exception messages) start with the virtual root `<AssemblyName>.dll`, for example `MyDb.dll\Migrations\001.migration.sql` on Windows. Relative paths (`Migrations/001.migration.sql`) are the same for both calls.
+- `SetProject` throws `ScriptsNotEmbeddedException` (it names the assembly and shows the `EmbeddedResource` line) when the assembly has no `DbLive/` resources, instead of deploying an empty project. A provider assembly (`DbLive.MSSQL`, `DbLive.PostgreSQL`) passed by mistake throws it too: its own scripts are named `DbLive.Internal/...`.
+- `SetScriptsFolder` throws `DirectoryNotFoundException` when the folder does not exist. The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are seen.
+- Both calls give the same scripts: DbLive works only with relative paths (`Migrations/001.migration.sql`, `/` on every OS), which are stored in the database and shown in logs and exception messages. A relative path takes the real names of the files and folders, not the casing of the folder names in `settings.json`. The deployment log starts with the source: `Starting project deploy from MyDb.dll.` or the folder path.
+- "Go to source" of `[SqlFact]` tests does not depend on these calls: discovery reads the `ProjectDir` metadata of the fixture builder's assembly (Section 13.2).
 
 ---
 
@@ -173,14 +174,16 @@ Paths below are relative to the scripts root. Folder names are configurable in `
 | Folder (default name) | Required | Files picked up | Search | Order |
 |---|---|---|---|---|
 | `Migrations` | no | `*.sql`, `*.json`; any subfolder | recursive | by version number |
-| `Code` | no | `*.sql` except files matching `TestFilePatterns` and `setup.test.sql` | recursive | groups from `CodeSubFoldersDeploymentOrder` first, then the rest; inside a group parallel with retries |
+| `Code` | no | `*.sql` except files matching `TestFilePatterns` and `setup.test.sql` | recursive | groups from `CodeSubFoldersDeploymentOrder` first, then the rest; inside a group the files start by relative path, run in parallel with retries |
 | `Tests` | no | every `*.sql` except `setup.test.sql` | each folder, all subfolders | parallel |
 | `Code` (tests) | no | files matching `TestFilePatterns` (default `test.*.sql`, `t.*.sql`, `*.test.sql`, `*.t.sql`) except `setup.test.sql` | each folder, all subfolders | parallel |
-| `BeforeDeploy` | no | `*.sql` | recursive | alphabetical by full path |
-| `AfterDeploy` | no | `*.sql` | recursive | alphabetical by full path |
+| `BeforeDeploy` | no | `*.sql` | recursive | by relative path |
+| `AfterDeploy` | no | `*.sql` | recursive | by relative path |
 | root | no | `settings.json` | root only | — |
 
 A missing folder is skipped. A project without `Migrations` deploys only code, tests and BeforeDeploy/AfterDeploy scripts (rule 9 in Section 0 still applies).
+
+Folders, file patterns and `settings.json` are matched ignoring case on every OS. "By relative path" means ordinal, ignoring case (`StringComparer.OrdinalIgnoreCase` on the path with `/`), the same on every OS and in every culture: `a-b/x.sql`, `A.sql`, `a/x.sql`, `a_b.sql`, `b.sql`.
 
 Other files (`.txt`, `.md`, ...) are ignored everywhere, except in `Migrations`: a `.json` file there that is not an item settings file `<version>.<item>.settings.json` (Section 5.1) fails the deployment (`UnknownMigrationSettingsException`; the old `<version>.settings.json` / `<version>.s.json` → `ObsoleteMigrationSettingsFileException`). A `.txt` in `Migrations` is ignored (the demos keep `002.notes.txt` next to migrations).
 
@@ -347,7 +350,7 @@ $$;
 
 - `BeforeDeploy/*.sql` runs after the downgrade step and before migrations; `AfterDeploy/*.sql` runs after the breaking step.
 - They run on **every** deployment, whatever the `DeployParameters` flags (also with the `Breaking` preset). Nothing is skipped by hash; `dblive.folder_items` only records the last run.
-- Order: alphabetical by full path; subfolders are included.
+- Order: by relative path, ordinal, ignoring case (`BeforeDeploy/01.sql`, `BeforeDeploy/02.sql`, `BeforeDeploy/sub/01.sql`); subfolders are included. Number the files to control the order.
 - Not wrapped in a transaction (unless `TransactionWrapLevel` is `Deployment`). Command timeout: `BeforeDeployFolderTimeout` / `AfterDeployFolderTimeout` (6 hours).
 - The database can be empty when BeforeDeploy runs (first deployment).
 - Use them for idempotent maintenance: permissions, refreshing reference data with `merge`, enabling database options, statistics.
@@ -629,7 +632,7 @@ Extension methods:
 | `.LogToConsole()` | `DbLive` | Serilog console logger. |
 | `.LogToXUnitOutput(ITestOutputHelper)` | `DbLive.xunit` | Log to xUnit test output. |
 
-Exactly one provider, one connection and one project (`SetProject` or `SetScriptsFolder`) are required. Each `Configure*`/`Set*` call adds a registration; when a service is registered twice, the last one wins. A custom Serilog logger: `builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger))`. Calling a configuration method after `Create*` rebuilds the container on the next `Create*` call.
+Exactly one provider, one connection and one project (`SetProject` or `SetScriptsFolder`) are required. Each `Configure*`/`Set*` call adds a registration; when a service is registered twice, the last one wins. A custom Serilog logger: `builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger))`. Scripts from another place: implement `DbLive.Project.IScriptSource` (`Location` for logs, `GetFiles()` with relative paths using `/`, `ReadAsync(relativePath)`) and register it with `builder.ConfigureServices(s => s.AddSingleton<IScriptSource>(mySource))` instead of `SetProject`. Calling a configuration method after `Create*` rebuilds the container on the next `Create*` call.
 
 Connection string helpers (handy for tests):
 
@@ -775,7 +778,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 }
 ```
 
-- Discovery creates one test case per SQL test file; the display name is the relative path and "go to source" opens the `.sql` file at `<ProjectDir>/Scripts/<relative path>`. Without the `ProjectDir` metadata the tests are still discovered and run, only "go to source" does not open the `.sql` file.
+- Discovery creates one test case per SQL test file; the display name is the relative path and "go to source" opens the `.sql` file at `<ProjectDir>/Scripts/<relative path>`, where `ProjectDir` is the assembly metadata (Section 3.1) of the fixture builder's `GetProjectAssembly()`. Without the `ProjectDir` metadata the tests are still discovered and run, only "go to source" does not open the `.sql` file.
 - Discovery reads tests from the SQL project's dll (`SetProject`), so a new test file appears after a build; Test Explorer and `dotnet test` build before running.
 - The fixture deploys once per test class (migrations, code and breaking; no tests) into a fresh database, then drops it if `dropDatabaseOnComplete`.
 - An invalid `TestFixture` type produces a failing test case that explains the fix.
@@ -947,7 +950,6 @@ Run the deployer against a local database (`CreateDbIfNotExists = true`, `RunTes
 
 - No CLI tool; deployments are started from your own C# code.
 - With `SetProject`, scripts are read from the dll, so a changed script takes effect only after a build. Use `SetScriptsFolder` to deploy a folder without building.
-- DbLive's own scripts (the `dblive` schema) are still copied next to the application by the provider package (Section 2), not embedded.
 - xUnit v2 only (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
 - Supported engines: SQL Server / Azure SQL and PostgreSQL. SQLite and MySQL are planned.

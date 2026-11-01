@@ -37,6 +37,16 @@
     <ProjectReference Include="..\Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj" />
   </ItemGroup>
 
+  <!-- InternalScriptsTests compare DbLive's own scripts embedded in the providers with their SQL folders. -->
+  <ItemGroup>
+    <ProjectReference Include="..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
+    <ProjectReference Include="..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+      <_Parameter1>SrcDir</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!-- This assembly is also a SQL project, without the ProjectDir metadata. -->
   <ItemGroup>
     <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />

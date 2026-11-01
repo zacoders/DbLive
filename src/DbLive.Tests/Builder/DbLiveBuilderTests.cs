@@ -10,7 +10,7 @@ public class DbLiveBuilderTests
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
+				services.AddSingleton<IScriptSource>(new InMemoryScriptSource());
 			});
 
 		IDbLiveProject project1 = builder.CreateProject();
@@ -20,25 +20,25 @@ public class DbLiveBuilderTests
 	}
 
 	[Fact]
-	public void ConfigureServices_AfterFirstResolve_RebuildsProviderWithNewConfiguration()
+	public async Task ConfigureServices_AfterFirstResolve_RebuildsProviderWithNewConfiguration()
 	{
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
+				services.AddSingleton<IScriptSource>(new InMemoryScriptSource());
 			});
 
 		IDbLiveProject project1 = builder.CreateProject();
 
 		builder.ConfigureServices(services =>
 		{
-			services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/changed", new FileSystem(), "c:/db/changed-vs"));
+			services.AddSingleton<IScriptSource>(new InMemoryScriptSource().AddFile("Migrations/001.migration.sql"));
 		});
 
 		IDbLiveProject project2 = builder.CreateProject();
 
 		Assert.NotSame(project1, project2);
-		Assert.Equal("c:/db/changed-vs", project2.GetVisualStudioProjectPath());
+		Assert.Single(await project2.GetMigrationsAsync());
 	}
 
 	[Fact]
@@ -47,7 +47,7 @@ public class DbLiveBuilderTests
 		DbLiveBuilder builder = new DbLiveBuilder()
 			.ConfigureServices(services =>
 			{
-				services.AddSingleton<IProjectPath>(new ProjectPath("c:/db/scripts", new FileSystem(), "c:/db/vs-scripts"));
+				services.AddSingleton<IScriptSource>(new InMemoryScriptSource());
 			});
 
 		_ = builder.CreateProject();
@@ -55,6 +55,6 @@ public class DbLiveBuilderTests
 
 		Assert.Throws<ObjectDisposedException>(() => builder.CreateProject());
 		Assert.Throws<ObjectDisposedException>(() =>
-			builder.ConfigureServices(services => services.AddSingleton<IProjectPath>(new ProjectPath("a", new FileSystem(), "b"))));
+			builder.ConfigureServices(services => services.AddSingleton<IScriptSource>(new InMemoryScriptSource())));
 	}
 }

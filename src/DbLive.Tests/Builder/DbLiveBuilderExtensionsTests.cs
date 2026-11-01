@@ -1,4 +1,5 @@
-using System.Reflection;
+using DbLive.MSSQL;
+using DbLive.PostgreSQL;
 
 namespace DbLive.Tests.Builder;
 
@@ -18,28 +19,6 @@ public class DbLiveBuilderExtensionsTests
 	}
 
 	[Fact]
-	public void SetProject_WithProjectDirMetadata_GoToSourceUsesScriptsFolder()
-	{
-		using DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(Assembly.Load("DemoMSSQLEmpty"));
-
-		string? sourcePath = builder.CreateProject().GetVisualStudioProjectPath();
-
-		Assert.NotNull(sourcePath);
-		Assert.EndsWith(Path.Combine("DemoMSSQLEmpty", "Scripts"), sourcePath);
-		Assert.True(Directory.Exists(sourcePath));
-	}
-
-	[Fact]
-	public void SetProject_WithoutProjectDirMetadata_NoGoToSource()
-	{
-		using DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(typeof(DbLiveBuilderExtensionsTests).Assembly);
-
-		Assert.Null(builder.CreateProject().GetVisualStudioProjectPath());
-	}
-
-	[Fact]
 	public void SetProject_AssemblyWithoutScripts_Throws()
 	{
 		using DbLiveBuilder builder = new();
@@ -50,6 +29,20 @@ public class DbLiveBuilderExtensionsTests
 		Assert.Equal("DbLive", ex.AssemblyName);
 		Assert.Contains("'DbLive'", ex.Message);
 		Assert.Contains("""<EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />""", ex.Message);
+	}
+
+	[Theory]
+	[InlineData(typeof(MsSqlDA))]
+	[InlineData(typeof(PostgreSqlDA))]
+	public void SetProject_ProviderAssembly_Throws(Type providerType)
+	{
+		using DbLiveBuilder builder = new();
+
+		// DbLive's own scripts in the provider assembly are not the project's scripts.
+		ScriptsNotEmbeddedException ex = Assert.Throws<ScriptsNotEmbeddedException>(() =>
+			builder.SetProject(providerType.Assembly));
+
+		Assert.Equal(providerType.Assembly.GetName().Name, ex.AssemblyName);
 	}
 
 	[Fact]
@@ -65,11 +58,11 @@ public class DbLiveBuilderExtensionsTests
 
 		Migration migration = Assert.Single(await dbLiveProject.GetMigrationsAsync());
 		Assert.Equal("Migrations/001.migration.sql", migration.Items[MigrationItemType.Migration].FileData.RelativePath);
-		Assert.Equal(project.Path, dbLiveProject.GetVisualStudioProjectPath());
+		Assert.Equal("create table dbo.t1 ( id int not null );", migration.Items[MigrationItemType.Migration].FileData.Content);
 	}
 
 	[Fact]
-	public void SetScriptsFolder_RelativePath_ResolvedAgainstCurrentDirectory()
+	public async Task SetScriptsFolder_RelativePath_ResolvedAgainstCurrentDirectory()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
@@ -77,7 +70,31 @@ public class DbLiveBuilderExtensionsTests
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.SetScriptsFolder(Path.GetRelativePath(Directory.GetCurrentDirectory(), project.Path));
 
-		Assert.Equal(project.Path, builder.CreateProject().GetVisualStudioProjectPath());
+		Assert.Single(await builder.CreateProject().GetMigrationsAsync());
+	}
+
+	[Fact]
+	public async Task SetScriptsFolder_SeesFilesAddedAndDeletedAfterTheBuilderWasCreated()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Code/v1.sql", "create view dbo.v1 as select 1 as x;");
+
+		using DbLiveBuilder builder = new DbLiveBuilder()
+			.SetScriptsFolder(project.Path);
+
+		IDbLiveProject dbLiveProject = builder.CreateProject();
+
+		Assert.Single(Assert.Single(await dbLiveProject.GetCodeGroupsAsync()).CodeItems);
+
+		project
+			.AddFile("Code/v2.sql", "create view dbo.v2 as select 2 as x;")
+			.AddFile("Code/v3.sql", "create view dbo.v3 as select 3 as x;")
+			.DeleteFiles("v1.sql");
+
+		Assert.Equal(
+			["Code/v2.sql", "Code/v3.sql"],
+			Assert.Single(await dbLiveProject.GetCodeGroupsAsync()).CodeItems.Select(i => i.FileData.RelativePath)
+		);
 	}
 
 	[Fact]

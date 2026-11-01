@@ -31,10 +31,12 @@ Scripts/
 | `Migrations` | no | `*.sql` and `*.json`, including subfolders | Once per database, in version order |
 | `Code` | no | `*.sql` (except test files and `setup.test.sql`), including subfolders | When the file is new or changed |
 | `Tests` | no | every `*.sql` except `setup.test.sql`, including subfolders | At the end of a deployment, or from xUnit |
-| `BeforeDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, before migrations |
-| `AfterDeploy` | no | `*.sql`, including subfolders, alphabetical by path | On **every** deployment, after breaking changes |
+| `BeforeDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, before migrations |
+| `AfterDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, after breaking changes |
 
 Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code, tests and the BeforeDeploy/AfterDeploy scripts.
+
+Folder names and file patterns are matched ignoring case. "Sorted by relative path" compares the path with `/` character by character, ignoring case, so the order is the same on every OS and machine: `01-users.sql`, `02-roles.sql`, `sub/01.sql`. Number the files to control the order.
 
 Files with other extensions (`.txt`, `.md`) are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
 
