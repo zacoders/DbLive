@@ -345,12 +345,14 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
+	// relative_path is stored in lower case, so a file is identified ignoring case, the same way it is found in the project.
+	// lower() runs in the database, like in the self-deploy script that lower-cased the existing paths, so both agree.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
-			using ( select 1 ) s(c) on t.relative_path = @relative_path
+			using ( select 1 ) s(c) on t.relative_path = lower(@relative_path)
 			when matched then update 
 				set status = @status
 					, content_hash = @content_hash
@@ -368,7 +370,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, error
 				)
 				values (
-					@relative_path
+					lower(@relative_path)
 					, @status
 					, @content_hash
 					, @applied_utc
@@ -397,7 +399,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			"""
 			update dblive.code
 			set verified_utc = @verified_utc
-			where relative_path = @relative_path
+			where relative_path = lower(@relative_path)
 			""",
 			new { relative_path = relativePath, verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
@@ -417,7 +419,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , error as error_message
 			     , status			  
 			from dblive.code
-			where relative_path = @relative_path
+			where relative_path = lower(@relative_path)
 			""",
 			new { relative_path = relativePath }
 		).ConfigureAwait(false);
@@ -433,7 +435,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set status = @status
 				, content_hash = @content_hash
 				, content = @content
-				, relative_path = @relative_path
+				, relative_path = lower(@relative_path)
 			when not matched then 
 			insert (
 				version
@@ -449,7 +451,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				@version
 				, @name
 				, @item_type
-				, @relative_path
+				, lower(@relative_path)
 				, @status
 				, @content_hash
 				, @content
@@ -477,7 +479,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			update dblive.migration
 			set content_hash = @content_hash
 			  , content = @content
-			  , relative_path = @relative_path
+			  , relative_path = lower(@relative_path)
 			where version = @version
 			  and item_type = @item_type
 			  and status = 'applied'
@@ -571,7 +573,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(
 			"""			
 			merge into dblive.unit_test_run as t
-			using ( select 1 ) s(c) on t.relative_path = @relative_path
+			using ( select 1 ) s(c) on t.relative_path = lower(@relative_path)
 			when matched then update 
 				set content_hash = @content_hash
 				  , run_utc = @run_utc
@@ -588,7 +590,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				  , error
 				)
 				values (
-					@relative_path
+					lower(@relative_path)
 				  , @content_hash
 				  , @run_utc
 				  , @execution_time_ms
@@ -614,7 +616,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(
 			"""
 			merge into dblive.folder_items as t
-			using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = @relative_path
+			using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = lower(@relative_path)
 			when matched then 
 				update set 
 					started_utc = @started_utc,
@@ -633,7 +635,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				)
 				values (
 					  @folder_type
-					, @relative_path
+					, lower(@relative_path)
 					, sysutcdatetime()
 					, @started_utc
 					, @completed_utc

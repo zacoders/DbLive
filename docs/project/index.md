@@ -80,7 +80,7 @@ var deployer = new DbLiveBuilder()
 
 The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are picked up.
 
-Both calls give DbLive the same scripts. DbLive works only with paths relative to the scripts root, such as `Migrations/001.migration.sql`, with `/` on every OS: they are stored in the database and shown in logs and error messages. Folders and file patterns are matched ignoring case, and a relative path keeps the real names of the files and folders.
+Both calls give DbLive the same scripts. DbLive works only with paths relative to the scripts root, such as `Migrations/001.migration.sql`, with `/` on every OS. Folders and file patterns are matched ignoring case, and logs and error messages show the real names of the files and folders. The database stores the paths in lower case, so a file renamed only by case is still the same file.
 
 ## Provider files
 

@@ -115,6 +115,8 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 | `dblive.unit_test_run` | Last result of each SQL test |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
 
+Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`).
+
 ```sql
 select version, item_type, status, applied_utc, relative_path
 from dblive.migration

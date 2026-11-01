@@ -149,10 +149,31 @@ public class CodeItemDeployerTests
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
 	}
 
-	private static CodeItem GetCodeItem(string content = "select * from table")
+	[Fact]
+	public async Task DeployCodeItem_Keeps_The_Real_Casing_Of_The_Path()
 	{
-		string relativePath = "/path-to/some-code-item.sql";
+		// Arrange
+		MockSet mockSet = new();
 
+		// the database stores the path in lower case, the deployer passes and logs the path of the file.
+		CodeItem codeItem = GetCodeItem(relativePath: "Code/dbo/GetUser.sql");
+
+		mockSet.DbLiveDA.FindCodeItemAsync(Arg.Any<string>()).ReturnsNull();
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		// Act
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
+
+		// Assert
+		Assert.True(res.IsSuccess);
+		await mockSet.DbLiveDA.Received().FindCodeItemAsync("Code/dbo/GetUser.sql");
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.RelativePath == "Code/dbo/GetUser.sql"));
+		mockSet.Logger.Received().Information("Deploying code file: {filePath}", "Code/dbo/GetUser.sql");
+	}
+
+	private static CodeItem GetCodeItem(string content = "select * from table", string relativePath = "/path-to/some-code-item.sql")
+	{
 		CodeItem codeItem = new()
 		{
 			Name = "some-code-item",

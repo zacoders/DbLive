@@ -2,6 +2,7 @@
 type: feature
 priority: medium
 created: 2026-11-01
+closed: 2026-11-01
 ---
 # Store relative paths in lower case in `dblive`
 
@@ -27,17 +28,17 @@ With lower-case paths in `dblive`, identification ignores case everywhere, like 
 - Tests that read paths from the database: `src/DbLive.MSSQL.Tests/CrossPlatformDeployTests.cs:54,57,99-107`, `src/DbLive.PostgreSQL.Tests/CrossPlatformDeployTests.cs:54,57,99-107`.
 
 ## Plan
-- [ ] Self-deploy migration for SQL Server and PostgreSQL: delete duplicates, lower-case `relative_path` in the four tables.
-- [ ] `lower(@relative_path)` in every DA query that writes or looks up `relative_path`, in both providers.
-- [ ] Check that nothing shown to the user takes the path from the database where the project path is available.
+- [x] Self-deploy migration for SQL Server and PostgreSQL: delete duplicates, lower-case `relative_path` in the four tables.
+- [x] `lower(@relative_path)` in every DA query that writes or looks up `relative_path`, in both providers.
+- [x] Check that nothing shown to the user takes the path from the database where the project path is available.
 
 ### Tests
-- [ ] Integration, both providers: a database with rows for `Code/x.sql` and `code/x.sql` (and the same in `unit_test_run` and `folder_items`) after self-deploy has one row per file, in lower case, the latest one kept. On SQL Server create the test database with a case-sensitive collation (for example `Latin1_General_100_CS_AS`), otherwise the duplicates cannot exist.
-- [ ] Integration, both providers: a code file renamed only by case is not redeployed (`applied_utc` unchanged) and leaves one row.
-- [ ] Integration: a database deployed with `Code/...` paths, then deployed with `"CodeFolder": "code"` in the settings, redeploys nothing.
-- [ ] Unit: `UnitTestsFailedException.FailedTests` and log messages keep the real casing.
-- [ ] Update the assertions on paths read from the database in `CrossPlatformDeployTests` (both providers).
-- [ ] All tests pass, including the Docker integration tests and the demo tests.
+- [x] Integration, both providers: a database with rows for `Code/x.sql` and `code/x.sql` (and the same in `unit_test_run` and `folder_items`) after self-deploy has one row per file, in lower case, the latest one kept. On SQL Server create the test database with a case-sensitive collation (for example `Latin1_General_100_CS_AS`), otherwise the duplicates cannot exist.
+- [x] Integration, both providers: a code file renamed only by case is not redeployed (`applied_utc` unchanged) and leaves one row.
+- [x] Integration: a database deployed with `Code/...` paths, then deployed with `"CodeFolder": "code"` in the settings, redeploys nothing.
+- [x] Unit: `UnitTestsFailedException.FailedTests` and log messages keep the real casing.
+- [x] Update the assertions on paths read from the database in `CrossPlatformDeployTests` (both providers).
+- [x] All tests pass, including the Docker integration tests and the demo tests.
 
 ## Docs to update
 - `docs/llms-full.txt` §15 (`dblive` schema): "`relative_path` is relative to the scripts root and uses `/` on every OS" → also lower case; older databases are converted automatically, the latest row is kept when two rows differ only by case.
@@ -45,13 +46,26 @@ With lower-case paths in `dblive`, identification ignores case everywhere, like 
 - `docs/deployment/code.md:7`: the same example with `\`.
 
 ## Done when
-- [ ] `relative_path` is lower case in all four `dblive` tables of a new and of an upgraded database, on SQL Server and PostgreSQL
-- [ ] A rename that changes only case redeploys nothing
-- [ ] Logs, Test Explorer and "Go to source" show the real casing
-- [ ] Docs updated
+- [x] `relative_path` is lower case in all four `dblive` tables of a new and of an upgraded database, on SQL Server and PostgreSQL
+- [x] A rename that changes only case redeploys nothing
+- [x] Logs, Test Explorer and "Go to source" show the real casing
+- [x] Docs updated
 
 ## Notes
 2026-11-01, decided with the maintainer while reviewing 0096-31-01 (open question on the casing of `RelativePath`). Options considered:
 - Keep the real casing in `dblive` and compare with `lower()` on both sides, with a unique index on `lower(relative_path)`. Keeps the paths in `dblive` readable, but changes every query and the keys. Not chosen.
 - Lower case in C# (`ToLowerInvariant()`). May differ from the database's `lower()` for non-ASCII names, which the migration has to use. Not chosen.
 - Cost of the chosen option: paths in the `dblive` tables are in lower case (`code/dbo/getuser.sql`), so they are a little harder to read there.
+
+2026-11-01, while implementing:
+- SQL Server migration: the `update` is limited with `where relative_path collate Latin1_General_100_BIN2 <> lower(relative_path)`. Without the binary collation a case-insensitive database sees `Code/x.sql` and `code/x.sql` as equal and would skip the row.
+- SQL Server `CrossPlatformDeployTests` creates its database with `Latin1_General_100_CS_AS` for the whole class (DbLive skips creating a database that exists), so it behaves like PostgreSQL. Verified: with `lower()` removed from `MsSqlDA` four of its tests fail; with the default case-insensitive collation they would pass anyway.
+- After 0096-31-01 the casing of `"CodeFolder"` no longer reaches the path, so the settings test simulates a database deployed by an older DbLive on Windows: `code/dbo/V1.sql` stored (folder from the settings, file name from the disk), then a deploy with the new DbLive finds `Code/dbo/V1.sql` and redeploys nothing.
+- A case-only rename of a folder is not tested separately: in a temp folder on Windows it cannot be done reliably, and for the database it is the same lower-cased path as a file rename.
+- Found: two project files whose paths differ only by case (possible on Linux) now share one row in `dblive`. Split out as 0096-31-02-01.
+
+## Result
+- New self-deploy scripts `src/DbLive.MSSQL/SQL/09.relative-path-lower-case.sql` and `src/DbLive.PostgreSQL/SQL/06.relative-path-lower-case.sql`: in `dblive.code`, `dblive.unit_test_run` and `dblive.folder_items` the rows that collide after `lower()` are deleted (the latest one kept, same ordering as the separator migration), then `relative_path` is lower-cased in these tables and in `dblive.migration`.
+- `MsSqlDA` and `PostgreSqlDA`: every query that writes or looks up `relative_path` uses `lower(@relative_path)`; the column is compared as is, so the primary keys are used. C# keeps the real casing (`FileData.RelativePath`), so logs, exceptions, `UnitTestsFailedException.FailedTests`, Test Explorer and "Go to source" are unchanged. Only the downgrade shows paths read from the database (lower case).
+- Tests: `CrossPlatformDeployTests` in both providers (updated assertions on stored paths; new: lower case in a new database, migration of case duplicates, case-only rename, older Windows database with the settings casing, failed test reported by its real path); unit tests in `CodeItemDeployerTests` and `UnitTestsRunnerTests` for the real casing. All 400 tests pass, including the Docker integration tests and the demo tests.
+- Docs: `docs/llms-full.txt` §3.4, §6, §8.1, §15; `docs/deployment/code.md`, `docs/deployment/index.md`, `docs/project/index.md`.

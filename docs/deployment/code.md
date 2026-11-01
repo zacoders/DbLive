@@ -4,9 +4,9 @@ Code objects are the **interface** of the database: procedures, functions, views
 
 ## How it works
 
-- Every `*.sql` file under `Code` that is not a [test file](../project/structure.md#test-files) is a code item, identified by its path relative to `Scripts` (for example `Code\dbo\GetUser.sql`).
+- Every `*.sql` file under `Code` that is not a [test file](../project/structure.md#test-files) is a code item, identified by its path relative to `Scripts`, ignoring case (for example `Code/dbo/GetUser.sql`).
 - DbLive executes a code file when the database has no successful run of that path with the same content. Unchanged files are skipped and logged as `[hash match]`.
-- A file is executed again when its content changes, when it is moved or renamed, and on every new database. **Code files must be re-runnable.**
+- A file is executed again when its content changes, when it is moved or renamed, and on every new database. A rename that changes only case (`GetUser.sql` to `getUser.sql`) is not a change. **Code files must be re-runnable.**
 - Code runs after migrations, so it can use the tables they create.
 
 | Engine | Re-runnable pattern |
@@ -80,6 +80,6 @@ Each code file runs as its own command, without a transaction, with a timeout of
 
 ## Things to know
 
-- **Manual changes are not detected.** If someone alters a procedure directly in the database, the file's checksum still matches and DbLive will not redeploy it. Change the file, or delete its row from `dblive.code`, to force a redeploy.
+- **Manual changes are not detected.** If someone alters a procedure directly in the database, the file's checksum still matches and DbLive will not redeploy it. Change the file, or delete its row from `dblive.code`, to force a redeploy. Paths are stored there in lower case: `delete from dblive.code where relative_path = lower('Code/dbo/GetUser.sql');`.
 - **One object per file** keeps redeployments small and errors easy to locate. On SQL Server, a file may contain several batches separated by `GO`.
 - **Status** of every file is in `dblive.code`; the last error of a failed file is in its `error` column.

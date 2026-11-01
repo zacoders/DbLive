@@ -162,7 +162,7 @@ Notes:
 - Test projects reference the SQL project and call `SetProject` with its assembly, so they deploy and test the same scripts as the deployer.
 - `SetProject` throws `ScriptsNotEmbeddedException` (it names the assembly and shows the `EmbeddedResource` line) when the assembly has no `DbLive/` resources, instead of deploying an empty project. A provider assembly (`DbLive.MSSQL`, `DbLive.PostgreSQL`) passed by mistake throws it too: its own scripts are named `DbLive.Internal/...`.
 - `SetScriptsFolder` throws `DirectoryNotFoundException` when the folder does not exist. The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are seen.
-- Both calls give the same scripts: DbLive works only with relative paths (`Migrations/001.migration.sql`, `/` on every OS), which are stored in the database and shown in logs and exception messages. A relative path takes the real names of the files and folders, not the casing of the folder names in `settings.json`. The deployment log starts with the source: `Starting project deploy from MyDb.dll.` or the folder path.
+- Both calls give the same scripts: DbLive works only with relative paths (`Migrations/001.migration.sql`, `/` on every OS). Logs, exception messages and Test Explorer show them with the real names of the files and folders, not the casing of the folder names in `settings.json`. The database stores them in lower case (Section 15), so a file is identified ignoring case. The deployment log starts with the source: `Starting project deploy from MyDb.dll.` or the folder path.
 - "Go to source" of `[SqlFact]` tests does not depend on these calls: discovery reads the `ProjectDir` metadata of the fixture builder's assembly (Section 13.2).
 
 ---
@@ -303,10 +303,10 @@ Line endings: a Windows checkout (CRLF, `core.autocrlf=true`) and a Linux checko
 
 ## 6. Code objects
 
-- Every `*.sql` under `Code/` that does not match `TestFilePatterns` and is not `setup.test.sql` is a code item, identified by its relative path (for example `Code\dbo\GetUser.sql`).
+- Every `*.sql` under `Code/` that does not match `TestFilePatterns` and is not `setup.test.sql` is a code item, identified by its relative path, ignoring case (for example `Code/dbo/GetUser.sql`).
 - A code item is executed when no `applied` record with the same relative path and content hash exists in `dblive.code`. Unchanged files are skipped (logged as `[hash match]`).
-- A changed, moved or renamed file is executed again. **DbLive never drops code objects.** A procedure removed from the repository stays in the database until a breaking script drops it.
-- Manual changes made directly in the database are not detected: the file hash still matches, so the file is not re-run. To force a redeploy, change the file, or delete its row from `dblive.code`.
+- A changed, moved or renamed file is executed again. A rename that changes only case (`GetUser.sql` to `getUser.sql`, `Code` to `code`) keeps the identity of the file, so it is not executed again. **DbLive never drops code objects.** A procedure removed from the repository stays in the database until a breaking script drops it.
+- Manual changes made directly in the database are not detected: the file hash still matches, so the file is not re-run. To force a redeploy, change the file, or delete its row from `dblive.code` (`delete from dblive.code where relative_path = lower('Code/dbo/GetUser.sql');`).
 - Execution order: groups listed in `CodeSubFoldersDeploymentOrder` (in that order), then everything else. Inside a group, up to `NumberOfThreadsForCodeDeploy` (10) files run in parallel. A failed file goes to the end of the queue and is retried up to `MaxCodeDeployRetries` (5) attempts in total. This resolves most dependency orders (a view that uses a function deployed later succeeds on retry). After the last attempt: `CodeDeploymentAggregateException`.
 - Put objects other code depends on, such as schemas and types, in a group listed first: `"CodeSubFoldersDeploymentOrder": ["schemas"]`.
 - `CodeSubFoldersDeploymentOrder` entries are folder paths relative to `Code`, matched as path prefixes (case-insensitive). Nested entries may use `/` or `\`: `"dbo/functions"` and `"dbo\\functions"` work on any OS. An entry that matches no code files logs a warning and forms an empty group.
@@ -366,7 +366,7 @@ $$;
 - `Tests/` and all of its subfolders: every `*.sql` except `setup.test.sql` is a test. Names do not matter.
 - `Code/` and all of its subfolders: only files matching `TestFilePatterns`, except `setup.test.sql`. Convention: put `GetUser.test.sql` next to `GetUser.sql`.
 - `setup.test.sql` in a folder (in `Tests/` or `Code/`) runs before **each** test in that same folder, in the same transaction. It is not inherited by subfolders.
-- A test is identified by its relative path (for example `Tests\Orders\select-order.test.sql`).
+- A test is identified by its relative path, ignoring case (for example `Tests/Orders/select-order.test.sql`).
 
 ### 8.2 Execution
 
@@ -833,7 +833,7 @@ Created and upgraded automatically on every deployment. Same tables in both prov
 | `dblive.unit_test_run` | Last result per test file: `relative_path`, `pass`, `error`, `run_utc`, `execution_time_ms`. |
 | `dblive.folder_items` | Last run per BeforeDeploy/AfterDeploy file. |
 
-`relative_path` is relative to the scripts root and uses `/` on every OS (`Code/dbo/GetUser.sql`). Databases deployed from Windows by older DbLive versions get `\` replaced automatically; when one file has rows with both separators (deployed from Windows and Linux), the latest row is kept.
+`relative_path` is relative to the scripts root, uses `/` on every OS and is stored in lower case (`code/dbo/getuser.sql`), so a file is identified ignoring case on SQL Server with any collation and on PostgreSQL. DbLive lower-cases paths with the database's `lower()`; to find the row of a file, compare with `lower('Code/dbo/GetUser.sql')`. Databases deployed by older DbLive versions are converted automatically: `\` is replaced with `/` and paths are lower-cased; when one file has several rows (deployed from Windows and Linux, or renamed only by case on PostgreSQL or a case-sensitive collation), the latest row is kept. Logs and exceptions show the real path of the file; only downgrade messages show the stored lower-case path, because the undone files may be gone from the project.
 
 Diagnostic queries:
 

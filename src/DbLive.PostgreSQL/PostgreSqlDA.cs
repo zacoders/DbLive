@@ -337,6 +337,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 
+	// relative_path is stored in lower case, so a file is identified ignoring case, the same way it is found in the project.
+	// lower() runs in the database, like in the self-deploy script that lower-cased the existing paths, so both agree.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
@@ -346,7 +348,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					execution_time_ms, created_utc, error
 				)
 				values (
-					@relative_path, @status, @content_hash, @applied_utc,
+					lower(@relative_path), @status, @content_hash, @applied_utc,
 					@execution_time_ms, @created_utc, @error
 				)
 				on conflict (relative_path) do update set
@@ -376,7 +378,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			"""
 			update dblive.code
 			set verified_utc = @verified_utc
-			where relative_path = @relative_path
+			where relative_path = lower(@relative_path)
 			""",
 			new { relative_path = relativePath, verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
@@ -395,7 +397,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , error as error_message
 				 , status
 			from dblive.code
-			where relative_path = @relative_path
+			where relative_path = lower(@relative_path)
 			""",
 			new { relative_path = relativePath }
 		).ConfigureAwait(false);
@@ -409,7 +411,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				status, content_hash, content, created_utc
 			)
 			values (
-				@version, @name, @item_type, @relative_path,
+				@version, @name, @item_type, lower(@relative_path),
 				@status, @content_hash, @content, @created_utc
 			)
 			on conflict (version, item_type) do update set
@@ -438,7 +440,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			update dblive.migration
 			set content_hash = @content_hash,
 				content = @content,
-				relative_path = @relative_path
+				relative_path = lower(@relative_path)
 			where version = @version
 			  and item_type = @item_type
 			  and status = 'applied'
@@ -531,7 +533,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms, pass, error
 			)
 			values (
-				@relative_path, @content_hash, @run_utc,
+				lower(@relative_path), @content_hash, @run_utc,
 				@execution_time_ms, @pass, @error
 			)
 			on conflict (relative_path) do update set
@@ -567,7 +569,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				started_utc, completed_utc, execution_time_ms, content_hash
 			)
 			values (
-				@folder_type, @relative_path, now(),
+				@folder_type, lower(@relative_path), now(),
 				@started_utc, @completed_utc, @execution_time_ms, @content_hash
 			)
 			on conflict (folder_type, relative_path) do update set

@@ -215,6 +215,32 @@ public class UnitTestsRunnerTests
 			);
 	}
 
+	[Fact]
+	public async Task RunTest_Failed_Test_Keeps_The_Real_Casing_Of_Its_Path()
+	{
+		MockSet mockSet = new();
+
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+
+		// the database stores the path in lower case, the exception shows the path of the file.
+		TestItem testItem = new()
+		{
+			Name = "Select-Order.sql",
+			FileData = GetFileData("Tests/Orders/Select-Order.sql")
+		};
+
+		mockSet.DbLiveProject.GetTestsAsync().Returns([testItem]);
+
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
+			.Returns(new TestRunResult { IsSuccess = false, ErrorMessage = "failed" });
+
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+
+		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto => dto.RelativePath == "Tests/Orders/Select-Order.sql"));
+	}
+
 	private static FileData GetFileData(string relativePath)
 	{
 		return new FileData
