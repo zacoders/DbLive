@@ -4,6 +4,7 @@ Work items (features, bugs, stories, chores) live here as Markdown files, one fi
 
 - `tasks/` holds open tasks.
 - `tasks/done/` holds finished tasks. The folder is the status; there is no status field.
+- `tasks/ideas/` holds ideas not decided yet (see [Ideas](#ideas)).
 
 ## File name and number
 
@@ -71,6 +72,12 @@ grep -l "type: bug" tasks/*.md        # open bugs
 grep -l "priority: high" tasks/*.md   # open high-priority tasks
 ls tasks/0096-* tasks/done/0096-*     # #96 and everything found during it
 ```
+
+## Ideas
+
+An idea is something worth thinking about later, not decided and not planned. It has no number: `ideas/undo-test-data-round-trip.md`. Front matter holds only `created`; the body says what the idea is, where it came from, and the open questions.
+
+When an idea is taken into work, `git mv` it to `tasks/` under a task number, add `type` and `priority`, and rewrite it in the task format. A rejected idea is deleted; write the reason in the commit message.
 
 ## GitHub Issues
 
