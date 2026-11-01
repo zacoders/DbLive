@@ -2,6 +2,7 @@
 type: feature
 priority: medium
 created: 2026-11-01
+closed: 2026-11-01
 ---
 # Embed the scripts in the SQL project assembly
 
@@ -119,3 +120,14 @@ Experiments on a copy of `DemoMSSQLEmpty`, .NET SDK 10.0.402:
 - Tests: `DbLive.Tests` references `DbLive.xunit` and the four demo SQL projects (parity test), and is itself a SQL project without `ProjectDir` (`Scripts/`) for the `SetProject` and `[SqlFact]` discovery tests. All 380 tests pass locally (`dotnet test DbLive.sln --filter "Category!=LocalOnly"`, Docker): DbLive.Tests 311, DbLive.MSSQL.Tests 22, DbLive.PostgreSQL.Tests 11, DemoMSSQL.Tests 17, Demo.PostgreSQL.Chinook.Tests 10, AdventureWorks.Tests 9.
 - "Go to source" in Visual Studio opens the `.sql` file with scripts read from the dll (checked by the maintainer).
 - Follow-up: `IFileSystem` inside `IProjectPath` keeps `DbLiveProject` unchanged but makes `EmbeddedFileSystem` emulate a disk and leaves a second `IFileSystem` in DI. Replaced by a source of relative paths in 0096-31-01, which also embeds DbLive's own scripts (see "Out of scope").
+
+## Result
+- The SQL project embeds its scripts: `EmbeddedResource` with `LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)"` and `WithCulture="false"`, plus the `ProjectDir` assembly metadata. The copy to `<AssemblyName>.Scripts/`, `ClearOutput` and the `None`/`TargetPath` items are gone from the demos and the docs.
+- `SetProject(assembly)` reads the embedded scripts and throws `ScriptsNotEmbeddedException` when the assembly has none; `SetScriptsFolder(path)` reads a folder (a relative path is resolved against the current directory, a missing folder throws `DirectoryNotFoundException`). `useVsProjectPath` is removed; the demo fixture builders call `SetProject(assembly)`.
+- The first implementation (`EmbeddedFileSystem` behind `IProjectPath.FileSystem`) was replaced in 0096-31-01 by `IScriptSource` (`AssemblyScriptSource`, `FolderScriptSource`). 0096-31-01 also embedded DbLive's own scripts, the first item of "Out of scope".
+- Found during the work: 0096-31-02 (`relative_path` is stored in lower case, so a database deploys the same from Windows and Linux) and 0096-31-02-01 (script paths that differ only by case throw `ScriptPathsDifferOnlyByCaseException`).
+- "Go to source": `SqlFactDiscoverer` reads `ProjectDir` from the fixture builder's assembly; without it `SourceInformation` stays empty. Opens the `.sql` file in Visual Studio (checked by the maintainer).
+- Tests: `EmbeddedScriptsParityTests` (all four demos, dll vs folder), `SqlFactDiscovererTests`, `DbLiveBuilderExtensionsTests`; `DbLive.Tests` is itself a SQL project without `ProjectDir`. All 407 tests pass after the last subtask, including the Docker integration tests and the demo tests.
+- Docs: `README.md`, `docs/gettingstarted.md`, `docs/project/index.md`, `docs/project/structure.md`, `docs/deployment/index.md`, `docs/unit-testing/index.md`, `docs/unit-testing/stored-proc-and-unit-test.md`, `docs/llms.txt`, `docs/llms-full.txt`.
+- Still out of scope, no task yet: keeping `ProjectDir` out of the production dll, and a standalone CLI deployer (it will use `SetScriptsFolder`).
+- Commits: ec1bdc1 (this task), a1cd27d (0096-31-01), a49ba91 (0096-31-02), 39741f1 (0096-31-02-01).
