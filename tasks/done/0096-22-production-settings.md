@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-10-31
+closed: 2026-11-03
 ---
 # Production settings in one place
+
+## Release note
+None. Documentation only.
 
 ## Problem
 Advice for production deployments is spread over many pages: tests (`docs/llms-full.txt` §0 rule 12, section "SQL tests" and its tip in `docs/deployment/index.md`), downgrade (`docs/deployment/migrations.md`), `ProjectId` (`docs/features/project-id.md`), `TransactionWrapLevel.Deployment` not for 24/7 (`docs/project/configuration.md`). A reader who wants "how do I configure this for production" has to collect it.
@@ -22,7 +26,7 @@ A "Production" section in `docs/deployment/index.md`, the one home for productio
 - [x] `TransactionWrapLevel`: `Migration` (default) or `None` per item for scripts that cannot run in a transaction; not `Deployment` for large or 24/7 databases.
 - [x] Timeouts: `MigrationTimeout`, `CodeItemTimeout` and per-item `Timeout`.
 - [x] Tests: a deployment never runs them (0096-17); the section links to "SQL tests" of the same page.
-- [ ] Ask the maintainer: link to this section from the pre-flight checklist in `zero-downtime.md`?
+- [x] Ask the maintainer: link to this section from the pre-flight checklist in `zero-downtime.md`? No (2026-11-03).
 
 ## Docs to update
 - `docs/deployment/index.md` (new section "Production", a link from "A deployer")
@@ -40,3 +44,12 @@ A "Production" section in `docs/deployment/index.md`, the one home for productio
 - The section is a table with the production value and the reason for each setting, and links to the page with the details; the details stay on their pages.
 - 0096-26 changes the downgrade row: its "Docs to update" lists the section.
 - `docs/deployment/zero-downtime.md` not changed (the maintainer's page).
+- 2026-11-03, maintainer: no link from the pre-flight checklist in `zero-downtime.md` to the section. The checklist is about backward compatibility of a release, not about the settings of the deployer, and the page already links to `index.md` twice ("What a deployment does", "SQL tests").
+
+## Result
+- `docs/deployment/index.md`: new section "Production", a table of the settings of a production deployment with the value to use, the reason and a link to the page with the details: `ProjectId`, `CreateDbIfNotExists`, `AllowDatabaseDowngrade`, `RepairMigrationChecksums`, `MigrationChecksumMode`, `TransactionWrapLevel`, `MigrationTimeout` / `CodeItemTimeout` / per-item `Timeout`, SQL tests. "A deployer" links to it. The details stay on their pages.
+- `docs/llms-full.txt`: §18.10 lists the same settings; rules 17 (`ProjectId`) and 18 (no `CreateDbIfNotExists` or `AllowDatabaseDowngrade` in a production deployer) point to it.
+- `README.md`: "Typical CI/CD pipeline" links to the section.
+- The two unsafe defaults the problem names (a missing database created, no warning without `ProjectId`) were changed in 0096-34, in the same commit as the section.
+- `docs/deployment/zero-downtime.md` not changed (maintainer's decision, see Notes).
+- `mkdocs build --strict` passes.
