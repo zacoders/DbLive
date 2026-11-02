@@ -54,24 +54,29 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
+    # One Release build: the tests run on the same assemblies that go into the packages.
+    # InformationalVersion is set explicitly because the GitVersion action also exports its outputs
+    # as environment variables, and MSBuild would take `informationalVersion` from there.
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true -p:Version=${{ steps.gitversion.outputs.FullSemVer }}
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} -p:InformationalVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Test
-      run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-restore --no-build --verbosity normal
+      run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-build --configuration Release --verbosity normal
 
+    # Version is needed again: it sets the package version and the DbLive dependency version.
     - name: Create DbLive package
-      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Create DbLive.xunit package
-      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Create DbLive.MSSQL package
-      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Create DbLive.PostgreSQL package
-      run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
+    # Pushes the .snupkg next to each .nupkg too.
     - name: Publish packages
       if: github.ref == 'refs/heads/main'
       run: |
