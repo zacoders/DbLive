@@ -20,3 +20,5 @@ Scripts may use `GO` batch separators, except SQL test files. DbLive's own SQL s
 
 - Documentation: https://zacoders.github.io/DbLive/
 - Complete reference for AI coding agents: https://zacoders.github.io/DbLive/llms-full.txt
+- Release notes with the upgrade steps: https://github.com/zacoders/DbLive/releases (versioning policy: https://zacoders.github.io/DbLive/versioning/)
+- License: MIT, https://github.com/zacoders/DbLive/blob/main/LICENSE

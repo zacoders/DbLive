@@ -23,3 +23,5 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture) : IClas
 
 - Unit testing guide: https://zacoders.github.io/DbLive/unit-testing/
 - Complete reference for AI coding agents: https://zacoders.github.io/DbLive/llms-full.txt
+- Release notes with the upgrade steps: https://github.com/zacoders/DbLive/releases (versioning policy: https://zacoders.github.io/DbLive/versioning/)
+- License: MIT, https://github.com/zacoders/DbLive/blob/main/LICENSE

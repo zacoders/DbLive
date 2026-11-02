@@ -35,7 +35,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 - **Code**: stored procedures, functions, views, triggers, schemas. One file per object, re-executed when the file changes. Never dropped automatically.
 - **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run as individual xUnit tests in Visual Studio / `dotnet test`: a fixture deploys the project into a new database (Docker via Testcontainers, or a local server) and drops it afterwards, so no shared test database is needed (Section 13). A deployment never runs them. Without xUnit v2 (NUnit, MSTest, xUnit v3) or against a database that is already deployed, `RunAllTestsAsync` runs them all with one call (Section 8.2).
 - **Breaking phase**: destructive changes run in a separate deployment, after the old application version is gone (zero-downtime expand/contract).
-- **Downgrade**: deploying an older build with fewer migrations reverts the extra versions using undo scripts stored in the database.
+- **Downgrade** (opt-in): deploying an older build with fewer migrations fails with `DowngradeNotAllowedException` and changes nothing, unless `AllowDatabaseDowngrade = true`; then DbLive reverts the extra versions using the undo scripts stored in the database (Section 5.5).
 - **ProjectId**: binds a project to a database to prevent deploying to the wrong one.
 - **No CLI.** You write a small console app (the "deployer") or call DbLive from tests. `src/DbLive.Console` in the repository is an empty stub.
 

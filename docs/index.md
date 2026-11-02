@@ -25,8 +25,8 @@ await deployer.DeployAsync(DeployParameters.Default);
 | **Code** | Deploys procedures, functions, views and triggers from one file per object, and re-runs a file only when it changes. |
 | **SQL tests** | Runs `.sql` tests in transactions that are always rolled back, as ordinary xUnit tests in Visual Studio and CI, against a temporary database built from your scripts (in Docker or on a local server). |
 | **Zero downtime** | Destructive changes run in a separate **breaking** deployment, after the old application version is gone. |
-| **Rollback** | Deploying an older build reverts newer versions using the undo scripts stored in the database. |
-| **Safety** | Checksums of applied migrations, and an optional `ProjectId` that blocks deployment to the wrong database. |
+| **Rollback** | Opt-in: deploying an older build with `AllowDatabaseDowngrade = true` reverts newer versions using the undo scripts stored in the database. Without it, an older build fails with `DowngradeNotAllowedException` and changes nothing. |
+| **Safety** | A deployment stops before any of your scripts runs when an older build is deployed by mistake, an applied migration was edited (checksums, `Strict` by default) or the database belongs to another project (`ProjectId`). Breaking changes run only in a separate breaking deployment, and a deployment never runs SQL tests. |
 
 ## Where to start
 
@@ -56,3 +56,5 @@ await deployer.DeployAsync(DeployParameters.Default);
 | `DbLive.xunit` | SQL tests as xUnit tests, deployment tests |
 
 Target frameworks: .NET 8, 9 and 10. Source code and issues: [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive).
+
+Every merge to `main` is published to NuGet. Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](versioning.md). License: [MIT](https://github.com/zacoders/DbLive/blob/main/LICENSE).

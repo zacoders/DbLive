@@ -1,6 +1,10 @@
 # DbLive
 
-**Database lifecycle management for .NET** — versioned migrations, code deployment, SQL unit tests, and safe rollback in one workflow.
+[![NuGet](https://img.shields.io/nuget/v/DbLive.svg)](https://www.nuget.org/packages/DbLive)
+[![CI](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**Database Lifecycle Management for .NET** — versioned migrations, code deployment, SQL unit tests, and safe rollback in one workflow.
 
 DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
 
@@ -12,6 +16,22 @@ DbLive is built around one idea: the database is a **separate service** with its
 
 ---
 
+## Safe by default
+
+A deployment stops before any of your scripts runs when:
+
+- **an older build is deployed by mistake**: the database has migrations the build lacks → `DowngradeNotAllowedException`, nothing changes. A rollback is deliberate: with `AllowDatabaseDowngrade = true` DbLive reverts those versions with the undo scripts stored in the database.
+- **an applied migration was edited** → `MigrationChecksumMismatchException` (`MigrationChecksumMode` is `Strict` by default).
+- **the database belongs to another project** → `ProjectIdMismatchException`, once the project sets `ProjectId` in `settings.json`.
+
+Destructive changes run only in a separate breaking deployment (`DeployBreaking = true`). A deployment never runs SQL tests: they run in `dotnet test` against a disposable database.
+
+## Status
+
+Actively developed. Every merge to `main` is published to NuGet (the current version is on the badge above). Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](docs/versioning.md). Targets .NET 8, 9 and 10; supports SQL Server, Azure SQL and PostgreSQL. License: [MIT](LICENSE).
+
+---
+
 ## Features
 
 | Area | Description |
@@ -20,7 +40,7 @@ DbLive is built around one idea: the database is a **separate service** with its
 | **Code** | Deploy stored procedures, views, functions, and other code objects separately from migrations. |
 | **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI, against a temporary database built from your scripts (Docker or a local server). |
 | **Breaking changes** | Deploy breaking changes in a dedicated phase (e.g. after app rollout). |
-| **Rollback** | Downgrade to a target version using undo scripts; rollback is part of the system, not a manual fix. |
+| **Rollback** | Opt-in: deploy the previous build with `AllowDatabaseDowngrade = true`, and DbLive reverts the newer versions using the undo scripts stored in the database. Without it, an older build fails and changes nothing. |
 | **CI/CD** | Works with GitHub Actions, Azure DevOps, TeamCity, Jenkins, or any build system that runs `dotnet`. |
 
 ---
@@ -249,12 +269,13 @@ See [Database as a Service](docs/database-as-service.md) for why breaking change
 
 A single `DeployAsync` run typically does (in order):
 
-1. **Downgrade** (if requested) — apply undo scripts down to the target version
-2. **BeforeDeploy** — run once-before scripts
-3. **Migrations** — apply pending migrations in version order
-4. **Code** — deploy or update code objects (procedures, views, etc.)
-5. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
-6. **AfterDeploy** — run once-after scripts
+1. **Checks** — `ProjectId`, settings, checksums of applied migrations
+2. **Downgrade** — if the database has versions this build lacks: fails unless `AllowDatabaseDowngrade = true`, which runs their stored undo scripts, newest first
+3. **BeforeDeploy** — run once-before scripts
+4. **Migrations** — apply pending migrations in version order
+5. **Code** — deploy or update code objects (procedures, views, etc.)
+6. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
+7. **AfterDeploy** — run once-after scripts
 
 You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
 
@@ -293,7 +314,7 @@ DbLive design follows [zero-downtime, backward-compatible delivery](docs/databas
 - **SQL is testable** — procedures, views, and migrations can have automated tests.
 - **Deployments are predictable** — same order, same scripts, same outcome in dev and prod.
 - **Deployments are reversible** — rollback is built-in via undo scripts, not a manual emergency fix.
-- **Rollback is part of the system** — downgrade to a target version is a normal operation, not an exception.
+- **Rollback is part of the system** — deploying the previous build with `AllowDatabaseDowngrade = true` is a normal operation, not an exception; without that flag an older build is refused.
 
 ---
 
@@ -313,7 +334,7 @@ Use them as templates for structure, `settings.json`, and test setup.
 
 ## License and links
 
-- **License:** [MIT](https://opensource.org/licenses/MIT)
+- **License:** [MIT](LICENSE)
 - **Repository:** [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive)
 - **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit
 - **Releases:** [release notes](https://github.com/zacoders/DbLive/releases) with the upgrade steps for breaking changes; [versioning policy](docs/versioning.md)
