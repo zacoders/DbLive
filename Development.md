@@ -31,7 +31,7 @@ dotnet run .github/scripts/release-notes.cs -- --check --title "<PR title>"
 - **On `main`**, CI builds the notes right after GitVersion, so a task without a note stops the release before anything is published, and creates the GitHub Release after pushing the tag.
 
 ### Protected `main`
-`main` takes changes only through a pull request, with the checks "Build > Test > Publish" and "Release notes" passed and merged with a merge commit; no force push, no deletion, no bypass. Required approvals are 0, because the only maintainer cannot approve their own PR. The tag pushed by CI is not a branch, so the ruleset does not block it.
+`main` takes changes only through a pull request, with the checks "Build > Test > Publish" and "Release notes" passed and merged with a merge commit; no force push, no deletion, no bypass. Required approvals are 0, because the only maintainer cannot approve their own PR; for the same reason the extra approval for unattributed changes is off (GitHub turns it on when the ruleset does not set it). The tag pushed by CI is not a branch, so the ruleset does not block it.
 
 The ruleset is kept in `.github/rulesets/main.json`. To apply it, or a changed version of it: Settings → Rules → Rulesets → New ruleset → Import a ruleset (delete the old one first), or
 

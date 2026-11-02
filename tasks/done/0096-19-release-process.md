@@ -2,8 +2,12 @@
 type: chore
 priority: high
 created: 2026-10-31
+closed: 2026-11-02
 ---
 # Release notes, version numbers and a protected `main`
+
+## Release note
+**Release notes and a versioning policy.** Every release now has notes in [GitHub Releases](https://github.com/zacoders/DbLive/releases): breaking changes with the upgrade steps first, then features, fixes and other changes. The [versioning policy](https://zacoders.github.io/DbLive/versioning/) says what the public API is: breaking changes in it come only in a major version. Public types the documentation does not describe (deployers, provider data access, DI classes) may change in any version. The four packages are released together with one version; use the same version of all of them.
 
 ## Problem
 Every change that reaches `main` publishes all four packages and tags a version (`cicd.yml`, GitVersion `Mainline`). On 2026-06-28 six versions were released: four PR merges (#89 → 1.2.1, #90 → 1.3.0, #92 → 1.4.0, #94 → 1.5.0) and fixes pushed to `main` directly (1.3.1, 1.3.3). Most were small fixes, but there are no release notes, so an outside reader cannot see that: an outside review (2026-10-31) read the history as "several releases a day, the API may still change". The repository has no GitHub Releases, and `main` has no protection and no rulesets (verified 2026-11-02).
@@ -23,6 +27,7 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
 - A release without a closed task (a small fix) gets the PR title as its note.
 - `version-simple.yml` and the `dev` config go. Preview packages, if ever needed, are a task of their own.
 - Public types not described in the docs (deployers, provider data access, DI classes) are outside the versioning policy and may change in any version (`docs/versioning.md`).
+- Close the task in the branch of #96, before PR #98 is merged, so its note goes into 2.0.0. Closing it after the merge would take a PR of its own, and that PR would release 2.0.1 with this note only. "Every release gets a GitHub Release" and "Next release 2.0.0" are checked after the merge; a failure gets a task of its own.
 
 ## Where
 - `.github/workflows/cicd.yml` (steps "Publish packages", "Create git tag", "Push git tag")
@@ -36,6 +41,7 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
 ### `main`
 - [x] Protect `main` with a GitHub ruleset: changes only through a PR, small fixes too; required status checks: `Build > Test > Publish` and the release notes check (below); required approvals 0, because the only maintainer cannot approve their own PR; no bypass. The tag pushed by CI is not a branch, so the ruleset does not block it. Written as `.github/rulesets/main.json`, with merge commits only, no force push and no deletion.
 - [x] The maintainer applies the ruleset on GitHub (Development.md, "Protected `main`"), before #96 is merged. Applied 2026-11-02 (see Notes).
+- [x] The maintainer applies the changed ruleset (`require_extra_approval_for_unattributed_changes: false`, see Notes) before #96 is merged: `gh api -X PUT repos/zacoders/DbLive/rulesets/26353008 --input .github/rulesets/main.json`. Applied 2026-11-02.
 - [x] The PR title decides the version: `BREAKING CHANGE:` for major, `feat:` for minor, anything else patch. Commit messages in the branch count too, so they do not use these words. Add this to the PR template (0096 D6) and `Development.md`.
 
 ### Release notes
@@ -80,7 +86,7 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
 
 ## Done when
 - [x] `main` protected
-- [ ] The agent instructions require `## Release note`, and the PR check fails a closed task without it
+- [x] The agent instructions require `## Release note`, and the PR check fails a closed task without it
 - [ ] Every release gets a GitHub Release with notes, starting with 2.0.0
 - [x] Versioning policy published
 
@@ -97,5 +103,15 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
 - The PR template points to `Development.md` instead of spelling out the prefixes: a repository setting can put the PR description into the merge commit, and the words would raise the version.
 - The "Release notes" job has no `if` that skips it on a description edit: a skipped job counts as passed for a required check, so it would turn a failed check green.
 - Not verified yet: the two workflows on GitHub. They run for the first time on the PR of #96 and on its merge.
+- 2026-11-02, PR #98 (head 67e02bb): "Release notes" and "Build > Test > Publish" passed on GitHub; the PR title is `BREAKING CHANGE: 96 documentation and new features` (verified). The script on a copy of the branch with `## Release note` removed from 0096-03 exited with 1 and named the file; on the branch as is it exited with 0 and printed "Merging this pull request releases **2.0.0**" (verified). The release on `main` (tag, packages, GitHub Release) is not verified yet: it runs on the merge of #98.
 - [x] `docs/versioning.md` says that public types not described in the docs (deployers, provider data access, DI classes) may change in any version. Agreed? Yes (maintainer, 2026-11-02).
 - 2026-11-02: the maintainer imported the ruleset (id 26353008). Verified: `GET repos/zacoders/DbLive/rules/branches/main` returns `deletion`, `non_fast_forward`, `pull_request` (0 approvals, merge only) and the two required checks. GitHub added `require_extra_approval_for_unattributed_changes: true` to the `pull_request` rule, which is not in the file.
+- 2026-11-02, `require_extra_approval_for_unattributed_changes`: GitHub does not document it. Reports from other repositories (September to November 2026, e.g. just-tavrn/.github#23, rjmurillo/ai-agents#6144) say that it is on when a ruleset leaves it out, and that it asks for one more reviewer for commits with a `Co-Authored-By` trailer: PRs stayed `BLOCKED` with 0 required approvals and green checks. Here the only maintainer cannot approve their own PR and the ruleset has no bypass, so such a PR could not be merged at all. Of the 51 commits of #98, 9 have `Co-Authored-By: Claude` (verified). PR #98 is not blocked now: the public API (no token) returns `mergeable_state: clean` with both checks green and 0 reviews (verified), but that state may depend on the viewer. Decision of the maintainer, 2026-11-02: turn it off. `main.json` sets it to `false`. The maintainer applied the file the same day; `GET repos/zacoders/DbLive/rules/branches/main` returns `false` and otherwise the same rules, so the file and GitHub match (verified).
+
+## Result
+- Releases: `.github/scripts/release-notes.cs` builds the notes from the `## Release note` sections of the tasks closed since the previous tag (Breaking changes, Features, Fixes, Other; the PR title when no task is closed; a compare link). `cicd.yml` builds them right after GitVersion, so a task without a note stops the run before anything is published, and runs `gh release create --verify-tag` after pushing the tag. The "Release notes" workflow checks every PR: notes in the job summary, a closed task without the section fails, and so does a bump of the PR title and the commits that differs from the one the tasks need.
+- `main`: ruleset `.github/rulesets/main.json` (PR only, merge commits only, the two checks required, 0 approvals, no extra approval for unattributed changes, no bypass, no force push, no deletion), applied on GitHub as ruleset 26353008.
+- Task format: `## Release note` (or `None.`) required in a closed task, `breaking: true`; the 25 tasks closed in #96 brought to it, 12 of them breaking. `AGENTS.md` and `CLAUDE.md` tell the agent to write the note when it closes a task; `.github/pull_request_template.md`.
+- Versioning policy `docs/versioning.md`; links in `README.md`, `docs/llms.txt`, `docs/llms-full.txt` §2, `mkdocs.yml`. The release process in `Development.md` ("Releases", "Protected `main`"). `version-simple.yml` and the `dev` section of `GitVersion.yml` removed.
+- Tests: GitVersion.Tool 5.12.0 and the script on a local clone (2.0.0 under `BREAKING CHANGE:`, 1.5.1 under a plain title, a `feat:` commit in the branch caught); the PR check on a copy of the branch without one note failed; both checks passed on PR #98 on GitHub. Not tested yet: the release on `main` (merge of #98).
+- Commits: 67e02bb and the commit that closes this task.
