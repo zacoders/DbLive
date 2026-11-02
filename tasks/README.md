@@ -22,8 +22,9 @@ The branch for a task is its file name without `.md`: `0096-04-rows-check-incomp
 | `priority` | `high`, `medium`, `low` | yes |
 | `created` | `YYYY-MM-DD` | yes |
 | `closed` | `YYYY-MM-DD`, set when the file moves to `done/` | in `done/` |
+| `breaking` | `true` when an upgrade needs a change on the user's side: a renamed file or setting, a changed call, a test that passed and now fails | when it applies |
 
-Template (a feature or story may use `Goal` / `Plan` instead of `Problem` / `Where` / `Fix`; leave out sections that would be empty):
+Template (a feature or story may use `Goal` / `Plan` instead of `Problem` / `Where` / `Fix`; leave out sections that would be empty, except `## Release note` in a closed task):
 
 ```markdown
 ---
@@ -32,6 +33,9 @@ priority: medium
 created: 2026-10-26
 ---
 # Short title of the problem or goal
+
+## Release note
+Written when closing, for users of the packages: what changed, and what they must do to upgrade. `None.` when they see no change.
 
 ## Problem
 What is wrong or missing, and why it matters. Mark facts confirmed by an experiment as verified.
@@ -57,11 +61,13 @@ Decisions, dead ends and findings, added while working.
 Filled when closing: what changed, decisions taken, commits.
 ```
 
+GitHub Releases are built from the `## Release note` sections of the tasks closed since the previous release (0096-19), so the section is required in every closed task; `None.` is the way to say there is nothing to tell.
+
 ## Workflow
 
 1. **Create.** One task per file. Something found while working on another task gets its own file, numbered under that task. Steps of a single task stay a checklist inside its file.
 2. **Work.** Tick checkboxes and add notes under `## Notes` as you go.
-3. **Close.** When everything under "Done when" is ticked, fill `## Result`, set `closed:`, and `git mv` the file to `done/` in the same commit as the final change.
+3. **Close.** When everything under "Done when" is ticked, write `## Release note` (and `breaking: true` when it applies), fill `## Result`, set `closed:`, and `git mv` the file to `done/` in the same commit as the final change.
 4. **Docs.** A change in DbLive behavior updates `docs/llms-full.txt` (the reference for AI agents) and the matching page under `docs/` in the same commit.
 
 Useful queries:
