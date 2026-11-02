@@ -3,8 +3,12 @@ type: bug
 priority: low
 created: 2026-11-01
 closed: 2026-11-01
+breaking: true
 ---
 # Two scripts whose paths differ only by case share one row in `dblive`
+
+## Release note
+Two scripts whose paths differ only by case (`Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`, possible on Linux) stop the deployment with `ScriptPathsDifferOnlyByCaseException`: paths are stored in lower case now, so both would share one row in `dblive`. Rename or remove one of them.
 
 ## Problem
 Since 0096-31-02 `relative_path` is stored in lower case. On Linux a project may have two files whose paths differ only by case (`Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`; `DbLiveProject.GetFolderFiles` sorts them with a second `StringComparer.Ordinal` key for this case). Both map to one row:

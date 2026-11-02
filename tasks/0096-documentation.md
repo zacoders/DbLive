@@ -35,7 +35,7 @@ The new pages are committed (fa118f6).
 
 ### D6. Keep the docs from going stale
 - [ ] After D1 and D2, run `mkdocs build --strict` in `.github/workflows/docs.yml`, so a broken link fails the build.
-- [ ] Add a PR template (none exists yet) with the item "behavior changed → `docs/llms-full.txt` and the page under `docs/` updated".
+- [x] Add a PR template (none exists yet) with the item "behavior changed → `docs/llms-full.txt` and the page under `docs/` updated". `.github/pull_request_template.md`, added with 0096-19.
 
 ## Found during this task
 

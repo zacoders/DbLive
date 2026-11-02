@@ -3,8 +3,22 @@ type: feature
 priority: medium
 created: 2026-11-01
 closed: 2026-11-01
+breaking: true
 ---
 # Deployment test: one case that follows the production order instead of six
+
+## Release note
+**One deployment test instead of six cases.** `[SqlDeployFact]` is a plain fact without parameters, `DeployFixture` is renamed to `DeploymentTestFixture`, and `UndoTestMode` is no longer public. The test deploys as production does: the release with the SQL tests, where every migration with an undo script also goes through its undo, then the breaking phase with the SQL tests, then the breaking phase once more. To upgrade, change the deployment test as below.
+
+```csharp
+private readonly DeploymentTestFixture _fixture = new(
+    builderProvider: new MyFixtureBuilder(),
+    dropDatabaseOnComplete: true
+);
+
+[SqlDeployFact]
+public Task ReleaseDeploysAndRollsBack() => _fixture.DeployAsync(_output);
+```
 
 ## Problem
 `[SqlDeployFact]` runs 6 cases (`deployBreaking` × `UndoTestMode`): 6 databases, 9 deployments, 6 runs of the SQL tests. The undo cases existed because an undo was checked only indirectly, by the SQL tests on the final state. Since 0096-32 the schema is compared right after the undo and after the second breaking run, so most cases repeat each other:

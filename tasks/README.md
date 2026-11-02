@@ -61,7 +61,7 @@ Decisions, dead ends and findings, added while working.
 Filled when closing: what changed, decisions taken, commits.
 ```
 
-GitHub Releases are built from the `## Release note` sections of the tasks closed since the previous release (0096-19), so the section is required in every closed task; `None.` is the way to say there is nothing to tell.
+GitHub Releases are built from the `## Release note` sections of the tasks closed since the previous release ("Releases" in [Development.md](../Development.md)), so the section is required in every closed task; `None.` is the way to say there is nothing to tell, optionally followed by why (`None. Demo project only.`). The PR check fails a closed task without the section. Preview the notes with `dotnet run .github/scripts/release-notes.cs`.
 
 ## Workflow
 

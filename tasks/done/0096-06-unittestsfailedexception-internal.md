@@ -6,6 +6,9 @@ closed: 2026-10-31
 ---
 # `UnitTestsFailedException` is internal
 
+## Release note
+`UnitTestsFailedException`, thrown when SQL tests fail, is now public, with `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files), so a caller can catch it by type. `InvalidMigrationItemTypeException` is now public too.
+
 ## Problem
 Test failures can't be caught by type, only with `catch (Exception)`. A deployer can't tell "deploy succeeded, tests failed" from "deploy failed".
 
@@ -33,7 +36,3 @@ Make the class `public`. Optionally add `FailedCount`, `TotalCount` and the list
 - `InvalidMigrationItemTypeException` is public.
 - Tests: `UnitTestsRunnerTests.RunTest_OneTestFailed_RunsAllTests_AndSavesAllResults` checks the counts, the failed path and the message. `DbLive.Tests` green (253).
 - Docs: `docs/llms-full.txt` §8.2 (properties, `catch` example), §17; `docs/unit-testing/index.md` ("Isolation and parallelism").
-
-Release note:
-
-> `UnitTestsFailedException` is now public, with `FailedCount`, `TotalCount` and `FailedTests`. Catch it to tell "deployed, tests failed" from "deployment failed". `InvalidMigrationItemTypeException` is now public too.

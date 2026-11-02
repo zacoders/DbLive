@@ -5,6 +5,9 @@ created: 2026-10-31
 ---
 # Published DLLs have version 0.0.0.0, and there are no symbols
 
+## Release note
+The DbLive assemblies now carry the package version (AssemblyVersion and FileVersion were `0.0.0.0`), and every package has a symbols package on nuget.org with Source Link. To step into DbLive code, enable the NuGet.org symbol server in the debugger.
+
 ## Problem
 Verified on all four packages 1.5.0 from the local NuGet cache, every DLL (net8.0, net9.0, net10.0):
 - AssemblyVersion `0.0.0.0`, FileVersion `0.0.0.0`.
@@ -42,6 +45,3 @@ The ProductVersion comes from the environment, not from `Version`: the GitVersio
 - Local run of the new CI steps, 2026-11-02: `GITHUB_ACTIONS=true` and an `informationalVersion=1.6.0+Branch.main.Sha.111…` environment variable (as GitVersion leaves it), `dotnet build src/DbLive.sln -c Release -p:Version=1.6.0 -p:InformationalVersion=1.6.0`, then `dotnet pack --no-build -p:Version=1.6.0` for the four packages. All 12 DLLs: AssemblyVersion and FileVersion `1.6.0.0`, ProductVersion `1.6.0+f00f8fd…` (one hash). Each package has a `.snupkg` with the PDBs of the three frameworks. The PDBs hold the Source Link map `https://raw.githubusercontent.com/zacoders/DbLive/<sha>/*`, paths `/_/...` and no local paths, and the compiler options (`compiler-version`, `language-version`, `optimization=release`). The provider and xunit packages depend on `DbLive 1.6.0`. Tests on that Release build, as the new "Test" step runs them (`--no-build -c Release --filter "Category!=LocalOnly"`, SQL Server and PostgreSQL in Docker): 486 passed, 0 failed, the same count as on the Debug build in 0096-17.
 - NuGet Package Explorer itself was not run: its command-line validator (`dotnet-validate`) was not allowed in the agent session. Check with NuGet Package Explorer on the next package, or on nuget.org after the release.
 - Alternative not taken: `DebugType=embedded` (PDB inside the DLL). Debugging works without enabling the nuget.org symbol server, but the DLLs grow. The `.snupkg` is the standard way for nuget.org.
-
-## Release note
-The DbLive assemblies now carry the package version (AssemblyVersion and FileVersion were `0.0.0.0`), and every package has a symbols package on nuget.org with Source Link. To step into DbLive code, enable the NuGet.org symbol server in the debugger.

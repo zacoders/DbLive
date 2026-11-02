@@ -51,6 +51,12 @@ jobs:
         echo "GitVersion SemVer:     ${{ steps.gitversion.outputs.SemVer }}"
         echo "GitVersion NuGetV2:    ${{ steps.gitversion.outputs.NuGetVersionV2 }}"
 
+    # Notes from the "## Release note" sections of the tasks closed since the previous tag. A task without
+    # the section fails the release here, before anything is published.
+    - name: Build release notes
+      if: github.ref == 'refs/heads/main'
+      run: dotnet run .github/scripts/release-notes.cs -- --version ${{ steps.gitversion.outputs.SemVer }} --output "$RUNNER_TEMP/release-notes.md"
+
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
@@ -98,3 +104,9 @@ jobs:
     - name: Push git tag
       if: github.ref == 'refs/heads/main'
       run: git push origin ${{ steps.gitversion.outputs.SemVer }}
+
+    - name: Create GitHub release
+      if: github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release create ${{ steps.gitversion.outputs.SemVer }} --verify-tag --title ${{ steps.gitversion.outputs.SemVer }} --notes-file "$RUNNER_TEMP/release-notes.md"

@@ -7,6 +7,9 @@ breaking: true
 ---
 # Fail the deployment on files outside the project folders
 
+## Release note
+**Files outside the project folders stop the deployment.** Every file of the scripts folder must be inside `Migrations`, `Code`, `Tests`, `BeforeDeploy` or `AfterDeploy` (or the folders named in `settings.json`), except `settings.json` in the root; hidden files such as `.DS_Store` are skipped. Before, such files were ignored without a word, so a `PostDeployment` folder never ran and a misspelled `setting.json` left every setting at its default. Now the deployment fails with `FilesOutsideProjectFoldersException` before anything is deployed. Move other scripts and documents out of the scripts folder, or rename the folder to a project folder.
+
 ## Problem
 A file outside the folders DbLive reads (`Migrations`, `Code`, `Tests`, `BeforeDeploy`, `AfterDeploy`, or the names set in `settings.json`) is ignored without a word. The AdventureWorks demo kept its post-deployment scripts in `PostDeployment` and they never ran (0096-16). A root file is no better: a `setting.json` typo leaves every setting at its default, and nobody notices.
 
@@ -50,6 +53,3 @@ The maintainer chose an error, not a warning: the scripts folder belongs to DbLi
 - `FilesOutsideProjectFoldersTests`: every read fails; root files and look-alike folders (`CodeX`, `Old/Code`) fail; `settings.json` in any case, hidden files and folders, and project folders in another case pass; the message names the first 5 files; nested folder settings.
 - `dotnet test DbLive.sln`: 477 passed, 0 failed (unit tests, SQL Server and PostgreSQL integration tests, all demos).
 - Docs: `docs/llms-full.txt` rule 16, §4, §7, §17; `docs/project/structure.md`; `docs/llms.txt`.
-
-## Release note
-Files outside the project folders stop the deployment. Every file of the scripts folder must be inside `Migrations`, `Code`, `Tests`, `BeforeDeploy` or `AfterDeploy` (or the folders named in `settings.json`), except `settings.json` in the root; hidden files such as `.DS_Store` are skipped. Before, such files were ignored without a word, so a `PostDeployment` folder never ran and a misspelled `setting.json` left every setting at its default. Now the deployment fails with `FilesOutsideProjectFoldersException` before anything is deployed. Move other scripts and documents out of the scripts folder, or rename the folder to a project folder.

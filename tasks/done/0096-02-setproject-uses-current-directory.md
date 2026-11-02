@@ -6,6 +6,9 @@ closed: 2026-10-26
 ---
 # `SetProject` looks for scripts relative to the current directory
 
+## Release note
+None. Replaced in the same release by 0096-31: the scripts are embedded in the assembly, so `SetProject` looks up no folder.
+
 ## Problem
 The `<AssemblyName>.Scripts` path was resolved against `Environment.CurrentDirectory`, not the application folder. Started with `dotnet run`, as a Windows service or from a scheduler, the app did not find the scripts, so Getting Started did not work with `dotnet run`. In addition, `ProjectDir` metadata was required even with `useVsProjectPath: false`.
 

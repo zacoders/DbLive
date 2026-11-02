@@ -6,6 +6,9 @@ closed: 2026-11-01
 ---
 # Demo `ClearOutput` deletes the wrong folder
 
+## Release note
+None. Replaced by 0096-31: the scripts are embedded in the assembly, so there is no output folder to clean.
+
 ## Problem
 The demos delete `$(TargetDir)$(AssemblyName)`, but scripts are copied to `$(AssemblyName).Scripts`. Deleted and renamed scripts stay in `bin/` and keep being deployed. People and agents copy the demos as a template.
 

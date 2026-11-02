@@ -6,6 +6,9 @@ closed: 2026-10-26
 ---
 # Deploy fails without a `Migrations` folder
 
+## Release note
+A project without a `Migrations` folder deploys. Before, the deployment failed with `DirectoryNotFoundException`, so a project with only code could not be deployed.
+
 ## Problem
 Without a `Migrations` folder the deploy failed with `DirectoryNotFoundException`. `Code`, `Tests`, `BeforeDeploy` and `AfterDeploy` are checked with `PathExists`, `Migrations` was not. An empty folder is not copied to the output, so a code-only project could not be deployed. Verified by an experiment.
 

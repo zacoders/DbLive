@@ -3,8 +3,12 @@ type: feature
 priority: high
 created: 2026-10-31
 closed: 2026-10-31
+breaking: true
 ---
 # Transaction settings per migration item: migration, breaking, undo
+
+## Release note
+**Per-script settings files and transactions.** `<version>.settings.json` is replaced by one file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`; rename existing files and the key `MigrationTimeout` to `Timeout` (an old name fails with a hint). `Timeout` now also sets the command timeout. Breaking scripts and undo scripts no longer share one transaction: each runs in its own transaction by its own settings file, so a downgrade or a breaking deployment can stop between versions. `DowngradeTimeout` is removed from `settings.json`. Use `"TransactionWrapLevel": "Deployment"` for all-or-nothing. Existing `settings` rows in `dblive.migration` are renamed to `migration.settings` automatically.
 
 ## Problem
 Breaking and undo scripts don't follow the transaction rules of migrations, and one settings file per version can't describe items that need different settings.
@@ -102,7 +106,3 @@ Each migration, breaking and undo script is one unit: its own transaction, by it
 - Demos: `004.migration.settings.json`, `20260208142812.migration.settings.json` with `Timeout`.
 - Tests: unit tests for parser, mapper, project checks, item/version/breaking/downgrade deployers, saver (253 in `DbLive.Tests`). Integration tests `ItemTransactionSettingsTests` for MSSQL (`alter database`) and PostgreSQL (`create/drop index concurrently`, `vacuum`): undo test mode, breaking, downgrade by stored undo settings, a script without settings runs in a transaction, self-deploy rename of old rows. All test projects green, including the demo deployment tests.
 - Docs: `docs/llms-full.txt` §0 (rule 13), §4, §5.1-5.6, §9.2, §9.3, §10, §15, §16, §17, §18.7, §18.8, §19; `docs/llms.txt`; `docs/project/configuration.md` ("Item settings", timeouts, transactions); `docs/project/structure.md`; `docs/project/index.md`; `docs/deployment/migrations.md`; `docs/deployment/breaking-changes.md`; `docs/features/index.md`; `docs/examples/index.md`; `docs/philosophy.md` (the `004.settings.json` sentence only).
-
-Release note:
-
-> **Breaking: per-script settings files and transactions.** `<version>.settings.json` is replaced by one file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`; rename existing files and the key `MigrationTimeout` to `Timeout` (an old name fails with a hint). `Timeout` now also sets the command timeout. Breaking scripts and undo scripts no longer share one transaction: each runs in its own transaction by its own settings file, so a downgrade or a breaking deployment can stop between versions. `DowngradeTimeout` is removed from `settings.json`. Use `"TransactionWrapLevel": "Deployment"` for all-or-nothing. Existing `settings` rows in `dblive.migration` are renamed to `migration.settings` automatically.

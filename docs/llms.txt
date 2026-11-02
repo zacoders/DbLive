@@ -36,4 +36,6 @@ Key facts an agent must not get wrong:
 ## Optional
 
 - [Source code](https://github.com/zacoders/DbLive/tree/main/src): the source of truth when docs and behavior disagree
+- [Release notes](https://github.com/zacoders/DbLive/releases): what changed in each version; read "Breaking changes" before upgrading to a new major version
+- [Versioning policy](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/versioning.md): SemVer, breaking changes only in a major version, what counts as public API
 - [ProjectId](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/features/project-id.md): bind a project to a database

@@ -6,6 +6,9 @@ closed: 2026-11-01
 ---
 # DemoMSSQL 004 runs without a transaction but is not re-runnable
 
+## Release note
+None. Demo project only.
+
 ## Problem
 `src/Demo/DemoMSSQL/Scripts/Migrations/004.migration.sql` runs with `"TransactionWrapLevel": "none"` (`004.migration.settings.json`) and creates two indexes with plain `create index`. The docs (0096-13) say a script without a transaction must be re-runnable, because a failed script runs again from the start on the next deployment. If the second index fails, the rerun fails on the first one ("already exists"). The demo is the example users copy.
 

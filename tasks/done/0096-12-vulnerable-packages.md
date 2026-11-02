@@ -6,6 +6,9 @@ closed: 2026-10-26
 ---
 # Restore fails on vulnerable NuGet packages
 
+## Release note
+`DbLive.MSSQL` references `System.Security.Cryptography.Pkcs` 10.0.14 directly. `Microsoft.Data.SqlClient` still brings in a version with known vulnerabilities (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx), which NuGet audit reports as `NU1902` / `NU1903`.
+
 ## Problem
 After the advisories of October 2026, restore fails with `NU1902` / `NU1903` (warnings are errors in `Directory.Build.props`):
 - `System.Security.Cryptography.Pkcs` 8.0.1 (net8.0) and 9.0.11 (net9.0, net10.0): GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx. Transitive dependency of `Microsoft.Data.SqlClient`, in `DbLive.MSSQL` and `DbLive.Tests.Common`. Patched: 8.0.2, 9.0.21, 10.0.13.

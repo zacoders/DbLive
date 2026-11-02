@@ -6,6 +6,9 @@ closed: 2026-10-26
 ---
 # Transactions abort after 10 minutes
 
+## Release note
+Transactions longer than 10 minutes no longer abort. .NET caps every `TransactionScope` at `TransactionManager.MaximumTimeout` (10 minutes by default), so `MigrationTimeout` and `DeploymentTimeout` had no effect above it, and a longer transactional migration failed with `TransactionAbortedException`. DbLive now raises the cap to the timeout it uses. Side effect: other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used, not at 10 minutes.
+
 ## Problem
 .NET caps every `TransactionScope` timeout at `TransactionManager.MaximumTimeout`, which is 10 minutes by default. So `MigrationTimeout` (12 h), `DowngradeTimeout` (12 h) and `DeploymentTimeout` (1 day) had no effect: a transactional migration longer than 10 minutes failed with `TransactionAbortedException`. Verified by an experiment.
 

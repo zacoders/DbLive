@@ -62,6 +62,7 @@ SQL tests, undo scripts and rollback, checksums and ProjectId are available in e
 | `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()` |
 | `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` |
 
+- Versions: the four packages are released together with one version; use the same version of all of them. Semantic Versioning, breaking changes only in a major version (`docs/versioning.md`). Before upgrading to a new major version, read "Breaking changes" in the release notes (https://github.com/zacoders/DbLive/releases) and apply the upgrade steps there.
 - Target frameworks: `net8.0`, `net9.0`, `net10.0`.
 - Logging: Serilog (`Serilog.ILogger`). Default is no logging.
 - DI: Microsoft.Extensions.DependencyInjection (internal container, all services are singletons).

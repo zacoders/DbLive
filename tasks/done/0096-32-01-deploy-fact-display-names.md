@@ -6,6 +6,9 @@ closed: 2026-11-01
 ---
 # `[SqlDeployFact]` cases are all named `(breaking=False, undo=None)`
 
+## Release note
+None. Resolved by 0096-32-02: the deployment test has one case.
+
 ## Problem
 `dotnet test` lists the six cases of a `[SqlDeployFact]` test with one display name, `DeploymentTests.Deploy (breaking=False, undo=None)`, although they run with different arguments (verified on `DemoMSSQL.Tests` 2026-11-01: with a broken undo script four cases failed with `SchemaChangedException` and two passed, all six under that name). A failed case cannot be told from the others in the test output or in Test Explorer.
 

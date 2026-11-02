@@ -3,8 +3,26 @@ type: feature
 priority: medium
 created: 2026-11-01
 closed: 2026-11-01
+breaking: true
 ---
 # Embed the scripts in the SQL project assembly
+
+## Release note
+**Scripts are embedded in the SQL project assembly.** `SetProject(assembly)` reads the scripts from the resources of the assembly instead of a copy in the output folder: a deleted or renamed script no longer stays in `bin/` to be deployed, and the working directory no longer matters. `SetScriptsFolder(path)` reads a folder instead, for example in a deployer that gets the scripts as an argument. To upgrade, replace the part of the SQL project's `.csproj` that copies `Scripts` to the output (the `None` items with `TargetPath` and the `ClearOutput` target) with the block below.
+
+```xml
+<ItemGroup>
+  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
+
+  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
+  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+    <_Parameter1>ProjectDir</_Parameter1>
+    <_Parameter2>$(ProjectDir)</_Parameter2>
+  </AssemblyAttribute>
+</ItemGroup>
+```
+
+`SetProject` fails with `ScriptsNotEmbeddedException` when the assembly has no embedded scripts. The `useVsProjectPath` argument of `SetProject` is removed: a test project reads the scripts from the dll of the SQL project it references. Existing databases deploy as before: relative paths and checksums do not change.
 
 ## Goal
 Today the `.csproj` copies `Scripts/` to `<output>/<AssemblyName>.Scripts/`, and DbLive reads the scripts from there. The copy causes problems and gives nothing back: people review scripts in the repository, not in `bin/`, and what was applied is stored in the database (`Content` of migration items).

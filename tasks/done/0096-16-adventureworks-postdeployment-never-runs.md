@@ -6,6 +6,9 @@ closed: 2026-11-01
 ---
 # AdventureWorks `PostDeployment` scripts never run
 
+## Release note
+None. Demo project only; the error for such a folder is 0096-33.
+
 ## Problem
 `src/Demo/AdventureWorks/AdventureWorks.Database/Scripts/PostDeployment` holds `query-store.sql` (enables Query Store) and `documentaion.sql` (extended properties). DbLive only knows the folders `BeforeDeploy` and `AfterDeploy` (settings `BeforeDeployFolder`, `AfterDeployFolder`), and the demo's `settings.json` does not rename them. The folder is copied to the output and silently ignored: an unknown folder in `Scripts` is not an error.
 

@@ -6,6 +6,9 @@ closed: 2026-10-31
 ---
 # Checksums depend on line endings and path separators
 
+## Release note
+**Checksums no longer depend on line endings.** A Windows checkout (CRLF) and a Linux checkout (LF) of the same migration have the same checksum, so one database can be deployed from both without `MigrationChecksumMismatchException`, and `.gitattributes` is no longer required. Checksums stored by earlier versions keep matching; nothing to repair. Relative paths in the `dblive` tables now use `/` on every OS; rows written on Windows are converted on the first deployment, so switching the deploying OS no longer redeploys all code. SQL test names in Test Explorer show `/` (`Tests/GetUser.test.sql`).
+
 ## Problem
 The hash is computed over the raw file text. On Windows with `core.autocrlf=true` files have CRLF, on a Linux CI they have LF, so an applied migration fails with `MigrationChecksumMismatchException`. The repository has no `.gitattributes`. Likewise `relative_path` is stored with the OS separator, so switching OS redeploys all code once.
 
@@ -59,7 +62,3 @@ Transition: "accept both hashes" (raw and normalized) is not enough. A Linux che
   - Integration `CrossPlatformDeployTests` (MSSQL and PostgreSQL): a database deployed by older DbLive from Windows (CRLF hashes, `\` paths) deploys from LF files in `Strict` mode, the code file is found by the new path and not redeployed; duplicates from Windows and Linux keep the latest row in all three keyed tables.
   - `DbLive.Tests` 286, `DbLive.MSSQL.Tests` 22, `DbLive.PostgreSQL.Tests` 11, `Demo.PostgreSQL.Chinook.Tests` 11, `AdventureWorks.Tests` 10, `DemoMSSQL.Tests` 17 of 18 (the `LocalOnly` test, see Notes).
 - Docs: `docs/llms-full.txt` §0 (rule 1), §5.4, §15 (paragraph on `relative_path`), §17 (`MigrationChecksumMismatchException` row), §18.1 (step 5 removed), §19 (limitation removed); `docs/project/structure.md` ("Line endings"); `docs/deployment/migrations.md` ("Checksums").
-
-Release note (copy into the release):
-
-> **Fixed: checksums no longer depend on line endings.** A Windows checkout (CRLF) and a Linux checkout (LF) of the same migration have the same checksum, so one database can be deployed from both without `MigrationChecksumMismatchException`, and `.gitattributes` is no longer required. Checksums stored by earlier versions keep matching; nothing to repair. Relative paths in the `dblive` tables now use `/` on every OS; rows written on Windows are converted on the first deployment, so switching the deploying OS no longer redeploys all code. SQL test names in Test Explorer show `/` (`Tests/GetUser.test.sql`).

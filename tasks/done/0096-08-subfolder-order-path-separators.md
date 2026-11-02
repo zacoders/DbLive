@@ -6,6 +6,9 @@ closed: 2026-10-31
 ---
 # Nested paths in folder settings and `CodeSubFoldersDeploymentOrder` work only with the OS separator
 
+## Release note
+**Nested paths in settings work on any OS.** Folder settings (`MigrationsFolder`, `CodeFolder`, `TestsFolder`, `BeforeDeployFolder`, `AfterDeployFolder`) and `CodeSubFoldersDeploymentOrder` entries may use `/` or `\`: `"dbo/functions"` and `"dbo\\functions"` are the same on Windows and Linux. A `CodeSubFoldersDeploymentOrder` entry that matches no code files is logged as a warning.
+
 ## Problem
 Relative paths from the settings were combined as is (`Path.Combine` does not normalize separators), while enumerated files use the OS separator:
 - `CodeSubFoldersDeploymentOrder`: `"dbo\\functions"` didn't match on Linux (`\` is a plain file name character there) and `"dbo/functions"` didn't match on Windows. The group silently ended up empty, and its files went to the last "everything else" group. Deployment usually still succeeded thanks to retries, but the configured order was ignored. `DemoMSSQL/Scripts/settings.json` uses `"dbo\\functions"`.
@@ -43,7 +46,3 @@ Verified before the fix: a Windows check of the same logic matched `dbo\function
   - `CodeItemsTests.GetCodeItems_With_Nested_CodeSubFoldersDeploymentOrder` (`dbo\functions`, `dbo/functions`, `dbo/functions/`, `\dbo\functions\`) and `GetCodeItems_Warns_When_CodeSubFolder_Matches_No_Files`.
   - Without the fix on Windows the `/` variants of the `DbLiveProject` tests and the warning test fail (the `\` variants pass, the folder tests check the exact path).
   - All pass on Windows (`DbLive.Tests` 268) and on Linux (the new tests called directly from a console app in the `dotnet/sdk:8.0` container: VSTest 17.11 from SDK 8 does not discover tests built with Test.Sdk 18).
-
-Release note (copy into the release):
-
-> **Fixed: nested paths in settings work on any OS.** Folder settings (`MigrationsFolder`, `CodeFolder`, `TestsFolder`, `BeforeDeployFolder`, `AfterDeployFolder`) and `CodeSubFoldersDeploymentOrder` entries may use `/` or `\`: `"dbo/functions"` and `"dbo\\functions"` are the same on Windows and Linux. A `CodeSubFoldersDeploymentOrder` entry that matches no code files is logged as a warning.

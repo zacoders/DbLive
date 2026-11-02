@@ -3,8 +3,12 @@ type: bug
 priority: low
 created: 2026-10-26
 closed: 2026-10-31
+breaking: true
 ---
 # Test setup file: `init.sql` in `Code` is deployed as code, rename to `setup.test.sql`
+
+## Release note
+**The test setup file is now `setup.test.sql` (was `init.sql`).** It runs before each test in its folder, in `Tests` and in `Code`, and is never deployed as code. Rename your `init.sql` files: an `init.sql` is now a plain test in `Tests` and a code object in `Code`.
 
 ## Problem
 Code deployment excluded only files matching `TestFilePatterns`. An `init.sql` next to tests in `Code` was attached to the tests of its folder and also deployed as a code object: it ran (without rollback) whenever its content changed and left test data in the database (verified in code: `GetCodeGroupsAsync` did not exclude it, `GetFolderTestsAsync` loaded it for `Code` folders too). The docs worked around it with "keep `init.sql` in `Tests` only".
@@ -41,7 +45,3 @@ Rename the test setup file to `setup.test.sql` (no library users yet, so no comp
 - `TestItem.InitFileData` → `SetupFileData`; messages `ERROR: Setup file error. ...` (test run) and `Setup file: <path>` (Visual Studio output).
 - Tests: `CodeItemsTests.GetCodeItems_Excludes_TestSetupFile` (custom `TestFilePatterns` that do not match the setup file; fails without the fix); `SqlTestingTests.GetFolderTests_excludes_setup_file_from_test_files` now checks the exclude list.
 - Demos: `DemoMSSQL` `Tests/Common`, `Tests/Orders` and `AdventureWorks` `Tests/Functions` use `setup.test.sql`. Testcontainers runs pass (DemoMSSQL 17, AdventureWorks 10), including the `Tests/Orders` tests that depend on the setup data. `LocalDeployTests` fails on the local database with a checksum mismatch of `007.migration.sql` (changed in `dc78014` after it was applied there), unrelated to this task.
-
-Release note (copy into the release):
-
-> **Breaking: the test setup file is now `setup.test.sql` (was `init.sql`).** It runs before each test in its folder, in `Tests` and in `Code`, and is never deployed as code. Rename your `init.sql` files: an `init.sql` is now a plain test in `Tests` and a code object in `Code`.

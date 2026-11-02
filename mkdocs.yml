@@ -82,6 +82,7 @@ nav:
   - Examples:
       - examples/index.md
       - examples/table-split.md
+  - Versioning: versioning.md
   - For AI agents: ai-agents.md
 
 # Markdown extensions (extra syntax and rendering features)

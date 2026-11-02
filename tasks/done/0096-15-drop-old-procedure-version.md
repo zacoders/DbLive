@@ -7,6 +7,16 @@ breaking: true
 ---
 # Breaking scripts in the Code folder: drop an old procedure version without a migration
 
+## Release note
+**Breaking scripts in the `Code` folder.** `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its folder (short forms `<name>.b.sql`, `b.sql`), drops an old version of a code object in the breaking phase, for example `drop proc if exists dbo.GetUser_v1;`. They run on every breaking deployment, before the breaking scripts of migrations, so they must be idempotent. A code-only release no longer needs a migration to carry the drop.
+
+What can break:
+- The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build, or after a rollback, no longer drops anything.
+- Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
+- The deployment test (`[SqlDeployFact]`) runs the breaking phase a second time, and every migration breaking script twice. A breaking script that fails on its second run (for example `drop trigger` without `if exists`) fails the test.
+
+Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that comes back with a rollback is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
+
 ## Problem
 When the contract of an interface procedure changes, its file is changed in place and the object is renamed (`MyStoredProc_v1` → `MyStoredProc_v2`). The old version stays in the database for old applications and must be dropped in the breaking phase, after they are gone. Often such a release changes only code: no tables change, so there is no migration and no natural place for `drop proc dbo.MyStoredProc_v1`.
 
@@ -82,16 +92,6 @@ Rejected:
 - The unit test `GetCodeItems_SortedByRelativePath_OrdinalIgnoreCase` used `Code/b.sql` as a code file; it is a breaking script now (the release-note case), renamed to `Code/c.sql`.
 - `breaking: true` and `## Release note` follow the task format planned in 0096-19, which is not in `tasks/README.md` yet.
 - The PostgreSQL note above (an undo blocked by a `_v2` view) is documented for agents in `docs/llms-full.txt` §5.5; DbLive does nothing about it.
-
-## Release note
-Breaking scripts in the `Code` folder. `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its folder (short forms `<name>.b.sql`, `b.sql`), drops an old version of a code object in the breaking phase, for example `drop proc if exists dbo.GetUser_v1;`. They run on every breaking deployment, before the breaking scripts of migrations, so they must be idempotent. A code-only release no longer needs a migration to carry the drop.
-
-Breaking changes:
-- The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build, or after a rollback, no longer drops anything.
-- Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
-- `[SqlDeployFact]`: the cases with breaking run a second deployment with `DeployParameters.Breaking`, and `MigrationBreakingUndoMigration` runs each migration breaking script twice. A breaking script that fails on a second run (for example `drop trigger` without `if exists`) now fails these tests.
-
-Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that comes back with a rollback is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
 
 ## Result
 - Discovery (`DbLiveProject`): `breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql` in `Code/` are excluded from code groups and returned by the new `IDbLiveProject.GetCodeBreakingItemsAsync()`, sorted by relative path. Every read of the project throws `BreakingScriptMatchesTestPatternException` for a file of `Code/` that also matches `TestFilePatterns`.

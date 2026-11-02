@@ -316,3 +316,4 @@ Use them as templates for structure, `settings.json`, and test setup.
 - **License:** [MIT](https://opensource.org/licenses/MIT)
 - **Repository:** [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive)
 - **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit
+- **Releases:** [release notes](https://github.com/zacoders/DbLive/releases) with the upgrade steps for breaking changes; [versioning policy](docs/versioning.md)

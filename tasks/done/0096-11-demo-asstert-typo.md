@@ -3,8 +3,12 @@ type: bug
 priority: medium
 created: 2026-10-26
 closed: 2026-10-26
+breaking: true
 ---
 # Typo `asstert` in demo tests: two tests check nothing
+
+## Release note
+**A misspelled `assert` column fails the test.** When a test returns no `assert` result set, but a result set whose first column is unnamed or named close to `assert` (two typos at most, such as `asstert`) and whose first value is a valid assert value, the test fails with a message that names the column. Before, such a test checked nothing and passed. The `assert` column name and the assert values are now matched ignoring case and the spaces around them and around `=` (`Assert`, `Row-Count = 3`), so such checks now run too. An assert result set without rows and a bare `row-count` without a number fail with a clear message. Fix the tests that start failing: they did not check anything before.
 
 ## Problem
 The column is named `asstert`, so there is no assertion, and the tests pass only because nothing throws. Once the typo is fixed, `select-order.test.sql` will fail: `select count(*)` returns one row, while `row-count=3` is expected.

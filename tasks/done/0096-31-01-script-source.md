@@ -3,8 +3,12 @@ type: chore
 priority: medium
 created: 2026-11-01
 closed: 2026-11-01
+breaking: true
 ---
 # Read scripts through a source of relative paths; embed DbLive's own scripts
+
+## Release note
+**Scripts are read through `IScriptSource`.** `IProjectPath`, `ProjectPath`, `IFileSystem` and `FileSystem` are removed. If you registered `IProjectPath` yourself to read the scripts from a folder, call `SetScriptsFolder(path)` instead; scripts from another place come from your own `IScriptSource`. Files are found and ordered the same way on every OS: file name patterns (`*.test.sql`, `TestFilePatterns`) ignore case, and the code files of a group, the tests and the BeforeDeploy/AfterDeploy scripts run in the order of their relative paths, ignoring case (before, the order depended on the OS). DbLive's own scripts (the `dblive` schema) are embedded in `DbLive.MSSQL.dll` and `DbLive.PostgreSQL.dll`: nothing is copied to your output folder any more, and a `DbLive.MSSQL/` or `DbLive.PostgreSQL/` folder left there by an older version can be deleted.
 
 ## Goal
 0096-31 embedded the scripts in the SQL project assembly by adding `IFileSystem FileSystem` to `IProjectPath`, so that `DbLiveProject` stayed unchanged. That kept the change small, but left four problems:
