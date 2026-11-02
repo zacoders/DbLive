@@ -21,7 +21,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, a migration file was deleted, or the deployer was built from an older commit), it is treated as a downgrade → `DowngradeNotAllowedException`.
 10. **The scripts root folder in the source project is named `Scripts`**, and the `.csproj` must embed it in the assembly exactly as in Section 3.1: `EmbeddedResource` with `LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)"` and `WithCulture="false"`. Without `LogicalName`, `SetProject` finds no scripts → `ScriptsNotEmbeddedException`. Without `WithCulture="false"`, a file such as `name.fr.sql` is moved to a satellite assembly and silently not deployed. Do not copy scripts to the output folder; DbLive does not read them from there.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
-12. **Do not run SQL tests against production.** A deployment never runs them; `IDbLiveTester.RunAllTestsAsync()` does (Section 8.2), so a production deployer does not call it. Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
+12. **Do not run SQL tests against production.** A deployment never runs them; they run in `dotnet test` against a disposable database (Section 13), and a production deployer does not call `IDbLiveTester.RunAllTestsAsync()` (Section 8.2). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
 13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json` (short `<version>.m.s.json`, `.b.s.json`, `.u.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`. A script that reverts a no-transaction change (concurrent/online index, `ALTER DATABASE`) usually needs its own `<version>.undo.settings.json`.
 14. **Follow the way the project uses DbLive** (Section 1). In a classic project (no `_vN` object names in `Code/`, no breaking scripts) change procedures in place and do not introduce versioned names or breaking scripts unless asked. In a project with a versioned interface: when the **contract** of an interface object changes (new required parameter, other result columns, other meaning), rename the object in the same file to the next version (`MyProc_v1` → `MyProc_v2`) and drop the old version in a breaking script next to the file (`my-proc.breaking.sql` next to `my-proc.sql`, Section 18.6); when only the **implementation** changes, keep the name. Breaking this → running applications that still call the old name fail (missing parameter, changed result set), or a classic project collects versions that nobody drops.
 15. **Breaking scripts of the Code folder run on every breaking deployment** (`breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql` under `Code/`; Section 6.1). They must be idempotent: `drop proc if exists`, `drop function if exists`; a second run must not drop more than the first one. Breaking this → the second breaking deployment fails or changes the schema (`[SqlDeployFact]` catches both; a schema change → `SchemaChangedException`). Never give a code object file such a name: it is not deployed as code. A name that also matches `TestFilePatterns` (`test.breaking.sql`, `t.b.sql`) → `BreakingScriptMatchesTestPatternException`.
@@ -33,7 +33,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 
 - **Migrations**: versioned, ordered, applied once per database. Optional undo (rollback) and breaking (contract phase) scripts for each version.
 - **Code**: stored procedures, functions, views, triggers, schemas. One file per object, re-executed when the file changes. Never dropped automatically.
-- **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run as a separate call after a deployment (`RunAllTestsAsync`, in CI or on a local database) and/or as individual xUnit tests in Visual Studio / `dotnet test`. For xUnit, a fixture deploys the project into a new database (Docker via Testcontainers, or a local server) and drops it afterwards, so no shared test database is needed (Section 13).
+- **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run as individual xUnit tests in Visual Studio / `dotnet test`: a fixture deploys the project into a new database (Docker via Testcontainers, or a local server) and drops it afterwards, so no shared test database is needed (Section 13). A deployment never runs them. Without xUnit v2 (NUnit, MSTest, xUnit v3) or against a database that is already deployed, `RunAllTestsAsync` runs them all with one call (Section 8.2).
 - **Breaking phase**: destructive changes run in a separate deployment, after the old application version is gone (zero-downtime expand/contract).
 - **Downgrade**: deploying an older build with fewer migrations reverts the extra versions using undo scripts stored in the database.
 - **ProjectId**: binds a project to a database to prevent deploying to the wrong one.
@@ -150,7 +150,7 @@ await deployer.DeployAsync(breaking
     : DeployParameters.Default);
 ```
 
-An unhandled exception gives a non-zero exit code, so CI steps fail correctly. The deployer does not run the SQL tests: a deployment never runs them, and a production deployer must not (rule 12). A deployer for a local database runs them after the deployment with `CreateTester().RunAllTestsAsync()` on the same `DbLiveBuilder` (Section 8.2).
+An unhandled exception gives a non-zero exit code, so CI steps fail correctly. The deployer does not run the SQL tests: a deployment never runs them, and a production deployer must not (rule 12). They run in the xUnit test project (Section 13); do not add `RunAllTestsAsync()` to the deployer.
 
 ### 3.4 Where DbLive reads scripts from (`SetProject`, `SetScriptsFolder`)
 
@@ -417,7 +417,7 @@ For each test:
 
 `setup.test.sql` and the test run on separate connections inside the same transaction. Data changes made by `setup.test.sql` are visible to the test; session state is not (temporary tables, variables, `SET` options). Use permanent tables in `setup.test.sql`. If the setup file fails, the test fails with `ERROR: Setup file error. ...`.
 
-`DeployAsync` does not run the tests. `IDbLiveTester.RunAllTestsAsync()` runs all of them against a deployed database, `NumberOfThreadsForTestsRun` (10) at a time:
+`DeployAsync` does not run the tests. They run in xUnit: `[SqlFact]` one by one (`RunTestAsync`), `[SqlDeployFact]` all of them after the release and after the breaking phase (Section 13). `IDbLiveTester.RunAllTestsAsync()` runs all of them against a deployed database, `NumberOfThreadsForTestsRun` (10) at a time. `[SqlDeployFact]` calls it; call it directly only without xUnit v2 (NUnit, MSTest, xUnit v3: one test that runs all SQL tests) or to test a database that is already deployed. It does not deploy:
 
 ```csharp
 DbLiveBuilder builder = new DbLiveBuilder()
@@ -425,8 +425,8 @@ DbLiveBuilder builder = new DbLiveBuilder()
     .SetDbConnection(connectionString)
     .SetProject(typeof(MyDbMarker).Assembly);
 
-await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
-await builder.CreateTester().RunAllTestsAsync();   // CI or a local database, never production
+await builder.CreateDeployer().DeployAsync(DeployParameters.Default);   // leave out for a database that is already deployed
+await builder.CreateTester().RunAllTestsAsync();   // never in a production deployer
 ```
 
 Before the first test it checks the database, and runs no test if a check fails:
@@ -434,7 +434,7 @@ Before the first test it checks the database, and runs no test if a check fails:
 - the ProjectId, compare only (Section 14): with a `ProjectId` in `settings.json`, a database with another value or with none fails with `ProjectIdMismatchException`;
 - `TestsTransactionIsolationLevel` and `TransactionIsolationLevel` are supported by the provider, as at the start of a deployment.
 
-Each result is stored in `dblive.unit_test_run`. If any test fails, `RunAllTestsAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). Unhandled, it gives a console app a non-zero exit code. The deployment was a separate call and stays committed: a failed test reports a bad release, it does not undo it.
+Each result is stored in `dblive.unit_test_run`. If any test fails, `RunAllTestsAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). Unhandled, it fails the calling test and gives a console app a non-zero exit code. The deployment was a separate call and stays committed: a failed test reports a bad release, it does not undo it.
 
 Parallel tests with `Serializable` isolation that touch the same tables can deadlock. If they do, set `"NumberOfThreadsForTestsRun": 1` or `"TestsTransactionIsolationLevel": "ReadCommitted"`.
 
@@ -574,7 +574,7 @@ select 'has-rows' as assert;
 | `MigrationChecksumMode` | `Strict` \| `Warn` | `Strict` | Reaction to edited applied migrations. |
 | `NumberOfThreadsForCodeDeploy` | int | `10` | Parallel code deployment. |
 | `MaxCodeDeployRetries` | int | `5` | Attempts per code file. |
-| `NumberOfThreadsForTestsRun` | int | `10` | Parallel tests of `IDbLiveTester.RunAllTestsAsync()`. |
+| `NumberOfThreadsForTestsRun` | int | `10` | Parallel tests of `IDbLiveTester.RunAllTestsAsync()`, also in `[SqlDeployFact]`. |
 | `DeploymentTimeout` | TimeSpan | `1.00:00:00` | Transaction timeout with `TransactionWrapLevel: Deployment`. |
 | `MigrationTimeout` | TimeSpan | `12:00:00` | Default `Timeout` of every migration, breaking and undo script: its command timeout and its transaction timeout. |
 | `CodeItemTimeout` | TimeSpan | `00:00:30` | Command timeout per code file and per breaking script of the Code folder. |
@@ -691,7 +691,7 @@ using DbLive.PostgreSQL;  // "…".SetPostgreSqlDatabaseName("x"), "…".SetRand
 Task DeployAsync(DeployParameters parameters);
 ```
 
-Deploys only. The SQL tests are a separate call: `IDbLiveTester.RunAllTestsAsync()` (Section 11.5).
+Deploys only. The SQL tests are not part of it (Section 8.2).
 
 ### 11.3 `DeployParameters` (record, namespace `DbLive`)
 
@@ -758,7 +758,7 @@ Task<TestRunResult> RunTestAsync(Action<string> writeLine, string testFileRelati
 14. **AfterDeploy** folder.
 15. Commit the deployment transaction (if any).
 
-The SQL tests are not a step of the deployment: `IDbLiveTester.RunAllTestsAsync()` runs them (Section 8.2).
+The SQL tests are not a step of the deployment: they run in xUnit, or with `IDbLiveTester.RunAllTestsAsync()` (Section 8.2).
 
 ---
 
@@ -1045,7 +1045,7 @@ Preferred: revert the file to its applied content (git history) and add a new ve
 6. Deploy breaking changes: `dotnet MyDb.Deploy.dll --breaking` (`DeployParameters.Breaking`), with the same build as step 3. It fails with `CodeNotDeployedException` if step 3 did not complete for this build.
 
 ### 18.11 Local development loop
-Run the deployer against a local database (`CreateDbIfNotExists = true`) followed by `CreateTester().RunAllTestsAsync()` (Section 8.2), or run the xUnit tests: each `[SqlFact]` test can be run and debugged from Test Explorer. The scripts are read from the SQL project's dll; Test Explorer, `dotnet test` and `dotnet run` build first, so edits are picked up on the next run.
+Run the xUnit tests: each `[SqlFact]` test can be run and debugged from Test Explorer, against a new database the fixture deploys. To work with a local database, run the deployer against it (`CreateDbIfNotExists = true`); it does not run the tests. The scripts are read from the SQL project's dll; Test Explorer, `dotnet test` and `dotnet run` build first, so edits are picked up on the next run.
 
 ---
 

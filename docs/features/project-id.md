@@ -37,7 +37,7 @@ On every deploy, DbLive compares the settings value with `dblive.version.project
 
 ### Before the SQL tests
 
-[`RunAllTestsAsync()`](../unit-testing/index.md#running-all-tests-after-a-deployment) only compares, it never stores the value. A database with another value or with none fails with `ProjectIdMismatchException`, and no test runs. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
+[`RunAllTestsAsync()`](../unit-testing/index.md#running-all-tests-without-xunit) only compares, it never stores the value. A database with another value or with none fails with `ProjectIdMismatchException`, and no test runs. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
 
 ## Storage
 

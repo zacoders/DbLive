@@ -47,24 +47,19 @@ select assert = 'empty';
 
 ## 3. Deploy
 
-Run the console app. The output now contains the code deployment and the test run:
+Run the console app. The output now contains the code deployment:
 
 ```
 [23:15:02 INF] Deploying code.
 [23:15:02 INF] Deploying code file: Code\dbo.GetUser.sql
 [23:15:02 INF] Code deploy successfully completed.
-...
-[23:15:02 INF] Running Tests.
-[23:15:02 INF] PASSED: dbo.GetUser.test.sql
-[23:15:02 INF] PASSED: dbo.GetUser.not-found.test.sql
-[23:15:02 INF] Tests Run Result> Passed: 2, Failed: 0.
 ```
 
-Run it again: the procedure is skipped (`[hash match]`) because the file did not change, and the tests run again.
+Run it again: the procedure is skipped (`[hash match]`) because the file did not change. A deployment does not run the tests; the next step does.
 
-## 4. Run the tests from Visual Studio
+## 4. Run the tests
 
-Running every test through a deployment is fine for CI, but while you work on SQL you want each test in Test Explorer.
+The SQL tests run as ordinary xUnit tests: each `.test.sql` file is a test case in Visual Studio Test Explorer and in `dotnet test`.
 
 1. Add an xUnit test project next to `MyDb` and reference `MyDb`:
 

@@ -31,7 +31,7 @@ await deployer.DeployAsync(breaking
     : DeployParameters.Default);
 ```
 
-It reads the scripts embedded in the SQL project assembly, so it deploys exactly what was built and can be started from any working directory (see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts)). A failed deployment throws, so the process exits with a non-zero code and your CI step fails. It does not run the SQL tests: they are a [call of their own](#sql-tests-after-a-deployment).
+It reads the scripts embedded in the SQL project assembly, so it deploys exactly what was built and can be started from any working directory (see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts)). A failed deployment throws, so the process exits with a non-zero code and your CI step fails. It does not run the SQL tests: they run in CI (see [SQL tests](#sql-tests)).
 
 ## What a deployment does
 
@@ -48,7 +48,7 @@ Every `DeployAsync` call runs these steps in this order:
 9. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
 10. **AfterDeploy** scripts.
 
-With `TransactionWrapLevel: Deployment`, steps 3 (checksums) to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests after a deployment](#sql-tests-after-a-deployment)).
+With `TransactionWrapLevel: Deployment`, steps 3 (checksums) to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
 Steps 1 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations, checks for a downgrade and runs BeforeDeploy and AfterDeploy.
 
@@ -76,25 +76,12 @@ Steps 1 to 6 and 10 run whatever the flags say. A breaking-only deployment there
 await deployer.DeployAsync(DeployParameters.Default with { AllowDatabaseDowngrade = true });
 ```
 
-## SQL tests after a deployment
+## SQL tests
 
-A deployment does not run the SQL tests. They are a call of their own, so a production deployer, which does not make it, cannot run them by mistake:
-
-```csharp
-DbLiveBuilder builder = new DbLiveBuilder()
-    .LogToConsole()
-    .SqlServer()
-    .SetDbConnection(connectionString)
-    .SetProject(Assembly.GetExecutingAssembly());
-
-await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
-await builder.CreateTester().RunAllTestsAsync();
-```
-
-`RunAllTestsAsync` runs all tests in parallel and saves the results in `dblive.unit_test_run`. If a test fails, it throws `UnitTestsFailedException` after all tests have run, so a console app exits with a non-zero code. The deployment was committed before the tests started: a failed test reports a bad release, it does not undo it. Before the first test it checks that the project was deployed to the database ([Running all tests](../unit-testing/index.md#running-all-tests-after-a-deployment)).
+A deployment does not run the SQL tests, so a production deployer cannot run them by mistake. Run them in CI with `dotnet test`, against a disposable database: `[SqlFact]` runs each test, and the [deployment test](../unit-testing/index.md#deployment-tests) deploys the project as production does and runs all tests after the release and after the breaking phase. See [Unit Testing](../unit-testing/index.md), and [Running all tests without xUnit](../unit-testing/index.md#running-all-tests-without-xunit) for other test frameworks.
 
 !!! tip "Tests and production"
-    SQL tests roll back everything they change, but by default they run with `Serializable` isolation and take locks on the tables they read. Do not run them against production: run them in CI against a disposable database (`dotnet test`, see [Unit Testing](../unit-testing/index.md)), or after deploying to a local database.
+    SQL tests roll back everything they change, but by default they run with `Serializable` isolation and take locks on the tables they read. Do not run them against production.
 
 ## Logging
 

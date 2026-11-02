@@ -93,9 +93,6 @@ await builder.CreateDeployer().DeployAsync(new DeployParameters
 	DeployCode = true,
 	DeployMigrations = true
 });
-
-// the SQL tests are a call of their own, here against a local database. A production deployer does not run them.
-await builder.CreateTester().RunAllTestsAsync();
 ```
 
 See the **Demo** projects in this repository (`src/Demo`) for full examples with MSSQL and PostgreSQL.
@@ -261,7 +258,7 @@ A single `DeployAsync` run typically does (in order):
 
 You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
 
-SQL tests are not part of a deployment: `IDbLiveTester.RunAllTestsAsync()` runs them, in CI or against a local database. A production deployer does not call it.
+SQL tests are not part of a deployment: they run as xUnit tests (`dotnet test`) against a disposable database, so a production deployer does not run them.
 
 ### Typical CI/CD pipeline
 

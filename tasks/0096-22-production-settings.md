@@ -6,7 +6,7 @@ created: 2026-10-31
 # Production settings in one place
 
 ## Problem
-Advice for production deployments is spread over many pages: tests (`docs/llms-full.txt` §0 rule 12, tip in `docs/deployment/index.md`), tests failing after the commit (`docs/unit-testing/index.md`, "Running all tests after a deployment"), downgrade (`docs/deployment/migrations.md`), `ProjectId` (`docs/features/project-id.md`), `TransactionWrapLevel.Deployment` not for 24/7 (`docs/project/configuration.md`). A reader who wants "how do I configure this for production" has to collect it.
+Advice for production deployments is spread over many pages: tests (`docs/llms-full.txt` §0 rule 12, tip in `docs/deployment/index.md`), tests failing after the commit (`docs/unit-testing/index.md`, "Running all tests without xUnit"), downgrade (`docs/deployment/migrations.md`), `ProjectId` (`docs/features/project-id.md`), `TransactionWrapLevel.Deployment` not for 24/7 (`docs/project/configuration.md`). A reader who wants "how do I configure this for production" has to collect it.
 
 `docs/deployment/zero-downtime.md` has a "Pre-flight checklist", but it is about backward compatibility of a release, and the maintainer writes that page (ask before changing it).
 

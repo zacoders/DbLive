@@ -80,9 +80,6 @@ await builder.CreateDeployer().DeployAsync(new DeployParameters
 	DeployCode = true,
 	DeployMigrations = true
 });
-
-// the SQL tests are a call of their own, here against a local database. A production deployer does not run them.
-await builder.CreateTester().RunAllTestsAsync();
 ```
 
 ## 7. Run App
@@ -105,9 +102,9 @@ You will see deployment process in the console app output:
 [23:09:43 INF] Deploying folder AfterDeploy.
 [23:09:43 INF] Folder AfterDeploy is empty.
 [23:09:43 INF] Project deploy completed.
-[23:09:43 INF] Running Tests.
-[23:09:43 INF] Tests Run Result> Passed: 0, Failed: 0.
 ```
+
+A deployment does not run SQL tests. To write a test and run it, continue with [Add Stored Procedure and Unit Test](unit-testing/stored-proc-and-unit-test.md).
 
 
 ## Next steps

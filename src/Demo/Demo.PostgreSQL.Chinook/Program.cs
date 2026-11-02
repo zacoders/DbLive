@@ -17,7 +17,4 @@ await builder.CreateDeployer().DeployAsync(new DeployParameters
 	DeployMigrations = true
 }).ConfigureAwait(false);
 
-// the demo deploys to a local database. A production deployer does not run the tests.
-await builder.CreateTester().RunAllTestsAsync().ConfigureAwait(false);
-
 public class DemoPostgreSQLChinookLink { }

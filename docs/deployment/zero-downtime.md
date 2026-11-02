@@ -112,7 +112,7 @@ The old procedure version is dropped by a breaking script of the Code folder, ne
 
 The breaking deployment fails with `CodeNotDeployedException` if the code of this build is not deployed yet (step 3 failed or was skipped), so a breaking stage started too early cannot drop `GetUsers_v1` under the running old application.
 
-Both presets are described in [Deployment](index.md#presets). A deployment does not run the SQL tests; run them in CI against a disposable database ([SQL tests after a deployment](index.md#sql-tests-after-a-deployment)).
+Both presets are described in [Deployment](index.md#presets). A deployment does not run the SQL tests; run them in CI against a disposable database ([SQL tests](index.md#sql-tests)).
 
 ## Transactions
 
