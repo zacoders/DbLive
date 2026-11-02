@@ -9,7 +9,7 @@ created: 2026-11-03
 Every SQL project copies a block into its `.csproj` (`README.md` "Quick start" step 3, `docs/llms-full.txt` §3.1): an `EmbeddedResource` for `Scripts\**` and the `ProjectDir` assembly metadata. The attributes of the `EmbeddedResource` are easy to get wrong. Without `LogicalName` the folder structure is lost. Without `WithCulture="false"`, a `name.fr.sql` script silently moves to a satellite assembly and is not deployed. An MSBuild file in the package can add the same items, so the step disappears from the quick start, from every existing project and from the template (0096-30).
 
 ## Design
-When the project has the `$(DbLiveScriptsFolder)` folder, the package adds what the block adds today. Without the folder it adds nothing, not even `ProjectDir`:
+The file is in `buildTransitive/` of the `DbLive` package, so it reaches every project that has DbLive in its graph: through a provider package, through `DbLive.xunit` or through a `ProjectReference`. A layout B SQL project with only scripts references `DbLive` directly. When the project has the `$(DbLiveScriptsFolder)` folder, the package adds what the block adds today. Without the folder it adds nothing, not even `ProjectDir`:
 
 ```xml
 <ItemGroup Condition="'$(DbLiveEmbedScripts)' == 'true' And Exists('$(MSBuildProjectDirectory)/$(DbLiveScriptsFolder)')">
@@ -28,7 +28,7 @@ Properties, set in the `.csproj`:
 
 **Breaking.** A project that keeps the block gets the items twice, and the build fails with `NETSDK1022: Duplicate 'EmbeddedResource' items were included` (verified). That message advises `EnableDefaultEmbeddedResourceItems=false`, which does not fix it. A target in the file fails first with a message that says to remove the DbLive block from the `.csproj`.
 
-- [ ] Which package carries the file? Verified (Notes): NuGet imports `build/` only into a project that references the package directly. It imports `buildTransitive/` into every project that has the package anywhere in its graph, through package dependencies and through `ProjectReference`. Who gets the file in the layouts of `docs/llms-full.txt` §3.2:
+- [x] Which package carries the file? Decided 2026-11-03: (a) with the folder check. Verified (Notes): NuGet imports `build/` only into a project that references the package directly. It imports `buildTransitive/` into every project that has the package anywhere in its graph, through package dependencies and through `ProjectReference`. Who gets the file in the layouts of `docs/llms-full.txt` §3.2:
 
   | Project | References | (a) `buildTransitive/` in `DbLive` | (b) `build/` in the providers | (c) `build/` in `DbLive` |
   |---|---|---|---|---|
@@ -39,17 +39,17 @@ Properties, set in the `.csproj`:
 
   - In every option, the layout B SQL project needs a new package reference. With (b) it is the provider, which brings SqlClient and SMO into a library of scripts. With (a) and (c) it is `DbLive`.
   - (c) has a trap in layout A. The direct `DbLive` reference looks redundant next to the provider, which brings `DbLive` anyway, and `docs/llms-full.txt` §2 installs only the provider. Without that reference the build passes, and the first deployment fails with `ScriptsNotEmbeddedException`.
-  - Proposal: (a) with the folder check. It works however DbLive comes into the project (verified), and a project without the folder gets nothing. What is left: a project that has DbLive in its graph and an unrelated `Scripts` folder embeds that folder. `DbLiveEmbedScripts=false` turns this off.
+  - (a) with the folder check works however DbLive comes into the project (verified), and a project without the folder gets nothing. What is left: a project that has DbLive in its graph and an unrelated `Scripts` folder embeds that folder. `DbLiveEmbedScripts=false` turns this off.
 
 ## Where
-- New MSBuild file in the package chosen above (`buildTransitive/` or `build/`).
+- New `src/DbLive/buildTransitive/DbLive.props`, packed with `Pack="true" PackagePath="buildTransitive/"`. NuGet imports only files named after the package ID.
 - `src/DbLive/Project/Exceptions/ScriptsNotEmbeddedException.cs:7-11`: the message shows the block. It should name the package reference and `DbLiveScriptsFolder`.
 - Demos reference the projects, not the packages, so the package files do not reach them. `DemoMSSQL`, `DemoMSSQLEmpty`, `Demo.PostgreSQL.Chinook` and `AdventureWorks.Database` replace their blocks with an import of the file, for example from a `src/Demo/Directory.Build.props`. Such a file hides `src/Directory.Build.props` unless it imports it.
 - `src/DbLive.Tests/DbLive.Tests.csproj:50-53` keeps its block. That project is a SQL project without `ProjectDir` on purpose (`SqlFactDiscovererTests`).
 - `.github/workflows/cicd.yml:73-83`: the packages are packed here. The CI check through a real `PackageReference` below needs them in a local feed. The template test of 0096-30 uses the same feed.
 
 ## Plan
-- [ ] Answer the open question.
+- [x] Answer the open question.
 - [ ] MSBuild file with `DbLiveScriptsFolder`, `DbLiveEmbedScripts` and the folder check, and a clear build error for a project that still has the block.
 - [ ] `ScriptsNotEmbeddedException` message.
 - [ ] Demos use the file instead of their blocks.
@@ -72,6 +72,7 @@ Properties, set in the `.csproj`:
 2026-11-03: decisions of the maintainer:
 - The upgrade is breaking: the block is removed from the `.csproj`. Rejected: detecting the block and silently adding nothing.
 - `DbLiveScriptsFolder` is added.
+- The file is in `buildTransitive/` of `DbLive` and adds nothing to a project without the scripts folder. Option (a) under Design. Rejected: (b) `build/` of the provider packages, which brings the provider into a library of scripts; (c) `build/` of `DbLive`, which needs a direct `DbLive` reference that looks redundant and, when missing, fails only at the first deployment.
 
 2026-11-03, verified with test packages from a local feed (.NET SDK 10.0.402): `ExpCore` with `build/`, `ExpCoreT` with `buildTransitive/`, and `ExpProvider` that references both by `ProjectReference`, like `DbLive.MSSQL` references `DbLive`.
 - `dotnet pack` writes a `ProjectReference` as a dependency with `exclude="Build,Analyzers"`.
