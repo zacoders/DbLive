@@ -14,6 +14,7 @@ public class ProjectIdValidatorTests
 
 		_ = mockSet.DbLiveDA.DidNotReceive().GetProjectIdAsync();
 		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
+		mockSet.Logger.Received(1).Warning(Arg.Is<string>(m => m.StartsWith("ProjectId is not set in settings.json")));
 	}
 
 	[Theory]
@@ -33,6 +34,7 @@ public class ProjectIdValidatorTests
 		await validator.ValidateAsync();
 
 		_ = mockSet.DbLiveDA.DidNotReceive().GetProjectIdAsync();
+		mockSet.Logger.Received(1).Warning(Arg.Is<string>(m => m.StartsWith("ProjectId is not set in settings.json")));
 	}
 
 	[Fact]
@@ -74,6 +76,7 @@ public class ProjectIdValidatorTests
 			"ProjectId bound to database: {ProjectId}.",
 			"my-app-prod"
 		);
+		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>());
 	}
 
 	[Fact]
@@ -160,6 +163,8 @@ public class ProjectIdValidatorTests
 		await validator.ValidateBeforeTestsAsync();
 
 		_ = mockSet.DbLiveDA.DidNotReceive().GetProjectIdAsync();
+		// the deployment warns; the tests run against a database the project was deployed to.
+		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>());
 	}
 
 	[Fact]

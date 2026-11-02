@@ -241,6 +241,7 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 		{
 			await builder.CreateDeployer().DeployAsync(new DeployParameters
 			{
+				CreateDbIfNotExists = true,
 				DeployBreaking = true,
 				UndoTestDeployment = undoTestMode
 			});

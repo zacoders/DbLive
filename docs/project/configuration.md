@@ -35,7 +35,7 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `ProjectId` | none | Binds the project to the target database on the first deployment and blocks deployment to a database bound to another project. See [ProjectId](../features/project-id.md). |
+| `ProjectId` | none | Binds the project to the target database on the first deployment and blocks deployment to a database bound to another project. Recommended: without it every deployment logs a warning. See [ProjectId](../features/project-id.md). |
 | `EnforceTimestampVersion` | `false` | Require migration versions in `yyyyMMddHHmmss` format (14 digits, valid date, year from 2000 up to next month). |
 | `MigrationChecksumMode` | `Strict` | `Strict` stops the deployment when an applied migration file was changed; `Warn` logs a warning and continues. See [Checksums](../deployment/migrations.md#checksums). |
 

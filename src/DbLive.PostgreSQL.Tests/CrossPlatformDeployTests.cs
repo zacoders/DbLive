@@ -10,13 +10,18 @@ namespace DbLive.PostgreSQL.Tests;
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
 	private const string MigrationCrLf = "create table t1 (\r\n    id int not null\r\n);\r\n";
 	private const string CodeCrLf = "create or replace view v1\r\nas\r\nselect 1 as x;\r\n";
 	private const string Code = "create or replace view v1 as select 1 as x;";
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
+
+	// DbLive deploys to an existing database without creating it.
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+
+	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Database_deployed_by_older_DbLive_from_Windows_deploys_from_Linux_checkout()

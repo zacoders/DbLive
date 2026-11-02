@@ -20,9 +20,18 @@ Scripts/
   Migrations/
   Code/
   Tests/
+  settings.json
 ```
 
 All three folders are optional; a project can, for example, contain only code. See [Project Structure](project/structure.md).
+
+`settings.json` names the project. The first deployment stores the name in the database, and a deployer of another project then cannot deploy into it (see [ProjectId](features/project-id.md)). Without it every deployment logs a warning.
+
+```json
+{
+  "ProjectId": "my-app-db"
+}
+```
 
 ## 4. Configure Project
 
@@ -76,7 +85,7 @@ var builder = new DbLiveBuilder()
 
 await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
-	CreateDbIfNotExists = true,
+	CreateDbIfNotExists = true, // a local database; off by default, keep it off in production
 	DeployCode = true,
 	DeployMigrations = true
 });
@@ -91,6 +100,7 @@ You will see deployment process in the console app output:
 ```
 [23:09:42 INF] Starting deployment.
 [23:09:42 INF] Starting project deploy.
+[23:09:42 INF] ProjectId bound to database: my-app-db.
 [23:09:43 INF] Saving migration items.
 [23:09:43 INF] Deploying folder BeforeDeploy.
 [23:09:43 INF] Folder BeforeDeploy is empty.

@@ -35,6 +35,13 @@ public interface IDbLiveDA
 
 	Task CreateDBAsync(bool skipIfExists = true);
 
+	/// <summary>
+	/// Checks that the database of the connection string exists. Returns when it exists, and when the server
+	/// does not tell: the next connection to the database then fails with the error of the provider.
+	/// </summary>
+	/// <exception cref="DatabaseNotFoundException">The server confirms that the database does not exist.</exception>
+	Task CheckDatabaseExistsAsync();
+
 	Task DropDbAsync(bool skipIfNotExists = true);
 
 	/// <exception cref="DbLiveSqlException"/>

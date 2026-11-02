@@ -74,6 +74,7 @@ public class DbLiveTesterTests
 
 		Received.InOrder(() =>
 		{
+			_ = mockSet.DbLiveDA.CheckDatabaseExistsAsync();
 			_ = mockSet.DbLiveDA.DbLiveInstalledAsync();
 			_ = mockSet.ProjectIdValidator.ValidateBeforeTestsAsync();
 			_ = mockSet.TransactionSettingsValidator.ValidateAsync(settings);
@@ -81,6 +82,21 @@ public class DbLiveTesterTests
 		});
 		// the tests only compare the ProjectId: binding it is the job of a deployment.
 		await mockSet.ProjectIdValidator.DidNotReceive().ValidateAsync();
+	}
+
+	[Fact]
+	public async Task RunAllTests_throws_when_the_database_does_not_exist()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.CheckDatabaseExistsAsync()
+			.Returns(Task.FromException(new DatabaseNotFoundException("MyDb", "localhost", new Exception("cannot open"))));
+
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+
+		_ = await Assert.ThrowsAsync<DatabaseNotFoundException>(tester.RunAllTestsAsync);
+
+		_ = mockSet.DbLiveDA.DidNotReceive().DbLiveInstalledAsync();
+		await mockSet.UnitTestsRunner.DidNotReceive().RunAllTestsAsync();
 	}
 
 	[Fact]

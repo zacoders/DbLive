@@ -20,6 +20,8 @@ public class DbLiveTester(
 
 	public async Task RunAllTestsAsync()
 	{
+		await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);
+
 		// otherwise the first test fails on saving its result to dblive.unit_test_run.
 		if (!await _da.DbLiveInstalledAsync().ConfigureAwait(false))
 		{

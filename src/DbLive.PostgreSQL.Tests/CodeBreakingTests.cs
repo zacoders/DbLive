@@ -14,13 +14,18 @@ namespace DbLive.PostgreSQL.Tests;
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
 	private const string FunctionV1 = "create or replace function get_user_v1() returns int language sql as $$ select 1 $$;";
 	private const string FunctionV2 = "create or replace function get_user_v2(p_user_id int) returns int language sql as $$ select p_user_id $$;";
 	private const string DropV1 = "drop function if exists get_user_v1();";
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
+
+	// DbLive deploys to an existing database without creating it.
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+
+	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Code_breaking_script_drops_the_old_version_and_a_rollback_restores_it()

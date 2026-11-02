@@ -10,13 +10,18 @@ namespace DbLive.MSSQL.Tests;
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
 {
 	private const string NoTransaction = """{ "TransactionWrapLevel": "None" }""";
 
 	private const string SnapshotIsolationStateQuery = "select snapshot_isolation_state from sys.databases where name = db_name()";
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
+
+	// DbLive deploys to an existing database without creating it.
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+
+	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Each_item_runs_by_its_own_settings_in_undo_test_breaking_and_downgrade()

@@ -303,6 +303,21 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
+	public async Task CheckDatabaseExistsAsync()
+	{
+		try
+		{
+			using NpgsqlConnection cnn = CreateConnection();
+			await cnn.OpenAsync().ConfigureAwait(false);
+		}
+		// a login without access to the database gets 42501 (insufficient_privilege) instead.
+		catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.InvalidCatalogName)
+		{
+			NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+			throw new DatabaseNotFoundException(builder.Database ?? "", builder.Host ?? "", e);
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);

@@ -22,6 +22,7 @@ public class DbLiveTests
 
 		// Assert
 		await mockSet.DbLiveDA.Received().CreateDBAsync();
+		await mockSet.DbLiveDA.DidNotReceive().CheckDatabaseExistsAsync();
 		await mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		await mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
 	}
@@ -45,8 +46,39 @@ public class DbLiveTests
 
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive().CreateDBAsync();
+		await mockSet.DbLiveDA.Received(1).CheckDatabaseExistsAsync();
 		await mockSet.DbLiveSelfDeployer.Received().DeployAsync();
 		await mockSet.DbLiveInternalDeployer.Received().DeployAsync(Arg.Is(parameters));
+	}
+
+	[Fact]
+	public async Task Deploy_stops_when_the_database_does_not_exist()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.CheckDatabaseExistsAsync()
+			.Returns(Task.FromException(new DatabaseNotFoundException("MyDb", "localhost", new Exception("cannot open"))));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		DatabaseNotFoundException ex = await Assert.ThrowsAsync<DatabaseNotFoundException>(
+			() => dbLive.DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal(
+			"Database 'MyDb' does not exist on server 'localhost'. Check the database name in the connection string. A deployment creates the database only with DeployParameters.CreateDbIfNotExists = true.",
+			ex.Message
+		);
+		await mockSet.DbLiveSelfDeployer.DidNotReceive().DeployAsync();
+		await mockSet.DbLiveInternalDeployer.DidNotReceive().DeployAsync(Arg.Any<DeployParameters>());
+	}
+
+	[Fact]
+	public void Database_is_not_created_by_default()
+	{
+		// a typo in the database name of a production connection string must fail, not create an empty database.
+		Assert.False(new DeployParameters().CreateDbIfNotExists);
+		Assert.False(DeployParameters.Default.CreateDbIfNotExists);
+		Assert.False(DeployParameters.Breaking.CreateDbIfNotExists);
 	}
 
 

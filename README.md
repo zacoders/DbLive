@@ -73,6 +73,15 @@ Scripts/
   Tests/
     admin_must_exist.test.sql
     unique_user_name.test.sql
+  settings.json
+```
+
+`settings.json` names the project, so the deployer of another project cannot deploy into its database ([ProjectId](docs/features/project-id.md)):
+
+```json
+{
+  "ProjectId": "my-app-db"
+}
 ```
 ### 3. Configure .csproj
 
@@ -109,7 +118,7 @@ var builder = new DbLiveBuilder()
 
 await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
-	CreateDbIfNotExists = true,
+	CreateDbIfNotExists = true, // a local database; off by default, keep it off in production
 	DeployCode = true,
 	DeployMigrations = true
 });
@@ -292,6 +301,8 @@ DbLive fits into a release pipeline like this:
 5. **Deploy application** — new app version
 6. **Drop old application** — remove previous app (if needed)
 7. **Deploy breaking changes** — run DbLive with `DeployParameters.Breaking` when the old app is gone
+
+The settings of a production deployment (`ProjectId`, database creation, downgrade, transactions, timeouts) are collected in [Production](docs/deployment/index.md#production).
 
 ---
 

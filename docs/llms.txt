@@ -11,6 +11,7 @@ Key facts an agent must not get wrong:
 - Breaking (destructive) scripts run only with `DeployParameters.DeployBreaking = true`, after the old application is gone: `<version>.breaking.sql` for tables, `Code/**/<name>.breaking.sql` (run on every breaking deployment, so idempotent) to drop an old procedure version.
 - SQL tests assert through a result set whose first column is named `assert` (`rows`, `rows-with-schema`, `has-rows`, `row-count=N`, `empty`, `single-row`). A deployment never runs them: they run as xUnit tests (`DbLive.xunit`, `dotnet test`) against a disposable database; without xUnit v2, `builder.CreateTester().RunAllTestsAsync()` runs them all. Never in a production deployer. `DeployParameters` has no `RunTests`.
 - The "database as a service" model (versioned procedure names `_v1`/`_v2`, breaking scripts) is optional. Follow the way the project already uses DbLive; do not introduce the model into a project that does not use it.
+- Set `ProjectId` in `Scripts/settings.json`: without it nothing stops a deployment into another project's database, and every deployment logs a warning. `DeployParameters.Default` does not create the database (`CreateDbIfNotExists` is off); turn it on only for local and test databases, never in a production deployer.
 
 ## Docs
 
@@ -18,7 +19,7 @@ Key facts an agent must not get wrong:
 - [Getting started](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/gettingstarted.md): create a project, first migration, first deployment
 - [Project structure](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/structure.md): folders and file naming rules
 - [Project configuration](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/project/configuration.md): `settings.json` keys, item settings (per migration, breaking or undo script), transactions
-- [Deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/index.md): pipeline order, `DeployParameters`, presets
+- [Deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/index.md): pipeline order, `DeployParameters`, presets, production settings
 - [Migrations](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/migrations.md): versions, undo, downgrade, checksums
 - [Code deployment](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/code.md): re-runnable objects, ordering, retries
 - [Breaking changes](https://raw.githubusercontent.com/zacoders/DbLive/main/docs/deployment/breaking-changes.md): the contract phase

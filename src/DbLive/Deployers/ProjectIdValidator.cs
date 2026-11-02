@@ -23,6 +23,12 @@ internal class ProjectIdValidator(
 
 		if (string.IsNullOrWhiteSpace(settingsProjectId))
 		{
+			if (!beforeTests)
+			{
+				_logger.Warning(
+					"ProjectId is not set in settings.json, so nothing stops this project from being deployed to the database of another project. Set ProjectId in settings.json, for example \"ProjectId\": \"billing-api-db\"."
+				);
+			}
 			return;
 		}
 

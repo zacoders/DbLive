@@ -23,7 +23,14 @@ public class DbLive(
 		}
 
 		if (parameters.CreateDbIfNotExists)
+		{
 			await _da.CreateDBAsync(true).ConfigureAwait(false);
+		}
+		else
+		{
+			// a clear error for a wrong database name, instead of the connection error of the provider.
+			await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);
+		}
 
 		// Self deploy. Deploying DbLive to the database
 		await _selfDeployer.DeployAsync().ConfigureAwait(false);

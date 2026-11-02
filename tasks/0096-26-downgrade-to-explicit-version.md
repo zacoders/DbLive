@@ -21,8 +21,8 @@ Let the caller state what it expects to revert to, and fail when the build does 
 - [ ] Before running, log the versions to undo and the names of their undo scripts.
 
 ## Docs to update
-- `docs/llms-full.txt` §5.5, §11.3, §17, §18.8
-- `docs/deployment/migrations.md` ("Downgrade"), `docs/deployment/index.md` (`DeployParameters` table), `docs/features/index.md`
+- `docs/llms-full.txt` rule 18, §5.5, §11.3, §17, §18.8, §18.10 (production settings)
+- `docs/deployment/migrations.md` ("Downgrade"), `docs/deployment/index.md` (`DeployParameters` table, "Production"), `docs/features/index.md`
 
 ## Done when
 - [ ] Implemented with unit tests (matching target, wrong target, no downgrade needed)

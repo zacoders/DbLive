@@ -312,6 +312,61 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
+	// Cannot open database "..." requested by the login. The login failed.
+	private const int CannotOpenDatabaseError = 4060;
+
+	public async Task CheckDatabaseExistsAsync()
+	{
+		// without retries: SqlClient retries error 4060 for 10 seconds. Any other outcome is left to the next connection,
+		// which retries transient errors (a database on Azure SQL coming online) by the settings of the connection string.
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { ConnectRetryCount = 0 };
+
+		try
+		{
+			using SqlConnection cnn = new(builder.ConnectionString);
+			await cnn.OpenAsync().ConfigureAwait(false);
+		}
+		catch (SqlException e) when (e.Number == CannotOpenDatabaseError)
+		{
+			// a login without access to an existing database gets the same error: master tells the two apart.
+			if (await DatabaseIsMissingAsync(builder).ConfigureAwait(false))
+			{
+				throw new DatabaseNotFoundException(builder.InitialCatalog, builder.DataSource, e);
+			}
+		}
+		catch (SqlException)
+		{
+			// not a missing database: the next connection fails with this error, or succeeds after a retry.
+		}
+	}
+
+	/// <summary>
+	/// True only when master shows that the database does not exist. False when it exists, and when master cannot tell:
+	/// the login cannot connect to master, or sees only its own databases (no VIEW ANY DATABASE permission).
+	/// </summary>
+	private static async Task<bool> DatabaseIsMissingAsync(SqlConnectionStringBuilder builder)
+	{
+		const string query = @"
+			select case
+				when exists (select 1 from sys.databases where name = @name) then 0
+				when has_perms_by_name(null, null, 'VIEW ANY DATABASE') = 1 then 1
+				else 0
+			end
+		";
+
+		SqlConnectionStringBuilder masterBuilder = new(builder.ConnectionString) { InitialCatalog = "master" };
+
+		try
+		{
+			using SqlConnection cnn = new(masterBuilder.ConnectionString);
+			return await cnn.ExecuteScalarAsync<bool>(query, new { name = builder.InitialCatalog }).ConfigureAwait(false);
+		}
+		catch (SqlException)
+		{
+			return false;
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);

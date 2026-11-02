@@ -33,11 +33,13 @@ await deployer.DeployAsync(breaking
 
 It reads the scripts embedded in the SQL project assembly, so it deploys exactly what was built and can be started from any working directory (see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts)). A failed deployment throws, so the process exits with a non-zero code and your CI step fails. It does not run the SQL tests: they run in CI (see [SQL tests](#sql-tests)).
 
+`DeployParameters.Default` does not create the database: create it before the first deployment, or, for a local or test database, deploy with `DeployParameters.Default with { CreateDbIfNotExists = true }`. The settings of a production deployment are collected in [Production](#production).
+
 ## What a deployment does
 
 Every `DeployAsync` call runs these steps in this order:
 
-1. **Create the database** if it does not exist (`CreateDbIfNotExists`).
+1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
 2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema.
 3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, and the [checksums](migrations.md#checksums) of applied migrations.
 4. **Record** all migration files of the project in `dblive.migration`.
@@ -50,13 +52,13 @@ Every `DeployAsync` call runs these steps in this order:
 
 With `TransactionWrapLevel: Deployment`, steps 3 (checksums) to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
-Steps 1 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations, checks for a downgrade and runs BeforeDeploy and AfterDeploy.
+Steps 2 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations, checks for a downgrade and runs BeforeDeploy and AfterDeploy.
 
 ## DeployParameters
 
 | Property | Default | Meaning |
 |----------|---------|---------|
-| `CreateDbIfNotExists` | `true` | Create the database if missing. SQL Server connects to `master`, PostgreSQL to `postgres`; the login needs permission to create databases. |
+| `CreateDbIfNotExists` | `false` | Create the database if missing. SQL Server connects to `master`, PostgreSQL to `postgres`; the login needs permission to create databases. Off by default, so that a typo in the database name fails the deployment instead of creating an empty database; turn it on for local and test databases. |
 | `DeployMigrations` | `true` | Apply pending migrations. |
 | `DeployCode` | `true` | Deploy new and changed code files. |
 | `DeployBreaking` | `false` | Run the breaking phase: the breaking scripts of the Code folder and the pending breaking scripts of migrations. |
@@ -67,7 +69,7 @@ Steps 1 to 6 and 10 run whatever the flags say. A breaking-only deployment there
 
 | Preset | Create DB | Migrations | Code | Breaking |
 |--------|-----------|------------|------|----------|
-| `DeployParameters.Default` | yes | yes | yes | no |
+| `DeployParameters.Default` | no | yes | yes | no |
 | `DeployParameters.Breaking` | no | no | no | yes |
 
 `DeployParameters` is a record, so adjust a preset with `with`:
@@ -103,6 +105,21 @@ builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger));   // 
 6. **Deploy breaking changes**: run the deployer with `Breaking`.
 
 Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md).
+
+## Production
+
+The settings of a deployment to a production database, in one place. The defaults are the safe values, except `ProjectId`, which only you can choose.
+
+| Setting | In production | Why |
+|---------|---------------|-----|
+| `ProjectId` in `settings.json` | Set, unique per project | Stops a deployment into the database of another project. Without it every deployment logs a warning. See [ProjectId](../features/project-id.md). |
+| `CreateDbIfNotExists` | `false` (default) | Create the production database yourself. A typo in the database name then fails the deployment instead of creating an empty database and deploying the whole schema into it, and the deployer's login needs no permission to create databases. |
+| `AllowDatabaseDowngrade` | `false` (default); `true` only in the rollback pipeline | With `true`, a build that lacks applied versions reverts them with their undo scripts, and undo scripts usually drop columns and tables. With `false`, an older build deployed by mistake fails and changes nothing. See [Downgrade](migrations.md#downgrade). |
+| `RepairMigrationChecksums` | `false` (default); `true` only for one deployment, after you checked that the database matches the files | Left on, it accepts every edited applied migration without a check. See [Checksums](migrations.md#checksums). |
+| `MigrationChecksumMode` | `Strict` (default) | `Warn` deploys although an applied migration was edited, so the files no longer describe the database. |
+| `TransactionWrapLevel` | `Migration` (default); `None` in the [item settings](../project/configuration.md#item-settings) of a script that cannot run in a transaction | `Deployment` holds locks for the whole deployment and deploys code single-threaded: it is for small databases and test environments. See [Choosing a transaction level](../project/configuration.md#choosing-a-transaction-level). |
+| `MigrationTimeout`, `CodeItemTimeout` | What your release window allows; `Timeout` in the item settings of a longer migration script | A script that runs longer fails, and the deployment with it. Defaults: 12 hours per migration script, 30 seconds per code file. See [Timeouts](../project/configuration.md#timeouts). |
+| SQL tests | Not in the deployer | They run in CI against a disposable database. See [SQL tests](#sql-tests). |
 
 ## Bookkeeping tables
 

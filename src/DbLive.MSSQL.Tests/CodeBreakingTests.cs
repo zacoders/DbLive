@@ -13,13 +13,18 @@ namespace DbLive.MSSQL.Tests;
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
 {
 	private const string ProcV1 = "create or alter proc dbo.GetUser_v1 as select 1 as user_id;";
 	private const string ProcV2 = "create or alter proc dbo.GetUser_v2 @UserId int as select @UserId as user_id;";
 	private const string DropV1 = "drop proc if exists dbo.GetUser_v1;";
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
+
+	// DbLive deploys to an existing database without creating it.
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+
+	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Code_breaking_script_drops_the_old_version_and_a_rollback_restores_it()

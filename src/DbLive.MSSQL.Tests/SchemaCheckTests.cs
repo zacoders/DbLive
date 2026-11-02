@@ -220,6 +220,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 		{
 			await builder.CreateDeployer().DeployAsync(new DeployParameters
 			{
+				CreateDbIfNotExists = true,
 				DeployBreaking = true,
 				UndoTestDeployment = undoTestMode
 			});

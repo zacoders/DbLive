@@ -1,6 +1,6 @@
 # ProjectId
 
-`ProjectId` is an optional setting in `settings.json` that binds a DbLive project to a target database. It reduces the risk of deploying to the wrong environment by blocking deployment when the configured value does not match the value stored in the database.
+`ProjectId` is a setting in `settings.json` that binds a DbLive project to a target database. It reduces the risk of deploying to the wrong database by blocking deployment when the configured value does not match the value stored in the database. It is optional, but recommended: without it every deployment logs a warning.
 
 ## Format
 
@@ -25,7 +25,13 @@ Add `ProjectId` to `settings.json` next to your scripts:
 
 ### ProjectId not set
 
-If `ProjectId` is absent, null, or whitespace, validation is skipped entirely. Existing projects continue to work without changes.
+If `ProjectId` is absent, null, or whitespace, validation is skipped entirely, and every deployment logs a warning:
+
+```
+[WRN] ProjectId is not set in settings.json, so nothing stops this project from being deployed to the database of another project. Set ProjectId in settings.json, for example "ProjectId": "billing-api-db".
+```
+
+The SQL tests (`RunAllTestsAsync()`) do not log it.
 
 ### First deploy with ProjectId set
 

@@ -40,6 +40,16 @@ public class SqlServerIntegrationTestBase : IDisposable
 
 		DbLiveDeployer = builder.CreateDeployer();
 		DbLiveTester = builder.CreateTester();
+
+		// DbLive deploys to an existing database without creating it.
+		if (!DbExists(_testingDbName))
+		{
+			using SqlConnection cnn = new(_masterDbConnectionString);
+			cnn.Open();
+			using SqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandText = $"create database [{_testingDbName}];";
+			_ = cmd.ExecuteNonQuery();
+		}
 	}
 
 	public void Dispose()

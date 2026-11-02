@@ -5,7 +5,7 @@ public record DeployParameters
 {
 	public static DeployParameters Default => new()
 	{
-		CreateDbIfNotExists = true,
+		CreateDbIfNotExists = false,
 		DeployBreaking = false,
 		DeployCode = true,
 		DeployMigrations = true
@@ -27,7 +27,11 @@ public record DeployParameters
 
 	public bool DeployBreaking { get; set; } = false;
 
-	public bool CreateDbIfNotExists { get; set; } = true;
+	/// <summary>
+	/// Creates the database of the connection string if it does not exist.
+	/// Off by default: a typo in the database name of a production connection string must fail, not create an empty database.
+	/// </summary>
+	public bool CreateDbIfNotExists { get; set; } = false;
 
 	/// <summary>
 	/// This should be enabled only for testing purposes and should not be used for production.

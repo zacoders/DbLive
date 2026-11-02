@@ -10,11 +10,16 @@ namespace DbLive.PostgreSQL.Tests;
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
 	private const string NoTransaction = """{ "TransactionWrapLevel": "None" }""";
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
+
+	// DbLive deploys to an existing database without creating it.
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+
+	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Each_item_runs_by_its_own_settings_in_undo_test_breaking_and_downgrade()
