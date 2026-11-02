@@ -84,13 +84,31 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 	}
 
 	/// <summary>
-	/// The Scripts folder in the source project, from the <c>ProjectDir</c> assembly metadata. Null without the metadata.
+	/// The scripts folder in the source project, from the assembly metadata that the DbLive package adds:
+	/// <c>ProjectDir</c> and <c>DbLiveScriptsFolder</c> (<c>Scripts</c> without it). Null without <c>ProjectDir</c>.
 	/// </summary>
 	internal static string? GetSourceScriptsPath(Assembly projectAssembly)
 	{
-		string? projectDir = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-			.FirstOrDefault(a => a.Key == "ProjectDir")?.Value;
+		AssemblyMetadataAttribute[] metadata = [.. projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()];
 
-		return string.IsNullOrEmpty(projectDir) ? null : Path.Combine(projectDir, "Scripts");
+		return GetSourceScriptsPath(
+			projectDir: metadata.FirstOrDefault(a => a.Key == "ProjectDir")?.Value,
+			scriptsFolder: metadata.FirstOrDefault(a => a.Key == "DbLiveScriptsFolder")?.Value
+		);
+	}
+
+	/// <param name="scriptsFolder">Relative to the project, written in the .csproj with '\' or '/'.</param>
+	internal static string? GetSourceScriptsPath(string? projectDir, string? scriptsFolder)
+	{
+		if (string.IsNullOrEmpty(projectDir))
+		{
+			return null;
+		}
+
+		string folder = string.IsNullOrEmpty(scriptsFolder)
+			? "Scripts"
+			: scriptsFolder.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+
+		return Path.Combine(projectDir, folder);
 	}
 }

@@ -50,10 +50,11 @@ Actively developed. Every merge to `main` is published to NuGet (the current ver
 ### 1. Install packages
 
 ```bash
-dotnet add package DbLive
-dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL
+dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
 dotnet add package DbLive.xunit      # for SQL unit tests
 ```
+
+The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds, so the dll you build is the dll you deploy. There is nothing to add to the `.csproj`.
 
 ### 2. Add SQL scripts to your project
 
@@ -83,23 +84,7 @@ Scripts/
   "ProjectId": "my-app-db"
 }
 ```
-### 3. Configure .csproj
-
-Add the following code; it embeds all files in the `Scripts` folder in the project assembly, so the dll you build is the dll you deploy.
-
-```xml
-<ItemGroup>
-  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
-
-  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
-  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-    <_Parameter1>ProjectDir</_Parameter1>
-    <_Parameter2>$(ProjectDir)</_Parameter2>
-  </AssemblyAttribute>
-</ItemGroup>
-```
-
-### 4. Configure and run deployment
+### 3. Configure and run deployment
 Microsoft SQL Server example:
 ```csharp
 // Program.cs

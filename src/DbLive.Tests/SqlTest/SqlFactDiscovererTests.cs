@@ -50,6 +50,29 @@ public class SqlFactDiscovererTests
 		Assert.Null(SqlFactDiscoverer.GetSourceScriptsPath(typeof(SqlFactDiscovererTests).Assembly));
 	}
 
+	[Theory]
+	[InlineData(null, "Scripts")]
+	[InlineData("", "Scripts")]
+	[InlineData("Db", "Db")]
+	[InlineData(@"Db\Sql", "Db/Sql")]
+	[InlineData("Db/Sql", "Db/Sql")]
+	public void GetSourceScriptsPath_FromDbLiveScriptsFolderMetadata(string? scriptsFolder, string expectedFolder)
+	{
+		string projectDir = Path.Combine(Path.GetTempPath(), "MyDb") + Path.DirectorySeparatorChar;
+
+		string? sourcePath = SqlFactDiscoverer.GetSourceScriptsPath(projectDir, scriptsFolder);
+
+		Assert.Equal(Path.Combine(projectDir, expectedFolder.Replace('/', Path.DirectorySeparatorChar)), sourcePath);
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData("")]
+	public void GetSourceScriptsPath_WithoutProjectDir_Null(string? projectDir)
+	{
+		Assert.Null(SqlFactDiscoverer.GetSourceScriptsPath(projectDir, "Db"));
+	}
+
 	private static IEnumerable<IXunitTestCase> Discover(string methodName)
 	{
 		ReflectionMethodInfo method = new(typeof(SqlTestsHost).GetMethod(methodName)!);

@@ -8,21 +8,12 @@ breaking: true
 # Embed the scripts in the SQL project assembly
 
 ## Release note
-**Scripts are embedded in the SQL project assembly.** `SetProject(assembly)` reads the scripts from the resources of the assembly instead of a copy in the output folder: a deleted or renamed script no longer stays in `bin/` to be deployed, and the working directory no longer matters. `SetScriptsFolder(path)` reads a folder instead, for example in a deployer that gets the scripts as an argument. To upgrade, replace the part of the SQL project's `.csproj` that copies `Scripts` to the output (the `None` items with `TargetPath` and the `ClearOutput` target) with the block below.
+**Scripts are embedded in the SQL project assembly.** `SetProject(assembly)` reads the scripts from the resources of the assembly instead of a copy in the output folder: a deleted or renamed script no longer stays in `bin/` to be deployed, and the working directory no longer matters. The `DbLive` package embeds the `Scripts` folder when the project builds; it comes with `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`, so the `.csproj` needs no DbLive block. `SetScriptsFolder(path)` reads a folder instead, for example in a deployer that gets the scripts as an argument. Existing databases deploy as before: relative paths and checksums do not change.
 
-```xml
-<ItemGroup>
-  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
-
-  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
-  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-    <_Parameter1>ProjectDir</_Parameter1>
-    <_Parameter2>$(ProjectDir)</_Parameter2>
-  </AssemblyAttribute>
-</ItemGroup>
-```
-
-`SetProject` fails with `ScriptsNotEmbeddedException` when the assembly has no embedded scripts. The `useVsProjectPath` argument of `SetProject` is removed: a test project reads the scripts from the dll of the SQL project it references. Existing databases deploy as before: relative paths and checksums do not change.
+To upgrade:
+- Remove the DbLive block from the `.csproj` of the SQL project: the `ClearOutput` target, the `None` items that copy `Scripts` to the output folder, and the `AssemblyAttribute` with `ProjectDir`. The package adds what DbLive needs.
+- A SQL project with only scripts, without a provider package, needs a reference to DbLive: `dotnet add package DbLive`. Without it, `SetProject` fails with `ScriptsNotEmbeddedException`, which it throws for any assembly without embedded scripts.
+- Remove the `useVsProjectPath` argument of `SetProject`: a test project reads the scripts from the dll of the SQL project it references.
 
 ## Goal
 Today the `.csproj` copies `Scripts/` to `<output>/<AssemblyName>.Scripts/`, and DbLive reads the scripts from there. The copy causes problems and gives nothing back: people review scripts in the repository, not in `bin/`, and what was applied is stored in the database (`Content` of migration items).
@@ -138,6 +129,8 @@ Experiments on a copy of `DemoMSSQLEmpty`, .NET SDK 10.0.402:
 - Tests: `DbLive.Tests` references `DbLive.xunit` and the four demo SQL projects (parity test), and is itself a SQL project without `ProjectDir` (`Scripts/`) for the `SetProject` and `[SqlFact]` discovery tests. All 380 tests pass locally (`dotnet test DbLive.sln --filter "Category!=LocalOnly"`, Docker): DbLive.Tests 311, DbLive.MSSQL.Tests 22, DbLive.PostgreSQL.Tests 11, DemoMSSQL.Tests 17, Demo.PostgreSQL.Chinook.Tests 10, AdventureWorks.Tests 9.
 - "Go to source" in Visual Studio opens the `.sql` file with scripts read from the dll (checked by the maintainer).
 - Follow-up: `IFileSystem` inside `IProjectPath` keeps `DbLiveProject` unchanged but makes `EmbeddedFileSystem` emulate a disk and leaves a second `IFileSystem` in DI. Replaced by a source of relative paths in 0096-31-01, which also embeds DbLive's own scripts (see "Out of scope").
+
+2026-11-03, maintainer: the release note no longer shows the `.csproj` block. 0096-30-01 moved the embedding into the `DbLive` package before either task was released, so users of 1.5.0 remove their block and add nothing.
 
 ## Result
 - The SQL project embeds its scripts: `EmbeddedResource` with `LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)"` and `WithCulture="false"`, plus the `ProjectDir` assembly metadata. The copy to `<AssemblyName>.Scripts/`, `ClearOutput` and the `None`/`TargetPath` items are gone from the demos and the docs.

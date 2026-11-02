@@ -8,6 +8,8 @@ This is the core package. Install it through a database provider:
 - `DbLive.PostgreSQL`: PostgreSQL
 - `DbLive.xunit`: run SQL tests as xUnit tests
 
+It embeds the `Scripts` folder of every project that references it, also through these packages, in the project's assembly; there is nothing to add to the `.csproj`. A project with only SQL scripts references `DbLive` itself.
+
 ```csharp
 IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()

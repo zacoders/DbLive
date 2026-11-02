@@ -8,9 +8,10 @@ Create a new empty `Console Application` project.
 ## 2. Install Packages
 
 ```bash
-dotnet add package DbLive
-dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL
+dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
 ```
+
+The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds. There is nothing to add to the `.csproj` (see [Embedding the scripts](project/index.md#embedding-the-scripts)).
 
 ## 3. Add SQL Scripts to Your Project
 
@@ -33,23 +34,7 @@ All three folders are optional; a project can, for example, contain only code. S
 }
 ```
 
-## 4. Configure Project
-
-Add the following code to the `.csproj`; it embeds all files in the `Scripts` folder in the project assembly.
-
-```xml
-<ItemGroup>
-  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
-
-  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
-  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-    <_Parameter1>ProjectDir</_Parameter1>
-    <_Parameter2>$(ProjectDir)</_Parameter2>
-  </AssemblyAttribute>
-</ItemGroup>
-```
-
-## 5. Add First Migration
+## 4. Add First Migration
 
 Add your first migration sql script. File name format is `{timestamp}.{description}.sql`
 
@@ -64,7 +49,7 @@ create table dbo.Users
 );
 ```
 
-## 6. Configure and Run Deployment
+## 5. Configure and Run Deployment
 
 Copy the following code to the `Program.cs`
 
@@ -91,7 +76,7 @@ await builder.CreateDeployer().DeployAsync(new DeployParameters
 });
 ```
 
-## 7. Run App
+## 6. Run App
 
 Run the app from Visual Studio or with `dotnet run`. DbLive reads the scripts embedded in the assembly, so the build has to run after you change a script; Visual Studio and `dotnet run` build first (see [How DbLive finds the scripts](project/index.md#how-dblive-finds-the-scripts)).
 

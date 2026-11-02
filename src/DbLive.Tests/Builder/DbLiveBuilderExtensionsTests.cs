@@ -28,7 +28,8 @@ public class DbLiveBuilderExtensionsTests
 
 		Assert.Equal("DbLive", ex.AssemblyName);
 		Assert.Contains("'DbLive'", ex.Message);
-		Assert.Contains("""<EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />""", ex.Message);
+		Assert.Contains("""<PackageReference Include="DbLive" />""", ex.Message);
+		Assert.Contains("<DbLiveScriptsFolder>", ex.Message);
 	}
 
 	[Theory]

@@ -1,13 +1,13 @@
 # Project
 
-A **DbLive project** is an ordinary .NET project that contains a `Scripts` folder with your SQL. A few lines in the `.csproj` embed the scripts in the project assembly, and a small piece of C# (the *deployer*) tells DbLive which database to deploy them to.
+A **DbLive project** is an ordinary .NET project that contains a `Scripts` folder with your SQL. The DbLive package embeds the scripts in the project assembly, and a small piece of C# (the *deployer*) tells DbLive which database to deploy them to.
 
 - [Project Structure](structure.md): folders and file naming rules
 - [Project Configuration](configuration.md): `settings.json`, item settings, transactions
 
 ## Layouts
 
-**One project.** The scripts and the deployer live in one console application. This is the simplest option and what the demos use.
+**One project.** The scripts and the deployer live in one console application that references the provider package (`DbLive.MSSQL` or `DbLive.PostgreSQL`). This is the simplest option and what the demos use.
 
 ```
 MyDb/
@@ -24,37 +24,46 @@ MyDb/
 
 | Project | Type | Contains |
 |---------|------|----------|
-| `MyDb` | class library | `Scripts/`, the `.csproj` block below, an empty marker class |
+| `MyDb` | class library | `Scripts/`, an empty marker class; references the `DbLive` package, which embeds the scripts |
 | `MyDb.Deploy` | console app | the deployer; references `MyDb` and `DbLive.MSSQL` (or `DbLive.PostgreSQL`) |
 | `MyDb.Tests` | xUnit test project | SQL tests and deployment tests; references `MyDb`, the provider and `DbLive.xunit` |
 
 The deployer and the tests find the SQL project through its assembly, for example `typeof(MyDbMarker).Assembly` where `public sealed class MyDbMarker { }` is declared in `MyDb`.
 
-## The `.csproj` block
+## Embedding the scripts
 
-Add this to the project that contains the `Scripts` folder:
+The `DbLive` package embeds the scripts when the project builds; there is nothing to add to the `.csproj`. The provider packages and `DbLive.xunit` bring `DbLive`, so a project that references one of them gets it. A project with only scripts (`MyDb` in the separate-projects layout) references it directly:
 
-```xml
-<ItemGroup>
-  <!-- Embeds Scripts\** in the assembly; SetProject(assembly) reads the scripts from there. -->
-  <EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
-
-  <!-- Lets "Go to source" of SQL tests in Test Explorer open the .sql file. -->
-  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-    <_Parameter1>ProjectDir</_Parameter1>
-    <_Parameter2>$(ProjectDir)</_Parameter2>
-  </AssemblyAttribute>
-</ItemGroup>
+```bash
+dotnet add package DbLive
 ```
 
-What each part does:
+A project with a `Scripts` folder gets:
 
-- `LogicalName` keeps the folder structure: DbLive identifies scripts in the database by their path relative to `Scripts` (`Migrations/001.migration.sql`), so it must be the same as in the folder.
-- `WithCulture="false"` keeps a file like `name.fr.sql` in the assembly. Without it, MSBuild treats the file as a French resource, moves it to a satellite assembly, and the script is not deployed.
-- `ProjectDir` is used only by `[SqlFact]` tests: double-clicking a SQL test in Test Explorer opens its `.sql` file. Without it, the tests still run, but "Go to source" does not open the `.sql` file.
+- every file of the folder as a resource named after its path relative to `Scripts` (`DbLive/Migrations/001.migration.sql`). DbLive identifies scripts in the database by this path. A file like `name.fr.sql` stays in the assembly: it is not treated as a French resource and moved to a satellite assembly.
+- the project folder in the assembly metadata, used only by `[SqlFact]` tests: double-clicking a SQL test in Test Explorer opens its `.sql` file.
 
-!!! note
-    The folder in your project must be named `Scripts`. `SetProject` throws `ScriptsNotEmbeddedException` when the assembly has no embedded scripts, so a missing block does not deploy an empty project.
+A project without the folder gets nothing, so the deployer and the test project of the separate-projects layout do not embed anything.
+
+Two properties in the `.csproj` of the SQL project change this:
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| `DbLiveScriptsFolder` | `Scripts` | The folder to embed, relative to the project. The resource names stay relative to it, so the paths stored in the database do not depend on the folder name. |
+| `DbLiveEmbedScripts` | `true` | `false` embeds nothing: for a project that has DbLive and a `Scripts` folder with other files. |
+
+```xml
+<PropertyGroup>
+  <DbLiveScriptsFolder>Db</DbLiveScriptsFolder>
+</PropertyGroup>
+```
+
+`SetProject` throws `ScriptsNotEmbeddedException` when the assembly has no embedded scripts, so a project that does not reference DbLive or keeps its scripts in another folder does not deploy an empty database.
+
+A `.csproj` must not embed the scripts itself as well: with an `EmbeddedResource` for the same files, or one named `DbLive/...`, the build fails with an error that says to remove it. To embed the scripts in the `.csproj` yourself, set `<DbLiveEmbedScripts>false</DbLiveEmbedScripts>`.
+
+!!! note "Upgrading from a version that copied the scripts to the output folder"
+    Remove the DbLive block from the `.csproj`: the `ClearOutput` target, the `None` items that copy `Scripts` to the output folder, and the `ProjectDir` `AssemblyMetadata` item. The package adds what DbLive needs.
 
 ## How DbLive finds the scripts
 

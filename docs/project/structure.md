@@ -1,6 +1,6 @@
 # Project Structure
 
-All scripts live under the `Scripts` folder of the SQL project. Folder names can be changed in [`settings.json`](configuration.md); the defaults are shown here.
+All scripts live under the `Scripts` folder of the SQL project (another name can be set in the `.csproj`, see [Embedding the scripts](index.md#embedding-the-scripts)). The names of the folders inside it can be changed in [`settings.json`](configuration.md); the defaults are shown here.
 
 ```
 Scripts/

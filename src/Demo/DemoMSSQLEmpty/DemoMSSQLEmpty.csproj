@@ -7,16 +7,5 @@
   </PropertyGroup>
 
 
-	<ItemGroup>
-		<!-- Embeds Scripts\** in the assembly: SetProject(assembly) reads the scripts from there. -->
-		<EmbeddedResource Include="Scripts\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
-
-		<!-- Lets "Go to source" of [SqlFact] tests open the .sql file. -->
-		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-			<_Parameter1>ProjectDir</_Parameter1>
-			<_Parameter2>$(ProjectDir)</_Parameter2>
-		</AssemblyAttribute>
-	</ItemGroup>
-
 
 </Project>

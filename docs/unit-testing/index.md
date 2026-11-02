@@ -195,7 +195,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 
 - The fixture class must derive from `DbLiveTestFixture` and have a public parameterless constructor.
 - The fixture deploys the project once per test class (migrations, code and breaking changes, no tests) into a fresh database and drops it at the end if `dropDatabaseOnComplete` is true.
-- Each SQL file appears in Test Explorer under its relative path; "Go to source" opens the `.sql` file (it needs the `ProjectDir` metadata from the [`.csproj` block](../project/index.md#the-csproj-block)).
+- Each SQL file appears in Test Explorer under its relative path; "Go to source" opens the `.sql` file (it needs the project folder that the [DbLive package](../project/index.md#embedding-the-scripts) records in the SQL project's assembly).
 - The tests read the scripts embedded in the SQL project's dll. Test Explorer and `dotnet test` build before running, so changed scripts are picked up; new test files appear after a build.
 
 ![Visual Studio Tests](../visual-studio-tests.png)
