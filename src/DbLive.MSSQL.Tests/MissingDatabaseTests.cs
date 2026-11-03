@@ -60,7 +60,10 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 
 		try
 		{
-			SqlConnectionStringBuilder loginCnnString = new(_dbCnnString) { UserID = login, Password = password };
+			// a pooled connection of the login to master would block 'drop login'. SqlConnection.ClearAllPools() is not an option:
+			// it also clears the pools of tests running in parallel, and their open transactions get promoted to distributed ones.
+			// DbLive builds its connection to master from this connection string, so it is not pooled either.
+			SqlConnectionStringBuilder loginCnnString = new(_dbCnnString) { UserID = login, Password = password, Pooling = false };
 
 			using TempProject project = new TempProject()
 				.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
@@ -73,8 +76,6 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 		}
 		finally
 		{
-			// the connection of the login to master stays in the pool and blocks 'drop login'.
-			SqlConnection.ClearAllPools();
 			await ExecuteOnMasterAsync($"drop login [{login}];");
 		}
 	}
