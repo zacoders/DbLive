@@ -175,7 +175,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
 
-			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
+			// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
+			using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
 
 			List<SqlResult> multipleResults = [];
 			do
