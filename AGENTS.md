@@ -8,8 +8,9 @@ Write everything in the repository in English.
 
 Work items (features, bugs, chores) are Markdown files in `tasks/`, one file per task, not GitHub Issues. Format, numbering and the template: [tasks/README.md](tasks/README.md). Read it before you create or close a task.
 
-- **Folders.** Open tasks are in `tasks/`, finished ones in `tasks/done/`: the folder is the status. An idea that is not decided yet goes to `tasks/ideas/`, without a number.
-- **Numbers.** A top-level task takes its GitHub issue number: `0096-documentation.md` for #96. Something found while working on a task gets its own file under that task's number, with the next free two-digit number across `tasks/` and `tasks/done/`: `0096-34-<slug>.md`. Do not open a GitHub issue for it.
+- **Folders.** Open tasks are in `tasks/`, finished ones in `tasks/done/`, rejected tasks and ideas in `tasks/rejected/`: the folder is the status. An idea that is not decided yet goes to `tasks/ideas/`, without a number.
+- **Numbers.** A top-level task takes its GitHub issue number: `0096-documentation.md` for #96. Something found while working on a task gets its own file under that task's number, with the next free two-digit number across `tasks/`, `tasks/done/` and `tasks/rejected/`: `0096-34-<slug>.md`. Do not open a GitHub issue for it.
+- **Before proposing.** Look in `tasks/rejected/` first. Do not propose again what was rejected unless something changed since, and then say what changed.
 - **Work.** Tick the checkboxes as you go. Findings, dead ends and decisions go to `## Notes`; mark facts confirmed by an experiment as verified. Write a decision of the maintainer with its date. Open questions are `- [ ] ...?` items, and the maintainer answers them.
 - **Same commit.** A task file changes in the same commit as the code it describes. A change in DbLive behavior updates `docs/llms-full.txt` (the reference for AI agents) and the matching page under `docs/` in that commit too; the task lists them under `## Docs to update`.
 - **Close.** When everything under `## Done when` is ticked:
@@ -17,6 +18,10 @@ Work items (features, bugs, chores) are Markdown files in `tasks/`, one file per
   2. Set `breaking: true` in the front matter when an upgrade needs a change on the user's side: a renamed file or setting, a changed call, a test that passed and now fails.
   3. Fill `## Result`: what changed, decisions taken, tests.
   4. Set `closed:` and `git mv` the file to `tasks/done/` in the same commit as the final change.
+- **Reject.** Only the maintainer rejects a task or an idea. Do not delete the file:
+  1. Write `## Rejected` right after the title: the maintainer's decision with its date, and why.
+  2. Set `rejected:` in the front matter.
+  3. `git mv` the file to `tasks/rejected/`. It keeps its name and number, and needs no `## Release note`.
 
 ## Commits and pull requests
 

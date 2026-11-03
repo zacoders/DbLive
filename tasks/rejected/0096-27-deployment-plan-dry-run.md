@@ -2,8 +2,15 @@
 type: feature
 priority: low
 created: 2026-10-31
+rejected: 2026-11-03
 ---
 # Show what a deployment would do, without running it
+
+## Rejected
+Rejected by the maintainer on 2026-11-03. The dry run of a DbLive project is its deployment inside the unit tests, together with the SQL unit tests; then come the tests of the application against the database, and the QA and UAT environments. A plan adds no control on top of that:
+- DbLive scripts are written by people and reviewed in the pull request, so a plan of pending files repeats the git diff between the deployed tag and the new build. A plan earns its place in state-based tools (Terraform, SSDT), where the tool generates the change script and people must see what it generated.
+- An approver sees file names, and cannot judge the risk of a change from them.
+- The cases the plan was meant to show already fail before anything runs: a downgrade without undo scripts or without `AllowDatabaseDowngrade`, a checksum mismatch, a ProjectId mismatch.
 
 ## Problem
 There is no way to see what `DeployAsync` would change before it runs (no dry run or plan in `src`, verified by search). Flyway has `info` and `validate`. A plan is useful as an approval step in a release pipeline, and before a rollback.
