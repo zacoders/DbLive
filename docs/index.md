@@ -30,7 +30,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 
 ## Where to start
 
-- **[Getting Started](gettingstarted.md)**: create a project, add a migration, run the first deployment.
+- **[Getting Started](gettingstarted.md)**: create a solution with SQL tests in one command (`dotnet new dblive`), or set up a project by hand: add a migration, run the first deployment.
 - **[Add a stored procedure and a unit test](unit-testing/stored-proc-and-unit-test.md)**: continue the tutorial with code and tests.
 - **[Database as a Service](database-as-service.md)**: the idea behind DbLive, and the ways to use it, from classic migrations to an independently released database.
 - **[Zero-Downtime Deployment](deployment/zero-downtime.md)**: the release runbook for 24/7 systems.
@@ -56,6 +56,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 | `DbLive.xunit` | SQL tests as xUnit tests, deployment tests |
 | `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker, for the SQL tests |
 | `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker, for the SQL tests |
+| `DbLive.Templates` | `dotnet new dblive`: a new solution with the SQL project, the deployer and the test project |
 
 Target frameworks: .NET 8, 9 and 10. Source code and issues: [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive).
 

@@ -1,6 +1,9 @@
 // Builds projects that reference the packed DbLive packages from a local feed, the way a user project does,
 // and checks what the packages add to them: the DbLive package embeds the scripts folder without a block in the
 // .csproj (task 0096-30-01), and the fixture builders compile with their packages (task 0096-30-02).
+// Then installs the dotnet new template from its package, creates a solution for each provider, and runs its tests
+// against the packages of the same build (task 0096-30). The tests start SQL Server and PostgreSQL in Docker, so
+// Docker must be running.
 //
 //   dotnet pack src/DbLive/DbLive.csproj -o <folder>              (and the other packages, see cicd.yml)
 //   dotnet run .github/scripts/package-tests.cs -- --packages <folder>
@@ -8,7 +11,8 @@
 // --packages <folder>   the folder with the .nupkg files of one build
 //
 // The projects are created in a temporary folder, outside the repository, with their own NuGet cache, so a package
-// rebuilt with the same version is not taken from the global cache. Fails (exit code 1) when a check fails, and
+// rebuilt with the same version is not taken from the global cache; the template is installed into a template cache
+// of that folder too (--debug:custom-hive), not into the one of the user. Fails (exit code 1) when a check fails, and
 // keeps the folder for inspection.
 
 // Reads the built assemblies by reflection, which the AOT analyzers of a file-based app warn about.
@@ -18,6 +22,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 string? packages = null;
 for (int i = 0; i < args.Length; i++)
@@ -127,6 +132,25 @@ Write("Fixtures/Fixtures.cs", """
 	""");
 Check("Fixtures", builds: true, resources: [], scriptsFolder: null);
 
+// The dotnet new template (task 0096-30). A name with a dot and a hyphen: the paths and Assembly.Load take it as it
+// is, the namespaces take Contoso.Billing_Db. The first solution takes the default provider, SQL Server.
+string templateHive = Path.Combine(root, ".templates");
+string templatePackage = Path.Combine(packages, $"DbLive.Templates.{version}.nupkg");
+Console.WriteLine();
+Console.WriteLine("== Template");
+(int installExitCode, string installOutput) = Run("dotnet", "new", "install", templatePackage, "--debug:custom-hive", templateHive);
+if (installExitCode != 0)
+{
+	failures.Add($"Template: dotnet new install {templatePackage} failed (exit code {installExitCode}):{Environment.NewLine}{installOutput}");
+	Console.WriteLine($"   FAIL: dotnet new install failed:{Environment.NewLine}{installOutput}");
+}
+else
+{
+	Console.WriteLine($"   ok: installed {Path.GetFileName(templatePackage)}");
+	Template("mssql", providerOption: null, provider: "MSSQL", sqlTests: ["Code/dbo.GetUser.test.sql", "Tests/user-name-is-required.sql"]);
+	Template("postgresql", providerOption: "postgresql", provider: "PostgreSQL", sqlTests: ["Code/get_user.test.sql", "Tests/user-name-is-required.sql"]);
+}
+
 if (failures.Count > 0)
 {
 	Console.Error.WriteLine();
@@ -231,6 +255,68 @@ void Check(string name, bool builds, string[] resources, string? scriptsFolder, 
 	// name.fr.sql must stay in the assembly, not go to a satellite assembly in fr/.
 	if (Directory.Exists(Path.Combine(outputDir, "fr")))
 		Fail("a satellite assembly folder fr/ was created.");
+}
+
+// Creates a solution from the template into Template-<name> and runs its tests. providerOption: the --provider value,
+// null for the default. provider: the suffix of the provider packages (MSSQL, PostgreSQL). sqlTests: the SQL test files
+// of the template, each one a test case named after its path.
+void Template(string name, string? providerOption, string provider, string[] sqlTests)
+{
+	const string projectName = "Contoso.Billing-Db";
+	const string testNamespace = "Contoso.Billing_Db.Tests";
+	string outputDir = Path.Combine(root, $"Template-{name}");
+	Console.WriteLine();
+	Console.WriteLine($"== Template {name}");
+
+	void Fail(string message)
+	{
+		failures.Add($"Template {name}: {message}");
+		Console.WriteLine($"   FAIL: {message}");
+	}
+
+	string[] newArguments = ["new", "dblive", "-n", projectName, "-o", outputDir, "--debug:custom-hive", templateHive,
+		.. providerOption is null ? Array.Empty<string>() : ["--provider", providerOption]];
+	(int exitCode, string output) = Run("dotnet", newArguments);
+	if (exitCode != 0)
+	{
+		Fail($"dotnet {string.Join(' ', newArguments)} failed (exit code {exitCode}):{Environment.NewLine}{output}");
+		return;
+	}
+
+	// The template of this build creates projects on the DbLive packages of this build.
+	string[] references = [.. Directory.GetFiles(outputDir, "*.csproj", SearchOption.AllDirectories)
+		.SelectMany(path => Regex.Matches(File.ReadAllText(path), @"<PackageReference Include=""(DbLive[^""]*)"" Version=""([^""]*)""")
+			.Select(m => $"{m.Groups[1].Value} {m.Groups[2].Value}"))
+		.Order(StringComparer.Ordinal)];
+	string[] expectedReferences = [.. new[] { $"DbLive.{provider}", $"DbLive.Testcontainers.{provider}", "DbLive.xunit" }
+		.Select(id => $"{id} {version}")
+		.Order(StringComparer.Ordinal)];
+	if (!references.SequenceEqual(expectedReferences))
+		Fail($"package references [{string.Join(", ", references)}], expected [{string.Join(", ", expectedReferences)}].");
+	else
+		Console.WriteLine($"   ok: {string.Join(", ", references)}");
+
+	string resultsDir = Path.Combine(outputDir, "TestResults");
+	(exitCode, output) = Run("dotnet", "test", Path.Combine(outputDir, $"{projectName}.slnx"),
+		"--logger", "trx;LogFileName=results.trx", "--results-directory", resultsDir);
+	string trx = Path.Combine(resultsDir, "results.trx");
+	if (!File.Exists(trx))
+	{
+		Fail($"no test results, dotnet test failed (exit code {exitCode}):{Environment.NewLine}{output}");
+		return;
+	}
+
+	XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
+	var results = XDocument.Load(trx).Descendants(ns + "UnitTestResult")
+		.Select(r => (Name: (string)r.Attribute("testName")!, Outcome: (string)r.Attribute("outcome")!))
+		.OrderBy(r => r.Name, StringComparer.Ordinal)
+		.ToList();
+	string[] expectedTests = [.. sqlTests.Append($"{testNamespace}.DeploymentTests.ReleaseDeploysAndRollsBack").Order(StringComparer.Ordinal)];
+	string actual = string.Join(", ", results.Select(r => $"{r.Name}: {r.Outcome}"));
+	if (exitCode != 0 || !results.Select(r => r.Name).SequenceEqual(expectedTests) || results.Any(r => r.Outcome != "Passed"))
+		Fail($"tests [{actual}], expected [{string.Join(", ", expectedTests)}] to pass (exit code {exitCode}):{Environment.NewLine}{output}");
+	else
+		Console.WriteLine($"   ok: {results.Count} tests passed: {string.Join(", ", results.Select(r => r.Name))}");
 }
 
 static (int ExitCode, string Output) Run(string fileName, params string[] arguments)

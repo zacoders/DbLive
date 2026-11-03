@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- The DbLive package embeds the Scripts folder in the assembly when the project builds. -->
+  <ItemGroup>
+    <!--#if (mssql) -->
+    <PackageReference Include="DbLive.MSSQL" Version="DBLIVE_VERSION" />
+    <!--#else -->
+    <PackageReference Include="DbLive.PostgreSQL" Version="DBLIVE_VERSION" />
+    <!--#endif -->
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 # Versioning
 
-DbLive follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. All DbLive packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`) are released together with one version; use the same version of all of them.
+DbLive follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. All DbLive packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`, and the template `DbLive.Templates`) are released together with one version; use the same version of all of them. A project created by the template references the packages of the template's version.
 
 | Version | What it contains | What you do to upgrade |
 | --- | --- | --- |
@@ -22,5 +22,7 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 - **SQL test semantics**: the `assert` result set and its values, `setup.test.sql`, the transaction a test runs in ([SQL unit testing](unit-testing/index.md)).
 - **The `dblive` schema**, DbLive's own tables in your database. DbLive creates and upgrades it during a deployment, without manual steps; a new version may add columns and tables and convert the stored data. Removing or renaming what you can query is a breaking change.
 - **Supported .NET versions and database engines**: dropping one is a breaking change.
+
+The template `DbLive.Templates` (`dotnet new dblive`) creates new projects and does not change existing ones, so a change in what it creates (file names, example scripts) is not a breaking change. A removed or renamed option of the template is.
 
 Types that are public but not described in the documentation (the deployers, the provider data access classes, the classes behind the dependency injection) are public so that the provider packages and `DbLive.xunit` can use them. They may change in any version.

@@ -1,5 +1,45 @@
 # Getting Started
 
+There are two ways to start. The `dotnet new` template creates a working solution with SQL tests in one command. The steps after it build the same SQL project by hand and explain each part; follow them to add DbLive to an existing solution.
+
+## With the template
+
+```bash
+dotnet new install DbLive.Templates
+dotnet new dblive -n MyDb --provider mssql      # or --provider postgresql
+cd MyDb
+```
+
+`-n` names the solution and the SQL project (default: the name of the current folder); the test project is `MyDb.Tests`. The template creates:
+
+| File | What it is |
+|------|------------|
+| `MyDb/Scripts/settings.json` | The [ProjectId](features/project-id.md) of the project, the name in lower case |
+| `MyDb/Scripts/Migrations/<timestamp>.users.sql` | The first migration: a users table. The version is the UTC time when the template ran |
+| `MyDb/Scripts/Migrations/<timestamp>.undo.sql` | Its undo script |
+| `MyDb/Scripts/Code/dbo.GetUser.sql`, `dbo.GetUser.test.sql` | A procedure and its test (PostgreSQL: `get_user.sql`, a function) |
+| `MyDb/Scripts/Tests/user-name-is-required.sql` | A test of a data rule, without an assert: it fails when the script raises an error |
+| `MyDb/Program.cs` | The deployer: deploys the scripts to a local database and creates it if it does not exist |
+| `MyDb.Tests/SqlTests.cs` | The fixture and `[SqlFact]`: every SQL test file is a test case of its own |
+| `MyDb.Tests/DeploymentTests.cs` | `[SqlDeployFact]`: deploys the project as production does and runs the undo script ([Deployment tests](unit-testing/deployment-tests.md)) |
+
+Run the tests, in Visual Studio Test Explorer or with:
+
+```bash
+dotnet test
+```
+
+The fixtures start SQL Server or PostgreSQL in Docker (Testcontainers), so Docker must be running; every test class gets a new database, which is dropped after the tests. Without Docker, point the fixtures at a server you run ([A fixture builder](unit-testing/index.md#1-a-fixture-builder)).
+
+To deploy to a local database, check the connection string in `MyDb/Program.cs` and run:
+
+```bash
+dotnet run --project MyDb
+```
+
+The projects target .NET 10 and reference the DbLive packages of the same version as the template. `dotnet new install DbLive.Templates` updates the template to the latest version.
+
+The example scripts are there to show the folders; replace them with yours. A migration can be changed only until it is deployed to a database that you keep ([Rules of thumb](deployment/migrations.md#rules-of-thumb)): the tests deploy to databases they drop, so they do not count. Name new migrations with a timestamp too, as in step 4 below: a lower version such as `002` would run before the example migration on a new database.
 
 ## 1. Create Project
 

@@ -47,7 +47,28 @@ Actively developed. Every merge to `main` is published to NuGet (the current ver
 
 ## Quick start
 
-### 1. Install packages
+### With the template
+
+```bash
+dotnet new install DbLive.Templates
+dotnet new dblive -n MyDb               # SQL Server; --provider postgresql for PostgreSQL
+cd MyDb
+dotnet test                             # runs the SQL tests against a database in Docker
+dotnet run --project MyDb               # deploys to the local database named in MyDb/Program.cs
+```
+
+The template creates a solution with two projects:
+
+- `MyDb`: the SQL in `Scripts/` (a migration with its undo script, a procedure with its test, a data rule test, `settings.json` with the `ProjectId`) and the deployer `Program.cs`.
+- `MyDb.Tests`: every SQL test file as an xUnit test case, and the deployment test, which deploys the project as production does and runs the undo script. The database runs in Docker (Testcontainers), so Docker must be running.
+
+The projects reference the DbLive packages of the template's version; `dotnet new install DbLive.Templates` updates it.
+
+### By hand
+
+The steps below set up the SQL project and the deployer without the template; the test project is in [SQL testing](#sql-testing).
+
+#### 1. Install packages
 
 ```bash
 dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
@@ -62,7 +83,7 @@ dotnet add package DbLive.Testcontainers.MSSQL   # or DbLive.Testcontainers.Post
 
 The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds, so the dll you build is the dll you deploy. There is nothing to add to the `.csproj`.
 
-### 2. Add SQL scripts to your project
+#### 2. Add SQL scripts to your project
 
 Organize scripts in folders (names and layout are configurable):
 
@@ -90,7 +111,7 @@ Scripts/
   "ProjectId": "my-app-db"
 }
 ```
-### 3. Configure and run deployment
+#### 3. Configure and run deployment
 Microsoft SQL Server example:
 ```csharp
 // Program.cs
@@ -343,5 +364,5 @@ Use them as templates for structure, `settings.json`, and test setup.
 
 - **License:** [MIT](LICENSE)
 - **Repository:** [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive)
-- **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit
+- **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit, DbLive.Testcontainers.MSSQL, DbLive.Testcontainers.PostgreSQL, DbLive.Templates
 - **Releases:** [release notes](https://github.com/zacoders/DbLive/releases) with the upgrade steps for breaking changes; [versioning policy](docs/versioning.md)

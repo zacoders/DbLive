@@ -65,8 +65,9 @@ SQL tests, undo scripts and rollback, checksums and ProjectId are available in e
 | `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` |
 | `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker (Testcontainers). Brings `DbLive.MSSQL` and `Testcontainers.MsSql`; no xUnit dependency. | `MsSqlContainerFixtureBuilder` |
 | `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker (Testcontainers). Brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; no xUnit dependency. | `PostgreSqlContainerFixtureBuilder` |
+| `DbLive.Templates` | `dotnet new` template; installed with `dotnet new install`, never referenced by a project. Creates a new solution (Section 18.1). | `dotnet new dblive` |
 
-- Versions: all DbLive packages are released together with one version; use the same version of all of them. Semantic Versioning, breaking changes only in a major version (`docs/versioning.md`). Before upgrading to a new major version, read "Breaking changes" in the release notes (https://github.com/zacoders/DbLive/releases) and apply the upgrade steps there.
+- Versions: all DbLive packages are released together with one version; use the same version of all of them. A project created by `DbLive.Templates` references the DbLive packages of the template's version. Semantic Versioning, breaking changes only in a major version (`docs/versioning.md`). Before upgrading to a new major version, read "Breaking changes" in the release notes (https://github.com/zacoders/DbLive/releases) and apply the upgrade steps there.
 - Target frameworks: `net8.0`, `net9.0`, `net10.0`.
 - Logging: Serilog (`Serilog.ILogger`). Default is no logging.
 - DI: Microsoft.Extensions.DependencyInjection (internal container, all services are singletons).
@@ -77,6 +78,7 @@ dotnet add package DbLive.MSSQL                  # or: dotnet add package DbLive
 dotnet add package DbLive.xunit                  # only in the xUnit test project
 dotnet add package DbLive.Testcontainers.MSSQL   # only in the test project, for a test database in Docker; or DbLive.Testcontainers.PostgreSQL
 dotnet add package DbLive                        # only in a SQL project without the provider (layout B, Section 3.2)
+dotnet new install DbLive.Templates              # the template for a new solution (Section 18.1), not a project reference
 ```
 
 ---
@@ -112,7 +114,7 @@ Properties, set in the `.csproj` of the SQL project:
 
 ### 3.2 Layouts
 
-**A. One project** (scripts and deployer together; this is what the demos do):
+**A. One project** (scripts and deployer together; this is what the demos and `dotnet new dblive` do):
 
 ```
 MyDb/
@@ -1025,6 +1027,24 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 ## 18. Recipes
 
 ### 18.1 Add DbLive to a new solution
+With the template, one command does steps 1-4:
+
+```bash
+dotnet new install DbLive.Templates
+dotnet new dblive -n MyDb --provider mssql       # or --provider postgresql; default mssql
+```
+
+| Created | Content |
+|---|---|
+| `MyDb.slnx` | Both projects. |
+| `MyDb/` | Layout A (Section 3.2), `net10.0`, references the provider package. `Program.cs`: the deployer for a local database, `DeployParameters.Default with { CreateDbIfNotExists = true }` (remove `CreateDbIfNotExists` before deploying to production, rule 18). `Scripts/settings.json`: `ProjectId` = the name in lower case. `Scripts/Migrations/<yyyyMMddHHmmss>.users.sql` (UTC time of creation) and `<same version>.undo.sql`: a users table with a check constraint on the name. `Scripts/Code/`: SQL Server `dbo.GetUser.sql` + `dbo.GetUser.test.sql`, PostgreSQL `get_user.sql` (a function) + `get_user.test.sql`. `Scripts/Tests/user-name-is-required.sql`: a data rule test without an assert. |
+| `MyDb.Tests/` | xUnit v2, references `MyDb`, `DbLive.xunit` and `DbLive.Testcontainers.MSSQL` (or `.PostgreSQL`). `SqlTests.cs`: `SqlTestFixture` on the container builder (13.1) and the `[SqlFact]` class (13.2). `DeploymentTests.cs`: the `[SqlDeployFact]` class (13.3). |
+
+- `-n` is used as it is for the folders, project files, `Assembly.Load("<name>")` and the database name in `Program.cs`; namespaces take the identifier form (`Contoso.Billing-Db` → `Contoso.Billing_Db.Tests`). Without `-n`, the name of the output folder.
+- `dotnet test` in the solution folder runs 3 tests (2 SQL test files and the deployment test); Docker must be running. `dotnet run --project MyDb` deploys to the local database of `Program.cs`.
+- The example scripts can be changed or deleted until a migration is deployed to a database that is kept (rule 1); the test databases are dropped. Version new migrations with timestamps too (Section 5.1): a lower version such as `002` would run before the example migration on a new database.
+
+Without the template:
 1. Create the SQL project (class library or console app) with a `Scripts` folder. It references the provider (layout A) or `DbLive` (layout B), which embeds the folder (3.1); add nothing to the `.csproj`.
 2. Create `Scripts/Migrations/<yyyyMMddHHmmss>.<name>.sql` with the first change, and `Scripts/settings.json` with `ProjectId` (rule 17), optionally `"EnforceTimestampVersion": true`.
 3. Create the deployer (3.3).

@@ -89,8 +89,13 @@ jobs:
     - name: Create DbLive.Testcontainers.PostgreSQL package
       run: dotnet pack 'src/DbLive.Testcontainers.PostgreSQL/DbLive.Testcontainers.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
+    # The dotnet new template. Version also goes into the template: it creates projects on the packages of this build.
+    - name: Create DbLive.Templates package
+      run: dotnet pack 'src/DbLive.Templates/DbLive.Templates.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
     # Builds projects that reference the packages, as a user project does: the DbLive package embeds the
     # Scripts folder without a block in the .csproj, and the fixture builders compile with one package reference.
+    # Then creates a solution from the template for each provider and runs its tests (Docker) against these packages.
     - name: Test packages
       run: dotnet run .github/scripts/package-tests.cs -- --packages "$RUNNER_TEMP/packages"
 

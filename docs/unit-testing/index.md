@@ -124,7 +124,7 @@ Code/
 
 ## Running tests in Visual Studio and CI (xUnit)
 
-`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. Create a test project next to your SQL project (here `MyDb`) and reference it:
+`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. For a new solution, `dotnet new dblive` creates the SQL project together with this test project, its fixture and both test classes ([Getting Started](../gettingstarted.md#with-the-template)). To add the tests to an existing SQL project, create a test project next to it (here `MyDb`) and reference it:
 
 ```bash
 dotnet new xunit -n MyDb.Tests
