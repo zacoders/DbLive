@@ -58,6 +58,14 @@ theme:
     - navigation.expand
     - navigation.indexes
 
+# Report these as warnings, so that `mkdocs build --strict` (CI) fails on them:
+# a link to a missing heading anchor, and a page that is not in the nav below.
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    anchors: warn
+
 # Site navigation; without it pages are sorted alphabetically
 nav:
   - Home: index.md

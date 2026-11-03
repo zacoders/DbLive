@@ -26,7 +26,7 @@ MyDb/
 |---------|------|----------|
 | `MyDb` | class library | `Scripts/`, an empty marker class; references the `DbLive` package, which embeds the scripts |
 | `MyDb.Deploy` | console app | the deployer; references `MyDb` and `DbLive.MSSQL` (or `DbLive.PostgreSQL`) |
-| `MyDb.Tests` | xUnit test project | SQL tests and deployment tests; references `MyDb`, the provider and `DbLive.xunit` |
+| `MyDb.Tests` | xUnit test project | SQL tests and deployment tests; references `MyDb`, `DbLive.xunit` and `DbLive.Testcontainers.MSSQL` (a test database in Docker; brings the provider), or the provider alone to test on a server you run |
 
 The deployer and the tests find the SQL project through its assembly, for example `typeof(MyDbMarker).Assembly` where `public sealed class MyDbMarker { }` is declared in `MyDb`.
 
@@ -70,7 +70,7 @@ A `.csproj` must not embed the scripts itself as well: with an `EmbeddedResource
 | Call | Scripts are read from | Use it for |
 |------|-----------------------|------------|
 | `SetProject(Assembly projectAssembly)` | the resources embedded in `projectAssembly` | Deployers and tests |
-| `SetScriptsFolder(string path)` | the folder; a relative path is resolved against the current directory | Scripts that are not built into an assembly |
+| `SetScriptsFolder(string scriptsPath)` | the folder; a relative path is resolved against the current directory | Scripts that are not built into an assembly |
 
 With `SetProject` there is nothing to copy or clean: your scripts travel inside the dll, also through `dotnet publish` (DbLive's own scripts travel inside the provider dll, see [Provider files](#provider-files)), and a script deleted from the project is gone from the next build. The deployer does not depend on the current working directory. Because the scripts are part of the build, change a script and build before you deploy; Visual Studio, `dotnet run` and `dotnet test` build first.
 
@@ -87,7 +87,7 @@ var deployer = new DbLiveBuilder()
     .CreateDeployer();
 ```
 
-The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are picked up.
+The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are picked up. Only `settings.json` is read once per builder: to pick up a change to it, create a new builder.
 
 Both calls give DbLive the same scripts. DbLive works only with paths relative to the scripts root, such as `Migrations/001.migration.sql`, with `/` on every OS. Folders and file patterns are matched ignoring case, and logs and error messages show the real names of the files and folders. The database stores the paths in lower case, so a file renamed only by case is still the same file, and two files whose paths differ only by case stop the deployment ([details](structure.md#folders)).
 

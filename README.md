@@ -120,7 +120,7 @@ using DbLive;
 using DbLive.MSSQL;
 using System.Reflection;
 
-string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
+string dbCnnString = "Server=localhost;Database=MyDb;Trusted_Connection=True;";
 
 var builder = new DbLiveBuilder()
 	.LogToConsole()
@@ -155,7 +155,7 @@ Naming examples:
 
 - Migrations: `001.migration.sql`, `002.migration.sql`, `002.undo.sql`
 - Code: `GetUser.sql`, `GetUser.test.sql`
-- Tests: `*.test.sql` or `t.*.sql` (patterns configurable)
+- Tests: every `.sql` file in `Tests`; in `Code`, files matching `*.test.sql` or `t.*.sql` (patterns configurable)
 
 ---
 
@@ -174,7 +174,7 @@ Use SQL tests to:
 - Check data rules and constraints
 - Validate migration outcomes
 
-Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case. The fixture is one line; `DbLive.Testcontainers.MSSQL` starts SQL Server in Docker for it ([Unit Testing](docs/unit-testing/index.md#running-tests-in-visual-studio-and-ci-xunit)):
+Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each SQL test file becomes a test case. The fixture is one line; `DbLive.Testcontainers.MSSQL` starts SQL Server in Docker for it ([Unit Testing](docs/unit-testing/index.md#running-tests-in-visual-studio-and-ci-xunit)):
 
 ```csharp
 public class MyDbTestFixture()
@@ -193,7 +193,7 @@ insert into dbo.Users ( UserId, Name )
 values ( 10, 'TestUser10' )
 
 -- Act
-exec dbo.GetUser2 @UserId = 10
+exec dbo.GetUser @UserId = 10
 
 -- Assert
 select assert = 'rows'
@@ -297,11 +297,11 @@ A single `DeployAsync` run typically does (in order):
 
 1. **Checks** — `ProjectId`, settings, checksums of applied migrations
 2. **Downgrade** — if the database has versions this build lacks: fails unless `AllowDatabaseDowngrade = true`, which runs their stored undo scripts, newest first
-3. **BeforeDeploy** — run once-before scripts
+3. **BeforeDeploy** — scripts that run before migrations, on every deployment
 4. **Migrations** — apply pending migrations in version order
 5. **Code** — deploy or update code objects (procedures, views, etc.)
 6. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
-7. **AfterDeploy** — run once-after scripts
+7. **AfterDeploy** — scripts that run at the end, on every deployment
 
 You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
 
@@ -312,12 +312,11 @@ SQL tests are not part of a deployment: they run as xUnit tests (`dotnet test`) 
 DbLive fits into a release pipeline like this:
 
 1. **Build** — compile the solution
-2. **Deploy database to Docker** — in a Docker database container (e.g. Testcontainers)
-3. **Run tests** — `dotnet test`. It will run both C# and SQL tests.
-4. **Deploy database** — migrations and code (DbLive)
-5. **Deploy application** — new app version
-6. **Drop old application** — remove previous app (if needed)
-7. **Deploy breaking changes** — run DbLive with `DeployParameters.Breaking` when the old app is gone
+2. **Run tests** — `dotnet test` runs the C# and the SQL tests; the test fixtures deploy the database into a Docker container (Testcontainers) and drop it afterwards
+3. **Deploy database** — migrations and code (`DeployParameters.Default`)
+4. **Deploy application** — new app version; old and new versions run side by side
+5. **Drop old application** — remove the previous app version
+6. **Deploy breaking changes** — run the deployer with `DeployParameters.Breaking` when the old app is gone
 
 The settings of a production deployment (`ProjectId`, database creation, downgrade, transactions, timeouts) are collected in [Production](docs/deployment/index.md#production).
 

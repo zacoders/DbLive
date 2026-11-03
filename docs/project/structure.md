@@ -36,15 +36,15 @@ Scripts/
 | `BeforeDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, before migrations |
 | `AfterDeploy` | no | `*.sql`, including subfolders, sorted by relative path | On **every** deployment, after breaking changes |
 
-Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code, tests and the BeforeDeploy/AfterDeploy scripts.
+Every folder is optional; a missing folder is skipped. A project without `Migrations` deploys only code and the BeforeDeploy/AfterDeploy scripts; its tests run as usual.
 
-Nothing else may be in `Scripts`. A file outside these folders, other than `settings.json` in the root, stops the deployment with `FilesOutsideProjectFoldersException` before anything is deployed, because DbLive would never read it: a `PostDeployment` folder would never run, and a misspelled `setting.json` would leave every setting at its default. Keep other scripts and documents outside `Scripts`. Hidden files and folders, whose names start with a dot (`.DS_Store`, `.gitkeep`), are skipped.
+Nothing else may be in `Scripts`. A file outside these folders, other than `settings.json` in the root, stops the deployment with `FilesOutsideProjectFoldersException` before any of your scripts runs, because DbLive would never read it: a `PostDeployment` folder would never run, and a misspelled `setting.json` would leave every setting at its default. Keep other scripts and documents outside `Scripts`. Hidden files and folders, whose names start with a dot (`.DS_Store`, `.gitkeep`), do not count as outside; inside the project folders they are read like any other file.
 
 Folder names and file patterns are matched ignoring case. "Sorted by relative path" compares the path with `/` character by character, ignoring case, so the order is the same on every OS and machine: `01-users.sql`, `02-roles.sql`, `sub/01.sql`. Number the files to control the order.
 
 Files with other extensions (`.txt`, `.md`) inside these folders are ignored, so notes can sit next to scripts. The one exception is a `.json` file in `Migrations` that is not an item settings file: it stops the deployment.
 
-Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`, stop the deployment with `ScriptPathsDifferOnlyByCaseException` before anything is deployed, whatever their folder or extension. Such files can exist only on a case-sensitive file system (Linux), and DbLive identifies files ignoring case, so they would be one item. Rename or delete one of them.
+Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`, stop the deployment with `ScriptPathsDifferOnlyByCaseException` before any of your scripts runs, whatever their folder or extension. Such files can exist only on a case-sensitive file system (Linux), and DbLive identifies files ignoring case, so they would be one item. Rename or delete one of them.
 
 !!! warning "Ship applied migrations with every build"
     Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because a migration file was deleted or the deployer was built from an older commit, DbLive treats this as a [downgrade](../deployment/migrations.md#downgrade) and the deployment fails with `DowngradeNotAllowedException`.
@@ -68,6 +68,8 @@ Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `C
 | `breaking` | `b` | `.sql` | Destructive part, run only in a breaking deployment. |
 
 **Name.** Free text, for humans only. If the second part of the file name is not a type, the file is a migration and that part is its name: `20260808104925.create-users.sql` is a migration named `create-users`.
+
+**Extension.** `.sql` for scripts, `.json` for settings, in lower case: `001.migration.SQL` stops the deployment.
 
 **Settings.** A `.json` file `<version>.<item>.settings.json` holds the [settings](configuration.md#item-settings) of one script of that version: `migration`, `breaking` or `undo`. Short forms combine: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.u.s.json`. A settings file needs its script. The old `<version>.settings.json` is rejected with a hint to the new name.
 

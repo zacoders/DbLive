@@ -84,7 +84,9 @@ Use the ordering setting for objects that everything else depends on, so that yo
 
 ## Transactions and timeouts
 
-Each code file runs as its own command, without a transaction, with a timeout of `CodeItemTimeout` (30 seconds by default). With `TransactionWrapLevel: Deployment`, code runs single-threaded inside the deployment transaction.
+Each code file runs as its own command, without a transaction, with a timeout of `CodeItemTimeout` (30 seconds by default; on SQL Server per `GO` batch). With `TransactionWrapLevel: Deployment`, code runs single-threaded inside the deployment transaction.
+
+On PostgreSQL a file with several statements runs as one implicit transaction, so it fails or succeeds as a whole. With `Deployment` on PostgreSQL, the first failing file aborts the deployment transaction and a retry cannot succeed: order the dependencies with `CodeSubFoldersDeploymentOrder`.
 
 ## Things to know
 

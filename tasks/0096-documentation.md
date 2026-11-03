@@ -30,16 +30,20 @@ The maintainer writes `docs/database-as-service.md` and `docs/deployment/zero-do
 
 ### D5. Review the new documentation
 The new pages are committed (fa118f6).
-- [ ] Proofread `docs/llms-full.txt` first: it is the source of facts for agents.
+- [x] Proofread `docs/llms-full.txt` first: it is the source of facts for agents. Checked against the source code on 2026-11-03 (see Notes).
+- [x] Review the pages under `docs/` and `README.md` against `docs/llms-full.txt` (2026-11-03, see Notes).
 - [ ] After merging to `main`, check that the links from `llms.txt` to `raw.githubusercontent.com/.../main/` work.
 
 ### D6. Keep the docs from going stale
-- [ ] After D1 and D2, run `mkdocs build --strict` in `.github/workflows/docs.yml`, so a broken link fails the build.
+- [x] After D1 and D2, run `mkdocs build --strict` in `.github/workflows/docs.yml`, so a broken link fails the build. Also on pull requests that change the docs (build only, no deploy); `pip install -r requirements.txt` (MkDocs below 2.0); `mkdocs.yml` reports a missing anchor and a page missing from `nav:` as warnings, so `--strict` fails on them (verified: a link to a missing anchor aborts the build). Local build in `Development.md` ("Documentation").
 - [x] Add a PR template (none exists yet) with the item "behavior changed → `docs/llms-full.txt` and the page under `docs/` updated". `.github/pull_request_template.md`, added with 0096-19.
+- [ ] Before merging to `main`: remove `96-documentation` from the `push` branches of `.github/workflows/docs.yml`, so only `main` publishes the site.
 
 ## Found during this task
 
 Bugs found while studying the code for the docs are tasks `0096-01` to `0096-16` (`ls tasks/0096-* tasks/done/0096-*`). The docs describe current behavior, so each fix updates them in the same commit.
+
+Tasks `0096-36` to `0096-38` are code bugs found by the documentation review of 2026-11-03 (Notes).
 
 Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10-31): safe defaults, release process, how the project looks to someone evaluating it, and gaps compared with tSQLt. They do not block this task. The testing ones (0096-23, 0096-24, 0096-28, 0096-29) moved to #99 on 2026-11-03: `0099-unit-testing-improvements.md`.
 
@@ -65,3 +69,19 @@ Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10
 - `[SqlDeployFact]` moved to its own page, `unit-testing/deployment-tests.md`; `index.md` keeps a short paragraph and a link.
 - One example table across the docs: `dbo.Users (UserId, Name)`. Getting Started and the tutorial used `Username`.
 - Verified 2026-11-03 against packages packed from this branch and a local SQL Server: Getting Started, every tutorial step and the anatomy example from `index.md`. The deploy logs and the failure message in the docs are copied from that run. `dotnet new xunit` (SDK 10.0.402) creates an xUnit v2 project.
+
+2026-11-03, review of the whole documentation:
+- `docs/llms-full.txt` was checked against the source code, section by section (about 500 claims). Fixed there, and on the matching pages:
+  - Migrations: the extension of a migration file must be lower case (bug 0096-36); a `.sql`/`.json` file in `Migrations` without a version number (`config.json`, a macOS `._001.migration.sql`) fails with `InvalidMigrationVersionException`; hidden files count only for the check of files outside the project folders, inside the folders they are read.
+  - The checks of the project files (files outside the project folders, case, file names) run at the first read of the project, the checksum validation (§12 step 7): after self-deployment and ProjectId binding, before any script of the project. "Before anything is deployed" became "before any script of the project runs".
+  - `settings.json` is read once per builder; the log starts with `Starting deployment.`; a leftover `ProjectDir` item does not fail the build; parameter names of `SetDbConnection`, `SetScriptsFolder`, `RunTestAsync`.
+  - `MigrationDeploymentException` has no inner exception for a SQL error (the message has it); `TransactionAbortedException` vs the command timeout, which `None` does not remove; a `ProjectId` over 128 characters → `ProjectIdMismatchException`; `Snapshot` in `TestsTransactionIsolationLevel` fails too.
+  - PostgreSQL: `raise exception` needs a `do` block in a test; a multi-statement file is one implicit transaction (code files and Code breaking scripts are atomic); with `Deployment` a failed code file aborts the transaction, so retries cannot help (from PostgreSQL semantics and the code: no savepoints; not verified by an experiment); the isolation level of a command without a transaction is ignored (bug 0096-37).
+  - With project `Deployment`, an item's isolation level is not used and its `Timeout` is only the command timeout; `None` at project level still gives an item with `Migration` its own transaction.
+  - Tests: date comparison (a date equals its ISO string, not `'2026-01-01'`; `timestamptz` only a `timestamptz`), the `row-count` message without a number, `dblive.unit_test_run` is written only by `RunAllTestsAsync`, `verified_utc` of Code breaking rows.
+  - Template: `dotnet new dblive -n MyDb` creates the folder `MyDb/`; on PostgreSQL the database name is the name in lower case. The deployment test's first deployment also creates the database.
+- Found while checking, verified on a local SQL Server: `CommandBehavior.KeyInfo` adds hidden key columns to the result sets of a SQL test (bug 0096-38).
+- Not verified: whether the session state of `setup.test.sql` (temporary tables) is visible to the test on PostgreSQL, where Npgsql may reuse the enlisted connection; the docs say it is not, and advise permanent tables either way. The type text of `timestamptz` in `rows-with-schema`.
+- Pages: Features said SQL tests run "at deployment time"; README called BeforeDeploy/AfterDeploy "once-before/once-after" scripts, had a CI step "deploy database to Docker" before `dotnet test`, said `Tests` files need a pattern, and mixed `GetUser2`/`GetUser`; the separate-projects table missed `DbLive.Testcontainers.MSSQL`; the demo `settings.json` comments said tests run at the end of the deployment. Getting Started and README deploy to a database named `MyDb`.
+- `database-as-service.md` (maintainer's page): the DemoMSSQL example linked `005.breaking.sql`, the old way; the link now points to `Code/dbo/stored-procedures/GetUser.breaking.sql`, the text is unchanged otherwise.
+- [ ] `deployment/code.md` and `deployment/zero-downtime.md` show the versioned procedure on `dbo.Users (Id, UserName, Deleted, Active)`, while the other pages use `dbo.Users (UserId, Name)`. Align them (`zero-downtime.md` is the maintainer's page)?

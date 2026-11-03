@@ -41,7 +41,7 @@ Every `DeployAsync` call runs these steps in this order:
 
 1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
 2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema.
-3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, and the [checksums](migrations.md#checksums) of applied migrations.
+3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, and the [checksums](migrations.md#checksums) of applied migrations. The checksum check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
 4. **Record** all migration files of the project in `dblive.migration`.
 5. **Downgrade** if the database has versions this project does not contain (see [Downgrade](migrations.md#downgrade)).
 6. **BeforeDeploy** scripts.

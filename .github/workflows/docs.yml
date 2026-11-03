@@ -5,6 +5,13 @@ on:
     branches:
       - main
       - 96-documentation
+  # Build only: a broken link fails the pull request before it reaches main.
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'requirements.txt'
+      - '.github/workflows/docs.yml'
 
 # Permissions for direct GitHub Pages access without branches
 permissions:
@@ -12,15 +19,8 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,16 +32,29 @@ jobs:
           python-version: 3.x
 
       - name: Install dependencies
-        run: pip install mkdocs-material
+        run: pip install -r requirements.txt
 
+      # --strict turns warnings (a broken link, a missing anchor) into errors.
       - name: Build site
-        run: mkdocs build
+        run: mkdocs build --strict
 
       - name: Upload artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
 
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

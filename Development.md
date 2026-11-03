@@ -3,6 +3,19 @@
 ## Tasks
 Features, bugs and other work items are Markdown files in [tasks/](tasks/), one file per task; finished ones move to `tasks/done/`, rejected ones to `tasks/rejected/`. See [tasks/README.md](tasks/README.md) for the format and workflow.
 
+## Documentation
+The user documentation in `docs/` is published with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) to https://zacoders.github.io/DbLive/ by `.github/workflows/docs.yml` on every push to `main`. The site navigation is the `nav:` of `mkdocs.yml`: add a new page there. `docs/llms.txt` and `docs/llms-full.txt` are published as they are; `docs/llms-full.txt` is the reference for AI agents and the source of facts for the pages.
+
+Build locally (Python 3; `requirements.txt` keeps MkDocs below 2.0):
+
+```sh
+pip install -r requirements.txt
+mkdocs serve            # http://127.0.0.1:8000, rebuilds on save
+mkdocs build --strict   # what CI runs
+```
+
+The workflow builds with `--strict`, also on pull requests that change the docs, so a broken link or anchor fails the check.
+
 ## Releases
 Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and tests the solution, publishes the seven packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`, and the `dotnet new` template `DbLive.Templates`) to nuget.org, tags the merge commit with the version and creates a GitHub Release with the release notes. Work happens in branches and reaches `main` through a pull request, merged with a merge commit. Small fix releases are fine; the versioning policy for users is [docs/versioning.md](docs/versioning.md).
 

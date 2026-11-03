@@ -4,7 +4,7 @@
 
 ## Format
 
-- Unicode string, maximum **128** characters
+- Unicode string, maximum **128** characters (a longer value fails every deployment with `ProjectIdMismatchException`)
 - Case insensitive
 - Example: `"ProjectId": "my-app"`
 

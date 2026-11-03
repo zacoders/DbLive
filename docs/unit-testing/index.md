@@ -81,7 +81,7 @@ end $$;
 - `int` 10 and `bigint` 10 are equal.
 - `decimal` values must have the same scale: `150.00` is not `150` and not `150.0`. Cast the expected value, for example `cast(150 as decimal(10,2))`.
 - Strings are compared exactly, including case and trailing spaces.
-- A date or time value is never equal to a string. Cast the expected value: `cast('2026-01-01' as date)`.
+- Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
 - `NULL` equals `NULL`.
 - Row order matters; use `order by` in the act.
 - Column names must match exactly. SQL Server gives an unnamed expression an empty name, so `select dbo.GetFullName('a', 'b')` can be compared with `select cast('a b' as nvarchar(255))`. PostgreSQL names such columns (`?column?` or the function name), so give both sides an alias.

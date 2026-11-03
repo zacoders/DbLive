@@ -5,7 +5,7 @@ change to support multiple phone numbers per person, meaning the data must be mo
 `dbo.PersonPhones` table.
 
 Instead of a destructive migration that immediately breaks existing applications, DbLive recommends 
-this transition seamlessly:
+a transition in steps, without downtime:
 
 1. **Internal State:** A temporary trigger is introduced to synchronize data between the 
    legacy `dbo.Person.PhoneNumber` column and the new `dbo.PersonPhones` table in real-time.

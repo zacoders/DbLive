@@ -58,7 +58,7 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `TransactionWrapLevel` | `Migration` | `Migration`: each migration, breaking and undo script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
-| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands. `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands. On PostgreSQL it applies only inside a transaction; a command without one (a code file, a script with `None`) runs at the server's default level. `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
 ### Parallelism
@@ -91,7 +91,7 @@ DbLive does not wrap a deployment in one transaction by default, and that is int
 
 - **`Migration`** (default): each migration, breaking and undo script commits or rolls back on its own, together with its bookkeeping. If version 5 fails, versions 1 to 4 stay applied and the next deployment continues with version 5. A downgrade works the same way: if the undo of version 3 fails, the undo of version 4 stays committed and the next downgrade continues with version 3. The database stays consistent between scripts, which is what a 24/7 system needs.
 - **`Deployment`**: all or nothing, including downgrades and breaking scripts. Simple for small databases and test environments, but it holds locks for the whole deployment and runs code deployment single-threaded.
-- **`None`**: nothing is transactional. Use it for single scripts through an [item settings file](#item-settings) rather than for the whole project.
+- **`None`**: no transactions, except for a script whose item settings file sets `"TransactionWrapLevel": "Migration"`. Use `None` for single scripts through an [item settings file](#item-settings) rather than for the whole project.
 
 Each SQL test always runs in its own transaction that is rolled back.
 
@@ -110,7 +110,7 @@ A settings file applies to its own script only. It follows the same format rules
 | Key | Values | Effect |
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
-| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction, or of its connection when it runs without a transaction. |
+| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, SQL Server sets it on the connection; PostgreSQL uses the server's default level. |
 | `Timeout` | time span | Timeout of the script's command and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.
@@ -127,7 +127,7 @@ Some statements cannot run inside a transaction at all: `ALTER DATABASE` and ful
 
 `"TransactionWrapLevel": "None"` is the author's promise that the database keeps working if the script stops halfway. A failed script is not marked as applied, so the next deployment runs the **whole** script again: write it to be re-runnable (`if not exists`, `drop ... if exists`, `create index concurrently if not exists`).
 
-When the project uses `"TransactionWrapLevel": "Deployment"`, every script runs inside the deployment transaction. An item file with `None` then has no effect, and DbLive logs a warning.
+When the project uses `"TransactionWrapLevel": "Deployment"`, every script runs inside the deployment transaction, with its isolation level and `DeploymentTimeout`. An item file with `None` then has no effect, and DbLive logs a warning; its `TransactionIsolationLevel` is not used either, and its `Timeout` limits only the command.
 
 The undo settings are stored in the database together with the undo script, so a downgrade from an older build, which no longer has these files, still uses them. Like the undo script, they are updated in the database while the undo has not run.
 
