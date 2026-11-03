@@ -24,3 +24,6 @@ Open questions first:
 ## Done when
 - [ ] Decision taken
 - [ ] Implemented with unit tests, or the decision not to recorded in Notes
+
+## Notes
+- 2026-11-03: moved from #96 (0096-28) to #99.

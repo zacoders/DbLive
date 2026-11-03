@@ -26,3 +26,6 @@ Not verified yet:
 - [ ] Patterns verified on SQL Server and PostgreSQL with demo tests
 - [ ] Docs updated
 - [ ] Decision on a built-in assert recorded in Notes
+
+## Notes
+- 2026-11-03: moved from #96 (0096-24) to #99.

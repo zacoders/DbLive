@@ -26,3 +26,6 @@ New assert values that compare each result set as a multiset of rows: same colum
 - [ ] Implemented with unit tests (same rows in another order, duplicates, missing and extra rows)
 - [ ] A demo test uses it on SQL Server and PostgreSQL
 - [ ] Docs updated
+
+## Notes
+- 2026-11-03: moved from #96 (0096-23) to #99.
