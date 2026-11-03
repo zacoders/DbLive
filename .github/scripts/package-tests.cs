@@ -139,10 +139,14 @@ string templatePackage = Path.Combine(packages, $"DbLive.Templates.{version}.nup
 Console.WriteLine();
 Console.WriteLine("== Template");
 (int installExitCode, string installOutput) = Run("dotnet", "new", "install", templatePackage, "--debug:custom-hive", templateHive);
-if (installExitCode != 0)
+// dotnet new install exits with 0 also when no template of the package loads, with "No templates were found in the
+// package" (task 0096-39). So the template is looked up by its short name too, and the install output tells why.
+bool installed = installExitCode == 0
+	&& Run("dotnet", "new", "list", "dblive", "--debug:custom-hive", templateHive).ExitCode == 0;
+if (!installed)
 {
-	failures.Add($"Template: dotnet new install {templatePackage} failed (exit code {installExitCode}):{Environment.NewLine}{installOutput}");
-	Console.WriteLine($"   FAIL: dotnet new install failed:{Environment.NewLine}{installOutput}");
+	failures.Add($"Template: dotnet new install {templatePackage} did not install the template dblive (exit code {installExitCode}):{Environment.NewLine}{installOutput}");
+	Console.WriteLine($"   FAIL: dotnet new install did not install the template dblive:{Environment.NewLine}{installOutput}");
 }
 else
 {

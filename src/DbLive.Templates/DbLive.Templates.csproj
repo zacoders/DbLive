@@ -54,16 +54,35 @@
 		<RemoveDir Directories="$(_DbLiveTemplatesDir)" />
 		<Copy SourceFiles="@(_DbLiveTemplateFile)" DestinationFiles="@(_DbLiveTemplateFile->'$(_DbLiveTemplatesDir)%(RecursiveDir)%(Filename)%(Extension)')" />
 
-		<PropertyGroup>
-			<_DbLiveTemplateJsonText>$([System.IO.File]::ReadAllText($(_DbLiveTemplateJson)))</_DbLiveTemplateJsonText>
-		</PropertyGroup>
-		<Error Condition="!$(_DbLiveTemplateJsonText.Contains($(_DbLiveVersionPlaceholder)))" Text="templates\dblive\.template.config\template.json has no '$(_DbLiveVersionPlaceholder)': the symbol dbLiveVersion, which the pack sets to the version of the DbLive packages." />
-		<WriteLinesToFile File="$(_DbLiveTemplateJson)" Lines="$([MSBuild]::Escape($(_DbLiveTemplateJsonText.Replace($(_DbLiveVersionPlaceholder), '&quot;value&quot;: &quot;$(Version)&quot;'))))" Overwrite="true" />
+		<DbLiveSetTemplateVersion TemplateJson="$(_DbLiveTemplateJson)" Placeholder="$(_DbLiveVersionPlaceholder)" Value="&quot;value&quot;: &quot;$(Version)&quot;" />
 
 		<ItemGroup>
 			<_DbLivePackedTemplateFile Include="$(_DbLiveTemplatesDir)**" />
 			<None Include="@(_DbLivePackedTemplateFile)" Pack="true" PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
 		</ItemGroup>
 	</Target>
+
+	<!--
+	Replaces the placeholder in the copy of template.json; fails when the source has no placeholder. A task, because
+	WriteLinesToFile on Linux and macOS turns the backslashes of its lines into slashes: the escaped quotes of
+	template.json, \", came out as /", and the template did not load (task 0096-39).
+	-->
+	<UsingTask TaskName="DbLiveSetTemplateVersion" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<TemplateJson ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
+			<Placeholder Required="true" />
+			<Value Required="true" />
+		</ParameterGroup>
+		<Task>
+			<Code Type="Fragment" Language="cs"><![CDATA[
+				string path = TemplateJson.GetMetadata("FullPath");
+				string text = System.IO.File.ReadAllText(path);
+				if (!text.Contains(Placeholder))
+					Log.LogError("templates/dblive/.template.config/template.json has no '" + Placeholder + "': the symbol dbLiveVersion, which the pack sets to the version of the DbLive packages.");
+				else
+					System.IO.File.WriteAllText(path, text.Replace(Placeholder, Value));
+			]]></Code>
+		</Task>
+	</UsingTask>
 
 </Project>
