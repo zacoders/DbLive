@@ -58,7 +58,7 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `TransactionWrapLevel` | `Migration` | `Migration`: each migration, breaking and undo script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
-| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands. On PostgreSQL it applies only inside a transaction; a command without one (a code file, a script with `None`) runs at the server's default level. `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a command without a transaction (a code file, a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
 ### Parallelism
@@ -110,7 +110,7 @@ A settings file applies to its own script only. It follows the same format rules
 | Key | Values | Effect |
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
-| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, SQL Server sets it on the connection; PostgreSQL uses the server's default level. |
+| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. |
 | `Timeout` | time span | Timeout of the script's command and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.

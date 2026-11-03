@@ -2,6 +2,7 @@ using DbLive.Adapter;
 using DbLive.Deployers.Migrations;
 using DbLive.Project;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
@@ -93,6 +94,51 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		Assert.Contains("002.migration.sql", ex.Message);
 		Assert.Contains("transaction block", ex.Message);
+	}
+
+	[Fact]
+	public async Task Scripts_without_a_transaction_run_at_the_configured_isolation_level()
+	{
+		const string Log = "insert into iso_log values ('{0}', current_setting('transaction_isolation'));";
+
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "TransactionIsolationLevel": "RepeatableRead" }""")
+			.AddFile("Migrations/001.migration.sql", "create table iso_log (item text not null, level text not null);")
+			.AddFile("Migrations/002.migration.sql", string.Format(Log, "migration"))
+			.AddFile("Migrations/002.migration.settings.json", """{ "TransactionWrapLevel": "None", "TransactionIsolationLevel": "Serializable" }""")
+			.AddFile("Code/log.sql", string.Format(Log, "code"))
+			.AddFile("AfterDeploy/log.sql", string.Format(Log, "after deploy"));
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		List<SqlResult> results = await builder.CreateDbLiveDA().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
+		Assert.Equal(
+			["after deploy: repeatable read", "code: repeatable read", "migration: serializable"],
+			results.Single().Rows.Select(r => (string)r[0])
+		);
+	}
+
+	[Fact]
+	public async Task Isolation_level_does_not_stay_on_the_pooled_connection()
+	{
+		// one connection in the pool: the next open gets the same session.
+		string cnnString = new NpgsqlConnectionStringBuilder(_dbCnnString) { MaxPoolSize = 1 }.ConnectionString;
+		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).CreateDbLiveDA();
+
+		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable);
+		int pid = (int)results.Single().Rows.Single()[0];
+		Assert.Equal("serializable", results.Single().Rows.Single()[1]);
+
+		await using NpgsqlConnection cnn = new(cnnString);
+		await cnn.OpenAsync();
+		await using NpgsqlCommand cmd = new("select pg_backend_pid(), current_setting('transaction_isolation')", cnn);
+		await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
+		Assert.True(await reader.ReadAsync());
+
+		Assert.Equal(pid, reader.GetInt32(0));
+		Assert.Equal("read committed", reader.GetString(1));
 	}
 
 	[Fact]

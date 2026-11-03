@@ -286,7 +286,7 @@ Rule: each item (migration, breaking, undo) is one unit: its own transaction, by
 For each pending version, in order:
 1. Effective settings of the Migration item = `<version>.migration.settings.json` (if present) over the project `settings.json`, key by key.
 2. Open a transaction with the effective `TransactionIsolationLevel` and `Timeout` if the effective `TransactionWrapLevel` is `Migration` (default). With `None`, no transaction. With project-level `Deployment`, the item runs inside the deployment transaction (an item `None` then logs a warning and has no effect).
-3. Execute the Migration item; the SQL command gets the same isolation level (without a transaction: set on the connection on SQL Server; on PostgreSQL the server default applies, Section 9.3) and the same `Timeout`. Mark it `applied`. If an Undo item exists, reset its status to `none`.
+3. Execute the Migration item; the SQL command gets the same isolation level (without a transaction it is set on the connection, Section 9.3) and the same `Timeout`. Mark it `applied`. If an Undo item exists, reset its status to `none`.
 4. Commit.
 
 The migration script and its status update are committed together. If a migration fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error); earlier versions stay committed (with the default `Migration` level). A failed item is not marked `applied`, so the next deployment runs the **whole** script again: an item with `TransactionWrapLevel: None` must be re-runnable (`if not exists`, `create index concurrently if not exists`).
@@ -580,7 +580,7 @@ select 'has-rows' as assert;
 |---|---|---|---|
 | `ProjectId` | string (max 128) | null | Binds the project to the database (Section 14). Not set: every deployment logs a warning. |
 | `TransactionWrapLevel` | `Deployment` \| `Migration` \| `None` | `Migration` | Transaction scope (Section 10). Default for every migration, breaking and undo script. |
-| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command (on PostgreSQL only inside a transaction: a command without one, such as a code file, runs at the server default `default_transaction_isolation`); default for every migration, breaking and undo script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command (a command without a transaction, such as a code file or a BeforeDeploy/AfterDeploy script, gets it on its connection); default for every migration, breaking and undo script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | same | `Serializable` | Isolation of test transactions. |
 | `TestFilePatterns` | string[] | `["test.*.sql","t.*.sql","*.test.sql","*.t.sql"]` | Which files in `Code/` are tests (and excluded from code deployment). |
 | `MigrationsFolder` | string | `Migrations` | Folder path relative to the scripts root (same for the other `*Folder` settings). |
@@ -626,7 +626,7 @@ Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
 | Key | Values | Effect for this script | Default when the key is missing |
 |---|---|---|---|
 | `TransactionWrapLevel` | `Migration` \| `None` | `Migration`: the script runs in its own transaction. `None`: no transaction (needed for online/concurrent index builds, `ALTER DATABASE`, full-text DDL, `CREATE/DROP INDEX CONCURRENTLY`, `VACUUM`; on PostgreSQL keep such a statement alone in its file, Section 16). `Deployment` is an error (`InvalidMigrationItemSettingsException`). | project `TransactionWrapLevel` |
-| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | Isolation of the script's transaction and of its SQL command. Without a transaction (`None`): SQL Server sets it on the connection; PostgreSQL ignores it, and the server default applies. | project `TransactionIsolationLevel` |
+| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | Isolation of the script's transaction and of its SQL command. Without a transaction (`None`) it is set on the connection: `SET TRANSACTION ISOLATION LEVEL` on SQL Server, `SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL` on PostgreSQL (the level of the implicit transaction of the command). | project `TransactionIsolationLevel` |
 | `Timeout` | TimeSpan | Timeout of the script's transaction **and** of its SQL command. | project `MigrationTimeout` |
 
 - A missing key falls back to the **project** settings, never to another item's file: `004.migration.settings.json` does not affect `004.undo.sql` or `004.breaking.sql`.
