@@ -83,8 +83,14 @@ jobs:
     - name: Create DbLive.PostgreSQL package
       run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
+    - name: Create DbLive.Testcontainers.MSSQL package
+      run: dotnet pack 'src/DbLive.Testcontainers.MSSQL/DbLive.Testcontainers.MSSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
+    - name: Create DbLive.Testcontainers.PostgreSQL package
+      run: dotnet pack 'src/DbLive.Testcontainers.PostgreSQL/DbLive.Testcontainers.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
     # Builds projects that reference the packages, as a user project does: the DbLive package embeds the
-    # Scripts folder without a block in the .csproj.
+    # Scripts folder without a block in the .csproj, and the fixture builders compile with one package reference.
     - name: Test packages
       run: dotnet run .github/scripts/package-tests.cs -- --packages "$RUNNER_TEMP/packages"
 

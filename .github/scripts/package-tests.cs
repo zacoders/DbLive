@@ -1,6 +1,6 @@
 // Builds projects that reference the packed DbLive packages from a local feed, the way a user project does,
-// and checks what the packages add to them (task 0096-30-01): the DbLive package embeds the scripts folder
-// without a block in the .csproj.
+// and checks what the packages add to them: the DbLive package embeds the scripts folder without a block in the
+// .csproj (task 0096-30-01), and the fixture builders compile with their packages (task 0096-30-02).
 //
 //   dotnet pack src/DbLive/DbLive.csproj -o <folder>              (and the other packages, see cicd.yml)
 //   dotnet run .github/scripts/package-tests.cs -- --packages <folder>
@@ -106,6 +106,26 @@ Project("OldBlock", """
 	""");
 Write("OldBlock/Scripts/Migrations/001.migration.sql", "create table t1 ( id int );");
 Check("OldBlock", builds: false, resources: [], scriptsFolder: null, error: "Remove the DbLive block from OldBlock.csproj");
+
+// A test project with the fixture builders (task 0096-30-02): the Testcontainers packages bring the provider and
+// Testcontainers, and a fixture is one line. The project has no Scripts folder, so nothing is embedded.
+Project("Fixtures", """
+	<PackageReference Include="DbLive.xunit" Version="$(DbLiveVersion)" />
+	    <PackageReference Include="DbLive.Testcontainers.MSSQL" Version="$(DbLiveVersion)" />
+	    <PackageReference Include="DbLive.Testcontainers.PostgreSQL" Version="$(DbLiveVersion)" />
+	""");
+Write("Fixtures/Fixtures.cs", """
+	using DbLive.MSSQL;
+	using DbLive.PostgreSQL;
+	using DbLive.xunit.SqlTest;
+	using System.Reflection;
+
+	public class MsSqlContainerFixture() : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
+	public class PostgreSqlContainerFixture() : DbLiveTestFixture(new PostgreSqlContainerFixtureBuilder(Assembly.Load("MyDb"), "postgres:17"), dropDatabaseOnComplete: true);
+	public class MsSqlFixture() : DbLiveTestFixture(new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master;"), dropDatabaseOnComplete: true);
+	public class PostgreSqlFixture() : DbLiveTestFixture(new PostgreSqlFixtureBuilder(Assembly.Load("MyDb"), "Host=localhost;Username=postgres"), dropDatabaseOnComplete: true);
+	""");
+Check("Fixtures", builds: true, resources: [], scriptsFolder: null);
 
 if (failures.Count > 0)
 {

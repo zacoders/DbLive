@@ -51,7 +51,13 @@ Actively developed. Every merge to `main` is published to NuGet (the current ver
 
 ```bash
 dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
-dotnet add package DbLive.xunit      # for SQL unit tests
+```
+
+In the test project, for SQL unit tests:
+
+```bash
+dotnet add package DbLive.xunit
+dotnet add package DbLive.Testcontainers.MSSQL   # or DbLive.Testcontainers.PostgreSQL: the test database runs in Docker
 ```
 
 The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds, so the dll you build is the dll you deploy. There is nothing to add to the `.csproj`.
@@ -147,7 +153,12 @@ Use SQL tests to:
 - Check data rules and constraints
 - Validate migration outcomes
 
-Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case.
+Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case. The fixture is one line; `DbLive.Testcontainers.MSSQL` starts SQL Server in Docker for it ([Unit Testing](docs/unit-testing/index.md#running-tests-in-visual-studio-and-ci-xunit)):
+
+```csharp
+public class MyDbTestFixture()
+    : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
+```
 
 ### Test structure
 

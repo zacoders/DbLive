@@ -1,4 +1,6 @@
+using DbLive.MSSQL;
 using DbLive.xunit.Deploy;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -9,7 +11,7 @@ namespace AdventureWorks.Tests;
 public class DeploymentTests(ITestOutputHelper _output) : IAsyncLifetime
 {
 	private readonly DeploymentTestFixture _fixture = new(
-		builderProvider: new DockerMsSqlFixtureBuilder(),
+		builderProvider: new MsSqlContainerFixtureBuilder(Assembly.Load("AdventureWorks.Database")),
 		dropDatabaseOnComplete: true
 	);
 

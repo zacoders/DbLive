@@ -33,6 +33,9 @@
   
   <ItemGroup>
     <ProjectReference Include="..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
+    <ProjectReference Include="..\DbLive.Testcontainers.PostgreSQL\DbLive.Testcontainers.PostgreSQL.csproj" />
+    <!-- An assembly with scripts for PostgreSqlContainerFixtureBuilderTests. -->
+    <ProjectReference Include="..\Demo\Demo.PostgreSQL.Chinook\Demo.PostgreSQL.Chinook.csproj" />
     <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
     <ProjectReference Include="..\DbLive.xunit\DbLive.xunit.csproj" />
   </ItemGroup>

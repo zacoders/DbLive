@@ -1,4 +1,6 @@
+using DbLive.MSSQL;
 using DbLive.xunit.Deploy;
+using System.Reflection;
 using Xunit.Abstractions;
 
 namespace DemoMSSQL.Tests;
@@ -8,7 +10,7 @@ namespace DemoMSSQL.Tests;
 public class DeploymentTests(ITestOutputHelper _output) : IAsyncLifetime
 {
 	private readonly DeploymentTestFixture _fixture = new(
-		builderProvider: new DockerMsSqlFixtureBuilder(),
+		builderProvider: new MsSqlContainerFixtureBuilder(Assembly.Load("DemoMSSQL")),
 		dropDatabaseOnComplete: true
 	);
 

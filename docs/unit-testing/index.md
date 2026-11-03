@@ -123,63 +123,44 @@ Code/
 
 ## Running tests in Visual Studio and CI (xUnit)
 
-`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. Create a test project that references your SQL project and these packages: `Microsoft.NET.Test.Sdk`, `xunit`, `xunit.runner.visualstudio`, `DbLive.xunit`, the provider package, and `Testcontainers.MsSql` (or `Testcontainers.PostgreSql`) if you test against Docker.
+`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. Create a test project that references your SQL project and these packages: `Microsoft.NET.Test.Sdk`, `xunit`, `xunit.runner.visualstudio`, `DbLive.xunit`, and `DbLive.Testcontainers.MSSQL` (or `DbLive.Testcontainers.PostgreSQL`) to test against Docker. To test against a server you run, reference the provider package instead.
 
 ### 1. A fixture builder
 
-The builder tells DbLive which database to use. This one starts SQL Server in Docker once per test run and gives every fixture its own random database:
+The builder gives the fixture its database. Each builder takes the SQL project assembly and gives every fixture a new database with a random name (`DbLive--<guid>` on SQL Server, `dblive--<guid>` on PostgreSQL), so fixtures that run in parallel never share a database:
+
+| Builder | Package (namespace `DbLive.MSSQL` / `DbLive.PostgreSQL`) | Database |
+|---------|---------|----------|
+| `MsSqlContainerFixtureBuilder(project, image?)` | `DbLive.Testcontainers.MSSQL` | SQL Server in Docker |
+| `PostgreSqlContainerFixtureBuilder(project, image?)` | `DbLive.Testcontainers.PostgreSQL` | PostgreSQL in Docker |
+| `MsSqlFixtureBuilder(project, connectionString)` | `DbLive.MSSQL` | A SQL Server you run |
+| `PostgreSqlFixtureBuilder(project, connectionString)` | `DbLive.PostgreSQL` | A PostgreSQL server you run |
 
 ```csharp
-using DbLive;
-using DbLive.MSSQL;
-using DbLive.xunit;
-using DotNet.Testcontainers.Containers;
-using System.Reflection;
-using Testcontainers.MsSql;
+// SQL Server in Docker
+new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb"))
 
-public class DockerMsSqlFixtureBuilder : IDbLiveFixtureBuilder
-{
-    private static readonly MsSqlContainer _container =
-        new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest").Build();
-
-    public async Task<DbLiveBuilder> GetBuilderAsync()
-    {
-        if (_container.State != TestcontainersStates.Running)
-            await _container.StartAsync().ConfigureAwait(false);
-
-        string connectionString = _container.GetConnectionString().SetRandomMsSqlDatabaseName();
-
-        return new DbLiveBuilder()
-            .SqlServer()
-            .SetDbConnection(connectionString)
-            .SetProject(GetProjectAssembly());
-    }
-
-    public Assembly GetProjectAssembly() => Assembly.Load("MyDb");
-}
+// Without Docker, a local server; the database name in the connection string is replaced
+new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;")
 ```
 
-Without Docker, point the builder at a local server instead:
-
-```csharp
-string connectionString = "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;"
-    .SetRandomMsSqlDatabaseName();
-```
-
-For PostgreSQL use `PostgreSqlContainer` / `new PostgreSqlBuilder("postgres:latest").Build()`, `.PostgreSQL()` and `.SetRandomPostgreSqlDatabaseName()`.
+- `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
+- The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends. Docker must be running.
+- The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:latest`. Pass another one as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
+- For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a `DbLiveBuilder` with the provider, the connection string of a new database and the project. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 
 ### 2. SQL tests: `[SqlFact]`
 
 ```csharp
 using DbLive.Deployers.Testing;
+using DbLive.MSSQL;
 using DbLive.xunit.SqlTest;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
 public class MyDbTestFixture()
-    : DbLiveTestFixture(fixtureBuilder: new DockerMsSqlFixtureBuilder(), dropDatabaseOnComplete: true)
-{
-}
+    : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
 
 public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
     : IClassFixture<MyDbTestFixture>
@@ -205,14 +186,16 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 `[SqlDeployFact]` checks that the whole project deploys to an empty database, and that undo scripts restore the schema:
 
 ```csharp
+using DbLive.MSSQL;
 using DbLive.xunit.Deploy;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
 public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 {
     private readonly DeploymentTestFixture _fixture = new(
-        builderProvider: new DockerMsSqlFixtureBuilder(),
+        builderProvider: new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")),
         dropDatabaseOnComplete: true);
 
     public Task InitializeAsync() => _fixture.InitializeAsync();
@@ -298,6 +281,16 @@ await builder.CreateTester().RunAllTestsAsync();
 ```
 
 `RunAllTestsAsync` does not deploy; against a database that is already deployed, leave out the `DeployAsync` line. Do not call it in a production deployer (see [Isolation and parallelism](#isolation-and-parallelism)).
+
+The [fixture builders](#1-a-fixture-builder) do not depend on xUnit. They give such a test a new database too, in Docker or on your server; the database does not exist yet, so the deployment creates it:
+
+```csharp
+DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();
+
+await builder.CreateDeployer().DeployAsync(new DeployParameters { CreateDbIfNotExists = true });
+await builder.CreateTester().RunAllTestsAsync();
+await builder.CreateDbLiveDA().DropDbAsync();
+```
 
 Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
 

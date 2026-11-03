@@ -1,6 +1,6 @@
 # Versioning
 
-DbLive follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. The four packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`) are released together with one version; use the same version of all of them.
+DbLive follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. All DbLive packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`) are released together with one version; use the same version of all of them.
 
 | Version | What it contains | What you do to upgrade |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 ## What the policy covers
 
 - **The C# API described in the documentation**, listed in Section 11 of the [reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): `DbLiveBuilder` and its extension methods, `IDbLive`, `DeployParameters`, `IDbLiveTester`, `IScriptSource`, the listed members of `IDbLiveDA`, and the exceptions DbLive throws to the caller (Section 17).
-- **`DbLive.xunit`**: `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture`, `IDbLiveFixtureBuilder`, and what the tests check.
+- **Testing**: `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` (`DbLive.xunit`) and what the tests check; `IDbLiveFixtureBuilder` and the fixture builders `MsSqlFixtureBuilder`, `PostgreSqlFixtureBuilder`, `MsSqlContainerFixtureBuilder`, `PostgreSqlContainerFixtureBuilder` (Section 11.6 of the reference).
 - **The project layout**: the folders, the file naming rules, the `settings.json` keys and the item settings files ([Project structure](project/structure.md), [Configuration](project/configuration.md)).
 - **SQL test semantics**: the `assert` result set and its values, `setup.test.sql`, the transaction a test runs in ([SQL unit testing](unit-testing/index.md)).
 - **The `dblive` schema**, DbLive's own tables in your database. DbLive creates and upgrades it during a deployment, without manual steps; a new version may add columns and tables and convert the stored data. Removing or renaming what you can query is a breaking change.

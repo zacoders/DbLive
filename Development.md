@@ -4,7 +4,7 @@
 Features, bugs and other work items are Markdown files in [tasks/](tasks/), one file per task; finished ones move to `tasks/done/`. See [tasks/README.md](tasks/README.md) for the format and workflow.
 
 ## Releases
-Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and tests the solution, publishes the four packages to nuget.org, tags the merge commit with the version and creates a GitHub Release with the release notes. Work happens in branches and reaches `main` through a pull request, merged with a merge commit. Small fix releases are fine; the versioning policy for users is [docs/versioning.md](docs/versioning.md).
+Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and tests the solution, publishes the six packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`) to nuget.org, tags the merge commit with the version and creates a GitHub Release with the release notes. Work happens in branches and reaches `main` through a pull request, merged with a merge commit. Small fix releases are fine; the versioning policy for users is [docs/versioning.md](docs/versioning.md).
 
 ### Version
 [GitVersion](https://gitversion.net/) 5 in [Mainline](https://gitversion.net/docs/reference/modes/mainline) mode (`.github/GitVersion.yml`) takes the bump from the messages of the merge commit and of every commit of the merged branch. The largest bump wins:

@@ -72,43 +72,20 @@ The SQL tests run as ordinary xUnit tests: each `.test.sql` file is a test case 
 
     `DbLive.xunit` works with xUnit v2. If the template created an xUnit v3 project, switch it to the `xunit` 2.x package.
 
-2. Add a fixture builder that points to a test server. This one uses a local SQL Server and creates a new database for every test run:
-
-    ```csharp
-    using DbLive;
-    using DbLive.MSSQL;
-    using DbLive.xunit;
-    using System.Reflection;
-
-    public class LocalSqlServerFixtureBuilder : IDbLiveFixtureBuilder
-    {
-        public Task<DbLiveBuilder> GetBuilderAsync()
-        {
-            string connectionString = "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;"
-                .SetRandomMsSqlDatabaseName();
-
-            return Task.FromResult(new DbLiveBuilder()
-                .SqlServer()
-                .SetDbConnection(connectionString)
-                .SetProject(GetProjectAssembly()));
-        }
-
-        public Assembly GetProjectAssembly() => Assembly.Load("MyDb");
-    }
-    ```
-
-3. Add the fixture and the test class:
+2. Add the fixture and the test class. The fixture builder `MsSqlFixtureBuilder` points to your local SQL Server and gives the fixture a new database with a random name; the database name in the connection string is replaced:
 
     ```csharp
     using DbLive.Deployers.Testing;
+    using DbLive.MSSQL;
     using DbLive.xunit.SqlTest;
+    using System.Reflection;
     using Xunit;
     using Xunit.Abstractions;
 
     public class MyDbTestFixture()
-        : DbLiveTestFixture(fixtureBuilder: new LocalSqlServerFixtureBuilder(), dropDatabaseOnComplete: true)
-    {
-    }
+        : DbLiveTestFixture(
+            new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;"),
+            dropDatabaseOnComplete: true);
 
     public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
         : IClassFixture<MyDbTestFixture>
@@ -122,9 +99,9 @@ The SQL tests run as ordinary xUnit tests: each `.test.sql` file is a test case 
     }
     ```
 
-4. Build and open Test Explorer. Each `.test.sql` file is a separate test named after its path. The tests read the scripts embedded in the `MyDb` dll; Test Explorer builds before running, so edits to the SQL files are picked up the next time you run a test. Before the tests, the fixture deploys `MyDb` into a new `DbLive--<guid>` database on that server, and drops it afterwards, so the tests never touch your development database.
+3. Build and open Test Explorer. Each `.test.sql` file is a separate test named after its path. The tests read the scripts embedded in the `MyDb` dll; Test Explorer builds before running, so edits to the SQL files are picked up the next time you run a test. Before the tests, the fixture deploys `MyDb` into a new `DbLive--<guid>` database on that server, and drops it afterwards, so the tests never touch your development database.
 
-To run the same tests against SQL Server in Docker, replace the builder with the Testcontainers one from [Unit Testing](index.md#running-tests-in-visual-studio-and-ci-xunit).
+To run the same tests against SQL Server in Docker, add the package `DbLive.Testcontainers.MSSQL` to `MyDb.Tests` and replace the builder with `new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb"))` ([Unit Testing](index.md#1-a-fixture-builder)).
 
 ## Next steps
 

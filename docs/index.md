@@ -54,6 +54,8 @@ await deployer.DeployAsync(DeployParameters.Default);
 | `DbLive.MSSQL` | SQL Server and Azure SQL provider |
 | `DbLive.PostgreSQL` | PostgreSQL provider |
 | `DbLive.xunit` | SQL tests as xUnit tests, deployment tests |
+| `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker, for the SQL tests |
+| `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker, for the SQL tests |
 
 Target frameworks: .NET 8, 9 and 10. Source code and issues: [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive).
 

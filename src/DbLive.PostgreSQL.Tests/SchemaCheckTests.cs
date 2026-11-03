@@ -1,5 +1,4 @@
 using DbLive.Schema;
-using DbLive.xunit;
 using DbLive.xunit.Deploy;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;

@@ -59,21 +59,24 @@ SQL tests, undo scripts and rollback, checksums and ProjectId are available in e
 
 | Package | Purpose | Key API |
 |---|---|---|
-| `DbLive` | Core engine. Pulled in automatically by the provider packages and `DbLive.xunit`. Embeds the `Scripts` folder of the project in its assembly (Section 3.1). | `DbLiveBuilder`, `DeployParameters`, `IDbLive` |
-| `DbLive.MSSQL` | SQL Server / Azure SQL provider (Microsoft.Data.SqlClient + SMO). | `.SqlServer()` |
-| `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()` |
+| `DbLive` | Core engine. Pulled in automatically by the other packages. Embeds the `Scripts` folder of the project in its assembly (Section 3.1). | `DbLiveBuilder`, `DeployParameters`, `IDbLive`, `IDbLiveFixtureBuilder` |
+| `DbLive.MSSQL` | SQL Server / Azure SQL provider (Microsoft.Data.SqlClient + SMO). | `.SqlServer()`, `MsSqlFixtureBuilder` |
+| `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()`, `PostgreSqlFixtureBuilder` |
 | `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` |
+| `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker (Testcontainers). Brings `DbLive.MSSQL` and `Testcontainers.MsSql`; no xUnit dependency. | `MsSqlContainerFixtureBuilder` |
+| `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker (Testcontainers). Brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; no xUnit dependency. | `PostgreSqlContainerFixtureBuilder` |
 
-- Versions: the four packages are released together with one version; use the same version of all of them. Semantic Versioning, breaking changes only in a major version (`docs/versioning.md`). Before upgrading to a new major version, read "Breaking changes" in the release notes (https://github.com/zacoders/DbLive/releases) and apply the upgrade steps there.
+- Versions: all DbLive packages are released together with one version; use the same version of all of them. Semantic Versioning, breaking changes only in a major version (`docs/versioning.md`). Before upgrading to a new major version, read "Breaking changes" in the release notes (https://github.com/zacoders/DbLive/releases) and apply the upgrade steps there.
 - Target frameworks: `net8.0`, `net9.0`, `net10.0`.
 - Logging: Serilog (`Serilog.ILogger`). Default is no logging.
 - DI: Microsoft.Extensions.DependencyInjection (internal container, all services are singletons).
 - The provider package embeds DbLive's own SQL scripts (the `dblive` schema, Section 15) in its assembly as resources named `DbLive.Internal/...`. Nothing is copied next to the application. A `DbLive.MSSQL/` or `DbLive.PostgreSQL/` folder left in `bin/` by an older package version is not read and can be deleted.
 
 ```bash
-dotnet add package DbLive.MSSQL        # or: dotnet add package DbLive.PostgreSQL
-dotnet add package DbLive.xunit        # only in the xUnit test project
-dotnet add package DbLive              # only in a SQL project without the provider (layout B, Section 3.2)
+dotnet add package DbLive.MSSQL                  # or: dotnet add package DbLive.PostgreSQL
+dotnet add package DbLive.xunit                  # only in the xUnit test project
+dotnet add package DbLive.Testcontainers.MSSQL   # only in the test project, for a test database in Docker; or DbLive.Testcontainers.PostgreSQL
+dotnet add package DbLive                        # only in a SQL project without the provider (layout B, Section 3.2)
 ```
 
 ---
@@ -129,7 +132,7 @@ MyDb/
 ```
 MyDb/            class library: Scripts/ + an empty marker class; references DbLive, which embeds Scripts/ (3.1)
 MyDb.Deploy/     console app: references MyDb and DbLive.MSSQL; Program.cs
-MyDb.Tests/      xUnit v2 test project: references MyDb, DbLive.MSSQL, DbLive.xunit, Testcontainers.MsSql
+MyDb.Tests/      xUnit v2 test project: references MyDb, DbLive.xunit, DbLive.Testcontainers.MSSQL (brings DbLive.MSSQL)
 ```
 
 Get the SQL project's assembly through a type in it, for example `public sealed class MyDbMarker { }` and `typeof(MyDbMarker).Assembly`. `Assembly.Load("MyDb")` also works when the project is referenced.
@@ -438,6 +441,8 @@ DbLiveBuilder builder = new DbLiveBuilder()
 await builder.CreateDeployer().DeployAsync(DeployParameters.Default);   // leave out for a database that is already deployed
 await builder.CreateTester().RunAllTestsAsync();   // never in a production deployer
 ```
+
+The fixture builders (Section 11.6) do not depend on xUnit; with another framework they give a new database too: `DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();`, then `DeployAsync(new DeployParameters { CreateDbIfNotExists = true })` (the database does not exist yet), `RunAllTestsAsync()`, and `builder.CreateDbLiveDA().DropDbAsync()`.
 
 Before the first test it checks the database, and runs no test if a check fails:
 - the database exists, otherwise `DatabaseNotFoundException` (namespace `DbLive.Adapter`, Section 17);
@@ -750,6 +755,27 @@ Task<TestRunResult> RunTestAsync(Action<string> writeLine, string testFileRelati
 
 `RunAllTestsAsync` checks the database first (DbLive tables, ProjectId, isolation levels; Section 8.2). `RunTestAsync` does not check and does not store the result: the `[SqlFact]` fixture has just deployed the database.
 
+### 11.6 `IDbLiveFixtureBuilder` (namespace `DbLive`) and the fixture builders
+
+```csharp
+public interface IDbLiveFixtureBuilder
+{
+    Task<DbLiveBuilder> GetBuilderAsync();   // once per fixture: provider, connection string of a new database, project
+    Assembly GetProjectAssembly();           // the SQL project assembly; [SqlFact] discovery reads the tests from it
+}
+```
+
+Ready-made implementations; each takes the SQL project assembly and gives every `GetBuilderAsync` call a new random database name (`DbLive--<guid>` on SQL Server, `dblive--<guid>` on PostgreSQL). They do not create the database: the fixture's deployment does (`CreateDbIfNotExists = true`).
+
+| Class | Package / namespace | Database |
+|---|---|---|
+| `MsSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.MSSQL` / `DbLive.MSSQL` | On the server of `connectionString`; its database name is replaced. |
+| `PostgreSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.PostgreSQL` / `DbLive.PostgreSQL` | Same, PostgreSQL. |
+| `MsSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.MSSQL` / `DbLive.MSSQL` | SQL Server in Docker; `DefaultImage` = `mcr.microsoft.com/mssql/server:2025-latest`. |
+| `PostgreSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.PostgreSQL` / `DbLive.PostgreSQL` | PostgreSQL in Docker; `DefaultImage` = `postgres:latest`. |
+
+Container builders: one container per image per test process, started by the first `GetBuilderAsync` call; concurrent calls wait for that start and share the container. A failed start is not retried: every fixture of the run fails with its exception (Docker not running, image not found). The container is not stopped by DbLive; the Testcontainers resource reaper removes it when the test process ends.
+
 ---
 
 ## 12. Deployment pipeline (exact order of `DeployAsync`)
@@ -778,56 +804,39 @@ The SQL tests are not a step of the deployment: they run in xUnit, or with `IDbL
 
 SQL tests run like ordinary C# unit tests: the fixture builds a temporary database from the project scripts (in a Docker container or on a local server, with a random name), the tests run against it, and the database is dropped at the end. No shared test database is needed, and every developer machine and CI run starts from the same database.
 
-Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.x), `xunit.runner.visualstudio`, `DbLive.xunit`, the provider package, and usually `Testcontainers.MsSql` or `Testcontainers.PostgreSql`. Reference the SQL project.
+Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.x), `xunit.runner.visualstudio`, `DbLive.xunit`, and `DbLive.Testcontainers.MSSQL` or `DbLive.Testcontainers.PostgreSQL` (a test database in Docker; brings the provider and Testcontainers). Without Docker: the provider package instead. Reference the SQL project.
 
-### 13.1 Fixture builder (one per test project)
+### 13.1 Fixture builder
+
+The fixture gets its database from an `IDbLiveFixtureBuilder` (Section 11.6). Use a ready-made one; do not write a builder class unless the database needs a setup they do not cover:
 
 ```csharp
-using DbLive;
 using DbLive.MSSQL;
-using DbLive.xunit;
-using DotNet.Testcontainers.Containers;
 using System.Reflection;
-using Testcontainers.MsSql;
 
-public class DockerMsSqlFixtureBuilder : IDbLiveFixtureBuilder
-{
-    // One container per test run; each fixture gets its own random database.
-    private static readonly MsSqlContainer _container =
-        new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest").Build();
+new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)                 // SQL Server in Docker
+new MsSqlFixtureBuilder(typeof(MyDbMarker).Assembly,
+    "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;")   // a local server
 
-    public async Task<DbLiveBuilder> GetBuilderAsync()
-    {
-        if (_container.State != TestcontainersStates.Running)
-            await _container.StartAsync().ConfigureAwait(false);
-
-        string connectionString = _container.GetConnectionString().SetRandomMsSqlDatabaseName();
-
-        return new DbLiveBuilder()
-            .SqlServer()
-            .SetDbConnection(connectionString)
-            .SetProject(GetProjectAssembly());
-    }
-
-    public Assembly GetProjectAssembly() => typeof(MyDbMarker).Assembly;
-}
+// PostgreSQL (using DbLive.PostgreSQL):
+new PostgreSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)            // postgres:latest in Docker
+new PostgreSqlFixtureBuilder(typeof(MyDbMarker).Assembly, "Host=localhost;Username=postgres;Password=...")
 ```
 
-PostgreSQL: `PostgreSqlContainer`, `new PostgreSqlBuilder("postgres:latest").Build()`, `.PostgreSQL()`, `.SetRandomPostgreSqlDatabaseName()`.
+Every fixture gets a new database with a random name on that server, so test classes that xUnit runs in parallel never share one. A custom builder implements both members of `IDbLiveFixtureBuilder` (namespace `DbLive`): `GetBuilderAsync()` returns `new DbLiveBuilder().SqlServer().SetDbConnection(<connection string with a new database name>).SetProject(<assembly>)`, `GetProjectAssembly()` returns the same assembly.
 
 ### 13.2 Every SQL test as its own xUnit test: `[SqlFact]`
 
 ```csharp
 using DbLive.Deployers.Testing;
+using DbLive.MSSQL;
 using DbLive.xunit.SqlTest;
 using Xunit;
 using Xunit.Abstractions;
 
 // Must derive from DbLiveTestFixture and have a public parameterless constructor.
 public class MyDbTestFixture()
-    : DbLiveTestFixture(fixtureBuilder: new DockerMsSqlFixtureBuilder(), dropDatabaseOnComplete: true)
-{
-}
+    : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly), dropDatabaseOnComplete: true);
 
 public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
     : IClassFixture<MyDbTestFixture>
@@ -849,6 +858,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 ### 13.3 Deployment test: `[SqlDeployFact]`
 
 ```csharp
+using DbLive.MSSQL;
 using DbLive.xunit.Deploy;
 using Xunit;
 using Xunit.Abstractions;
@@ -856,7 +866,7 @@ using Xunit.Abstractions;
 public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 {
     private readonly DeploymentTestFixture _fixture = new(
-        builderProvider: new DockerMsSqlFixtureBuilder(),
+        builderProvider: new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly),
         dropDatabaseOnComplete: true);
 
     public Task InitializeAsync() => _fixture.InitializeAsync();
@@ -1018,7 +1028,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 1. Create the SQL project (class library or console app) with a `Scripts` folder. It references the provider (layout A) or `DbLive` (layout B), which embeds the folder (3.1); add nothing to the `.csproj`.
 2. Create `Scripts/Migrations/<yyyyMMddHHmmss>.<name>.sql` with the first change, and `Scripts/settings.json` with `ProjectId` (rule 17), optionally `"EnforceTimestampVersion": true`.
 3. Create the deployer (3.3).
-4. Create the xUnit test project that references the SQL project, with `[SqlFact]` and `[SqlDeployFact]` (Section 13).
+4. Create the xUnit test project that references the SQL project, `DbLive.xunit` and `DbLive.Testcontainers.MSSQL` (or `DbLive.Testcontainers.PostgreSQL`), with a one-line fixture on `MsSqlContainerFixtureBuilder` (13.1) and the `[SqlFact]` and `[SqlDeployFact]` classes (Section 13).
 
 ### 18.2 Add DbLive to an existing database (brownfield)
 DbLive has no baseline command. Recommended approach:

@@ -1,3 +1,4 @@
+using DbLive.PostgreSQL;
 using DbLive.xunit.Deploy;
 using Xunit.Abstractions;
 
@@ -8,7 +9,7 @@ namespace Demo.PostgreSQL.Chinook.Tests;
 public class DeploymentTests(ITestOutputHelper _output) : IAsyncLifetime
 {
 	private readonly DeploymentTestFixture _fixture = new(
-		builderProvider: new DockerPostgresFixtureBuilder(),
+		builderProvider: new PostgreSqlContainerFixtureBuilder(typeof(DemoPostgreSQLChinookLink).Assembly),
 		dropDatabaseOnComplete: true
 	);
 
