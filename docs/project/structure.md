@@ -69,7 +69,7 @@ Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `C
 
 **Name.** Free text, for humans only. If the second part of the file name is not a type, the file is a migration and that part is its name: `20260808104925.create-users.sql` is a migration named `create-users`.
 
-**Extension.** `.sql` for scripts, `.json` for settings, in lower case: `001.migration.SQL` stops the deployment.
+**Extension.** `.sql` for scripts, `.json` for settings, in any case: `001.migration.SQL` is a migration.
 
 **Settings.** A `.json` file `<version>.<item>.settings.json` holds the [settings](configuration.md#item-settings) of one script of that version: `migration`, `breaking` or `undo`. Short forms combine: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.u.s.json`. A settings file needs its script. The old `<version>.settings.json` is rejected with a hint to the new name.
 

@@ -32,7 +32,7 @@ internal static class MigrationFileNameParser
 			throw new InvalidMigrationVersionException(fileName, errorMessage);
 		}
 
-		if (fileExtension == ".json")
+		if (IsExtension(fileExtension, ".json"))
 		{
 			// <version>.settings.json was one settings file for the whole version.
 			if (IsSettingsPart(migrationFilePart2))
@@ -56,7 +56,7 @@ internal static class MigrationFileNameParser
 
 		if (migrationType.HasValue)
 		{
-			if (fileExtension != ".sql")
+			if (!IsExtension(fileExtension, ".sql"))
 			{
 				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
 			}
@@ -70,7 +70,7 @@ internal static class MigrationFileNameParser
 			};
 		}
 
-		if (fileExtension == ".sql")
+		if (IsExtension(fileExtension, ".sql"))
 		{
 			return new MigrationItemInfo()
 			{
@@ -86,4 +86,10 @@ internal static class MigrationFileNameParser
 
 	private static bool IsSettingsPart(string filePart)
 		=> filePart.ToLower() is "settings" or "s";
+
+	/// <summary>
+	/// Ignoring case, like the file patterns that found the file: "001.migration.SQL" is a migration.
+	/// </summary>
+	private static bool IsExtension(string fileExtension, string expectedExtension)
+		=> fileExtension.Equals(expectedExtension, StringComparison.OrdinalIgnoreCase);
 }

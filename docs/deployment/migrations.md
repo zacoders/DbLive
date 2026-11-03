@@ -112,7 +112,6 @@ A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 
 | Exception | Cause |
 |-----------|-------|
 | `InvalidMigrationVersionException` | The version is not a number (also a file such as `config.json` in `Migrations`), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion`. |
-| `InvalidMigrationItemTypeException`, `UnknownMigrationItemTypeException` | The extension is not in lower case (`001.migration.SQL`). |
 | `DuplicateMigrationItemException` | Two files with the same version and type (`001.migration.sql` and `1.m.sql` count). |
 | `MigrationItemMustExistsException` | An undo, breaking or settings file without a migration file of the same version. |
 | `UnknownMigrationSettingsException` | A `.json` file in `Migrations` that is not `<version>.<item>.settings.json`. |

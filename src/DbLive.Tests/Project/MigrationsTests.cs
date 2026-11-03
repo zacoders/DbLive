@@ -198,6 +198,28 @@ public class MigrationsTests
 	}
 
 	[Fact]
+	public async Task GetMigrations_Reads_Extensions_Ignoring_Case()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource
+			.AddFile("Migrations/001.migration.SQL", "-- migration")
+			.AddFile("Migrations/001.m.s.JSON", """{ "TransactionWrapLevel": "None" }""")
+			.AddFile("Migrations/001.Undo.Sql", "-- undo")
+			.AddFile("Migrations/002.create-users.Sql", "-- migration 2");
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		IReadOnlyList<Migration> migrations = await sqlProject.GetMigrationsAsync();
+
+		Assert.Equal(2, migrations.Count);
+		Assert.Equal(3, migrations[0].Items.Count);
+		Assert.Equal(TransactionWrapLevel.None, migrations[0].GetItemSettings(MigrationItemType.Migration).TransactionWrapLevel);
+		Assert.Equal("Migrations/001.Undo.Sql", migrations[0].Items[MigrationItemType.Undo].FileData.RelativePath);
+		Assert.Equal("create-users", migrations[1].Items[MigrationItemType.Migration].Name);
+	}
+
+	[Fact]
 	public async Task GetMigrations_Throws_when_migration_item_is_missing()
 	{
 		// Arrange

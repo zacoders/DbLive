@@ -134,6 +134,22 @@ public class MigrationFileNameParserTests
 			MigrationFileNameParser.GetMigrationInfo("001.whatever.txt"));
 	}
 
+	[Theory]
+	[InlineData("001.migration.SQL", MigrationItemType.Migration, "")]
+	[InlineData("001.U.Sql", MigrationItemType.Undo, "")]
+	[InlineData("001.name.Sql", MigrationItemType.Migration, "name")]
+	[InlineData("001.m.s.JSON", MigrationItemType.MigrationSettings, "")]
+	[InlineData("001.B.Settings.Json", MigrationItemType.BreakingSettings, "")]
+	public void Parses_Extension_Ignoring_Case(string file, MigrationItemType expectedType, string expectedName)
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(1, result.Version);
+		Assert.Equal(expectedType, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
+		Assert.Equal(file, result.RelativePath);
+	}
+
 	[Fact]
 	public void Parses_Migration_Name_When_Present()
 	{
