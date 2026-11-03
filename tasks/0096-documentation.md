@@ -59,3 +59,9 @@ Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10
 - One home per fact: the idea, the model and the release cycle diagram live in `database-as-service.md`; steps, CI/CD and the checklist in `deployment/zero-downtime.md`; presets in `deployment/index.md`; transactions in `project/configuration.md`; the 007 walkthrough in `examples/table-split.md` (aligned with the demo: `Person`/`PersonPhones`). Other pages link.
 - `docs/llms-full.txt`: rule 14 (follow the way the project uses DbLive; contract vs implementation change), ways table in Section 1, AfterDeploy is not for breaking changes (Section 7).
 - Open: where to drop an old procedure version when the release has no migration → task 0096-15.
+
+2026-11-03, unit testing pages, decision of the maintainer:
+- The test project setup (commands, packages, fixture, `[SqlFact]` class) lives only in `unit-testing/index.md`. The tutorial `stored-proc-and-unit-test.md` links to it and keeps what is its own: the procedure, the tests, the deploy output, a passing run and a deliberately failing one.
+- `[SqlDeployFact]` moved to its own page, `unit-testing/deployment-tests.md`; `index.md` keeps a short paragraph and a link.
+- One example table across the docs: `dbo.Users (UserId, Name)`. Getting Started and the tutorial used `Username`.
+- Verified 2026-11-03 against packages packed from this branch and a local SQL Server: Getting Started, every tutorial step and the anatomy example from `index.md`. The deploy logs and the failure message in the docs are copied from that run. `dotnet new xunit` (SDK 10.0.402) creates an xUnit v2 project.

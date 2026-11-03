@@ -41,7 +41,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 |---------|----------|
 | [Project](project/index.md) | Project setup, [folder structure and file naming](project/structure.md), [`settings.json`](project/configuration.md) |
 | [Deployment](deployment/index.md) | Pipeline and `DeployParameters`, [migrations](deployment/migrations.md), [code](deployment/code.md), [breaking changes](deployment/breaking-changes.md) |
-| [Unit Testing](unit-testing/index.md) | Test files, assertions, `setup.test.sql`, xUnit integration |
+| [Unit Testing](unit-testing/index.md) | Test files, assertions, `setup.test.sql`, xUnit integration, [deployment tests](unit-testing/deployment-tests.md) |
 | [Features](features/index.md) | ProjectId, checksums, downgrade and other features |
 | [Examples](examples/index.md) | Demo projects and walkthroughs |
 | [For AI agents](ai-agents.md) | `llms.txt` and the single-file reference for coding assistants |

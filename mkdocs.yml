@@ -75,6 +75,7 @@ nav:
       - deployment/zero-downtime.md
   - Unit Testing:
       - unit-testing/index.md
+      - unit-testing/deployment-tests.md
       - unit-testing/stored-proc-and-unit-test.md
   - Features:
       - features/index.md

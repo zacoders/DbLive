@@ -69,7 +69,7 @@ drop table if exists dbo.PersonPhones;
 
 Undo scripts are tested by the `[SqlDeployFact]` deployment test, in both states a rollback can find: it applies each version that has an undo script as migration, undo (before the breaking phase), then, if the version has a breaking script, migration, breaking, breaking, undo (after it), and then the migration again. Each step runs with its own settings, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so its second run must not fail and must not change the schema.
 
-The test compares the schema before the migration with the schema after each undo, so an undo that runs without errors but does not restore the schema fails it with `SchemaChangedException` and a list of the missing, extra and changed objects. Column order is not compared: adding a dropped column back at the end of the table, as in the example above, is enough. See [Unit Testing](../unit-testing/index.md#schema-checks).
+The test compares the schema before the migration with the schema after each undo, so an undo that runs without errors but does not restore the schema fails it with `SchemaChangedException` and a list of the missing, extra and changed objects. Column order is not compared: adding a dropped column back at the end of the table, as in the example above, is enough. See [Unit Testing](../unit-testing/deployment-tests.md#schema-checks).
 
 ## Downgrade
 

@@ -80,7 +80,7 @@ await deployer.DeployAsync(DeployParameters.Default with { AllowDatabaseDowngrad
 
 ## SQL tests
 
-A deployment does not run the SQL tests, so a production deployer cannot run them by mistake. Run them in CI with `dotnet test`, against a disposable database: `[SqlFact]` runs each test, and the [deployment test](../unit-testing/index.md#deployment-tests) deploys the project as production does and runs all tests after the release and after the breaking phase. See [Unit Testing](../unit-testing/index.md), and [Running all tests without xUnit](../unit-testing/index.md#running-all-tests-without-xunit) for other test frameworks.
+A deployment does not run the SQL tests, so a production deployer cannot run them by mistake. Run them in CI with `dotnet test`, against a disposable database: `[SqlFact]` runs each test, and the [deployment test](../unit-testing/deployment-tests.md) deploys the project as production does and runs all tests after the release and after the breaking phase. See [Unit Testing](../unit-testing/index.md), and [Running all tests without xUnit](../unit-testing/index.md#running-all-tests-without-xunit) for other test frameworks.
 
 !!! tip "Tests and production"
     SQL tests roll back everything they change, but by default they run with `Serializable` isolation and take locks on the tables they read. Do not run them against production.
