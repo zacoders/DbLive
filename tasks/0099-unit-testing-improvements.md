@@ -18,7 +18,9 @@ Tests are now written mostly by LLMs. Prefer APIs they already know: the helpers
 
 Ideas about tests, not decided yet:
 - `tasks/ideas/migration-step-tests.md`: tests of a migration step on prepared data
-- `tasks/ideas/undo-test-data-round-trip.md`: data checks for a migration version, forward and through undo
+- `tasks/ideas/migration-breaking-change-check.md`: a heuristic check that a release does not break the previous application (schema compare)
+
+`tasks/rejected/undo-test-data-round-trip.md` (data checks through undo) was rejected on 2026-11-06 with undo scripts (0096-46).
 
 The comparison page with tSQLt (`tasks/0096-21-comparison-and-tsqlt-page.md`) stays under #96, because it is documentation; its tSQLt rows follow the tasks above.
 

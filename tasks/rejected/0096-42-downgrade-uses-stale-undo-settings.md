@@ -2,8 +2,12 @@
 type: bug
 priority: medium
 created: 2026-11-05
+rejected: 2026-11-06
 ---
 # A downgrade uses the undo settings of a file deleted from the project
+
+## Rejected
+Rejected by the maintainer on 2026-11-06: undo scripts and the downgrade are removed (`0096-46-remove-undo.md`), so no stored undo settings can go stale; the self-migration of 0096-46 deletes the `undo` and `undo.settings` rows. The second question below (stale `breaking` and `breaking.settings` rows of a deleted file) does not depend on undo: it moved to 0096-46.
 
 ## Problem
 `MigrationsSaver` adds and updates the rows of `dblive.migration` for the files of the project, but never removes the row of a file deleted from the project. `DowngradeDeployer` takes the undo settings of a version from its stored `undo.settings` row. So after `<version>.undo.settings.json` is deleted, a downgrade still applies the old settings.

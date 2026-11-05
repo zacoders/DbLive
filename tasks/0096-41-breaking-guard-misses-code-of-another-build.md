@@ -47,3 +47,5 @@ Two smaller problems of the same guard:
 
 ## Notes
 Found in the code review of 2026-11-05 (#96). Merges three findings of the review: the missed case, the round trip per file, the copied check.
+
+2026-11-06, rechecked against 0096-46 (undo scripts and the downgrade are removed): the scenario stays possible. N+1 in it is a code-only release (it deletes a code file and adds a breaking script), so deploying the build of N over it is a plain deployment: no migration version is missing from the build, and nothing stops it. A second case appears with the rollback of 0096-46, which does not deploy N at all: the application is rolled back to N and the database stays at N+1. A `Breaking` job of N+1 that runs then drops `GetUser_v1`, which application N calls, and no guard can see it: the database is exactly what N+1 deployed. This task covers the first case; for the second, §18.8 must say that the breaking phase of a release whose application was rolled back never runs (0096-46).

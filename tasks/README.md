@@ -85,7 +85,7 @@ ls tasks/rejected                     # what was decided not to do, and why
 
 ## Ideas
 
-An idea is something worth thinking about later, not decided and not planned. It has no number: `ideas/undo-test-data-round-trip.md`. Front matter holds only `created`; the body says what the idea is, where it came from, and the open questions.
+An idea is something worth thinking about later, not decided and not planned. It has no number: `ideas/migration-step-tests.md`. Front matter holds only `created`; the body says what the idea is, where it came from, and the open questions.
 
 When an idea is taken into work, `git mv` it to `tasks/` under a task number, add `type` and `priority`, and rewrite it in the task format. A rejected idea moves to `rejected/` like a task.
 

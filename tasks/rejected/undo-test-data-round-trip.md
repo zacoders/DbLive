@@ -1,7 +1,11 @@
 ---
 created: 2026-11-01
+rejected: 2026-11-06
 ---
 # Data checks for a migration version: forward and through undo
+
+## Rejected
+Rejected by the maintainer on 2026-11-06 together with undo scripts (`tasks/0096-46-remove-undo.md`): there is no undo whose data round trip could be checked. Data prepared for a migration version and the checks after the migration and the breaking script stay in `tasks/ideas/migration-step-tests.md`.
 
 ## Idea
 The `[SqlDeployFact]` deployment test runs migrations on an empty database, so the data logic of a migration (moving a column, splitting a table) and of its undo (moving the data back) runs on empty tables and is never checked. Any `insert ... select` passes.
