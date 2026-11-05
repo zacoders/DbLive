@@ -45,6 +45,8 @@ Bugs found while studying the code for the docs are tasks `0096-01` to `0096-16`
 
 Tasks `0096-36` to `0096-38` are code bugs found by the documentation review of 2026-11-03 (Notes).
 
+Tasks `0096-40` to `0096-45` come from the code review of 2026-11-05 (docs against code, bugs): a rollback to a build with DbLive 1.5.0 after the upgrade (40), the breaking guard after a rollback (41), stale undo settings (42), the transitive embedding of `Scripts` (43), repeated reads of the project (44), small fixes (45). The review also found that the site is published from this branch (last item of D6): until the merge, zacoders.github.io/DbLive and its `llms-full.txt` describe 2.0 while nuget.org has 1.5.0.
+
 Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10-31): safe defaults, release process, how the project looks to someone evaluating it, and gaps compared with tSQLt. They do not block this task. The testing ones (0096-23, 0096-24, 0096-28, 0096-29) moved to #99 on 2026-11-03: `0099-unit-testing-improvements.md`.
 
 ## Done when
