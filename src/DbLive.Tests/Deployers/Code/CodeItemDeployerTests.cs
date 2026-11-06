@@ -114,7 +114,7 @@ public class CodeItemDeployerTests
 
 		CodeItem codeItem = GetCodeItem();
 
-		// the file was deleted by a newer build, and a rollback brought it back with the same content.
+		// the file was deleted by a release, and a later release brought it back (git revert) with the same content.
 		CodeItemDto codeItemDto = new()
 		{
 			ContentHash = codeItem.FileData.ContentHash,

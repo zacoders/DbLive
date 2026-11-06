@@ -315,7 +315,7 @@ void Template(string name, string? providerOption, string provider, string[] sql
 		.Select(r => (Name: (string)r.Attribute("testName")!, Outcome: (string)r.Attribute("outcome")!))
 		.OrderBy(r => r.Name, StringComparer.Ordinal)
 		.ToList();
-	string[] expectedTests = [.. sqlTests.Append($"{testNamespace}.DeploymentTests.ReleaseDeploysAndRollsBack").Order(StringComparer.Ordinal)];
+	string[] expectedTests = [.. sqlTests.Append($"{testNamespace}.DeploymentTests.ReleaseDeploys").Order(StringComparer.Ordinal)];
 	string actual = string.Join(", ", results.Select(r => $"{r.Name}: {r.Outcome}"));
 	if (exitCode != 0 || !results.Select(r => r.Name).SequenceEqual(expectedTests) || results.Any(r => r.Outcome != "Passed"))
 		Fail($"tests [{actual}], expected [{string.Join(", ", expectedTests)}] to pass (exit code {exitCode}):{Environment.NewLine}{output}");

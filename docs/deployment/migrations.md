@@ -5,13 +5,15 @@ Migrations change the **internal state** of the database: tables, columns, index
 ## Rules of thumb
 
 1. **Never edit a migration after it has been applied** to a shared database. Add a new version instead.
-2. **Never delete an applied migration or change its version.** DbLive would treat the missing version as a [downgrade](#downgrade).
-3. **Only expand.** A migration must keep the running application working: add tables, nullable columns or columns with defaults, indexes, sync triggers. Put drops and renames of things the application still uses into the version's [breaking script](breaking-changes.md).
-4. **Write an undo script** for every version you may need to roll back.
+2. **Never delete an applied migration or change its version.** A build without an applied version [fails](#which-migrations-run) with `DatabaseAheadOfProjectException`.
+3. **Only expand.** A migration must keep the running application working: add tables, nullable columns or columns with defaults, indexes, sync triggers. Put drops and renames of things the application still uses into the version's [breaking script](breaking-changes.md). Then the previous application runs on the new schema too, and a release is [rolled back](#roll-back-a-release) without touching the database.
+4. **Fix a wrong migration with a new one.** DbLive has no undo scripts.
 
 ## Which migrations run
 
-At the start of every deployment DbLive records all migration files of the project in `dblive.migration`. A version is **pending** when its migration item is not marked `applied`. All pending versions run in ascending version order, including versions lower than the highest applied one: a branch merged later with an older timestamp is still applied. Matching is by version and type, never by path, so you can reorganise the `Migrations` folder freely.
+At the start of every deployment DbLive records all migration files of the project in `dblive.migration`. A version is **pending** when its migration item is not marked `applied`. All pending versions run in ascending version order, including versions lower than the highest applied one: a branch merged later with an older timestamp is still applied. Matching is by version and type, never by path, so you can reorganise the `Migrations` folder freely. DbLive stores the checksum of each file, not its content: the project is the source of the scripts.
+
+Every version applied to the database must be in the project. DbLive checks it at the start of every deployment (also a breaking-only one), before it records the migration files; if the database has applied versions the project lacks, the deployment fails with `DatabaseAheadOfProjectException`, which lists those versions, before any of your scripts runs. Either an older build is deployed, and DbLive does not roll back a database (see [Roll back a release](#roll-back-a-release)), or migration files were deleted from the project: restore them.
 
 For each pending version DbLive:
 
@@ -35,7 +37,7 @@ Before deploying, DbLive compares every **applied** migration and breaking scrip
 | Applied file changed, `MigrationChecksumMode: Warn` | A warning per file; deployment continues. |
 | Applied file changed, `RepairMigrationChecksums = true` | The stored checksums are replaced by the current ones; deployment continues. |
 
-Files that are not applied yet can be edited freely; DbLive stores their new content and checksum. That includes undo scripts of applied versions, so an undo script can be fixed after its migration went to production.
+Files that are not applied yet can be edited freely; DbLive stores their new checksum. That includes the breaking script of a version whose breaking phase has not run yet.
 
 Use `RepairMigrationChecksums` only when the database already matches the files, for example after a comment-only change:
 
@@ -43,51 +45,18 @@ Use `RepairMigrationChecksums` only when the database already matches the files,
 await deployer.DeployAsync(DeployParameters.Default with { RepairMigrationChecksums = true });
 ```
 
-## Undo scripts
+## Roll back a release
 
-`<version>.undo.sql` reverts its version. DbLive stores the undo script's content in the database when it records the migration files, together with its `<version>.undo.settings.json`, if any. A downgrade can therefore run it, with its settings, even when the build being deployed no longer contains the files.
+DbLive has no undo scripts and does not roll back a database. A release is rolled back like this:
 
-An undo script that reverts something that cannot run in a transaction (an online or concurrent index, `ALTER DATABASE`) needs its own `<version>.undo.settings.json` with `"TransactionWrapLevel": "None"`; the migration's settings file does not apply to it.
+- **Before the breaking phase, roll back the application and keep the database.** Migrations only add, so the previous application runs on the new schema, and the old versions of procedures (`GetUser_v1`) are still there: DbLive never drops code, and only the [breaking phase](breaking-changes.md) drops old versions. The database serves both versions of the application. Do not deploy the previous build of the database: it lacks the new versions, so it fails with `DatabaseAheadOfProjectException` and changes nothing.
+- **A bug in a code object**: revert the file in git and deploy a new release. Code is [deployed by state](code.md): the reverted file differs from what was deployed, so it runs, and the old version of the object is back. A file the release had deleted runs again when it comes back.
+- **A wrong migration**: fix it with a new migration. Never edit or delete an applied one.
+- **The breaking phase is the point of no return.** It drops what the previous application uses. Run it only when the release is confirmed, and never for a release whose application was rolled back: no check can see that case, because the code of the release is still deployed. After the breaking phase, fix forward with a new release, or restore a backup.
 
-Write undo scripts for both possible states, because the breaking script of the version may or may not have run:
+A release that adds no migration version (code only) can also be rolled back by deploying the previous build: it redeploys the code of that build. A breaking deployment of the newer build then fails with `CodeNotDeployedException`.
 
-```sql
--- 007.undo.sql: restore the column if the breaking script removed it, then drop the new objects
-if not exists (select * from sys.columns
-               where object_id = object_id('dbo.Person') and name = 'PhoneNumber')
-begin
-    alter table dbo.Person add PhoneNumber varchar(32) null;
-
-    exec('update p set PhoneNumber = pp.PhoneNumber
-          from dbo.Person p
-          join dbo.PersonPhones pp on pp.PersonId = p.PersonId and pp.IsPrimary = 1');
-end
-
-drop trigger if exists dbo.TMP_DataMigration_Person_To_PersonPhones;
-drop table if exists dbo.PersonPhones;
-```
-
-Undo scripts are tested by the `[SqlDeployFact]` deployment test, in both states a rollback can find: it applies each version that has an undo script as migration, undo (before the breaking phase), then, if the version has a breaking script, migration, breaking, breaking, undo (after it), and then the migration again. Each step runs with its own settings, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so its second run must not fail and must not change the schema.
-
-The test compares the schema before the migration with the schema after each undo, so an undo that runs without errors but does not restore the schema fails it with `SchemaChangedException` and a list of the missing, extra and changed objects. Column order is not compared: adding a dropped column back at the end of the table, as in the example above, is enough. See [Unit Testing](../unit-testing/deployment-tests.md#schema-checks).
-
-## Downgrade
-
-A downgrade happens when you deploy a build whose `Migrations` folder lacks versions that are applied in the database, usually because you are rolling back to the previous release.
-
-- By default DbLive refuses: `DowngradeNotAllowedException`, and nothing changes.
-- With `AllowDatabaseDowngrade = true`, DbLive runs the stored undo scripts of those versions, newest first, **each in its own transaction**, with the stored undo settings over the current project settings. If any of them has no undo script, it stops with `DowngradeImpossibleException` before running anything.
-- If an undo script fails, the versions undone before it stay undone, and the database is consistent at that version. Fix the cause and deploy the older build again: the downgrade continues with the failed version. With `"TransactionWrapLevel": "Deployment"` the whole downgrade is one transaction instead.
-- After the undo, the version's migration and breaking items are marked `reverted`. Deploying the newer build again re-applies them.
-- Code objects are not dropped. Code files of the older build are redeployed if they differ from what was last deployed, or if the newer build had deleted them (their rows are `removed`).
-
-```csharp
-// Roll back to the previous release: deploy its build with downgrade allowed.
-await deployer.DeployAsync(DeployParameters.Default with
-{
-    AllowDatabaseDowngrade = true
-});
-```
+Why no undo scripts: before the breaking phase the database needs no rollback; after it, an undo would restore the structure but not the data the breaking scripts dropped; and an undo of a migration would drop the data written since the migration ran. A file `<version>.undo.sql`, `<version>.u.sql` or `<version>.undo.settings.json` in `Migrations` fails the deployment with `UndoNotSupportedException` before anything runs: delete it.
 
 ## Version numbers
 
@@ -113,12 +82,12 @@ A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 
 |-----------|-------|
 | `InvalidMigrationVersionException` | The version is not a number (also a file such as `config.json` in `Migrations`), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion`. |
 | `DuplicateMigrationItemException` | Two files with the same version and type (`001.migration.sql` and `1.m.sql` count). |
-| `MigrationItemMustExistsException` | An undo, breaking or settings file without a migration file of the same version. |
+| `MigrationItemMustExistsException` | A breaking or settings file without a migration file of the same version. |
+| `UndoNotSupportedException` | An undo script or its settings file (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`): DbLive has no undo scripts. Delete the file. |
 | `UnknownMigrationSettingsException` | A `.json` file in `Migrations` that is not `<version>.<item>.settings.json`. |
 | `ObsoleteMigrationSettingsFileException` | The old `<version>.settings.json`; the message names the new file. |
-| `MigrationSettingsWithoutScriptException` | A settings file without its script, for example `004.undo.settings.json` without `004.undo.sql`. |
+| `MigrationSettingsWithoutScriptException` | A settings file without its script, for example `004.breaking.settings.json` without `004.breaking.sql`. |
 | `InvalidMigrationItemSettingsException` | An item settings file with an unknown key (also the old `MigrationTimeout`) or `"TransactionWrapLevel": "Deployment"`. |
 | `MigrationChecksumMismatchException` | An applied file was changed. |
-| `DowngradeNotAllowedException` | Applied versions are missing from the project. |
-| `DowngradeImpossibleException` | A version to revert has no undo script. |
+| `DatabaseAheadOfProjectException` | Applied versions are missing from the project: an older build is deployed, or migration files were deleted. See [Roll back a release](#roll-back-a-release). |
 | `MigrationDeploymentException` | A script failed; see the SQL error in the message. |

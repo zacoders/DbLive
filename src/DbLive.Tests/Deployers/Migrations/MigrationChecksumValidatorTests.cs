@@ -160,34 +160,32 @@ public class MigrationChecksumValidatorTests
 			dto.Version == 1 &&
 			dto.ItemType == MigrationItemType.Migration &&
 			dto.ContentHash == fileData.ContentHash &&
-			dto.Content == null &&
 			dto.RelativePath == "/001.migration.sql"
 		));
 	}
 
 	[Fact]
-	public async Task ValidateAsync_repair_includes_undo_content()
+	public async Task ValidateAsync_strict_skips_applied_rows_of_items_deleted_from_the_project()
 	{
 		MockSet mockSet = new();
-		FileData undoFileData = GetFileData("/001.undo.sql", "undo content");
+		FileData fileData = GetFileData("/001.migration.sql", "content");
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
-			NewDbItem(1, MigrationItemType.Undo, undoFileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.undo.sql")
+			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied, "/001.migration.sql"),
+			// 001.breaking.sql was applied and deleted from the project afterwards.
+			NewDbItem(1, MigrationItemType.Breaking, 123, MigrationItemStatus.Applied, "/001.breaking.sql")
 		]);
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Undo, undoFileData))
+			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
 		]);
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default with { RepairMigrationChecksums = true });
+		await validator.ValidateAsync(DeployParameters.Default);
 
-		await mockSet.DbLiveDA.Received(1).RepairMigrationChecksumAsync(Arg.Is<MigrationChecksumRepairDto>(dto =>
-			dto.ItemType == MigrationItemType.Undo &&
-			dto.Content == "undo content"
-		));
+		await mockSet.DbLiveDA.DidNotReceive().RepairMigrationChecksumAsync(Arg.Any<MigrationChecksumRepairDto>());
 	}
 
 	[Fact]

@@ -1,6 +1,6 @@
 # DbLive
 
-**Database lifecycle management for .NET**: versioned migrations, re-runnable code objects, SQL unit tests and safe rollback in one workflow, for **SQL Server** and **PostgreSQL**.
+**Database lifecycle management for .NET**: versioned migrations, re-runnable code objects, SQL unit tests and zero-downtime releases in one workflow, for **SQL Server** and **PostgreSQL**.
 
 DbLive treats the database as versioned, testable, deployable code. Your SQL lives in a .NET project, is reviewed like any other code, is tested in CI, and is deployed by a few lines of C#.
 
@@ -21,11 +21,11 @@ await deployer.DeployAsync(DeployParameters.Default);
 
 | Area | What DbLive does |
 |------|------------------|
-| **Migrations** | Applies versioned scripts once per database, in order. Each version can have an **undo** script for rollback and a **breaking** script for the contract phase. |
+| **Migrations** | Applies versioned scripts once per database, in order. Each version can have a **breaking** script for the contract phase. |
 | **Code** | Deploys procedures, functions, views and triggers from one file per object, and re-runs a file only when it changes. |
 | **SQL tests** | Runs `.sql` tests in transactions that are always rolled back, as ordinary xUnit tests in Visual Studio and CI, against a temporary database built from your scripts (in Docker or on a local server). |
 | **Zero downtime** | Destructive changes run in a separate **breaking** deployment, after the old application version is gone. |
-| **Rollback** | Opt-in: deploying an older build with `AllowDatabaseDowngrade = true` reverts newer versions using the undo scripts stored in the database. Without it, an older build fails with `DowngradeNotAllowedException` and changes nothing. |
+| **Rollback** | A release is rolled back by rolling back the application: before its breaking phase the database serves both versions. DbLive does not roll back a database; an older build deployed by mistake fails with `DatabaseAheadOfProjectException` and changes nothing. See [Roll back a release](deployment/migrations.md#roll-back-a-release). |
 | **Safety** | A deployment stops before any of your scripts runs when an older build is deployed by mistake, an applied migration was edited (checksums, `Strict` by default) or the database belongs to another project (`ProjectId`). Breaking changes run only in a separate breaking deployment, and a deployment never runs SQL tests. |
 
 ## Where to start
@@ -42,7 +42,7 @@ await deployer.DeployAsync(DeployParameters.Default);
 | [Project](project/index.md) | Project setup, [folder structure and file naming](project/structure.md), [`settings.json`](project/configuration.md) |
 | [Deployment](deployment/index.md) | Pipeline and `DeployParameters`, [migrations](deployment/migrations.md), [code](deployment/code.md), [breaking changes](deployment/breaking-changes.md) |
 | [Unit Testing](unit-testing/index.md) | Test files, assertions, `setup.test.sql`, xUnit integration, [deployment tests](unit-testing/deployment-tests.md) |
-| [Features](features/index.md) | ProjectId, checksums, downgrade and other features |
+| [Features](features/index.md) | ProjectId, checksums and other features |
 | [Examples](examples/index.md) | Demo projects and walkthroughs |
 | [For AI agents](ai-agents.md) | `llms.txt` and the single-file reference for coding assistants |
 

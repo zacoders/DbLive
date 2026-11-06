@@ -23,28 +23,24 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
-	public async Task Each_item_runs_by_its_own_settings_in_undo_test_breaking_and_downgrade()
+	public async Task Each_item_runs_by_its_own_settings_in_the_migration_and_breaking_phases()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", "create table t1 (id int not null, name text null);")
-			.AddFile("Migrations/001.undo.sql", "drop table if exists t1;")
-			// 'create/drop index concurrently' and 'vacuum' cannot run inside a transaction block.
+			// 'create index concurrently' and 'vacuum' cannot run inside a transaction block.
 			.AddFile("Migrations/002.migration.sql", "create index concurrently if not exists ix_t1_name on t1 (name);")
 			.AddFile("Migrations/002.migration.settings.json", NoTransaction)
-			.AddFile("Migrations/002.undo.sql", "drop index concurrently if exists ix_t1_name;")
-			.AddFile("Migrations/002.u.s.json", NoTransaction)
 			.AddFile("Migrations/003.migration.sql", "alter table t1 add column if not exists code text null;")
 			.AddFile("Migrations/003.breaking.sql", "vacuum t1;")
-			.AddFile("Migrations/003.b.s.json", NoTransaction)
-			.AddFile("Migrations/003.undo.sql", "alter table t1 drop column if exists code;");
+			.AddFile("Migrations/003.b.s.json", NoTransaction);
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
-		// the undo cycle (migration, undo, migration, breaking, breaking, undo), the migration and the breaking phase, each item by its own settings.
+		// the breaking script runs twice, as in the deployment tests: both runs by its settings.
 		await builder.CreateDeployer().DeployAsync(new DeployParameters
 		{
 			DeployBreaking = true,
-			UndoTestDeployment = UndoTestMode.UndoCycle
+			CheckBreakingSecondRun = true
 		});
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
@@ -55,28 +51,39 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 3, MigrationItemType.Breaking).Status);
-		Assert.Equal(MigrationItemStatus.None, GetItem(items, 2, MigrationItemType.UndoSettings).Status);
 		Assert.Contains(items, i => i.Version == 2 && i.ItemType == MigrationItemType.MigrationSettings);
 		Assert.Contains(items, i => i.Version == 3 && i.ItemType == MigrationItemType.BreakingSettings);
-		Assert.Equal(NoTransaction, await da.GetMigrationContentAsync(2, MigrationItemType.UndoSettings));
+	}
 
-		// the older build: 002 and 003 are undone by the scripts and settings stored in the database.
-		_ = project.DeleteFiles("002.*").DeleteFiles("003.*");
+	[Fact]
+	public async Task Older_build_fails_before_it_changes_anything()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", "create table t1 (id int not null);")
+			.AddFile("Migrations/002.migration.sql", "alter table t1 add column code text null;")
+			.AddFile("Migrations/003.migration.sql", "create table t3 (id int not null);")
+			.AddFile("Migrations/003.breaking.sql", "alter table t1 drop column code;");
 
-		await builder.CreateDeployer().DeployAsync(new DeployParameters
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		IDbLiveDA da = builder.CreateDbLiveDA();
+		string migrationRowsQuery = "select count(*) from dblive.migration";
+		long migrationRows = await CountAsync(da, migrationRowsQuery);
+
+		// the build of the release before: no 003, and a new BeforeDeploy script.
+		_ = project.DeleteFiles("003.*").AddFile("BeforeDeploy/drop-t1.sql", "drop table t1;");
+
+		foreach (DeployParameters parameters in new[] { DeployParameters.Default, DeployParameters.Breaking })
 		{
-			AllowDatabaseDowngrade = true
-		});
+			DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(
+				() => builder.CreateDeployer().DeployAsync(parameters)
+			);
+			Assert.Equal([3], ex.Versions);
+		}
 
-		Assert.Equal(0, await CountAsync(da, "select count(*) from pg_indexes where indexname = 'ix_t1_name'"));
-		Assert.Equal(0, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
-
-		items = await da.GetMigrationsAsync();
-		Assert.Equal(MigrationItemStatus.Reverted, GetItem(items, 2, MigrationItemType.Migration).Status);
-		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Undo).Status);
-		Assert.Equal(MigrationItemStatus.Reverted, GetItem(items, 3, MigrationItemType.Migration).Status);
-		Assert.Equal(MigrationItemStatus.Reverted, GetItem(items, 3, MigrationItemType.Breaking).Status);
-		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 3, MigrationItemType.Undo).Status);
+		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
+		Assert.Equal(migrationRows, await CountAsync(da, migrationRowsQuery));
 	}
 
 	[Fact]
@@ -168,6 +175,43 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 			[MigrationItemType.Migration, MigrationItemType.MigrationSettings],
 			items.Where(i => i.Version == 1).Select(i => i.ItemType).Order()
 		);
+	}
+
+	[Fact]
+	public async Task Self_deploy_removes_undo_rows_and_the_content_column()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", "create table t1 (id int not null);")
+			.AddFile("Migrations/002.migration.sql", "create table t2 (id int not null);")
+			.AddFile("Migrations/002.breaking.sql", "-- nothing to drop");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
+		IDbLiveDA da = builder.CreateDbLiveDA();
+		await da.ExecuteNonQueryAsync("""
+			alter table dblive.migration add column content text null;
+			insert into dblive.migration (version, item_type, name, relative_path, status, content_hash, content, created_utc, applied_utc)
+			values (1, 'undo', '', 'migrations/001.undo.sql', 'none', 1, 'drop table t1;', now(), null),
+			       (2, 'undo', '', 'migrations/002.undo.sql', 'applied', 2, 'drop table t2;', now(), now()),
+			       (2, 'undo.settings', '', 'migrations/002.undo.settings.json', 'none', 3, '{}', now(), null);
+			update dblive.migration set status = 'reverted', applied_utc = null where version = 2 and item_type in ('migration', 'breaking');
+			drop table t2;
+			update dblive.version set version = 7;
+			""");
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		Assert.Equal(0, await CountAsync(da, "select count(*) from dblive.migration where item_type like 'undo%' or status = 'reverted'"));
+		Assert.Equal(0, await CountAsync(da, "select count(*) from information_schema.columns where table_schema = 'dblive' and table_name = 'migration' and column_name = 'content'"));
+
+		// the rolled back version is deployed again: its rows are saved again and its migration runs.
+		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.tables where table_name = 't2'"));
+		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
+		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
+		Assert.Equal(MigrationItemStatus.None, GetItem(items, 2, MigrationItemType.Breaking).Status);
 	}
 
 	private DbLiveBuilder CreateBuilder(TempProject project)

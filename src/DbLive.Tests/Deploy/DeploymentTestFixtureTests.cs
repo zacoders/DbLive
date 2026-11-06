@@ -22,13 +22,13 @@ public class DeploymentTestFixtureTests
 
 		Received.InOrder(() =>
 		{
-			// the release with the undo cycle, without breaking changes, then the SQL tests.
+			// the release, without breaking changes, then the SQL tests.
 			dbLive.DeployAsync(Arg.Is<DeployParameters>(p =>
-				p.CreateDbIfNotExists && p.DeployMigrations && p.DeployCode && !p.DeployBreaking && p.UndoTestDeployment == UndoTestMode.UndoCycle));
+				p.CreateDbIfNotExists && p.DeployMigrations && p.DeployCode && !p.DeployBreaking && !p.CheckBreakingSecondRun));
 			tester.RunAllTestsAsync();
 
-			// the breaking phase as a run of its own, with the SQL tests after it.
-			dbLive.DeployAsync(DeployParameters.Breaking);
+			// the breaking phase as a run of its own, every migration breaking script twice, with the SQL tests after it.
+			dbLive.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true });
 			tester.RunAllTestsAsync();
 
 			// the second breaking run must not change the schema.

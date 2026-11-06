@@ -6,11 +6,9 @@ internal static class MigrationItemTypeMapper
 	private static readonly Dictionary<MigrationItemType, string> _dbValues = new()
 	{
 		{ MigrationItemType.Migration, "migration" },
-		{ MigrationItemType.Undo, "undo" },
 		{ MigrationItemType.Breaking, "breaking" },
 		{ MigrationItemType.MigrationSettings, "migration.settings" },
-		{ MigrationItemType.BreakingSettings, "breaking.settings" },
-		{ MigrationItemType.UndoSettings, "undo.settings" }
+		{ MigrationItemType.BreakingSettings, "breaking.settings" }
 	};
 
 	private static readonly Dictionary<string, MigrationItemType> _itemTypes =
@@ -19,8 +17,7 @@ internal static class MigrationItemTypeMapper
 	private static readonly Dictionary<MigrationItemType, MigrationItemType> _settingsTypes = new()
 	{
 		{ MigrationItemType.Migration, MigrationItemType.MigrationSettings },
-		{ MigrationItemType.Breaking, MigrationItemType.BreakingSettings },
-		{ MigrationItemType.Undo, MigrationItemType.UndoSettings }
+		{ MigrationItemType.Breaking, MigrationItemType.BreakingSettings }
 	};
 
 	private static readonly Dictionary<MigrationItemType, MigrationItemType> _scriptTypes =

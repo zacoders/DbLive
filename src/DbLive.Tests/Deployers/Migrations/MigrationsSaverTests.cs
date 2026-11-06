@@ -91,7 +91,6 @@ public class MigrationsSaverTests
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
 				dto.Version == 2 &&
 				dto.ItemType == MigrationItemType.Migration &&
-				dto.Content == null &&
 				dto.ContentHash == fileData.ContentHash &&
 				dto.CreatedUtc == now
 			));
@@ -104,20 +103,20 @@ public class MigrationsSaverTests
 		MockSet mockSet = new();
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
-		FileData fileData = GetFileData("/001.undo.sql", "drop table t1;\ngo\n");
+		FileData fileData = GetFileData("/001.breaking.sql", "drop table t1;\ngo\n");
 		Migration migration = NewMigration(
 			1,
 			new MigrationItem
 			{
-				MigrationItemType = MigrationItemType.Undo,
-				Name = "001.undo.sql",
+				MigrationItemType = MigrationItemType.Breaking,
+				Name = "001.breaking.sql",
 				FileData = fileData
 			});
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			// saved from a CRLF checkout by a DbLive version that hashed the raw text.
-			NewDbItem(1, MigrationItemType.Undo, LegacyContentHash.Of("drop table t1;\r\ngo\r\n"), MigrationItemStatus.None)
+			NewDbItem(1, MigrationItemType.Breaking, LegacyContentHash.Of("drop table t1;\r\ngo\r\n"), MigrationItemStatus.None)
 		]);
 
 		// Act
@@ -158,67 +157,25 @@ public class MigrationsSaverTests
 			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
 	}
 
-	[Fact]
-	public async Task Save_saves_content_only_for_undo_items()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
-
-		var undoItem = new MigrationItem
-		{
-			MigrationItemType = MigrationItemType.Undo,
-			Name = "001.undo.sql",
-			FileData = GetFileData("/001.undo.sql", "undo content")
-		};
-
-		var migrationItem = new MigrationItem
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			Name = "001.migration.sql",
-			FileData = GetFileData("/001.migration.sql", "migration content")
-		};
-
-		Migration migration = NewMigration(1, undoItem, migrationItem);
-
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
-		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
-
-		// Act
-		await saver.SaveAsync();
-
-		// Assert
-		await mockSet.DbLiveDA.Received(1)
-			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
-				dto.ItemType == MigrationItemType.Undo &&
-				dto.Content == "undo content"
-			));
-
-		await mockSet.DbLiveDA.Received(1)
-			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
-				dto.ItemType == MigrationItemType.Migration &&
-				dto.Content == null
-			));
-	}
-
 	[Theory]
-	[InlineData(MigrationItemType.UndoSettings, true)]
-	[InlineData(MigrationItemType.MigrationSettings, false)]
-	[InlineData(MigrationItemType.BreakingSettings, false)]
-	public async Task Save_saves_content_of_undo_settings_only(MigrationItemType settingsType, bool contentExpected)
+	[InlineData(MigrationItemType.Migration)]
+	[InlineData(MigrationItemType.Breaking)]
+	[InlineData(MigrationItemType.MigrationSettings)]
+	[InlineData(MigrationItemType.BreakingSettings)]
+	public async Task Save_saves_new_item_with_its_hash(MigrationItemType itemType)
 	{
 		// Arrange
 		MockSet mockSet = new();
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
-		var settingsItem = new MigrationItem
+		var item = new MigrationItem
 		{
-			MigrationItemType = settingsType,
+			MigrationItemType = itemType,
 			Name = "",
-			FileData = GetFileData("/001.settings.json", """{ "TransactionWrapLevel": "None" }""")
+			FileData = GetFileData("/001.item", "item content")
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, settingsItem)]);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, item)]);
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		// Act
@@ -227,14 +184,16 @@ public class MigrationsSaverTests
 		// Assert
 		await mockSet.DbLiveDA.Received(1)
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
-				dto.ItemType == settingsType &&
-				dto.ContentHash == settingsItem.FileData.ContentHash &&
-				dto.Content == (contentExpected ? settingsItem.FileData.Content : null)
+				dto.Version == 1 &&
+				dto.ItemType == itemType &&
+				dto.Status == MigrationItemStatus.None &&
+				dto.ContentHash == item.FileData.ContentHash &&
+				dto.RelativePath == "/001.item"
 			));
 	}
 
 	[Fact]
-	public async Task Save_updates_changed_undo_settings_while_undo_is_not_applied()
+	public async Task Save_updates_changed_breaking_settings_while_breaking_is_not_applied()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -242,14 +201,14 @@ public class MigrationsSaverTests
 
 		var settingsItem = new MigrationItem
 		{
-			MigrationItemType = MigrationItemType.UndoSettings,
+			MigrationItemType = MigrationItemType.BreakingSettings,
 			Name = "",
-			FileData = GetFileData("/001.undo.settings.json", """{ "Timeout": "00:05:00" }""")
+			FileData = GetFileData("/001.breaking.settings.json", """{ "Timeout": "00:05:00" }""")
 		};
 
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, settingsItem)]);
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
-			NewDbItem(1, MigrationItemType.UndoSettings, settingsItem.FileData.ContentHash + 1, MigrationItemStatus.None)
+			NewDbItem(1, MigrationItemType.BreakingSettings, settingsItem.FileData.ContentHash + 1, MigrationItemStatus.None)
 		]);
 
 		// Act
@@ -258,9 +217,38 @@ public class MigrationsSaverTests
 		// Assert
 		await mockSet.DbLiveDA.Received(1)
 			.SaveMigrationItemAsync(Arg.Is<MigrationItemSaveDto>(dto =>
-				dto.ItemType == MigrationItemType.UndoSettings &&
-				dto.Content == settingsItem.FileData.Content
+				dto.ItemType == MigrationItemType.BreakingSettings &&
+				dto.ContentHash == settingsItem.FileData.ContentHash
 			));
+	}
+
+	[Fact]
+	public async Task Save_keeps_rows_of_items_deleted_from_the_project()
+	{
+		// Arrange
+		MockSet mockSet = new();
+		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
+
+		var migrationItem = new MigrationItem
+		{
+			MigrationItemType = MigrationItemType.Migration,
+			Name = "",
+			FileData = GetFileData("/001.migration.sql", "migration content")
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, migrationItem)]);
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			NewDbItem(1, MigrationItemType.Migration, migrationItem.FileData.ContentHash, MigrationItemStatus.Applied),
+			// 001.breaking.sql was saved by a release and deleted from the project before its breaking phase.
+			NewDbItem(1, MigrationItemType.Breaking, 123, MigrationItemStatus.None)
+		]);
+
+		// Act
+		await saver.SaveAsync();
+
+		// Assert: the saver neither saves nor deletes rows of items the project does not have.
+		await mockSet.DbLiveDA.DidNotReceive()
+			.SaveMigrationItemAsync(Arg.Any<MigrationItemSaveDto>());
 	}
 
 

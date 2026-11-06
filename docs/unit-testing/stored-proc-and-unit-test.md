@@ -81,7 +81,7 @@ Expected values: 1000, 'test-user'
 Actual values:   1000, 'TEST-USER'
 ```
 
-`rows` compares strings exactly, including case ([How values are compared](index.md#how-values-are-compared)). Undo the change, and the test passes again.
+`rows` compares strings exactly, including case ([How values are compared](index.md#how-values-are-compared)). Change it back, and the test passes again.
 
 ## Next steps
 

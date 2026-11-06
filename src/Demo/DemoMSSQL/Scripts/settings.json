@@ -1,5 +1,5 @@
 {
-  // Project settings. A migration, breaking or undo script can override the transaction
+  // Project settings. A migration or breaking script can override the transaction
   // settings in its own <version>.<item>.settings.json (see Migrations/004.migration.settings.json).
 
   // Optional. Binds this project to a database; max 128 characters.
@@ -7,7 +7,7 @@
 
   /* Options:
       deployment - the whole deployment in one transaction
-      migration - each migration, breaking and undo script in its own transaction
+      migration - each migration and breaking script in its own transaction
       none - no transactions */
   "TransactionWrapLevel": "migration",
 

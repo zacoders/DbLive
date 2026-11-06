@@ -28,7 +28,7 @@ public class MigrationsDeployer(
 
 		foreach (Migration migration in migrationsToApply)
 		{
-			await _migrationVersionDeployer.DeployAsync(migration, parameters).ConfigureAwait(false);
+			await _migrationVersionDeployer.DeployAsync(migration).ConfigureAwait(false);
 		}
 	}
 

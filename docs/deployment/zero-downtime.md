@@ -94,9 +94,11 @@ Deploy the new application version, which calls `GetUsers_v2`. Use a rolling or 
 
 Shift all traffic to the new version and wait for old instances to finish in-flight work, then remove them. Do not proceed until **no** instance calls the legacy interface (`_v1`) anymore.
 
+If the new version misbehaves up to this point, roll back the application and leave the database as it is: it still serves the old version. Do not run step 6 for a release whose application was rolled back. See [Roll back a release](migrations.md#roll-back-a-release).
+
 ### Step 6 - Run the breaking phase
 
-Only now, with no old callers left, run the `Breaking` preset to contract the schema: drop superseded procedures, remove legacy columns, and delete temporary sync triggers.
+Only now, with no old callers left and the release confirmed, run the `Breaking` preset to contract the schema: drop superseded procedures, remove legacy columns, and delete temporary sync triggers. It is the point of no return: after it, fix forward.
 
 ```csharp
 // Old app is gone. Safe to drop legacy objects and columns.

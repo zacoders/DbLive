@@ -1,6 +1,6 @@
 # DbLive
 
-Database lifecycle management for .NET: versioned SQL migrations with undo scripts, re-runnable code objects (procedures, functions, views), SQL unit tests, and a separate breaking-changes phase for zero-downtime releases.
+Database lifecycle management for .NET: versioned SQL migrations, re-runnable code objects (procedures, functions, views), SQL unit tests, and a separate breaking-changes phase for zero-downtime releases.
 
 This is the core package. Install it through a database provider:
 

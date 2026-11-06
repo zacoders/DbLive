@@ -80,28 +80,6 @@ public class MigrationItemDeployer(
 				ErrorMessage = null
 			};
 			await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false);
-
-			if (migrationItem.MigrationItemType == MigrationItemType.Undo)
-			{
-				await UpdateDateForRevertedMigrationsAsync(migrationVersion).ConfigureAwait(false);
-			}
-
-			if (migrationItem.MigrationItemType == MigrationItemType.Migration)
-			{
-				if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Undo).ConfigureAwait(false))
-				{
-					MigrationItemStateDto breakingDto = new()
-					{
-						Version = migrationVersion,
-						ItemType = MigrationItemType.Undo,
-						Status = MigrationItemStatus.None,
-						AppliedUtc = null,
-						ExecutionTimeMs = null,
-						ErrorMessage = null
-					};
-					await _da.UpdateMigrationStateAsync(breakingDto).ConfigureAwait(false);
-				}
-			}
 		}
 		catch (DbLiveSqlException ex)
 		{
@@ -121,34 +99,6 @@ public class MigrationItemDeployer(
 		catch (Exception ex)
 		{
 			throw new MigrationDeploymentException($"Unexpected error deploying {migrationItem.FileData.RelativePath}. Type {migrationItem.MigrationItemType}.", ex);
-		}
-	}
-
-	private async Task UpdateDateForRevertedMigrationsAsync(long migrationVersion)
-	{
-		MigrationItemStateDto migrationDto = new()
-		{
-			Version = migrationVersion,
-			ItemType = MigrationItemType.Migration,
-			Status = MigrationItemStatus.Reverted,
-			AppliedUtc = null,
-			ExecutionTimeMs = null,
-			ErrorMessage = null
-		};
-		await _da.UpdateMigrationStateAsync(migrationDto).ConfigureAwait(false);
-
-		if (await _da.MigrationItemExistsAsync(migrationVersion, MigrationItemType.Breaking).ConfigureAwait(false))
-		{
-			MigrationItemStateDto breakingDto = new()
-			{
-				Version = migrationVersion,
-				ItemType = MigrationItemType.Breaking,
-				Status = MigrationItemStatus.Reverted,
-				AppliedUtc = null,
-				ExecutionTimeMs = null,
-				ErrorMessage = null
-			};
-			await _da.UpdateMigrationStateAsync(breakingDto).ConfigureAwait(false);
 		}
 	}
 }

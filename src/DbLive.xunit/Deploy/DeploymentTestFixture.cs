@@ -1,5 +1,4 @@
 ﻿using DbLive.Adapter;
-using DbLive.Common;
 using DbLive.Schema;
 using DbLive.Testing;
 using Xunit;
@@ -36,8 +35,7 @@ public class DeploymentTestFixture(
 	/// <summary>
 	/// Deploys the project to the database as production does: the release, then the breaking phase, then the breaking
 	/// phase again, which must not change the schema. The SQL tests run after the release and after the first breaking phase.
-	/// Every migration version that has an undo script goes through the undo cycle first: migration → undo, then, if it has
-	/// a breaking script, migration → breaking → breaking → undo; the schema after each undo must equal the schema before the migration.
+	/// In the first breaking phase the breaking script of every migration runs twice, and its second run must not change the schema.
 	/// </summary>
 	public async Task DeployAsync(ITestOutputHelper output)
 	{
@@ -50,21 +48,20 @@ public class DeploymentTestFixture(
 		IDbLiveTester tester = _builder.CreateTester();
 
 		// the release is deployed, its breaking changes are not: old application instances still run.
-		// a deployment where every migration runs once is done by the [SqlFact] fixture.
 		DeployParameters deployParams = new()
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = false,
 			DeployCode = true,
-			DeployMigrations = true,
-			UndoTestDeployment = UndoTestMode.UndoCycle
+			DeployMigrations = true
 		};
 
 		await deployer.DeployAsync(deployParams).ConfigureAwait(false);
 		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		// a separate breaking run, as in production: the breaking phase guard passes after a normal deployment.
-		await deployer.DeployAsync(DeployParameters.Breaking).ConfigureAwait(false);
+		// a breaking script that failed with TransactionWrapLevel None runs again on the next deployment, so each one runs twice.
+		await deployer.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true }).ConfigureAwait(false);
 		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		IDbLiveDA da = _builder.CreateDbLiveDA();

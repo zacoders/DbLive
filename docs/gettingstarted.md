@@ -16,12 +16,11 @@ cd MyDb
 |------|------------|
 | `MyDb/Scripts/settings.json` | The [ProjectId](features/project-id.md) of the project, the name in lower case |
 | `MyDb/Scripts/Migrations/<timestamp>.users.sql` | The first migration: a users table. The version is the UTC time when the template ran |
-| `MyDb/Scripts/Migrations/<timestamp>.undo.sql` | Its undo script |
 | `MyDb/Scripts/Code/dbo.GetUser.sql`, `dbo.GetUser.test.sql` | A procedure and its test (PostgreSQL: `get_user.sql`, a function) |
 | `MyDb/Scripts/Tests/user-name-is-required.sql` | A test of a data rule, without an assert: it fails when the script raises an error |
 | `MyDb/Program.cs` | The deployer: deploys the scripts to a local database and creates it if it does not exist |
 | `MyDb.Tests/SqlTests.cs` | The fixture and `[SqlFact]`: every SQL test file is a test case of its own |
-| `MyDb.Tests/DeploymentTests.cs` | `[SqlDeployFact]`: deploys the project as production does and runs the undo script ([Deployment tests](unit-testing/deployment-tests.md)) |
+| `MyDb.Tests/DeploymentTests.cs` | `[SqlDeployFact]`: deploys the project as production does, the release and then the breaking phase twice ([Deployment tests](unit-testing/deployment-tests.md)) |
 
 Run the tests, in Visual Studio Test Explorer or with:
 

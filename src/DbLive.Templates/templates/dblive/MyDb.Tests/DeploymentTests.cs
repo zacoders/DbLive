@@ -25,12 +25,11 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 
     /// <summary>
     /// Deploys MyDb to an empty database as production does, in three deployments:
-    /// 1. migrations and code, then the SQL tests. Before that, every migration with an undo script goes through
-    ///    migration → undo and, if it has a breaking script, migration → breaking → breaking → undo;
-    ///    the schema after each undo must equal the schema before the migration;
-    /// 2. the breaking phase, then the SQL tests again;
+    /// 1. migrations and code, then the SQL tests;
+    /// 2. the breaking phase, where the breaking script of every migration runs twice and its second run
+    ///    must not change the schema, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
     /// </summary>
     [SqlDeployFact]
-    public Task ReleaseDeploysAndRollsBack() => _fixture.DeployAsync(output);
+    public Task ReleaseDeploys() => _fixture.DeployAsync(output);
 }

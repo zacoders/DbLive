@@ -15,12 +15,17 @@ internal static class MigrationFileNameParser
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
 		string migrationFilePart4 = fileParts.Length > 3 ? fileParts[3] : "";
 
+		// DbLive has no undo scripts: an undo file left in the project would run as a migration named "undo"
+		// and undo its own version, an undo settings file would be an unknown settings file.
+		if (migrationFilePart2.ToLower() is "undo" or "u")
+		{
+			throw new UndoNotSupportedException(relativePath);
+		}
+
 		MigrationItemType? migrationType = migrationFilePart2.ToLower() switch
 		{
 			"migration" => MigrationItemType.Migration,
 			"m" => MigrationItemType.Migration,
-			"undo" => MigrationItemType.Undo,
-			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
 			_ => null

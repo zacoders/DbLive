@@ -8,7 +8,7 @@ public class DbLiveDeployer(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
-		IDowngradeDeployer _downgradeDeployer,
+		IAppliedMigrationsValidator _appliedMigrationsValidator,
 		IMigrationsSaver _migrationsSaver,
 		IMigrationChecksumValidator _migrationChecksumValidator,
 		IProjectIdValidator _projectIdValidator,
@@ -34,12 +34,13 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			async () =>
 			{
+				// an older build fails here, before anything is changed: DbLive does not roll back a database.
+				await _appliedMigrationsValidator.ValidateAsync().ConfigureAwait(false);
+
 				await _migrationChecksumValidator.ValidateAsync(parameters).ConfigureAwait(false);
 
 				// saving migrations to the log table before actual deployment.
 				await _migrationsSaver.SaveAsync().ConfigureAwait(false);
-
-				await _downgradeDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
 				await _folderDeployer.DeployAsync(ProjectFolder.BeforeDeploy, parameters).ConfigureAwait(false);
 

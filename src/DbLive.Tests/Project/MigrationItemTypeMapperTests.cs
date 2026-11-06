@@ -4,11 +4,9 @@ public class MigrationItemTypeMapperTests
 {
 	[Theory]
 	[InlineData(MigrationItemType.Migration, "migration")]
-	[InlineData(MigrationItemType.Undo, "undo")]
 	[InlineData(MigrationItemType.Breaking, "breaking")]
 	[InlineData(MigrationItemType.MigrationSettings, "migration.settings")]
 	[InlineData(MigrationItemType.BreakingSettings, "breaking.settings")]
-	[InlineData(MigrationItemType.UndoSettings, "undo.settings")]
 	public void Maps_item_type_to_db_value_and_back(MigrationItemType itemType, string dbValue)
 	{
 		Assert.Equal(dbValue, MigrationItemTypeMapper.ToDbValue(itemType));
@@ -33,9 +31,17 @@ public class MigrationItemTypeMapperTests
 	}
 
 	[Theory]
+	[InlineData("undo")]
+	[InlineData("undo.settings")]
+	public void Undo_values_are_unknown(string dbValue)
+	{
+		// deleted by the self-deploy scripts.
+		Assert.Throws<ArgumentOutOfRangeException>(() => MigrationItemTypeMapper.FromDbValue(dbValue));
+	}
+
+	[Theory]
 	[InlineData(MigrationItemType.Migration, MigrationItemType.MigrationSettings)]
 	[InlineData(MigrationItemType.Breaking, MigrationItemType.BreakingSettings)]
-	[InlineData(MigrationItemType.Undo, MigrationItemType.UndoSettings)]
 	public void Pairs_script_and_settings_types(MigrationItemType scriptType, MigrationItemType settingsType)
 	{
 		Assert.Equal(settingsType, MigrationItemTypeMapper.GetSettingsType(scriptType));

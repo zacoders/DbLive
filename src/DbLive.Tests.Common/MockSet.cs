@@ -28,7 +28,7 @@ public class MockSet
 	public readonly ICodeDeployer CodeDeployer = Substitute.For<ICodeDeployer>();
 	public readonly ICodeBreakingDeployer CodeBreakingDeployer = Substitute.For<ICodeBreakingDeployer>();
 	public readonly IFolderDeployer FolderDeployer = Substitute.For<IFolderDeployer>();
-	public readonly IDowngradeDeployer DowngradeDeployer = Substitute.For<IDowngradeDeployer>();
+	public readonly IAppliedMigrationsValidator AppliedMigrationsValidator = Substitute.For<IAppliedMigrationsValidator>();
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IMigrationsSaver MigrationsSaver = Substitute.For<IMigrationsSaver>();
@@ -47,7 +47,7 @@ public class MockSet
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
 
-		// the schema checks of the undo test modes compare equal snapshots unless a test sets them.
+		// the schema checks of the deployment tests compare equal snapshots unless a test sets them.
 		DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 
 		TransactionSettingsValidator

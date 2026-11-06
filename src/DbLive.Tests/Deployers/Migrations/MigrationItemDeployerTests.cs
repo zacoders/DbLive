@@ -57,7 +57,7 @@ public class MigrationItemDeployerTests
 
 
 	[Fact]
-	public async Task Deploying_Undo__Migration_And_Breaking_Should_Be_Reverted()
+	public async Task Deploying_breaking_updates_only_its_own_state()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -66,129 +66,45 @@ public class MigrationItemDeployerTests
 
 		DateTime utcNow = DateTime.UtcNow;
 		DateTime utcNow2 = utcNow.AddSeconds(2);
-		DateTime utcNow3 = utcNow.AddSeconds(3);
-		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
+		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2);
 
-		mockSet.DbLiveDA.MigrationItemExistsAsync(1, MigrationItemType.Breaking).Returns(true);
-
-		MigrationItem undoItem = new()
+		MigrationItem breakingItem = new()
 		{
-			MigrationItemType = MigrationItemType.Undo,
-			Name = "some-undo",
+			MigrationItemType = MigrationItemType.Breaking,
+			Name = "drop-column",
 			FileData = new FileData
 			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/u.1.sql"
+				Content = "-- some breaking change",
+				RelativePath = "db/migrations/001.b.drop-column.sql"
 			}
 		};
 
 		// Act
-		await deploy.DeployAsync(1, undoItem, new MigrationItemSettings());
-
+		await deploy.DeployAsync(1, breakingItem, new MigrationItemSettings());
 
 		// Assert
-		await mockSet.DbLiveDA.Received()
+		await mockSet.DbLiveDA.Received(1)
 			.ExecuteNonQueryAsync(
-				Arg.Is(undoItem.FileData.Content),
+				Arg.Is(breakingItem.FileData.Content),
 				TranIsolationLevel.ReadCommitted,
 				TimeSpan.FromHours(12)
 			);
 
-		await mockSet.DbLiveDA.Received()
+		await mockSet.DbLiveDA.Received(1)
+			.UpdateMigrationStateAsync(Arg.Any<MigrationItemStateDto>());
+
+		await mockSet.DbLiveDA.Received(1)
 			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
 				dbo =>
-					dbo.ItemType == MigrationItemType.Undo
+					dbo.Version == 1
+					&& dbo.ItemType == MigrationItemType.Breaking
 					&& dbo.Status == MigrationItemStatus.Applied
 					&& dbo.AppliedUtc == utcNow2
 					&& dbo.ExecutionTimeMs == 2000
 					&& dbo.ErrorMessage == null
 				)
 			);
-
-		await mockSet.DbLiveDA.Received()
-			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
-				dbo =>
-					dbo.ItemType == MigrationItemType.Migration
-					&& dbo.Status == MigrationItemStatus.Reverted
-					&& dbo.AppliedUtc == null
-					&& dbo.ExecutionTimeMs == null
-				)
-			);
-
-		await mockSet.DbLiveDA.Received()
-			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
-				dbo =>
-					dbo.ItemType == MigrationItemType.Breaking
-					&& dbo.Status == MigrationItemStatus.Reverted
-					&& dbo.AppliedUtc == null
-					&& dbo.ExecutionTimeMs == null
-				)
-			);
 	}
-
-
-
-	[Fact]
-	public async Task Deploying_Migration__Undo_Should_Be_Reverted()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		MigrationItemDeployer deploy = mockSet.CreateUsingMocks<MigrationItemDeployer>();
-
-		DateTime utcNow = DateTime.UtcNow;
-		DateTime utcNow2 = utcNow.AddSeconds(2);
-		DateTime utcNow3 = utcNow.AddSeconds(3);
-		mockSet.TimeProvider.UtcNow().Returns(_ => utcNow, _ => utcNow2, _ => utcNow3);
-
-		mockSet.DbLiveDA.MigrationItemExistsAsync(1, MigrationItemType.Undo).Returns(true);
-
-		MigrationItem undoItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			Name = "some-migration",
-			FileData = new FileData
-			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo/m.1.sql"
-			}
-		};
-
-		// Act
-		await deploy.DeployAsync(1, undoItem, new MigrationItemSettings());
-
-
-		// Assert
-		await mockSet.DbLiveDA.Received()
-			.ExecuteNonQueryAsync(
-				Arg.Is(undoItem.FileData.Content),
-				TranIsolationLevel.ReadCommitted,
-				TimeSpan.FromHours(12)
-			);
-
-		await mockSet.DbLiveDA.Received()
-			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
-				dbo =>
-					dbo.ItemType == MigrationItemType.Migration
-					&& dbo.Status == MigrationItemStatus.Applied
-					&& dbo.AppliedUtc == utcNow2
-					&& dbo.ExecutionTimeMs == 2000
-					&& dbo.ErrorMessage == null
-				)
-			);
-
-		await mockSet.DbLiveDA.Received()
-			.UpdateMigrationStateAsync(Arg.Is<MigrationItemStateDto>(
-				dbo =>
-					dbo.ItemType == MigrationItemType.Undo
-					&& dbo.Status == MigrationItemStatus.None
-					&& dbo.AppliedUtc == null
-					&& dbo.ExecutionTimeMs == null
-				)
-			);
-	}
-
-
 
 	[Fact]
 	public async Task Deploy_when_execute_non_query_fails_should_save_failed_state_and_re_throw()

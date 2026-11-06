@@ -28,7 +28,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
-	public async Task Code_breaking_script_drops_the_old_version_and_a_rollback_restores_it()
+	public async Task Code_breaking_script_drops_the_old_version_and_a_revert_restores_it()
 	{
 		// build N
 		using TempProject project = new TempProject()
@@ -60,7 +60,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 
 		Assert.Equal(["code/public/get_user.breaking.sql:breaking:applied", "code/public/get_user.sql:code:applied"], await CodeRowsAsync(da));
 
-		// rollback to build N: the code file has the hash of N again, so get_user_v1 is back. get_user_v2 stays.
+		// build N+2 reverts the code of build N+1 (git revert): the code file has the hash of N again, so get_user_v1 is back. get_user_v2 stays.
 		_ = project
 			.DeleteFiles("get_user.breaking.sql")
 			.AddFile("Code/public/get_user.sql", FunctionV1);
@@ -70,7 +70,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		Assert.Equal(["get_user_v1", "get_user_v2"], await FunctionsAsync(da));
 		Assert.Equal(["code/public/get_user.breaking.sql:breaking:removed", "code/public/get_user.sql:code:applied"], await CodeRowsAsync(da));
 
-		// build N+1 again: the breaking deployment drops get_user_v1 again.
+		// build N+3 brings the code of N+1 back: the breaking deployment drops get_user_v1 again.
 		_ = project
 			.AddFile("Code/public/get_user.sql", FunctionV2)
 			.AddFile("Code/public/get_user.breaking.sql", DropV1);
@@ -86,7 +86,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 	}
 
 	[Fact]
-	public async Task Old_version_in_its_own_deleted_file_is_restored_by_a_rollback()
+	public async Task Old_version_in_its_own_deleted_file_is_restored_by_a_revert()
 	{
 		// build N: the version in a file of its own.
 		using TempProject project = new TempProject()
@@ -112,7 +112,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 			await CodeRowsAsync(da)
 		);
 
-		// rollback to build N: the file is back with the content it was applied with. Its row is not applied, so it is executed.
+		// build N+2 reverts the code of build N+1 (git revert): the file is back with the content it was applied with. Its row is not applied, so it is executed.
 		_ = project
 			.DeleteFiles("get_user_v2.sql")
 			.DeleteFiles("get_user_v1.breaking.sql")

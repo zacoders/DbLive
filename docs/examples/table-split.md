@@ -74,6 +74,6 @@ The demo implements the storage side of this example (no `GetPerson` procedures)
 | Deploy (`Default`) | your pipeline | Old and new storage both work |
 | App deploy | your pipeline | The new application version uses the new storage through the updated procedures |
 | Breaking | [007.breaking.sql](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Migrations/007.breaking.sql) | Drop the sync trigger and the legacy `PhoneNumber` column |
-| Undo | [007.undo.sql](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Migrations/007.undo.sql) | Revert, whether or not the breaking script ran |
+| Rollback | your pipeline | Before the breaking phase, roll back the application: the database serves both versions. After it, fix forward ([Roll back a release](../deployment/migrations.md#roll-back-a-release)) |
 
 See [Zero-Downtime Deployment](../deployment/zero-downtime.md) for the release steps.

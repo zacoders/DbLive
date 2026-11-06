@@ -11,8 +11,8 @@ dotnet test                                     # Docker must be running
 
 The template creates a solution with two projects:
 
-- `MyDb`: a console app. `Scripts/` holds the SQL: `settings.json` with the `ProjectId`, a migration with its undo script in `Migrations`, a procedure (a function on PostgreSQL) with its test in `Code`, and a data rule test in `Tests`. `Program.cs` deploys them to a local database: `dotnet run --project MyDb`.
-- `MyDb.Tests`: an xUnit v2 project. Every SQL test file is a test case of its own (`[SqlFact]`), and a deployment test (`[SqlDeployFact]`) deploys the project as production does and runs every undo script. The database server runs in Docker (Testcontainers).
+- `MyDb`: a console app. `Scripts/` holds the SQL: `settings.json` with the `ProjectId`, a migration in `Migrations`, a procedure (a function on PostgreSQL) with its test in `Code`, and a data rule test in `Tests`. `Program.cs` deploys them to a local database: `dotnet run --project MyDb`.
+- `MyDb.Tests`: an xUnit v2 project. Every SQL test file is a test case of its own (`[SqlFact]`), and a deployment test (`[SqlDeployFact]`) deploys the project as production does: the release, then the breaking phase twice. The database server runs in Docker (Testcontainers).
 
 | Option | Values |
 |---|---|

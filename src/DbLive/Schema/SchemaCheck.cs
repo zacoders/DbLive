@@ -5,9 +5,6 @@ namespace DbLive.Schema;
 /// </summary>
 public enum SchemaCheck
 {
-	/// <summary>The schema after the undo script equals the schema before the migration.</summary>
-	Undo,
-
 	/// <summary>The second run of a migration breaking script does not change the schema.</summary>
 	BreakingSecondRun,
 

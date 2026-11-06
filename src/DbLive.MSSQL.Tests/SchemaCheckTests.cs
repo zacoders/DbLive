@@ -8,7 +8,8 @@ namespace DbLive.MSSQL.Tests;
 
 
 /// <summary>
-/// The schema checks of the deployment tests: an undo restores the schema, a breaking script does not change it on a second run.
+/// The schema checks of the deployment tests: a breaking script does not change the schema on a second run,
+/// a second breaking deployment does not change it either.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
@@ -31,76 +32,44 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 		if col_length('dbo.Person', 'Email') is null alter table dbo.Person add Email nvarchar(100) null;
 		""";
 	private const string Breaking = "alter table dbo.Person drop column if exists Phone;";
-	private const string Undo = """
-		if col_length('dbo.Person', 'Phone') is null alter table dbo.Person add Phone varchar(20) null;
-		alter table dbo.Person drop column if exists Email;
-		if object_id('dbo.CK_Person_Name') is null alter table dbo.Person add constraint CK_Person_Name check (Name <> '');
-		if indexproperty(object_id('dbo.Person'), 'IX_Person_Name', 'IndexID') is null create index IX_Person_Name on dbo.Person (Name);
+
+	// the condition is checked before the trigger is dropped: the first run drops the trigger, the second one the column.
+	private const string MigrationWithTrigger = "create or alter trigger dbo.TMP_sync on dbo.Person after insert as set nocount on;";
+	private const string BreakingThatDropsMoreOnItsSecondRun = """
+		if object_id('dbo.TMP_sync') is null
+			alter table dbo.Person drop column if exists Phone;
+		drop trigger if exists dbo.TMP_sync;
 		""";
-	private const string UndoWithoutPhone = """
-		alter table dbo.Person drop column if exists Email;
-		if object_id('dbo.CK_Person_Name') is null alter table dbo.Person add constraint CK_Person_Name check (Name <> '');
-		if indexproperty(object_id('dbo.Person'), 'IX_Person_Name', 'IndexID') is null create index IX_Person_Name on dbo.Person (Name);
-		""";
-	private const string UndoWithoutRestore = "alter table dbo.Person drop column if exists Email;";
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	[Fact]
-	public async Task Undo_that_restores_the_schema_passes()
+	public async Task Idempotent_breaking_script_passes()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
 			.AddFile("Migrations/002.migration.sql", Migration)
-			.AddFile("Migrations/002.breaking.sql", Breaking)
-			.AddFile("Migrations/002.undo.sql", Undo);
+			.AddFile("Migrations/002.breaking.sql", Breaking);
 
-		await DeployAsync(project, UndoTestMode.UndoCycle);
+		await DeployWithFixtureAsync(project);
 	}
 
 	[Fact]
-	public async Task Undo_that_does_not_restore_an_index_and_a_constraint_fails()
+	public async Task Breaking_script_whose_second_run_drops_more_fails()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", Migration)
-			.AddFile("Migrations/002.breaking.sql", Breaking)
-			.AddFile("Migrations/002.undo.sql", UndoWithoutRestore);
+			.AddFile("Migrations/002.migration.sql", MigrationWithTrigger)
+			.AddFile("Migrations/002.breaking.sql", BreakingThatDropsMoreOnItsSecondRun);
 
-		// the undo before the breaking script fails.
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.UndoCycle)
+			() => DeployWithFixtureAsync(project)
 		);
 
-		Assert.Equal(SchemaCheck.Undo, ex.Check);
+		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
 		Assert.Equal(
 			"""
-			Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
-			  missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
-			  missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
-			""".ReplaceLineEndings().TrimEnd(),
-			ex.Message
-		);
-	}
-
-	[Fact]
-	public async Task Undo_that_does_not_restore_a_column_dropped_by_the_breaking_script_fails()
-	{
-		using TempProject project = new TempProject()
-			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", Migration)
-			.AddFile("Migrations/002.breaking.sql", Breaking)
-			.AddFile("Migrations/002.undo.sql", UndoWithoutPhone);
-
-		// the undo before the breaking script passes, the one after it fails.
-		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.UndoCycle)
-		);
-
-		Assert.Equal(SchemaCheck.Undo, ex.Check);
-		Assert.Equal(
-			"""
-			Undo test: Migrations/002.undo.sql does not restore the schema after the breaking script Migrations/002.breaking.sql. The schema after the undo differs from the schema before Migrations/002.migration.sql:
+			Deployment test: the breaking script Migrations/002.breaking.sql is not idempotent, its second run changed the schema:
 			  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
 			""".ReplaceLineEndings().TrimEnd(),
 			ex.Message
@@ -108,75 +77,27 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 	}
 
 	[Theory]
-	[InlineData(Undo, false)]
-	[InlineData(UndoWithoutRestore, true)]
-	public async Task Checks_read_the_schema_inside_the_deployment_transaction(string undo, bool fails)
+	[InlineData(Breaking, false)]
+	[InlineData(BreakingThatDropsMoreOnItsSecondRun, true)]
+	public async Task Checks_read_the_schema_inside_the_deployment_transaction(string breaking, bool fails)
 	{
 		// the snapshot joins the deployment transaction: it sees the uncommitted schema and does not wait for its locks.
 		using TempProject project = new TempProject()
 			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", Migration)
-			.AddFile("Migrations/002.breaking.sql", Breaking)
-			.AddFile("Migrations/002.undo.sql", undo);
+			.AddFile("Migrations/002.migration.sql", MigrationWithTrigger)
+			.AddFile("Migrations/002.breaking.sql", breaking);
 
-		Exception? ex = await Record.ExceptionAsync(() => DeployAsync(project, UndoTestMode.UndoCycle));
+		Exception? ex = await Record.ExceptionAsync(() => DeployWithFixtureAsync(project));
 
 		if (fails)
 		{
-			Assert.Equal(SchemaCheck.Undo, Assert.IsType<SchemaChangedException>(ex).Check);
+			Assert.Equal(SchemaCheck.BreakingSecondRun, Assert.IsType<SchemaChangedException>(ex).Check);
 		}
 		else
 		{
 			Assert.Null(ex);
 		}
-	}
-
-	[Fact]
-	public async Task Undo_that_leaves_a_column_fails()
-	{
-		using TempProject project = new TempProject()
-			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", "if col_length('dbo.Person', 'Email') is null alter table dbo.Person add Email nvarchar(100) null;")
-			.AddFile("Migrations/002.undo.sql", "select 1;");
-
-		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.UndoCycle)
-		);
-
-		Assert.Equal(SchemaCheck.Undo, ex.Check);
-		Assert.EndsWith("  extra column dbo.Person.Email: nvarchar(100) collate SQL_Latin1_General_CP1_CI_AS null", ex.Message);
-	}
-
-	[Fact]
-	public async Task Breaking_script_whose_second_run_drops_more_fails()
-	{
-		// the condition is checked before the trigger is dropped: the first run drops the trigger, the second one the column.
-		using TempProject project = new TempProject()
-			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", "create or alter trigger dbo.TMP_sync on dbo.Person after insert as set nocount on;")
-			.AddFile("Migrations/002.breaking.sql", """
-				if object_id('dbo.TMP_sync') is null
-					alter table dbo.Person drop column if exists Phone;
-				drop trigger if exists dbo.TMP_sync;
-				""")
-			.AddFile("Migrations/002.undo.sql", """
-				drop trigger if exists dbo.TMP_sync;
-				if col_length('dbo.Person', 'Phone') is null alter table dbo.Person add Phone varchar(20) null;
-				""");
-
-		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployAsync(project, UndoTestMode.UndoCycle)
-		);
-
-		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
-		Assert.Equal(
-			"""
-			Undo test: the breaking script Migrations/002.breaking.sql is not idempotent, its second run changed the schema:
-			  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
-			""".ReplaceLineEndings().TrimEnd(),
-			ex.Message
-		);
 	}
 
 	[Fact]
@@ -210,25 +131,6 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Code/dbo/GetUser.breaking.sql", "drop proc if exists dbo.GetUser_v1;");
 
 		await DeployWithFixtureAsync(project);
-	}
-
-	private async Task DeployAsync(TempProject project, UndoTestMode undoTestMode)
-	{
-		DbLiveBuilder builder = CreateBuilder(project);
-
-		try
-		{
-			await builder.CreateDeployer().DeployAsync(new DeployParameters
-			{
-				CreateDbIfNotExists = true,
-				DeployBreaking = true,
-				UndoTestDeployment = undoTestMode
-			});
-		}
-		finally
-		{
-			await builder.CreateDbLiveDA().DropDbAsync();
-		}
 	}
 
 	private async Task DeployWithFixtureAsync(TempProject project)

@@ -449,16 +449,15 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync("""
 			insert into dblive.migration (
 				version, name, item_type, relative_path,
-				status, content_hash, content, created_utc
+				status, content_hash, created_utc
 			)
 			values (
 				@version, @name, @item_type, lower(@relative_path),
-				@status, @content_hash, @content, @created_utc
+				@status, @content_hash, @created_utc
 			)
 			on conflict (version, item_type) do update set
 				status = excluded.status,
 				content_hash = excluded.content_hash,
-				content = excluded.content,
 				relative_path = excluded.relative_path;
 			""",
 		new
@@ -468,7 +467,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 			relative_path = item.RelativePath,
 			content_hash = item.ContentHash,
-			content = item.Content,
 			status = item.Status.ToString().ToLower(),
 			created_utc = item.CreatedUtc
 		}).ConfigureAwait(false);
@@ -480,7 +478,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash,
-				content = @content,
 				relative_path = lower(@relative_path)
 			where version = @version
 			  and item_type = @item_type
@@ -491,7 +488,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			version = item.Version,
 			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 			content_hash = item.ContentHash,
-			content = item.Content,
 			relative_path = item.RelativePath
 		}).ConfigureAwait(false);
 
@@ -533,38 +529,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			);
 		}
 	}
-	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType)
-	{
-		using NpgsqlConnection cnn = CreateConnection();
-		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
-			select 1
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-		new
-		{
-			version,
-			item_type = MigrationItemTypeMapper.ToDbValue(itemType)
-		}).ConfigureAwait(false);
 
-		return exists is not null;
-	}
-	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
-	{
-		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.QueryFirstOrDefaultAsync<string?>("""
-			select content
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-		new
-		{
-			version,
-			item_type = MigrationItemTypeMapper.ToDbValue(migrationType)
-		}).ConfigureAwait(false);
-	}
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();

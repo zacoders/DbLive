@@ -4,6 +4,4 @@ In this migration we are creating a new dbo.Users table.
 
 Default Admin user will be inserted to the table.
 
-UNDO also supported by this migration, the table will be deleted.
-
 There is no breaking changes in this migration, breaking.sql just added for testing purposes.

@@ -69,10 +69,6 @@ public interface IDbLiveDA
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
 	Task UpdateMigrationStateAsync(MigrationItemStateDto item);
 
-	Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType);
-
-	Task<string?> GetMigrationContentAsync(long version, MigrationItemType undo);
-
 	Task SaveUnitTestResultAsync(UnitTestItemDto item);
 
 	/// <summary>

@@ -370,6 +370,118 @@ public class BreakingChangesDeployerTests
 	}
 
 	[Fact]
+	public async Task Breaking_row_of_a_file_deleted_from_the_project_is_skipped()
+	{
+		MockSet mockSet = new();
+
+		// 001.breaking.sql was saved by a release and deleted from the project before its breaking phase.
+		_ = ArrangePendingMigrationBreaking(mockSet);
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
+			new Migration
+			{
+				Version = 1,
+				Items = new Dictionary<MigrationItemType, MigrationItem>
+				{
+					[MigrationItemType.Migration] = new()
+					{
+						MigrationItemType = MigrationItemType.Migration,
+						FileData = GetFileData("001.migration.sql", "-- migration 1")
+					}
+				}
+			}
+		]);
+
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		await deployer.DeployAsync(DeployParameters.Breaking);
+
+		// the scripts come from the project, the row alone runs nothing.
+		await mockSet.MigrationItemDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default, default!, default!);
+	}
+
+	[Fact]
+	public async Task Without_second_run_check_each_breaking_script_runs_once()
+	{
+		MockSet mockSet = new();
+
+		Migration migration1 = ArrangePendingMigrationBreaking(mockSet);
+
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		await deployer.DeployAsync(DeployParameters.Breaking);
+
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], Arg.Any<MigrationItemSettings>());
+		await mockSet.DbLiveDA.DidNotReceive().GetSchemaSnapshotAsync();
+	}
+
+	[Fact]
+	public async Task Second_run_check_runs_every_breaking_script_twice_before_the_next_one()
+	{
+		MockSet mockSet = new();
+
+		(Migration migration1, Migration migration2) = ArrangeTwoPendingMigrationBreaking(mockSet);
+
+		// every snapshot: other instances with the same objects.
+		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot(SchemaWithPhone.Objects));
+
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		await deployer.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true });
+
+		MigrationItemSettings breaking2Settings = new() { TransactionWrapLevel = TransactionWrapLevel.None };
+
+		Received.InOrder(() =>
+		{
+			mockSet.MigrationItemDeployer.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], new MigrationItemSettings());
+			mockSet.DbLiveDA.GetSchemaSnapshotAsync();
+			mockSet.MigrationItemDeployer.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], new MigrationItemSettings());
+			mockSet.DbLiveDA.GetSchemaSnapshotAsync();
+			// each run by the settings of its script.
+			mockSet.MigrationItemDeployer.DeployAsync(2, migration2.Items[MigrationItemType.Breaking], breaking2Settings);
+			mockSet.DbLiveDA.GetSchemaSnapshotAsync();
+			mockSet.MigrationItemDeployer.DeployAsync(2, migration2.Items[MigrationItemType.Breaking], breaking2Settings);
+			mockSet.DbLiveDA.GetSchemaSnapshotAsync();
+		});
+		await mockSet.MigrationItemDeployer.ReceivedWithAnyArgs(4).DeployAsync(default, default!, default!);
+	}
+
+	[Fact]
+	public async Task Breaking_script_whose_second_run_changes_the_schema_fails()
+	{
+		MockSet mockSet = new();
+
+		(Migration migration1, _) = ArrangeTwoPendingMigrationBreaking(mockSet);
+
+		// after the first run of 1.breaking.sql, after its second run.
+		mockSet.DbLiveDA.GetSchemaSnapshotAsync().Returns(SchemaWithPhone, EmptySchema);
+
+		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
+
+		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
+			() => deployer.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true })
+		);
+
+		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
+		Assert.Equal(
+			"""
+			Deployment test: the breaking script 1.breaking.sql is not idempotent, its second run changed the schema:
+			  missing column dbo.Person.Phone: varchar(20) null
+			""".ReplaceLineEndings().TrimEnd(),
+			ex.Message
+		);
+
+		// the breaking script of the next version does not run.
+		await mockSet.MigrationItemDeployer.Received(2)
+			.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], Arg.Any<MigrationItemSettings>());
+		await mockSet.MigrationItemDeployer.DidNotReceive()
+			.DeployAsync(2, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
+	}
+
+	private static readonly SchemaSnapshot EmptySchema = new([]);
+	private static readonly SchemaSnapshot SchemaWithPhone = new([new SchemaObject(SchemaObjectType.Column, "dbo.Person.Phone", "varchar(20) null", "dbo.Person")]);
+
+	[Fact]
 	public async Task Does_not_check_code_and_runs_no_code_breaking_scripts_when_deploy_breaking_is_disabled()
 	{
 		MockSet mockSet = new();
@@ -580,6 +692,72 @@ public class BreakingChangesDeployerTests
 		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1]);
 
 		return migration1;
+	}
+
+	/// <summary>
+	/// Versions 1 and 2 have applied migrations and breaking scripts that are not applied yet;
+	/// the breaking script of version 2 has a settings file.
+	/// </summary>
+	private static (Migration Migration1, Migration Migration2) ArrangeTwoPendingMigrationBreaking(MockSet mockSet)
+	{
+		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
+			.. new long[] { 1, 2 }.SelectMany(version => new[]
+			{
+				new MigrationItemDto
+				{
+					Version = version,
+					ItemType = MigrationItemType.Migration,
+					Status = MigrationItemStatus.Applied,
+					Name = "migration",
+					RelativePath = $"migrations/00{version}.migration.sql",
+					ContentHash = version * 111
+				},
+				new MigrationItemDto
+				{
+					Version = version,
+					ItemType = MigrationItemType.Breaking,
+					Status = MigrationItemStatus.None,
+					Name = "breaking",
+					RelativePath = $"migrations/00{version}.breaking.sql",
+					ContentHash = version * 1111
+				}
+			})
+		]);
+
+		Migration migration1 = new()
+		{
+			Version = 1,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("1.breaking.sql", "-- content 1")
+				}
+			}
+		};
+
+		Migration migration2 = new()
+		{
+			Version = 2,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("2.breaking.sql", "-- content 2")
+				},
+				[MigrationItemType.BreakingSettings] = new()
+				{
+					MigrationItemType = MigrationItemType.BreakingSettings,
+					FileData = GetFileData("2.breaking.settings.json", """{ "TransactionWrapLevel": "None" }""")
+				}
+			}
+		};
+
+		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
+
+		return (migration1, migration2);
 	}
 
 	private static CodeItem GetCodeItem(string relativePath, string content) => new()

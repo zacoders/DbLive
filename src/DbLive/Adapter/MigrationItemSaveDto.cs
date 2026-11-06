@@ -9,6 +9,5 @@ public class MigrationItemSaveDto
 	public required MigrationItemType ItemType { get; init; }
 	public required MigrationItemStatus Status { get; init; }
 	public required long ContentHash { get; init; }
-	public string? Content { get; set; }
 	public DateTime CreatedUtc { get; init; }
 }

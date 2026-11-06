@@ -1,8 +1,8 @@
 ﻿namespace DbLive.Common.Settings;
 
 /// <summary>
-/// Settings file of one migration item: <c>&lt;version&gt;.migration.settings.json</c>,
-/// <c>&lt;version&gt;.breaking.settings.json</c> or <c>&lt;version&gt;.undo.settings.json</c>.
+/// Settings file of one migration item: <c>&lt;version&gt;.migration.settings.json</c>
+/// or <c>&lt;version&gt;.breaking.settings.json</c>.
 /// A missing key falls back to the project settings.
 /// </summary>
 public record MigrationItemSettings

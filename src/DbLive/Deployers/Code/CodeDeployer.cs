@@ -34,7 +34,7 @@ public class CodeDeployer(
 	}
 
 	/// <summary>
-	/// A file deleted from the project keeps its applied row, so the same file coming back with a rollback to the build that had it
+	/// A file deleted from the project keeps its applied row, so the same file brought back by a later release (git revert)
 	/// would be skipped by its hash, and the object it creates would not be restored. Its row is marked removed instead,
 	/// and a removed file is executed again. Breaking scripts of the Code folder are files of the project too.
 	/// </summary>

@@ -47,7 +47,7 @@ internal static class SettingsTools
 	}
 
 	/// <summary>
-	/// Settings of a migration, breaking or undo script from its settings file, empty when the file does not exist.
+	/// Settings of a migration or breaking script from its settings file, empty when the file does not exist.
 	/// </summary>
 	/// <exception cref="InvalidMigrationItemSettingsException"/>
 	public static MigrationItemSettings GetItemSettings(this Migration migration, MigrationItemType scriptType)

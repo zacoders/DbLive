@@ -34,17 +34,11 @@ public record DeployParameters
 	public bool CreateDbIfNotExists { get; set; } = false;
 
 	/// <summary>
-	/// This should be enabled only for testing purposes and should not be used for production.
-	/// This will deploy the database changes with undo and changes again to test undo scripts.
-	/// This is not what production deployment should do.
+	/// For the deployment tests only (<c>[SqlDeployFact]</c>): the breaking phase runs the breaking script of every migration twice
+	/// and fails with <see cref="SchemaCheck.BreakingSecondRun"/> when the second run changes the schema. A breaking script that
+	/// failed with TransactionWrapLevel None runs again on the next deployment, over what its first run already changed.
 	/// </summary>
-	internal UndoTestMode UndoTestDeployment { get; set; } = UndoTestMode.None;
-
-	/// <summary>
-	/// If true, allows downgrading the database to an earlier version.
-	/// It will apply UNDO up to the current version.
-	/// </summary>
-	public bool AllowDatabaseDowngrade { get; set; } = false;
+	internal bool CheckBreakingSecondRun { get; set; } = false;
 
 	/// <summary>
 	/// Updates stored checksums for applied migrations whose files no longer match.

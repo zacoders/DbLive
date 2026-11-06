@@ -2,7 +2,7 @@ namespace DbLive.Deployers.Code;
 
 /// <summary>
 /// Breaking scripts of the Code folder have no state: each one runs on every breaking deployment, like AfterDeploy runs on every
-/// deployment. A hash-based "applied once" would skip the script after a rollback brought the old object back.
+/// deployment. A hash-based "applied once" would skip the script after a later release (git revert) brought the old object back.
 /// </summary>
 public class CodeBreakingDeployer(
 		ILogger _logger,

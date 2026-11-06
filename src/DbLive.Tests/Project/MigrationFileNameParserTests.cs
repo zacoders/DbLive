@@ -13,8 +13,6 @@ public class MigrationFileNameParserTests
 	[Theory]
 	[InlineData("001.migration.sql", MigrationItemType.Migration)]
 	[InlineData("001.m.sql", MigrationItemType.Migration)]
-	[InlineData("001.undo.sql", MigrationItemType.Undo)]
-	[InlineData("001.u.sql", MigrationItemType.Undo)]
 	[InlineData("001.breaking.sql", MigrationItemType.Breaking)]
 	[InlineData("001.b.sql", MigrationItemType.Breaking)]
 	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
@@ -33,9 +31,7 @@ public class MigrationFileNameParserTests
 	[InlineData("001.migration.s.json", MigrationItemType.MigrationSettings)]
 	[InlineData("001.breaking.settings.json", MigrationItemType.BreakingSettings)]
 	[InlineData("001.b.s.json", MigrationItemType.BreakingSettings)]
-	[InlineData("001.undo.settings.json", MigrationItemType.UndoSettings)]
-	[InlineData("001.u.s.json", MigrationItemType.UndoSettings)]
-	[InlineData("001.Undo.Settings.json", MigrationItemType.UndoSettings)]
+	[InlineData("001.Breaking.Settings.json", MigrationItemType.BreakingSettings)]
 	public void Parses_Item_Settings_Json_Correctly(string file, MigrationItemType expectedType)
 	{
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
@@ -43,6 +39,41 @@ public class MigrationFileNameParserTests
 		Assert.Equal(expectedType, result.MigrationItemType);
 		Assert.Equal(1, result.Version);
 		Assert.Equal(file, result.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("001.undo.sql")]
+	[InlineData("001.u.sql")]
+	[InlineData("001.U.Sql")]
+	[InlineData("001.undo.drop-orders.sql")]
+	[InlineData("001.undo.settings.json")]
+	[InlineData("001.u.s.json")]
+	[InlineData("001.Undo.Settings.json")]
+	[InlineData("001.undo.json")]
+	[InlineData("001.undo.txt")]
+	[InlineData("Old/001.undo.sql")]
+	public void Throws_When_File_Is_Undo_Script(string file)
+	{
+		// run as a migration named "undo", the file would undo its own version.
+		UndoNotSupportedException ex = Assert.Throws<UndoNotSupportedException>(() =>
+			MigrationFileNameParser.GetMigrationInfo(file));
+
+		Assert.Equal(file, ex.RelativePath);
+		Assert.StartsWith($"{file} is an undo script.", ex.Message);
+		Assert.Contains("delete the file", ex.Message);
+		Assert.Contains("Roll back a release", ex.Message);
+	}
+
+	[Theory]
+	[InlineData("001.migration.undo.sql", MigrationItemType.Migration, "undo")]
+	[InlineData("001.m.u.sql", MigrationItemType.Migration, "u")]
+	[InlineData("001.undo-orders.sql", MigrationItemType.Migration, "undo-orders")]
+	public void Undo_In_A_Name_Is_A_Name(string file, MigrationItemType expectedType, string expectedName)
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(expectedType, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
 	}
 
 	[Theory]
@@ -59,10 +90,8 @@ public class MigrationFileNameParserTests
 
 	[Theory]
 	[InlineData("001.migration.json")]
-	[InlineData("001.undo.json")]
 	[InlineData("001.breaking.json")]
 	[InlineData("001.m.json")]
-	[InlineData("001.u.json")]
 	[InlineData("001.b.json")]
 	[InlineData("001.m.config.json")]
 	public void Throws_When_Json_Is_Not_Item_Settings(string file)
@@ -73,7 +102,7 @@ public class MigrationFileNameParserTests
 
 	[Theory]
 	[InlineData("001.migration.txt")]
-	[InlineData("001.undo.txt")]
+	[InlineData("001.breaking.txt")]
 	[InlineData("001.b.txt")]
 	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
 	{
@@ -136,7 +165,7 @@ public class MigrationFileNameParserTests
 
 	[Theory]
 	[InlineData("001.migration.SQL", MigrationItemType.Migration, "")]
-	[InlineData("001.U.Sql", MigrationItemType.Undo, "")]
+	[InlineData("001.B.Sql", MigrationItemType.Breaking, "")]
 	[InlineData("001.name.Sql", MigrationItemType.Migration, "name")]
 	[InlineData("001.m.s.JSON", MigrationItemType.MigrationSettings, "")]
 	[InlineData("001.B.Settings.Json", MigrationItemType.BreakingSettings, "")]

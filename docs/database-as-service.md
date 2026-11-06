@@ -111,7 +111,7 @@ Details: [Choosing a transaction level](project/configuration.md#choosing-a-tran
 | **Zero downtime** | Backward-compatible migrations, the breaking phase, scripts without a transaction where needed | Database releases without stopping the applications |
 | **Database as a service** | All of the above, plus a versioned interface of procedures | The database is released independently; its internal state can change freely |
 
-On any level you also get **SQL tests** (as xUnit tests against a temporary database, too), **rollback** with undo scripts, **checksums** of applied migrations and [ProjectId](features/project-id.md).
+On any level you also get **SQL tests** (as xUnit tests against a temporary database, too), **checksums** of applied migrations and [ProjectId](features/project-id.md).
 
 DbLive allows and encourages zero-downtime releases: its defaults (one transaction per migration, breaking scripts off unless requested) are chosen for them. A project can start classic and go further later; the next level adds files and conventions, not a different setup.
 
@@ -121,7 +121,7 @@ DbLive allows and encourages zero-downtime releases: its defaults (one transacti
 
 - Deploy order: migrations → code → (optional) breaking.
 - Breaking only when `DeployBreaking = true`, only after the normal deployment of the same build, and a breaking script never before its migration.
-- Checksums of applied migrations, undo scripts stored in the database, optional [ProjectId](features/project-id.md) binding.
+- Checksums of applied migrations, no deployment of a build that lacks applied versions, optional [ProjectId](features/project-id.md) binding.
 
 ### The team must ensure
 
@@ -148,7 +148,7 @@ DbLive provides **rails**; compatibility discipline remains a team responsibilit
 - Stored procedures and functions form a **data access boundary**, not a host for domain logic.
 - Teams practice expand/contract and want those rules **encoded in the tool**.
 
-When downtime is acceptable, or an ORM owns the whole data model with no procedure boundary, the classic way is enough. You still get versioned migrations, code objects, SQL tests and rollback.
+When downtime is acceptable, or an ORM owns the whole data model with no procedure boundary, the classic way is enough. You still get versioned migrations, code objects, SQL tests and checksums.
 
 ## Next steps
 

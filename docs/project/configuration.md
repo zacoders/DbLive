@@ -57,7 +57,7 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `TransactionWrapLevel` | `Migration` | `Migration`: each migration, breaking and undo script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
+| `TransactionWrapLevel` | `Migration` | `Migration`: each migration and breaking script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
 | `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a command without a transaction (a code file, a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
@@ -73,14 +73,12 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 
 | Setting | Default | Applies to |
 |---------|---------|------------|
-| `MigrationTimeout` | `12:00:00` | Each migration, breaking and undo script of a migration: its command and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
+| `MigrationTimeout` | `12:00:00` | Each migration and breaking script of a migration: its command and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
 | `DeploymentTimeout` | `1.00:00:00` | The transaction of the whole deployment (`TransactionWrapLevel: Deployment`) |
 | `CodeItemTimeout` | `00:00:30` | Each code file and each [breaking script of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) |
 | `UnitTestItemTimeout` | `00:01:00` | Each SQL test, including its transaction |
 | `BeforeDeployFolderTimeout` | `06:00:00` | Each BeforeDeploy script |
 | `AfterDeployFolderTimeout` | `06:00:00` | Each AfterDeploy script |
-
-`DowngradeTimeout` no longer exists: an undo script runs with `MigrationTimeout`, or with the `Timeout` of its `<version>.undo.settings.json`. A `settings.json` that still has the key fails as an unknown property.
 
 !!! note "Transactions longer than 10 minutes"
     DbLive uses `System.Transactions`. .NET caps every transaction at the process-wide `TransactionManager.MaximumTimeout`, which is 10 minutes by default. Before opening a transaction, DbLive raises that cap to the transaction's timeout and never lowers it, so the settings above apply as written. Other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used.
@@ -89,21 +87,20 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 
 DbLive does not wrap a deployment in one transaction by default, and that is intentional (see [Database as a Service](../database-as-service.md#transactions)):
 
-- **`Migration`** (default): each migration, breaking and undo script commits or rolls back on its own, together with its bookkeeping. If version 5 fails, versions 1 to 4 stay applied and the next deployment continues with version 5. A downgrade works the same way: if the undo of version 3 fails, the undo of version 4 stays committed and the next downgrade continues with version 3. The database stays consistent between scripts, which is what a 24/7 system needs.
-- **`Deployment`**: all or nothing, including downgrades and breaking scripts. Simple for small databases and test environments, but it holds locks for the whole deployment and runs code deployment single-threaded.
+- **`Migration`** (default): each migration and breaking script commits or rolls back on its own, together with its bookkeeping. If version 5 fails, versions 1 to 4 stay applied and the next deployment continues with version 5. The database stays consistent between scripts, which is what a 24/7 system needs.
+- **`Deployment`**: all or nothing, including breaking scripts. Simple for small databases and test environments, but it holds locks for the whole deployment and runs code deployment single-threaded.
 - **`None`**: no transactions, except for a script whose item settings file sets `"TransactionWrapLevel": "Migration"`. Use `None` for single scripts through an [item settings file](#item-settings) rather than for the whole project.
 
 Each SQL test always runs in its own transaction that is rolled back.
 
 ## Item settings
 
-Each migration, breaking and undo script can have its own settings file next to it:
+Each migration and breaking script can have its own settings file next to it:
 
 | File | Short forms | Settings of |
 |------|-------------|-------------|
 | `<version>.migration.settings.json` | `<version>.m.s.json`, `<version>.m.settings.json`, `<version>.migration.s.json` | the migration script of that version, whatever its file name |
 | `<version>.breaking.settings.json` | `<version>.b.s.json`, ... | the breaking script of that version |
-| `<version>.undo.settings.json` | `<version>.u.s.json`, ... | the undo script of that version |
 
 A settings file applies to its own script only. It follows the same format rules as `settings.json` and accepts three keys; a missing key falls back to the project `settings.json` (or its default), never to another item's file:
 
@@ -123,13 +120,11 @@ Typical use: the migration builds an index online without holding a long transac
 }
 ```
 
-Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; the undo script that reverts them usually needs its own `<version>.undo.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction.
+Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; a breaking script that drops such an index needs its own `<version>.breaking.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction.
 
 `"TransactionWrapLevel": "None"` is the author's promise that the database keeps working if the script stops halfway. A failed script is not marked as applied, so the next deployment runs the **whole** script again: write it to be re-runnable (`if not exists`, `drop ... if exists`, `create index concurrently if not exists`).
 
 When the project uses `"TransactionWrapLevel": "Deployment"`, every script runs inside the deployment transaction, with its isolation level and `DeploymentTimeout`. An item file with `None` then has no effect, and DbLive logs a warning; its `TransactionIsolationLevel` is not used either, and its `Timeout` limits only the command.
-
-The undo settings are stored in the database together with the undo script, so a downgrade from an older build, which no longer has these files, still uses them. Like the undo script, they are updated in the database while the undo has not run.
 
 Errors:
 

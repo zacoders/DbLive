@@ -522,9 +522,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			when matched then update 
 			set status = @status
 				, content_hash = @content_hash
-				, content = @content
 				, relative_path = lower(@relative_path)
-			when not matched then 
+			when not matched then
 			insert (
 				version
 				, name
@@ -532,7 +531,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, relative_path
 				, status
 				, content_hash
-				, content
 				, created_utc
 			)
 			values (
@@ -542,7 +540,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, lower(@relative_path)
 				, @status
 				, @content_hash
-				, @content
 				, @created_utc
 			);
 			""",
@@ -553,7 +550,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				relative_path = item.RelativePath,
 				content_hash = item.ContentHash,
-				content = item.Content,
 				status = item.Status.ToString().ToLower(),
 				created_utc = item.CreatedUtc
 			}
@@ -566,7 +562,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash
-			  , content = @content
 			  , relative_path = lower(@relative_path)
 			where version = @version
 			  and item_type = @item_type
@@ -577,7 +572,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version = item.Version,
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				content_hash = item.ContentHash,
-				content = item.Content,
 				relative_path = item.RelativePath
 			}
 		).ConfigureAwait(false);
@@ -617,42 +611,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			throw new DbLiveMigrationItemMissedSqlException($"Migration item not found. Version: {item.Version}, Type: {item.ItemType}");
 		}
-	}
-
-	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType ItemType)
-	{
-		using var cnn = GetConnection();
-		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
-			select 1
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = MigrationItemTypeMapper.ToDbValue(ItemType)
-			}
-		).ConfigureAwait(false);
-		return exists is not null;
-	}
-
-	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
-	{
-		using var cnn = GetConnection();
-		string? content = await cnn.QueryFirstOrDefaultAsync<string?>("""
-			select content
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = MigrationItemTypeMapper.ToDbValue(migrationType)
-			}
-		).ConfigureAwait(false);
-		return content;
 	}
 
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)

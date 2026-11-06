@@ -2,7 +2,7 @@
 
 A deployment is one call to `IDbLive.DeployAsync(DeployParameters)`. DbLive has no command-line tool; you start deployments from your own code: a small console app (the *deployer*), a test, or a step of your application's tooling.
 
-- [Migrations](migrations.md): versions, undo scripts, downgrade, checksums
+- [Migrations](migrations.md): versions, checksums, rolling back a release
 - [Code Deployment](code.md): procedures, functions, views
 - [Breaking Changes](breaking-changes.md): the contract phase
 - [Zero-Downtime Deployment](zero-downtime.md): the release runbook
@@ -41,18 +41,17 @@ Every `DeployAsync` call runs these steps in this order:
 
 1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
 2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema.
-3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, and the [checksums](migrations.md#checksums) of applied migrations. The checksum check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
+3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations. The applied versions check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
 4. **Record** all migration files of the project in `dblive.migration`.
-5. **Downgrade** if the database has versions this project does not contain (see [Downgrade](migrations.md#downgrade)).
-6. **BeforeDeploy** scripts.
-7. **Migrations**: pending versions in ascending order (`DeployMigrations`).
-8. **Code**: new and changed code files (`DeployCode`).
-9. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
-10. **AfterDeploy** scripts.
+5. **BeforeDeploy** scripts.
+6. **Migrations**: pending versions in ascending order (`DeployMigrations`).
+7. **Code**: new and changed code files (`DeployCode`).
+8. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
+9. **AfterDeploy** scripts.
 
-With `TransactionWrapLevel: Deployment`, steps 3 (checksums) to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
+With `TransactionWrapLevel: Deployment`, steps 3 (from the applied versions check) to 9 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
-Steps 2 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations, checks for a downgrade and runs BeforeDeploy and AfterDeploy.
+Steps 2 to 5 and 9 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations and runs BeforeDeploy and AfterDeploy.
 
 ## DeployParameters
 
@@ -62,7 +61,6 @@ Steps 2 to 6 and 10 run whatever the flags say. A breaking-only deployment there
 | `DeployMigrations` | `true` | Apply pending migrations. |
 | `DeployCode` | `true` | Deploy new and changed code files. |
 | `DeployBreaking` | `false` | Run the breaking phase: the breaking scripts of the Code folder and the pending breaking scripts of migrations. |
-| `AllowDatabaseDowngrade` | `false` | Allow reverting versions that are applied in the database but missing from the project. |
 | `RepairMigrationChecksums` | `false` | Accept changed applied migration files by updating their stored checksums. |
 
 ### Presets
@@ -75,7 +73,7 @@ Steps 2 to 6 and 10 run whatever the flags say. A breaking-only deployment there
 `DeployParameters` is a record, so adjust a preset with `with`:
 
 ```csharp
-await deployer.DeployAsync(DeployParameters.Default with { AllowDatabaseDowngrade = true });
+await deployer.DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 ```
 
 ## SQL tests
@@ -98,13 +96,13 @@ builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger));   // 
 ## A typical pipeline
 
 1. **Build** the solution.
-2. **Test**: `dotnet test` deploys the database into a Docker container (Testcontainers), runs the undo round-trips and all SQL tests. See [Unit Testing](../unit-testing/index.md).
+2. **Test**: `dotnet test` deploys the database into a Docker container (Testcontainers) as production does, runs every breaking script twice and all SQL tests. See [Unit Testing](../unit-testing/index.md).
 3. **Deploy the database**: run the deployer with `Default`.
 4. **Deploy the application**. Old and new versions run side by side.
 5. **Remove the old application version.**
-6. **Deploy breaking changes**: run the deployer with `Breaking`.
+6. **Deploy breaking changes**: run the deployer with `Breaking`, once the release is confirmed.
 
-Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md).
+Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md). Until step 6 a release is rolled back by rolling back the application; the database stays (see [Roll back a release](migrations.md#roll-back-a-release)).
 
 ## Production
 
@@ -114,7 +112,6 @@ The settings of a deployment to a production database, in one place. The default
 |---------|---------------|-----|
 | `ProjectId` in `settings.json` | Set, unique per project | Stops a deployment into the database of another project. Without it every deployment logs a warning. See [ProjectId](../features/project-id.md). |
 | `CreateDbIfNotExists` | `false` (default) | Create the production database yourself. A typo in the database name then fails the deployment instead of creating an empty database and deploying the whole schema into it, and the deployer's login needs no permission to create databases. |
-| `AllowDatabaseDowngrade` | `false` (default); `true` only in the rollback pipeline | With `true`, a build that lacks applied versions reverts them with their undo scripts, and undo scripts usually drop columns and tables. With `false`, an older build deployed by mistake fails and changes nothing. See [Downgrade](migrations.md#downgrade). |
 | `RepairMigrationChecksums` | `false` (default); `true` only for one deployment, after you checked that the database matches the files | Left on, it accepts every edited applied migration without a check. See [Checksums](migrations.md#checksums). |
 | `MigrationChecksumMode` | `Strict` (default) | `Warn` deploys although an applied migration was edited, so the files no longer describe the database. |
 | `TransactionWrapLevel` | `Migration` (default); `None` in the [item settings](../project/configuration.md#item-settings) of a script that cannot run in a transaction | `Deployment` holds locks for the whole deployment and deploys code single-threaded: it is for small databases and test environments. See [Choosing a transaction level](../project/configuration.md#choosing-a-transaction-level). |
@@ -128,7 +125,7 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 | Table | Content |
 |-------|---------|
 | `dblive.version` | DbLive's own schema version and the bound `project_id` |
-| `dblive.migration` | One row per migration file: version, type, status (`none`, `applied`, `reverted`), checksum, applied time; the content of undo scripts |
+| `dblive.migration` | One row per migration file: version, type, status (`none`, `applied`), checksum, applied time |
 | `dblive.code` | One row per code file: status, checksum, last error |
 | `dblive.unit_test_run` | Last result of each SQL test |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |

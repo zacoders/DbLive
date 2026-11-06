@@ -1,6 +1,6 @@
 # DbLive — complete reference for AI coding agents
 
-> DbLive is a .NET library that deploys a folder of SQL scripts (migrations, re-runnable code objects, SQL unit tests) to Microsoft SQL Server or PostgreSQL, with undo scripts, a separate "breaking changes" phase for zero-downtime releases, checksum validation and per-database state tracking.
+> DbLive is a .NET library that deploys a folder of SQL scripts (migrations, re-runnable code objects, SQL unit tests) to Microsoft SQL Server or PostgreSQL, with a separate "breaking changes" phase for zero-downtime releases, checksum validation and per-database state tracking.
 >
 > This file is the single source of truth for agents. Every rule below was derived from the DbLive source code (repository https://github.com/zacoders/DbLive, main branch, November 2026). If the installed package behaves differently, the source wins: check `src/DbLive/`.
 
@@ -11,33 +11,33 @@
 Follow these when you create or change files in a DbLive project. Each rule names the failure you cause by breaking it.
 
 1. **Never edit a migration item after it was applied** to any shared database (`<version>.migration.sql`, `<version>.breaking.sql` once deployed). Create a new version instead. Breaking this → `MigrationChecksumMismatchException` on the next deploy (default `MigrationChecksumMode` is `Strict`). Whitespace and comments count; CRLF/LF line endings do not.
-2. **Never delete an applied migration version, and never change its version number.** A version that is applied in the database but missing from the project is treated as a downgrade request → `DowngradeNotAllowedException` (unless `AllowDatabaseDowngrade = true`, which runs the stored undo script and reverts the version).
+2. **Never delete an applied migration version, and never change its version number.** A version that is applied in the database but missing from the project → `DatabaseAheadOfProjectException`, and the deployment changes nothing (Section 5.2).
 3. **Code files must be re-runnable.** They are re-executed whenever their content changes and on every new database. Use `create or alter` (SQL Server) or `create or replace` / `drop ... if exists` + `create` (PostgreSQL).
 4. **Migrations must be backward compatible (expand only).** Put destructive changes to tables (drop column/table, remove sync triggers) into `<version>.breaking.sql` of the same version; drop an old version of a code object in a breaking script of the Code folder next to its file (`Code/dbo/GetUser.breaking.sql`, Section 6.1). Breaking scripts run only when `DeployBreaking = true`.
-5. **Write `<version>.undo.sql` for every migration you may need to roll back**, and make it work in both states: breaking script applied and not applied (use existence checks). It must restore the schema as it was before the migration: add back what the migration and its breaking script dropped, drop what the migration added. Breaking this → `[SqlDeployFact]`, which runs the undo in both states, fails with `SchemaChangedException` listing the objects (Section 13.3).
+5. **Never write undo scripts.** DbLive has none and does not roll back a database: a release is rolled back by rolling back the application before its breaking phase, and a wrong migration is fixed by a new migration (Section 18.8). Breaking this (`<version>.undo.sql`, `<version>.u.sql`, `<version>.undo.settings.json` in `Migrations`) → `UndoNotSupportedException` before anything is deployed.
 6. **BeforeDeploy and AfterDeploy scripts run on every deployment** (not once). They must be idempotent: a second run must not fail and must not change the schema.
-7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, undo, breaking, code, BeforeDeploy/AfterDeploy and `setup.test.sql`.)
+7. **SQL Server test files must not contain `GO`.** Test scripts are sent as one command. (`GO` is fine in migrations, breaking, code, BeforeDeploy/AfterDeploy and `setup.test.sql`.)
 8. **The assertion marker column is named `assert` and must be the first column** of its result set (case does not matter; `select 'rows' as assert` works on both engines). A misspelled name (`asstert`) or a missing alias (`select 'rows'`) → the test fails with "... looks like an assert result set ..." (Section 8.3).
-9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, a migration file was deleted, or the deployer was built from an older commit), it is treated as a downgrade → `DowngradeNotAllowedException`.
+9. **Every build deployed to a database must contain all migrations applied there.** All folders are optional (a code-only project without `Migrations` is valid), but if a database already has applied migrations and the build lacks them (for example, a migration file was deleted, or the deployer was built from an older commit), the deployment fails before any change → `DatabaseAheadOfProjectException`.
 10. **The scripts root folder in the source project is named `Scripts`** (or the folder named by `<DbLiveScriptsFolder>` in the `.csproj`), and the project references a DbLive package, which embeds the folder in the assembly (Section 3.1): the provider, `DbLive.xunit`, or `DbLive` itself in a project with only scripts. Do not add an `EmbeddedResource` for the scripts or the `ProjectDir` metadata to the `.csproj`. Breaking this → an `EmbeddedResource` of the scripts fails the build with "Remove the DbLive block from <project>.csproj" (a leftover `ProjectDir` item does not fail it; remove it too); a SQL project without a DbLive package reference builds, and `SetProject` throws `ScriptsNotEmbeddedException`. Do not copy scripts to the output folder; DbLive does not read them from there.
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production.** A deployment never runs them; they run in `dotnet test` against a disposable database (Section 13), and a production deployer does not call `IDbLiveTester.RunAllTestsAsync()` (Section 8.2). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
-13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json` (short `<version>.m.s.json`, `.b.s.json`, `.u.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`. A script that reverts a no-transaction change (concurrent/online index, `ALTER DATABASE`) usually needs its own `<version>.undo.settings.json`.
+13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json` (short `<version>.m.s.json`, `.b.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`.
 14. **Follow the way the project uses DbLive** (Section 1). In a classic project (no `_vN` object names in `Code/`, no breaking scripts) change procedures in place and do not introduce versioned names or breaking scripts unless asked. In a project with a versioned interface: when the **contract** of an interface object changes (new required parameter, other result columns, other meaning), rename the object in the same file to the next version (`MyProc_v1` → `MyProc_v2`) and drop the old version in a breaking script next to the file (`my-proc.breaking.sql` next to `my-proc.sql`, Section 18.6); when only the **implementation** changes, keep the name. Breaking this → running applications that still call the old name fail (missing parameter, changed result set), or a classic project collects versions that nobody drops.
 15. **Breaking scripts of the Code folder run on every breaking deployment** (`breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql` under `Code/`; Section 6.1). They must be idempotent: `drop proc if exists`, `drop function if exists`; a second run must not drop more than the first one. Breaking this → the second breaking deployment fails or changes the schema (`[SqlDeployFact]` catches both; a schema change → `SchemaChangedException`). Never give a code object file such a name: it is not deployed as code. A name that also matches `TestFilePatterns` (`test.breaking.sql`, `t.b.sql`) → `BreakingScriptMatchesTestPatternException`.
 16. **Put nothing into the scripts root except the project folders and `settings.json`.** Every file must be inside `Migrations`, `Code`, `Tests`, `BeforeDeploy` or `AfterDeploy` (or the folders named in `settings.json`); hidden files and folders (the name starts with a dot: `.DS_Store`, `.gitkeep`) do not count. Breaking this (a `PostDeployment/` folder, a `README.md` or a misspelled `setting.json` in the root) → `FilesOutsideProjectFoldersException` before any script of the project runs (Section 4). Keep other scripts and documents outside the scripts root; notes (`.md`, `.txt`) may sit inside the project folders.
 17. **Give every project a `ProjectId`** in `Scripts/settings.json` (Section 14): a name unique to the project, the same in every environment (`"ProjectId": "billing-api-db"`). Breaking this → nothing stops the deployer from deploying into another project's database, and every deployment logs the warning "ProjectId is not set in settings.json ...".
-18. **Do not turn on `CreateDbIfNotExists` or `AllowDatabaseDowngrade` in a production deployer** (Section 18.10). `CreateDbIfNotExists` is off by default; turn it on only for local and test databases. Breaking this → a typo in the database name of the connection string creates an empty database and deploys the whole schema into it; with `AllowDatabaseDowngrade = true` an older build deployed by mistake runs the stored undo scripts, which usually drop columns and tables. `AllowDatabaseDowngrade` belongs only in the rollback pipeline (Section 18.8).
+18. **Do not turn on `CreateDbIfNotExists` in a production deployer** (Section 18.10). It is off by default; turn it on only for local and test databases. Breaking this → a typo in the database name of the connection string creates an empty database and deploys the whole schema into it.
 
 ---
 
 ## 1. What DbLive is and when to use it
 
-- **Migrations**: versioned, ordered, applied once per database. Optional undo (rollback) and breaking (contract phase) scripts for each version.
+- **Migrations**: versioned, ordered, applied once per database. An optional breaking (contract phase) script for each version. No undo scripts: DbLive does not roll back a database (Section 18.8).
 - **Code**: stored procedures, functions, views, triggers, schemas. One file per object, re-executed when the file changes. Never dropped automatically.
 - **SQL tests**: `.sql` files with Arrange / Act / Assert, each run in a transaction that is always rolled back. They run as individual xUnit tests in Visual Studio / `dotnet test`: a fixture deploys the project into a new database (Docker via Testcontainers, or a local server) and drops it afterwards, so no shared test database is needed (Section 13). A deployment never runs them. Without xUnit v2 (NUnit, MSTest, xUnit v3) or against a database that is already deployed, `RunAllTestsAsync` runs them all with one call (Section 8.2).
 - **Breaking phase**: destructive changes run in a separate deployment, after the old application version is gone (zero-downtime expand/contract).
-- **Downgrade** (opt-in): deploying an older build with fewer migrations fails with `DowngradeNotAllowedException` and changes nothing, unless `AllowDatabaseDowngrade = true`; then DbLive reverts the extra versions using the undo scripts stored in the database (Section 5.5).
+- **Rollback of a release**: the application is rolled back, the database stays: before its breaking phase a release only adds, so the database serves both versions (Section 18.8). Deploying an older build with fewer migrations fails with `DatabaseAheadOfProjectException` and changes nothing (Section 5.2).
 - **ProjectId**: binds a project to a database to prevent deploying to the wrong one.
 - **No CLI.** You write a small console app (the "deployer") or call DbLive from tests. `src/DbLive.Console` in the repository is an empty stub.
 
@@ -51,7 +51,7 @@ Ways a project can use DbLive (each adds to the previous one; find out which one
 | Zero downtime | Backward-compatible (expand-only) migrations, breaking scripts, scripts without a transaction where needed (Section 10) | `<version>.breaking.sql` files, sync triggers, item settings with `"TransactionWrapLevel": "None"` |
 | Database as a service | Plus a versioned interface of procedures/functions | `_v1`/`_v2` (or `Name2`) object names in `Code/`, breaking scripts that drop old versions (`Code/**/*.breaking.sql`, or in migrations in older projects) |
 
-SQL tests, undo scripts and rollback, checksums and ProjectId are available in every way.
+SQL tests, checksums and ProjectId are available in every way.
 
 ---
 
@@ -231,28 +231,24 @@ A file of `Code/` named like a breaking script (`breaking.sql`, `b.sql`, `*.brea
 | Type token | Item type | `.sql` file | `.json` file (`<settings>` = `settings` or `s`) |
 |---|---|---|---|
 | `migration`, `m` | Migration (forward change) | `MigrationItemType.Migration` | `MigrationItemType.MigrationSettings` |
-| `undo`, `u` | Undo (rollback of this version) | `MigrationItemType.Undo` | `MigrationItemType.UndoSettings` |
 | `breaking`, `b` | Breaking (contract phase) | `MigrationItemType.Breaking` | `MigrationItemType.BreakingSettings` |
 
 - `<name>`: free text, informational only (stored in the database). For a script with an explicit type it is the third part; without a type it is the second part; for a settings file it is the optional fourth part. Further dot-separated parts are ignored.
-- If the second part of a `.sql` file is not a type token, the file is a Migration and the second part is its name: `20260808104925.create-users-table.sql` is Migration, name `create-users-table`. A name that equals a type token (`m`, `u`, `b`, `undo`, ...) is read as the type. `settings`/`s` is not a type token in a `.sql` name (`005.settings.sql` is a Migration named `settings`).
+- If the second part of a `.sql` file is not a type token, the file is a Migration and the second part is its name: `20260808104925.create-users-table.sql` is Migration, name `create-users-table`. A name that equals a type token (`m`, `b`, `migration`, `breaking`) is read as the type. `settings`/`s` is not a type token in a `.sql` name (`005.settings.sql` is a Migration named `settings`).
+- `undo` and `u` are reserved: DbLive has no undo scripts (Section 18.8). A file whose second part is `undo` or `u`, with any extension (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`, `005.u.s.json`), fails the deployment before anything runs with `UndoNotSupportedException`, which names the file: delete it. It is not read as a migration named `undo`, which would undo its own version. A third part `undo` is only a name (`005.migration.undo.sql` is a Migration named `undo`).
 - A settings file belongs to one script and needs that script: `<version>.breaking.settings.json` without a breaking script of that version is an error. Settings files of one version do not inherit from each other (Section 9.3).
 
 Examples:
 
 ```
 001.migration.sql                       Migration v1
-001.undo.sql                            Undo v1
 002.m.orders.sql                        Migration v2, name "orders"
-002.u.sql                               Undo v2
 002.b.sql                               Breaking v2
 004.migration.settings.json             settings of Migration v4
 004.m.s.json                            the same, short form (only one of the two may exist)
-004.undo.settings.json                  settings of Undo v4
 005.b.s.json                            settings of Breaking v5
 20260808104925.create-users-table.sql   Migration v20260808104925
 20260808104925.migration.settings.json  settings of that migration (any migration file name)
-20260808104925.undo.sql                 Undo v20260808104925
 ```
 
 Errors raised while reading the project:
@@ -262,9 +258,10 @@ Errors raised while reading the project:
 | Version part is not an integer (also `config.json`, `readme.sql`, a macOS `._001.migration.sql`) | `InvalidMigrationVersionException` |
 | Old per-version settings file `<version>.settings.json` / `<version>.s.json` | `ObsoleteMigrationSettingsFileException` (message names the new file) |
 | Other `.json` file in Migrations (`004.custom.json`, `004.migration.json`) | `UnknownMigrationSettingsException` |
+| An undo script or its settings file (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`) | `UndoNotSupportedException` (message names the file) |
 | Two files with the same version and type (also `001.migration.sql` + `1.m.sql`, `004.m.s.json` + `004.migration.settings.json`) | `DuplicateMigrationItemException` |
-| A version has undo/breaking/settings but no migration file | `MigrationItemMustExistsException` |
-| A settings file without its script (`004.u.s.json` without an undo script) | `MigrationSettingsWithoutScriptException` |
+| A version has breaking/settings but no migration file | `MigrationItemMustExistsException` |
+| A settings file without its script (`004.b.s.json` without a breaking script) | `MigrationSettingsWithoutScriptException` |
 | A settings file with an unknown key (also the old `MigrationTimeout`), invalid JSON, or `"TransactionWrapLevel": "Deployment"` | `InvalidMigrationItemSettingsException` (message names the file) |
 | `EnforceTimestampVersion: true` and the version is not `yyyyMMddHHmmss` (14 digits, valid date, year from 2000 to next month's year) | `InvalidMigrationVersionException` |
 
@@ -275,53 +272,40 @@ Version strategy: sequential numbers (`001`, `002`) are fine for one developer. 
 - A version is pending when its Migration item is not `applied` in `dblive.migration`.
 - All pending versions are applied in ascending version order, **including versions lower than the highest applied one** (a branch merged later with an older timestamp still gets applied). There is no "out of order" check.
 - Subfolders are irrelevant to matching: items are matched by `(version, type)`, so moving old migrations into `Migrations/Old/` is safe.
-- At the start of every deployment, all migration items found in the project are recorded in `dblive.migration` (status `none`) before anything runs. Items that are not applied yet are updated in place when their file changes. **The content of the undo script and of its `<version>.undo.settings.json` is stored in the database** (needed for downgrades); other items store only a hash.
+- At the start of every deployment, all migration items found in the project are recorded in `dblive.migration` (status `none`) before anything runs. Items that are not applied yet are updated in place when their file changes. Only the hash is stored, not the content: the project is the source of the scripts. Rows of items deleted from the project stay; nothing runs them, because the migration and breaking phases and the checksum validation take the scripts and their settings from the project.
+- **The project must have every version applied to the database.** At the start of every deployment (whatever the `DeployParameters`, also a `Breaking` run), after the ProjectId and settings validation and before the checksum validation (Section 12), DbLive compares the applied versions with the project. Applied versions the project lacks → `DatabaseAheadOfProjectException` (`Versions`: those versions, ascending): no migration row is written and no script of the project runs. Causes: an older build is deployed (DbLive does not roll back a database: roll back the application and keep the database, Section 18.8), or migration files were deleted from the project (restore them). A version whose Migration item was recorded but never applied (a failed migration) does not count.
 
 ### 5.3 Execution of a migration version
 
-Rule: each item (migration, breaking, undo) is one unit: its own transaction, by its own settings (Section 9.3). After any item the database is consistent at the version level, so a deployment or a downgrade may stop between items and continue later.
+Rule: each item (migration, breaking) is one unit: its own transaction, by its own settings (Section 9.3). After any item the database is consistent at the version level, so a deployment may stop between items and continue later.
 
 For each pending version, in order:
 1. Effective settings of the Migration item = `<version>.migration.settings.json` (if present) over the project `settings.json`, key by key.
 2. Open a transaction with the effective `TransactionIsolationLevel` and `Timeout` if the effective `TransactionWrapLevel` is `Migration` (default). With `None`, no transaction. With project-level `Deployment`, the item runs inside the deployment transaction (an item `None` then logs a warning and has no effect).
-3. Execute the Migration item; the SQL command gets the same isolation level (without a transaction it is set on the connection, Section 9.3) and the same `Timeout`. Mark it `applied`. If an Undo item exists, reset its status to `none`.
+3. Execute the Migration item; the SQL command gets the same isolation level (without a transaction it is set on the connection, Section 9.3) and the same `Timeout`. Mark it `applied`.
 4. Commit.
 
 The migration script and its status update are committed together. If a migration fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error); earlier versions stay committed (with the default `Migration` level). A failed item is not marked `applied`, so the next deployment runs the **whole** script again: an item with `TransactionWrapLevel: None` must be re-runnable (`if not exists`, `create index concurrently if not exists`).
 
-The `[SqlDeployFact]` deployment test deploys every version that has an undo script through the undo cycle before its final migration: migration → undo (a rollback before the breaking phase), then, if the version has a breaking script, migration → breaking → breaking → undo (a rollback after it), then the migration. Each step runs with its own settings file, in its own transaction. The breaking script runs twice because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment: its second run must not fail and must not change the schema. The schema is compared: after each undo it must equal the schema before the migration, after the second breaking run the schema after the first run; otherwise `SchemaChangedException` (Section 13.3).
+The `[SqlDeployFact]` deployment test runs the breaking script of every migration twice in its first breaking deployment, with its own settings file, in its own transaction each time, because a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment: its second run must not fail and must not change the schema. The schema after the second run is compared with the schema after the first one; a difference → `SchemaChangedException` (Section 13.3).
 
 ### 5.4 Checksums
 
-Before anything is deployed, every **applied** item (migration, breaking, applied undo) is compared with the project file by `(version, type)`:
+Before anything is deployed, every **applied** item (migration, breaking) is compared with the project file by `(version, type)`:
 - Hash: XxHash64 of the file text (UTF-8) with CRLF replaced by LF. Any change, including whitespace and comments, is a mismatch; CRLF/LF line endings are not.
 - `MigrationChecksumMode: "Strict"` (default): throws `MigrationChecksumMismatchException` listing the files.
 - `MigrationChecksumMode: "Warn"`: logs a warning per file and continues.
 - `DeployParameters.RepairMigrationChecksums = true`: overwrites the stored hashes with the current file hashes and continues. Use only when the database already matches the files (for example after a comment-only edit).
-- Items not applied yet (including undo scripts of applied migrations) can be edited freely; the new content is saved.
+- Items not applied yet (for example the breaking script of a version whose breaking phase has not run) can be edited freely; the new hash is saved.
 - Settings items are never checksum-validated.
 
-Line endings: a Windows checkout (CRLF, `core.autocrlf=true`) and a Linux checkout (LF) of the same file have the same hash, so one database can be deployed from both; no `.gitattributes` is needed. Only CRLF is normalized: a lone CR or a Unicode line separator is a change. Scripts run, and undo content is stored, with the line endings of the file. Hashes stored by DbLive versions that hashed the raw text still match the same file with either line endings; they are not rewritten. The same comparison decides whether a code file is redeployed.
+Line endings: a Windows checkout (CRLF, `core.autocrlf=true`) and a Linux checkout (LF) of the same file have the same hash, so one database can be deployed from both; no `.gitattributes` is needed. Only CRLF is normalized: a lone CR or a Unicode line separator is a change. Scripts run with the line endings of the file. Hashes stored by DbLive versions that hashed the raw text still match the same file with either line endings; they are not rewritten. The same comparison decides whether a code file is redeployed.
 
-### 5.5 Undo scripts and downgrade
-
-- Downgrade is triggered automatically when the database has applied migration versions that do not exist in the project being deployed (deploying an older build).
-- `AllowDatabaseDowngrade = false` (default): `DowngradeNotAllowedException`, nothing is changed.
-- `AllowDatabaseDowngrade = true`: for each such version, newest first, DbLive runs the **undo content stored in the database** (the older build does not have those files). Every one of those versions must have an undo item, otherwise `DowngradeImpossibleException` and nothing runs.
-- Each undo script runs **in its own transaction**, by its settings: the `undo.settings` content stored in the database (from `<version>.undo.settings.json`) over the **current** project settings. Without a stored undo settings file, the project settings apply. The migration's settings file is never used for the undo.
-- If an undo fails, the undos of newer versions stay committed; deploying the older build again continues with the failed version (for example: undo 004 succeeds, undo 003 fails, the next downgrade undoes 003). With project `TransactionWrapLevel: Deployment` the whole downgrade is one transaction (all or nothing).
-- An undo that drops a concurrent/online index or runs `ALTER DATABASE` needs `<version>.undo.settings.json` with `"TransactionWrapLevel": "None"`.
-- After an undo: Undo is marked `applied`; Migration and Breaking of that version are marked `reverted`. Deploying the newer build again re-applies them.
-- Code objects are not dropped by a downgrade. Code files of the older build are redeployed if their content differs from what was last applied, or if the newer build had deleted them (their rows are `removed`, Section 6).
-- Write undo scripts defensively: the breaking script may or may not have run, and with `TransactionWrapLevel: none` the migration may be half-applied. Use `drop ... if exists` and existence checks.
-- The undo must restore the schema before the migration: columns (type, nullability, default), indexes, constraints, code objects the migration dropped or changed, and drop what the migration added. `[SqlDeployFact]` checks it (Section 13.3). Column order is not compared, so adding a dropped column back at the end of the table is enough; on SQL Server an unnamed default or constraint may come back with another generated name.
-- PostgreSQL: code of the newer release stays after a downgrade (Section 18.8). A view or a SQL function with `BEGIN ATOMIC` of that release that uses a column the undo drops makes the `drop column` fail: drop such code at the start of the undo script.
-
-### 5.6 Breaking phase and breaking items of migrations
+### 5.5 Breaking phase and breaking items of migrations
 
 The breaking phase runs only when `DeployParameters.DeployBreaking = true`, after migrations and code, in this order:
 
-1. **Guard.** Every code file of the project (Section 6) must have an `applied` row in `dblive.code` with its current content hash: the normal deployment of this build completed. Otherwise the deployment fails with `CodeNotDeployedException` (`Count`: how many code files differ; `RelativePaths`: the first 5 by path; the message names them and says to deploy with `DeployParameters.Default` first) and no breaking script runs, neither of the Code folder nor of migrations. The check is the one the code deployer uses to skip a file (`[hash match]`). A run that also deploys code (`DeployCode = true`) stops at a failed code file before the breaking phase, so the guard always passes there; a project without code files always passes. It catches: the breaking stage of build N+1 started although its `Default` run failed (migrations of N+1 committed, then a code file failed), `Breaking` run before `Default`, a stale `Breaking` job of N+1 after the database was rolled back to N.
+1. **Guard.** Every code file of the project (Section 6) must have an `applied` row in `dblive.code` with its current content hash: the normal deployment of this build completed. Otherwise the deployment fails with `CodeNotDeployedException` (`Count`: how many code files differ; `RelativePaths`: the first 5 by path; the message names them and says to deploy with `DeployParameters.Default` first) and no breaking script runs, neither of the Code folder nor of migrations. The check is the one the code deployer uses to skip a file (`[hash match]`). A run that also deploys code (`DeployCode = true`) stops at a failed code file before the breaking phase, so the guard always passes there; a project without code files always passes. It catches: the breaking stage of build N+1 started although its `Default` run failed (migrations of N+1 committed, then a code file failed), `Breaking` run before `Default`, a stale `Breaking` job of N+1 after build N was deployed again (possible when N+1 has no new migration versions). It does not catch a rollback of the application alone: the code of N+1 stays deployed, so never start the breaking phase of a release whose application was rolled back (Section 18.8).
 2. **Breaking scripts of the Code folder**, all of them, every time (Section 6.1).
 3. **Breaking items of migrations**, below.
 
@@ -338,7 +322,7 @@ Breaking items of migrations:
 - Every `*.sql` under `Code/` that does not match `TestFilePatterns`, is not a breaking script (Section 6.1) and is not `setup.test.sql` is a code item, identified by its relative path, ignoring case (for example `Code/dbo/GetUser.sql`).
 - A code item is executed when no `applied` record with the same relative path and content hash exists in `dblive.code`. Unchanged files are skipped (logged as `[hash match]`).
 - A changed, moved or renamed file is executed again. A rename that changes only case (`GetUser.sql` to `getUser.sql`, `Code` to `code`) keeps the identity of the file, so it is not executed again. **DbLive never drops code objects** (DBAs may create objects outside DbLive). A procedure removed from the repository stays in the database until a breaking script drops it.
-- A deleted file: every deployment with `DeployCode = true`, after the code deployed successfully, sets `status = 'removed'` (and `verified_utc` = now) on the `dblive.code` rows whose file is neither a code file nor a breaking script of the Code folder of the project. The object stays. If the file comes back (a rollback to the build that had it), its row is not `applied`, so it is executed again and the object is restored. Without a `ProjectId` (Section 14), two projects deployed to one database mark each other's rows, and the other project redeploys all its code on its next deployment (slower, harmless).
+- A deleted file: every deployment with `DeployCode = true`, after the code deployed successfully, sets `status = 'removed'` (and `verified_utc` = now) on the `dblive.code` rows whose file is neither a code file nor a breaking script of the Code folder of the project. The object stays. If the file comes back, its row is not `applied`, so it is executed again and the object is restored: a file brought back by a later release (`git revert` of its deletion) runs again even if its content did not change, because the breaking phase may have dropped its object in between. Without a `ProjectId` (Section 14), two projects deployed to one database mark each other's rows, and the other project redeploys all its code on its next deployment (slower, harmless).
 - Manual changes made directly in the database are not detected: the file hash still matches, so the file is not re-run. To force a redeploy, change the file, or delete its row from `dblive.code` (`delete from dblive.code where relative_path = lower('Code/dbo/GetUser.sql');`).
 - Execution order: groups listed in `CodeSubFoldersDeploymentOrder` (in that order), then everything else. Inside a group, up to `NumberOfThreadsForCodeDeploy` (10) files run in parallel. A failed file goes to the end of the queue and is retried up to `MaxCodeDeployRetries` (5) attempts in total. This resolves most dependency orders (a view that uses a function deployed later succeeds on retry). After the last attempt: `CodeDeploymentAggregateException`.
 - Put objects other code depends on, such as schemas and types, in a group listed first: `"CodeSubFoldersDeploymentOrder": ["schemas"]`.
@@ -347,7 +331,7 @@ Breaking items of migrations:
 - Per-file command timeout: `CodeItemTimeout` (30 seconds by default); on SQL Server it applies to each `GO` batch of the file.
 - One file can create several objects. SQL Server: separate batches with `GO`. Keep one logical object per file so that redeploys stay small.
 
-Versioned interface pattern (zero downtime): keep one file per logical object and rename the object when its contract changes (`GetUsers_v1` becomes `GetUsers_v2` in the same file). The old version stays in the database for old application instances; drop it later in a breaking script next to the file (Section 6.1). A rollback to the previous build redeploys the file with `GetUsers_v1` (its hash differs); `GetUsers_v2` stays.
+Versioned interface pattern (zero downtime): keep one file per logical object and rename the object when its contract changes (`GetUsers_v1` becomes `GetUsers_v2` in the same file). The old version stays in the database for old application instances; drop it later in a breaking script next to the file (Section 6.1). To bring `GetUsers_v1` back as the current version, revert the file in git and deploy a new release: its hash differs, so it runs again; `GetUsers_v2` stays (Section 18.8).
 
 SQL Server code file:
 
@@ -388,19 +372,19 @@ Code/dbo/GetUser.breaking.sql    drop proc if exists dbo.GetUser_v1;
 
 - Names (ignoring case, any subfolder of `Code/`): `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its folder; short forms `<name>.b.sql`, `b.sql`. The pair is a naming convention only: DbLive does not link a breaking script to a code file, so a breaking script without a code file is valid (a procedure retired together with its file).
 - Never deployed as code, never a test. A name that also matches `TestFilePatterns` → `BreakingScriptMatchesTestPatternException` (Section 4).
-- Run in the breaking phase (`DeployBreaking = true`) after the guard and **before** the breaking items of migrations (Section 5.6), so dependents are dropped first: on PostgreSQL a view `_v1` blocks the `drop column` of a migration breaking script. Order: by relative path, ordinal, ignoring case.
-- **No state: every script runs on every breaking deployment**, like AfterDeploy runs on every deployment. They must be idempotent (`drop ... if exists`): on a new database `_v1` never existed. A second run must not change the schema either: a condition checked on an object the script itself drops later (`if object_id('dbo.GetUser_v1') is null alter table ... drop column ...; drop proc if exists dbo.GetUser_v1;`) makes the second run drop more. `[SqlDeployFact]` runs every script a second time and compares the schema (Section 13.3). A failure in the middle of a script leaves some old objects dropped and others not (on PostgreSQL a multi-statement file is one implicit transaction and is rolled back as a whole); the next breaking deployment finishes the job. Without state a rollback and an upgrade keep working: N+1 breaking drops `_v1` → roll back to N (`_v1` is back) → deploy N+1 → its next breaking deployment drops `_v1` again.
+- Run in the breaking phase (`DeployBreaking = true`) after the guard and **before** the breaking items of migrations (Section 5.5), so dependents are dropped first: on PostgreSQL a view `_v1` blocks the `drop column` of a migration breaking script. Order: by relative path, ordinal, ignoring case.
+- **No state: every script runs on every breaking deployment**, like AfterDeploy runs on every deployment. They must be idempotent (`drop ... if exists`): on a new database `_v1` never existed. A second run must not change the schema either: a condition checked on an object the script itself drops later (`if object_id('dbo.GetUser_v1') is null alter table ... drop column ...; drop proc if exists dbo.GetUser_v1;`) makes the second run drop more. `[SqlDeployFact]` runs every script a second time and compares the schema (Section 13.3). A failure in the middle of a script leaves some old objects dropped and others not (on PostgreSQL a multi-statement file is one implicit transaction and is rolled back as a whole); the next breaking deployment finishes the job. Without state a revert keeps working: N+1 breaking drops `_v1` → N+2 reverts the code file and deletes the breaking script (`_v1` is back) → a later release that brings the breaking script back drops `_v1` again in its breaking deployment.
 - Execution: each file is one command without its own transaction, like a code file (inside the deployment transaction with `TransactionWrapLevel: Deployment`), isolation level `TransactionIsolationLevel`, timeout `CodeItemTimeout`. No item settings files. A failed script stops the deployment with `CodeDeploymentException` (message names the file, inner exception holds the SQL error); the scripts after it do not run.
 - Each run writes the file's row in `dblive.code`: `item_type = 'breaking'`, `status` `applied` or `error` (with `error`), `content_hash`, `applied_utc` (time of the last run), `execution_time_ms`. A deployment of a build without the file marks its row `removed` and sets `verified_utc` (Section 6); a later run does not clear `verified_utc`. Failed ones: `select relative_path, error from dblive.code where status = 'error';`.
-- No checksum protection and no undo scripts. A code file has no direction (a changed hash may be an upgrade or a rollback), so a code undo would also run on an upgrade. A rollback restores the code by itself (Section 18.8).
-- Old version in a file of its own (`GetUser_v1.sql`) that build N+1 deletes: put `drop proc if exists dbo.GetUser_v1;` into `GetUser_v1.breaking.sql` (no code file next to it). N+1 marks the row of `GetUser_v1.sql` `removed` (Section 6), so rolling back to N executes the file again and restores `GetUser_v1`.
+- No checksum protection. Code is deployed by state: to bring an old version of an object back, revert its file in git and deploy a new release (Section 18.8).
+- Old version in a file of its own (`GetUser_v1.sql`) that build N+1 deletes: put `drop proc if exists dbo.GetUser_v1;` into `GetUser_v1.breaking.sql` (no code file next to it). N+1 marks the row of `GetUser_v1.sql` `removed` (Section 6), so a later release that brings the file back executes it again and restores `GetUser_v1`.
 - Before this feature a code-only release needed a new migration version with a trivial migration (`select 1;`) only to carry the drop in its breaking script. Do not create such versions any more.
 
 ---
 
 ## 7. BeforeDeploy and AfterDeploy
 
-- `BeforeDeploy/*.sql` runs after the downgrade step and before migrations; `AfterDeploy/*.sql` runs after the breaking step.
+- `BeforeDeploy/*.sql` runs after the migration items are recorded and before migrations; `AfterDeploy/*.sql` runs after the breaking step.
 - They run on **every** deployment, whatever the `DeployParameters` flags (also with the `Breaking` preset). Nothing is skipped by hash; `dblive.folder_items` only records the last run.
 - Order: by relative path, ordinal, ignoring case (`BeforeDeploy/01.sql`, `BeforeDeploy/02.sql`, `BeforeDeploy/sub/01.sql`); subfolders are included. Number the files to control the order.
 - Not wrapped in a transaction (unless `TransactionWrapLevel` is `Deployment`). Command timeout: `BeforeDeployFolderTimeout` / `AfterDeployFolderTimeout` (6 hours).
@@ -451,7 +435,7 @@ Before the first test it checks the database, and runs no test if a check fails:
 - the ProjectId, compare only (Section 14): with a `ProjectId` in `settings.json`, a database with another value or with none fails with `ProjectIdMismatchException`;
 - `TestsTransactionIsolationLevel` and `TransactionIsolationLevel` are supported by the provider, as at the start of a deployment.
 
-Each result is stored in `dblive.unit_test_run`. If any test fails, `RunAllTestsAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). Unhandled, it fails the calling test and gives a console app a non-zero exit code. The deployment was a separate call and stays committed: a failed test reports a bad release, it does not undo it.
+Each result is stored in `dblive.unit_test_run`. If any test fails, `RunAllTestsAsync` throws `DbLive.Deployers.Testing.UnitTestsFailedException` ("Unit test run failed. Failed test count X of Y.") after all tests have run. Its properties: `FailedCount`, `TotalCount`, and `FailedTests` (relative paths of the failed test files, sorted). Unhandled, it fails the calling test and gives a console app a non-zero exit code. The deployment was a separate call and stays committed: a failed test reports a bad release, the release stays deployed.
 
 Parallel tests with `Serializable` isolation that touch the same tables can deadlock. If they do, set `"NumberOfThreadsForTestsRun": 1` or `"TestsTransactionIsolationLevel": "ReadCommitted"`.
 
@@ -577,8 +561,8 @@ select 'has-rows' as assert;
 | Key | Type | Default | Effect |
 |---|---|---|---|
 | `ProjectId` | string (max 128) | null | Binds the project to the database (Section 14). Not set: every deployment logs a warning. |
-| `TransactionWrapLevel` | `Deployment` \| `Migration` \| `None` | `Migration` | Transaction scope (Section 10). Default for every migration, breaking and undo script. |
-| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command (a command without a transaction, such as a code file or a BeforeDeploy/AfterDeploy script, gets it on its connection); default for every migration, breaking and undo script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionWrapLevel` | `Deployment` \| `Migration` \| `None` | `Migration` | Transaction scope (Section 10). Default for every migration and breaking script. |
+| `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | `ReadCommitted` | Isolation for deployment transactions and for every deployment command (a command without a transaction, such as a code file or a BeforeDeploy/AfterDeploy script, gets it on its connection); default for every migration and breaking script. `Snapshot` is SQL Server only and needs `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | same | `Serializable` | Isolation of test transactions. |
 | `TestFilePatterns` | string[] | `["test.*.sql","t.*.sql","*.test.sql","*.t.sql"]` | Which files in `Code/` are tests (and excluded from code deployment). |
 | `MigrationsFolder` | string | `Migrations` | Folder path relative to the scripts root (same for the other `*Folder` settings). |
@@ -593,7 +577,7 @@ select 'has-rows' as assert;
 | `MaxCodeDeployRetries` | int | `5` | Attempts per code file. |
 | `NumberOfThreadsForTestsRun` | int | `10` | Parallel tests of `IDbLiveTester.RunAllTestsAsync()`, also in `[SqlDeployFact]`. |
 | `DeploymentTimeout` | TimeSpan | `1.00:00:00` | Transaction timeout with `TransactionWrapLevel: Deployment`. |
-| `MigrationTimeout` | TimeSpan | `12:00:00` | Default `Timeout` of every migration, breaking and undo script: its command timeout and its transaction timeout. |
+| `MigrationTimeout` | TimeSpan | `12:00:00` | Default `Timeout` of every migration and breaking script: its command timeout and its transaction timeout. |
 | `CodeItemTimeout` | TimeSpan | `00:00:30` | Command timeout per code file and per breaking script of the Code folder. |
 | `UnitTestItemTimeout` | TimeSpan | `00:01:00` | Command and transaction timeout per test. |
 | `BeforeDeployFolderTimeout` | TimeSpan | `06:00:00` | Command timeout per BeforeDeploy file. |
@@ -617,7 +601,7 @@ Example:
 
 ### 9.3 Item settings (`<version>.<item>.settings.json`)
 
-One optional settings file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`. Short forms combine `m` / `b` / `u` with `s` / `settings`: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.undo.s.json`. A settings file applies to its own script only and requires that script to exist (Section 5.1).
+One optional settings file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`. Short forms combine `m` / `b` with `s` / `settings`: `<version>.m.s.json`, `<version>.b.settings.json`, `<version>.breaking.s.json`. A settings file applies to its own script only and requires that script to exist (Section 5.1).
 
 Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
 
@@ -627,11 +611,11 @@ Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
 | `TransactionIsolationLevel` | `ReadCommitted` \| `RepeatableRead` \| `Serializable` \| `Snapshot` | Isolation of the script's transaction and of its SQL command. Without a transaction (`None`) it is set on the connection: `SET TRANSACTION ISOLATION LEVEL` on SQL Server, `SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL` on PostgreSQL (the level of the implicit transaction of the command). | project `TransactionIsolationLevel` |
 | `Timeout` | TimeSpan | Timeout of the script's transaction **and** of its SQL command. | project `MigrationTimeout` |
 
-- A missing key falls back to the **project** settings, never to another item's file: `004.migration.settings.json` does not affect `004.undo.sql` or `004.breaking.sql`.
+- A missing key falls back to the **project** settings, never to another item's file: `004.migration.settings.json` does not affect `004.breaking.sql`.
 - The old key `MigrationTimeout` is an unknown key → `InvalidMigrationItemSettingsException`. Rename it to `Timeout`.
 - Project `TransactionWrapLevel: Deployment` + item `None`: a warning is logged, and the script runs inside the deployment transaction. With `Deployment` every script runs at the isolation level and under the `DeploymentTimeout` of the deployment transaction: an item's `TransactionIsolationLevel` is only validated, and its `Timeout` is only the command timeout.
 - `None` is the author's guarantee that the database keeps working if the script stops midway. A failed script reruns from the start on the next deployment, so it must be re-runnable (`if not exists`, `drop ... if exists`).
-- Undo settings are stored in `dblive.migration` with their content and used by a downgrade (Section 5.5); they are updated while the undo has not run, like the undo script.
+- Settings files are read from the project on every deployment; the database stores only their hash.
 
 ```json
 // 20260815120000.migration.settings.json: online index build, no long transaction
@@ -641,24 +625,17 @@ Same JSON rules as `settings.json` (Section 9.1). Allowed keys only:
 }
 ```
 
-```json
-// 20260815120000.undo.settings.json: the undo drops the index online/concurrently, so it needs no transaction either
-{
-  "TransactionWrapLevel": "None"
-}
-```
-
 ---
 
 ## 10. Transactions and timeouts
 
 | `TransactionWrapLevel` (project) | Behavior |
 |---|---|
-| `Migration` (default) | Each migration, breaking and undo script runs in its own transaction, by its item settings (Section 9.3). This applies to migrations, to the breaking step (one transaction per breaking script of a migration, in version order), to the downgrade (one transaction per undo script, newest version first) and to every step of the undo cycle of `[SqlDeployFact]` (Section 5.3). Code, breaking scripts of the Code folder, BeforeDeploy and AfterDeploy are not transactional. |
-| `Deployment` | Checksum validation, migration saving, downgrade, BeforeDeploy, migrations, code (single-threaded), breaking and AfterDeploy run in one transaction (all or nothing). Item files cannot opt out (`None` → warning, runs inside). Use for small databases or test environments, not for 24/7 production. |
+| `Migration` (default) | Each migration and breaking script runs in its own transaction, by its item settings (Section 9.3). This applies to migrations, to the breaking step (one transaction per breaking script of a migration, in version order) and to both runs of a migration breaking script in `[SqlDeployFact]` (Section 5.3). Code, breaking scripts of the Code folder, BeforeDeploy and AfterDeploy are not transactional. |
+| `Deployment` | The applied versions check, checksum validation, migration saving, BeforeDeploy, migrations, code (single-threaded), breaking and AfterDeploy run in one transaction (all or nothing). Item files cannot opt out (`None` → warning, runs inside). Use for small databases or test environments, not for 24/7 production. |
 | `None` | No transactions, except self-deployment and tests. An item file with `"TransactionWrapLevel": "Migration"` still gets its own transaction. |
 
-Always transactional: DbLive's own schema deployment (Serializable, 5 minutes), each test. There is no special transaction for downgrade or breaking anymore: they follow the item rules above. `DowngradeTimeout` was removed (an unknown key in `settings.json` now fails); undo scripts use `MigrationTimeout` or their `Timeout`.
+Always transactional: DbLive's own schema deployment (Serializable, 5 minutes), each test. There is no special transaction for the breaking phase: its scripts follow the item rules above.
 
 **Transaction timeouts.** DbLive uses `System.Transactions.TransactionScope`. .NET caps every scope timeout at the process-wide `TransactionManager.MaximumTimeout` (10 minutes by default). Before opening a transaction, DbLive raises that cap to the transaction's timeout (it never lowers it), so `MigrationTimeout`, item `Timeout`, `DeploymentTimeout` and `UnitTestItemTimeout` apply as configured. Side effect: other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used, not at 10 minutes. A transaction that runs longer than its timeout is aborted with `TransactionAbortedException`.
 
@@ -717,8 +694,7 @@ Deploys only. The SQL tests are not part of it (Section 8.2).
 | `CreateDbIfNotExists` | `false` | Create the database if missing (SQL Server connects to `master`, PostgreSQL to `postgres`; needs permission). Off, a missing database fails the deployment with `DatabaseNotFoundException` before anything runs (Section 17). Only for local and test databases (rule 18). |
 | `DeployMigrations` | `true` | Apply pending migrations. |
 | `DeployCode` | `true` | Deploy changed code files. |
-| `DeployBreaking` | `false` | Run the breaking phase (Section 5.6): the guard, the breaking scripts of the Code folder, the pending breaking scripts of migrations. |
-| `AllowDatabaseDowngrade` | `false` | Allow reverting applied versions missing from the project. |
+| `DeployBreaking` | `false` | Run the breaking phase (Section 5.5): the guard, the breaking scripts of the Code folder, the pending breaking scripts of migrations. |
 | `RepairMigrationChecksums` | `false` | Accept edited applied migrations by updating stored hashes. |
 
 Presets (each access returns a new instance; adjust with `with { ... }`):
@@ -728,7 +704,7 @@ Presets (each access returns a new instance; adjust with `with { ... }`):
 | `DeployParameters.Default` | no | yes | yes | no |
 | `DeployParameters.Breaking` | no | no | no | yes |
 
-Even with all flags off, a deployment still performs: self-deployment, ProjectId validation, settings validation, checksum validation, saving migration items, the downgrade check, BeforeDeploy and AfterDeploy. There is no flag for the SQL tests: a deployment never runs them (Section 8.2).
+Even with all flags off, a deployment still performs: self-deployment, ProjectId validation, settings validation, the applied versions check (Section 5.2), checksum validation, saving migration items, BeforeDeploy and AfterDeploy. There is no flag for the SQL tests: a deployment never runs them (Section 8.2).
 
 ### 11.4 `IDbLiveDA` (namespace `DbLive.Adapter`), selected members
 
@@ -787,13 +763,13 @@ Container builders: one container per image per test process, started by the fir
 4. **ProjectId validation** (Section 14).
 5. **Settings validation**: isolation levels supported by the provider.
 6. Begin the deployment transaction if `TransactionWrapLevel` is `Deployment`.
-7. **Checksum validation** of applied migration items (Section 5.4). This is the first read of the project files, so the checks of Sections 4 and 5.1 fail here (`FilesOutsideProjectFoldersException`, `ScriptPathsDifferOnlyByCaseException`, file name errors, item settings errors): after steps 2–4 (the database may be created, the `dblive` schema is deployed and the ProjectId bound), before any script of the project runs.
-8. **Save migration items** to `dblive.migration`.
-9. **Downgrade**, if applied versions are missing from the project (Section 5.5).
+7. **Applied versions check** (Section 5.2): every migration version applied to the database must be in the project, otherwise `DatabaseAheadOfProjectException`. This is the first read of the project files, so the checks of Sections 4 and 5.1 fail here (`FilesOutsideProjectFoldersException`, `ScriptPathsDifferOnlyByCaseException`, `UndoNotSupportedException` and other file name errors, item settings errors): after steps 2–4 (the database may be created, the `dblive` schema is deployed and the ProjectId bound), before any script of the project runs.
+8. **Checksum validation** of applied migration items (Section 5.4).
+9. **Save migration items** to `dblive.migration`.
 10. **BeforeDeploy** folder.
 11. **Migrations**, if `DeployMigrations`.
 12. **Code**, if `DeployCode`; then the rows of files missing from the project are marked `removed` (Section 6).
-13. **Breaking**, if `DeployBreaking` (Section 5.6): guard (`CodeNotDeployedException` unless every code file is deployed with its current content), then every breaking script of the Code folder, then the pending breaking scripts of migrations.
+13. **Breaking**, if `DeployBreaking` (Section 5.5): guard (`CodeNotDeployedException` unless every code file is deployed with its current content), then every breaking script of the Code folder, then the pending breaking scripts of migrations.
 14. **AfterDeploy** folder.
 15. Commit the deployment transaction (if any).
 
@@ -875,56 +851,49 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 
     /// <summary>
     /// Deploys the project to an empty database as production does, in three deployments:
-    /// 1. migrations and code, then the SQL tests. Before its final run, every migration with an undo script goes through
-    ///    migration → undo and, if it has a breaking script, migration → breaking → breaking → undo;
-    ///    the schema after each undo must equal the schema before the migration;
-    /// 2. the breaking phase, then the SQL tests again;
+    /// 1. migrations and code, then the SQL tests;
+    /// 2. the breaking phase, where the breaking script of every migration runs twice and its second run
+    ///    must not change the schema, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
     /// </summary>
     [SqlDeployFact]
-    public async Task ReleaseDeploysAndRollsBack()
+    public async Task ReleaseDeploys()
         => await _fixture.DeployAsync(output);
 }
 ```
 
 `[SqlDeployFact]` is a plain xUnit fact (a `FactAttribute` without parameters); the test is one case. `DeploymentTestFixture.DeployAsync` deploys to a fresh database as production does, in three deployments:
 
-1. Migrations and code (the flags of `DeployParameters.Default`, with `CreateDbIfNotExists`: the database is new), then all SQL tests (`RunAllTestsAsync`). The release is deployed, its breaking changes are not: old application instances still run. Every migration version that has an undo script first goes through the undo cycle: migration → undo (a rollback before the breaking phase), then, if the version has a breaking script, migration → breaking → breaking → undo (a rollback after it), and then the migration for good. It proves that undo scripts restore the schema in both states a rollback can find, that migrations can be re-applied after an undo, and that a migration breaking script gives the same schema on a second run (Section 5.3). A project without undo scripts deploys every version once.
-2. `DeployParameters.Breaking`: the breaking phase, then all SQL tests again. The breaking phase guard must pass after a normal deployment.
+1. Migrations and code (the flags of `DeployParameters.Default`, with `CreateDbIfNotExists`: the database is new), then all SQL tests (`RunAllTestsAsync`). The release is deployed, its breaking changes are not: old application instances still run.
+2. `DeployParameters.Breaking`: the breaking phase, then all SQL tests again. The breaking phase guard must pass after a normal deployment. The breaking script of every migration runs twice in a row, each run with its own settings file, in its own transaction: a failed breaking script with `TransactionWrapLevel: None` runs again on the next deployment, so its second run must not fail and must not change the schema (Section 5.3).
 3. `DeployParameters.Breaking` once more: every breaking script of the Code folder runs again (catches a non-idempotent one) and BeforeDeploy/AfterDeploy scripts run a third time; migration breaking scripts are already applied and do not run. The schema must not change.
 
-The SQL tests of this test run on data the undo cycles went through (data is not compared). A deployment where every migration runs once, in one run with the breaking phase, followed by every SQL test on that data, is what the `[SqlFact]` fixture does (Section 13.2): keep both. A failed undo stops this test before the code, the SQL tests and the breaking phase; the `[SqlFact]` tests still show whether the release deploys. Limit: on a fresh database an old version such as `_v1` never existed, so dropping an `_v1` that really exists is not tested (it needs the build of the previous release). Keep this test in CI.
+A deployment where every migration runs once, in one run with the breaking phase, followed by every SQL test on that data, is what the `[SqlFact]` fixture does (Section 13.2): keep both. Limit: on a fresh database an old version such as `_v1` never existed, so dropping an `_v1` that really exists is not tested (it needs the build of the previous release). Keep this test in CI.
 
-Schema checks. A script that runs without an error is not enough: the deployment test reads the schema from the catalog (`sys.*` views, `pg_catalog`) and compares it at three points. A difference fails the case with `SchemaChangedException` (namespace `DbLive.Schema`; `Check`, `Diff`):
+Schema checks. A script that runs without an error is not enough: the deployment test reads the schema from the catalog (`sys.*` views, `pg_catalog`) and compares it at two points. A difference fails the case with `SchemaChangedException` (namespace `DbLive.Schema`; `Check`, `Diff`):
 
 | `Check` | When | Must be equal |
 |---|---|---|
-| `Undo` | undo cycle, every version with an undo script, after each undo | the schema before the migration and the schema after the undo |
-| `BreakingSecondRun` | undo cycle, a version with an undo and a breaking script | the schema after the first breaking run and after the second one. So the undo is tested against the state after one breaking run, as in a production rollback |
+| `BreakingSecondRun` | the first breaking deployment, every migration breaking script | the schema after the first run of the script and after the second one |
 | `BreakingSecondDeployment` | the last deployment, `DeployParameters.Breaking` | the schema before and after it (breaking scripts of the Code folder, BeforeDeploy, AfterDeploy run again) |
 
 - Compared: schemas; tables (partitioning, unlogged, system versioning); columns (type with length/precision/scale, nullability, default, identity seed and increment, computed or generated expression, collation); primary keys, unique, foreign key (columns, referenced table, actions, disabled/not trusted) and check constraints, PostgreSQL exclusion constraints; indexes (key columns and their order, included columns, filter, unique, index type, disabled); views (also PostgreSQL materialized views), functions, procedures and triggers (definition text, disabled); user types (SQL Server alias and table types; PostgreSQL enums, domains, composite and range types); sequences (options); SQL Server synonyms and database DDL triggers; PostgreSQL extensions (version, schema) and event triggers.
-- Not compared: DbLive's own schema `dblive`; data (a breaking script whose second run deletes more rows passes); object ids; column order (an undo adds a dropped column back at the end of the table); names that SQL Server generates for unnamed constraints (`DF__Person__Phone__3A81B327`): such a default belongs to its column, a primary key to its table, an unnamed unique, foreign key or check constraint is identified by its table and definition; current identity and sequence values; statistics; permissions; extended properties and comments; objects that belong to a PostgreSQL extension; physical options (fill factor, compression, filegroup, partition scheme).
+- Not compared: DbLive's own schema `dblive`; data (a breaking script whose second run deletes more rows passes); object ids; column order; names that SQL Server generates for unnamed constraints (`DF__Person__Phone__3A81B327`): such a default belongs to its column, a primary key to its table, an unnamed unique, foreign key or check constraint is identified by its table and definition; current identity and sequence values; statistics; permissions; extended properties and comments; objects that belong to a PostgreSQL extension; physical options (fill factor, compression, filegroup, partition scheme).
 - Definitions are compared as text in the engine's own form. The text of views, functions, procedures and triggers is compared with whitespace collapsed; on SQL Server `create or alter` and `alter` count as `create` (the server stores them so). PostgreSQL names are compared as they are: the names it generates (`person_pkey`, `person_age_check`) depend only on the table and columns.
 - Requires SQL Server 2017 or later (`string_agg`, `concat_ws`; every SQL Server Docker image qualifies) or PostgreSQL 12 or later. Production deployments never read the snapshot.
 
 Failure message (one line per object; `missing`: in the earlier schema only, `extra`: in the later one only, `changed` with `was`/`now`; the objects of a missing or extra table are counted on its line):
 
+A migration breaking script whose second run drops more than the first one, typically because it checks a condition on an object it drops itself:
+
 ```
-DbLive.Schema.SchemaChangedException : Undo test: Migrations/002.undo.sql does not restore the schema. The schema after the undo differs from the schema before Migrations/002.migration.sql:
+DbLive.Schema.SchemaChangedException : Deployment test: the breaking script Migrations/002.breaking.sql is not idempotent, its second run changed the schema:
   missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
   missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
-  extra table dbo.PersonPhones (with 3 columns, 1 primary key)
+  missing table dbo.PersonPhones (with 3 columns, 1 primary key)
 ```
 
-The undo after the breaking script names it; typically the breaking script dropped a column and the undo does not add it back:
-
-```
-DbLive.Schema.SchemaChangedException : Undo test: Migrations/002.undo.sql does not restore the schema after the breaking script Migrations/002.breaking.sql. The schema after the undo differs from the schema before Migrations/002.migration.sql:
-  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
-```
-
-Other messages start with `Undo test: the breaking script <path> is not idempotent, its second run changed the schema:` and `Deployment test: a second breaking deployment changed the schema. ...`.
+The other message starts with `Deployment test: a second breaking deployment changed the schema. ...`.
 
 ---
 
@@ -947,12 +916,14 @@ Created and upgraded automatically on every deployment. Same tables in both prov
 | Table | Content |
 |---|---|
 | `dblive.version` | One row: internal schema version, `project_id`. |
-| `dblive.migration` | One row per `(version, item_type)`: `item_type` (`migration`/`undo`/`breaking`/`migration.settings`/`breaking.settings`/`undo.settings`, following the file names; databases deployed by older DbLive versions have their `settings` rows renamed to `migration.settings` automatically), `name`, `relative_path`, `status` (`none`/`applied`/`reverted`), `content_hash`, `content` (`undo` and `undo.settings` only), `created_utc`, `applied_utc`, `execution_time_ms`, `error`. |
+| `dblive.migration` | One row per `(version, item_type)`: `item_type` (`migration`/`breaking`/`migration.settings`/`breaking.settings`, following the file names; databases deployed by older DbLive versions have their `settings` rows renamed to `migration.settings` automatically), `name`, `relative_path`, `status` (`none`/`applied`), `content_hash`, `created_utc`, `applied_utc`, `execution_time_ms`, `error`. No script content: the project is the source of the scripts. |
 | `dblive.code` | One row per code file and per breaking script of the Code folder: `relative_path`, `item_type` (`code`/`breaking`; existing rows of older databases become `code`), `status` (`applied`/`error`, or `removed` for a file no longer in the project, Section 6), `content_hash`, `applied_utc` (last execution), `verified_utc` (last `[hash match]` of a code file, or when the file was found missing), `execution_time_ms`, `error`. A breaking script's row is written by each breaking deployment (Section 6.1). |
 | `dblive.unit_test_run` | Last result per test file: `relative_path`, `pass`, `error`, `run_utc`, `execution_time_ms`. |
 | `dblive.folder_items` | Last run per BeforeDeploy/AfterDeploy file. |
 
-`relative_path` is relative to the scripts root, uses `/` on every OS and is stored in lower case (`code/dbo/getuser.sql`), so a file is identified ignoring case on SQL Server with any collation and on PostgreSQL. DbLive lower-cases paths with the database's `lower()`; to find the row of a file, compare with `lower('Code/dbo/GetUser.sql')`. Databases deployed by older DbLive versions are converted automatically: `\` is replaced with `/` and paths are lower-cased; when one file has several rows (deployed from Windows and Linux, or renamed only by case on PostgreSQL or a case-sensitive collation), the latest row is kept. Logs and exceptions show the real path of the file; only downgrade messages show the stored lower-case path, because the undone files may be gone from the project.
+`relative_path` is relative to the scripts root, uses `/` on every OS and is stored in lower case (`code/dbo/getuser.sql`), so a file is identified ignoring case on SQL Server with any collation and on PostgreSQL. DbLive lower-cases paths with the database's `lower()`; to find the row of a file, compare with `lower('Code/dbo/GetUser.sql')`. Databases deployed by older DbLive versions are converted automatically: `\` is replaced with `/` and paths are lower-cased; when one file has several rows (deployed from Windows and Linux, or renamed only by case on PostgreSQL or a case-sensitive collation), the latest row is kept. Logs and exceptions show the real path of the file.
+
+Databases deployed by DbLive versions that had undo scripts are converted automatically too: the rows of `undo` and `undo.settings` items are deleted, and so are the rows with status `reverted` (a version that was rolled back is not applied: the next deployment records its items again and runs its migration if the project has it); the column `dblive.migration.content`, which held only undo scripts, is dropped.
 
 Diagnostic queries:
 
@@ -975,7 +946,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | Test files | One batch, no `GO` | Normal multi-statement script |
 | Create/drop database | via `master` | via `postgres` database |
 | `Snapshot` isolation | Supported (`ALLOW_SNAPSHOT_ISOLATION ON` required) | Not supported: deployment fails at start |
-| Statements that cannot run in a transaction | `ALTER DATABASE`, full-text DDL, online index with long locks: an item settings file (`<version>.migration.settings.json`, `.breaking.settings.json` or `.undo.settings.json`) with `TransactionWrapLevel: None` | `CREATE/DROP INDEX CONCURRENTLY`, `VACUUM`: item settings file with `TransactionWrapLevel: None`, and keep the statement alone in its file (a multi-statement file runs as one implicit transaction) |
+| Statements that cannot run in a transaction | `ALTER DATABASE`, full-text DDL, online index with long locks: an item settings file (`<version>.migration.settings.json` or `.breaking.settings.json`) with `TransactionWrapLevel: None` | `CREATE/DROP INDEX CONCURRENTLY`, `VACUUM`: item settings file with `TransactionWrapLevel: None`, and keep the statement alone in its file (a multi-statement file runs as one implicit transaction) |
 | Re-runnable code | `create or alter` | `create or replace`; `drop function if exists f(args)` before `create` when the signature or return type changes |
 | Assert column | `select assert = 'rows'` or `select 'rows' as assert` | `select 'rows' as assert` |
 | Error details | Msg number, level, state, line in batch, procedure | SqlState, severity, position, where |
@@ -995,28 +966,28 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | SQL Server: `SqlException: Cannot open database "<name>" requested by the login. The login failed.` (error 4060) | The database exists, but the login has no user in it. When the login cannot see the database list in `master` (no access to `master`, or no `VIEW ANY DATABASE`), DbLive cannot tell this from a missing database and also gives this error | Grant the login access to the database, or check the database name |
 | `ProjectIdMismatchException` | Wrong database, or `ProjectId` changed. Before the SQL tests also a database without a stored ProjectId. Also a `ProjectId` longer than 128 characters | Check the connection string; rebind deliberately (Section 14); deploy the project before running the tests |
 | `MigrationChecksumMismatchException` | An applied migration/breaking file was edited | Revert the file and add a new migration; or `RepairMigrationChecksums = true` if the database already matches |
-| `DowngradeNotAllowedException` | The database has applied versions this build does not contain (a deleted file, or a deployer built from an older commit) | Deploy the newer build, restore the deleted file, or set `AllowDatabaseDowngrade = true` intentionally |
-| `DowngradeImpossibleException` | A version to revert has no undo script stored | Cannot revert automatically; fix manually |
-| `MigrationDeploymentException` | SQL error in a migration/breaking/undo script. The message names the file and contains the provider's SQL error (number and line, or SqlState and position); there is no inner exception for a SQL error | Fix the script. It is not marked `applied`: in a transaction it was rolled back; with `TransactionWrapLevel: None` it may be partly applied and runs again from the start (Section 5.3) |
+| `DatabaseAheadOfProjectException: The database has applied migration versions that the project does not have: ...` (namespace `DbLive.Deployers.Migrations`) | The database has applied versions this build does not contain (`Versions`, ascending): an older build is deployed (a rollback, or a deployer built from an older commit), or migration files were deleted from the project. Checked on every deployment, before anything is changed; nothing ran | DbLive does not roll back a database: to roll back a release, roll back the application and keep the database (Section 18.8); deploy the newer build again. Restore deleted migration files |
+| `UndoNotSupportedException: <path> is an undo script. DbLive does not support undo scripts ...` (namespace `DbLive.Project.Exceptions`) | A file of `Migrations` whose second name part is `undo` or `u` (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`). Nothing ran | Delete the file (`RelativePath`). DbLive has no undo scripts: roll back the application, fix a wrong migration with a new migration (Section 18.8) |
+| `MigrationDeploymentException` | SQL error in a migration/breaking script. The message names the file and contains the provider's SQL error (number and line, or SqlState and position); there is no inner exception for a SQL error | Fix the script. It is not marked `applied`: in a transaction it was rolled back; with `TransactionWrapLevel: None` it may be partly applied and runs again from the start (Section 5.3) |
 | `CodeDeploymentAggregateException` | A code file failed `MaxCodeDeployRetries` times | Read the inner exceptions; check dependencies and syntax |
 | `CodeDeploymentException: Deploy code breaking script error. File path: ...` | A breaking script of the Code folder failed (Section 6.1); the scripts after it did not run | Read the inner SQL error, fix the script (make it idempotent: `if exists`), run the breaking deployment again |
-| `CodeNotDeployedException: Breaking changes are deployed only after the normal deployment of the same build, but N code file(s) are not deployed ...` | The breaking phase started while code files of this build are not deployed with their current content: the `Default` run of this build failed or did not run yet, or the database was rolled back to an older build (Section 5.6). Nothing breaking ran | Deploy the same build with `DeployParameters.Default` (fix the failed code file first), then the breaking deployment. Never work around it by deploying breaking from another build |
+| `CodeNotDeployedException: Breaking changes are deployed only after the normal deployment of the same build, but N code file(s) are not deployed ...` | The breaking phase started while code files of this build are not deployed with their current content: the `Default` run of this build failed or did not run yet, or another build was deployed after it (Section 5.5). Nothing breaking ran | Deploy the same build with `DeployParameters.Default` (fix the failed code file first), then the breaking deployment. Never work around it by deploying breaking from another build |
 | `BreakingScriptMatchesTestPatternException` | A file of `Code/` is named like a breaking script and matches `TestFilePatterns` (`test.breaking.sql`, `t.b.sql`) | Rename it: `<name>.breaking.sql` for a breaking script, `<name>.test.sql` for a test |
-| `SchemaChangedException` (deployment test only) | `Check = Undo`: the undo script does not restore the schema the migration (and its breaking script) changed. `BreakingSecondRun`: a breaking script of a migration changes the schema again on its second run. `BreakingSecondDeployment`: a breaking script of the Code folder or a BeforeDeploy/AfterDeploy script changes the schema when it runs again. The message lists the objects (Section 13.3) | Undo: add back every `missing` object, drop every `extra` one, restore every `changed` definition. Breaking or folder script: make the second run a no-op (`drop ... if exists`; do not test an object the script itself drops later in the same script) |
+| `SchemaChangedException` (deployment test only) | `Check = BreakingSecondRun`: a breaking script of a migration changes the schema again on its second run. `BreakingSecondDeployment`: a breaking script of the Code folder or a BeforeDeploy/AfterDeploy script changes the schema when it runs again. The message lists the objects (Section 13.3) | Make the second run a no-op (`drop ... if exists`; do not test an object the script itself drops later in the same script) |
 | `UnitTestsFailedException` | One or more SQL tests failed in `RunAllTestsAsync` | `FailedTests` lists the failed files; details are in the logs and `dblive.unit_test_run`. The deployment was a separate call and stays committed |
 | `DatabaseNotDeployedException: The database has no DbLive tables ...` | `RunAllTestsAsync` against a database the project was never deployed to, or a wrong connection string | Deploy the project first (Section 8.2), or fix the connection string |
 | `ScriptPathsDifferOnlyByCaseException: Files '<path>' and '<path>' differ only by case` | Two files of the project have relative paths that differ only by case (possible on Linux), in any folder, also `.txt`/`.md` files; DbLive identifies files ignoring case (Section 4) | Rename or delete one of the two files (or folders) |
 | `FilesOutsideProjectFoldersException: N file(s) of the scripts folder are outside the project folders, so they would never be deployed: ...` | A file is outside `Migrations`, `Code`, `Tests`, `BeforeDeploy`, `AfterDeploy` (or the folders named in `settings.json`) and is not `settings.json` in the root: another folder (`PostDeployment/`), a misspelled `setting.json`, a `README.md` in the root (Section 4) | Rename the folder to a project folder (or set its name in `settings.json`, for example `"AfterDeployFolder": "PostDeployment"`), or move the files out of the scripts root |
 | `DuplicateMigrationItemException` | Two files with the same version and type | Renumber the newer file (only if not applied anywhere) |
-| `MigrationItemMustExistsException` | Undo/breaking/settings without a migration for that version | Add the migration file or fix the version. To drop an old version of a code object, use a breaking script of the Code folder instead (Section 6.1) |
-| `ObsoleteMigrationSettingsFileException` | Old per-version `<version>.settings.json` / `<version>.s.json` | Rename to `<version>.migration.settings.json` (the message names it); add `.breaking.settings.json` / `.undo.settings.json` if those scripts need settings too; rename the key `MigrationTimeout` to `Timeout` |
-| `MigrationSettingsWithoutScriptException` | `<version>.breaking.settings.json` or `<version>.undo.settings.json` without its script | Add the script or delete the settings file |
+| `MigrationItemMustExistsException` | Breaking/settings without a migration for that version | Add the migration file or fix the version. To drop an old version of a code object, use a breaking script of the Code folder instead (Section 6.1) |
+| `ObsoleteMigrationSettingsFileException` | Old per-version `<version>.settings.json` / `<version>.s.json` | Rename to `<version>.migration.settings.json` (the message names it); add `.breaking.settings.json` if the breaking script needs settings too; rename the key `MigrationTimeout` to `Timeout` |
+| `MigrationSettingsWithoutScriptException` | `<version>.breaking.settings.json` without its script | Add the script or delete the settings file |
 | `InvalidMigrationItemSettingsException` | Item settings file with an unknown key (also `MigrationTimeout`), invalid JSON, or `"TransactionWrapLevel": "Deployment"` | Section 9.3: keys `TransactionWrapLevel` (`Migration`/`None`), `TransactionIsolationLevel`, `Timeout` |
 | `InvalidMigrationVersionException` | Version is not a number (also a file such as `config.json` or a macOS `._001.migration.sql` in Migrations), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion` | Rename or move the file |
-| `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.<item>.settings.json` (`migration`/`breaking`/`undo`) or move it |
+| `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.<item>.settings.json` (`migration`/`breaking`) or move it |
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL, in `settings.json` as `TransactionIsolationLevel` or `TestsTransactionIsolationLevel` (at the start of the deployment and of `RunAllTestsAsync`) or in an item settings file (when that script runs) | Choose another level |
 | `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout` or the item's `Timeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10). The same value is the command timeout of each statement, so one long statement usually fails first with the provider's timeout error, as `MigrationDeploymentException` | Raise that timeout (for one script: `Timeout` in its item settings file). `TransactionWrapLevel: None` removes only the transaction timeout, not the command timeout |
-| `JsonException: The JSON property 'DowngradeTimeout' could not be mapped` reading `settings.json` | `DowngradeTimeout` was removed | Delete the key; undo scripts use `MigrationTimeout` or `Timeout` in `<version>.undo.settings.json` |
+| `JsonException: The JSON property 'DowngradeTimeout' could not be mapped` reading `settings.json` | `DowngradeTimeout` was removed | Delete the key |
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `setup.test.sql` |
 | Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
@@ -1038,7 +1009,7 @@ It creates the folder `MyDb/` (or the `-o` folder) with:
 | Created | Content |
 |---|---|
 | `MyDb.slnx` | Both projects. |
-| `MyDb/` | Layout A (Section 3.2), `net10.0`, references the provider package. `Program.cs`: the deployer for a local database, `DeployParameters.Default with { CreateDbIfNotExists = true }` (remove `CreateDbIfNotExists` before deploying to production, rule 18). `Scripts/settings.json`: `ProjectId` = the name in lower case. `Scripts/Migrations/<yyyyMMddHHmmss>.users.sql` (UTC time of creation) and `<same version>.undo.sql`: a users table with a check constraint on the name. `Scripts/Code/`: SQL Server `dbo.GetUser.sql` + `dbo.GetUser.test.sql`, PostgreSQL `get_user.sql` (a function) + `get_user.test.sql`. `Scripts/Tests/user-name-is-required.sql`: a data rule test without an assert. |
+| `MyDb/` | Layout A (Section 3.2), `net10.0`, references the provider package. `Program.cs`: the deployer for a local database, `DeployParameters.Default with { CreateDbIfNotExists = true }` (remove `CreateDbIfNotExists` before deploying to production, rule 18). `Scripts/settings.json`: `ProjectId` = the name in lower case. `Scripts/Migrations/<yyyyMMddHHmmss>.users.sql` (UTC time of creation): a users table with a check constraint on the name. `Scripts/Code/`: SQL Server `dbo.GetUser.sql` + `dbo.GetUser.test.sql`, PostgreSQL `get_user.sql` (a function) + `get_user.test.sql`. `Scripts/Tests/user-name-is-required.sql`: a data rule test without an assert. |
 | `MyDb.Tests/` | xUnit v2, references `MyDb`, `DbLive.xunit` and `DbLive.Testcontainers.MSSQL` (or `.PostgreSQL`). `SqlTests.cs`: `SqlTestFixture` on the container builder (13.1) and the `[SqlFact]` class (13.2). `DeploymentTests.cs`: the `[SqlDeployFact]` class (13.3). |
 
 - `-n` is used as it is for the folders, project files, `Assembly.Load("<name>")` and the SQL Server database name in `Program.cs`; the PostgreSQL database name and the `ProjectId` take it in lower case; namespaces take the identifier form (`Contoso.Billing-Db` → `Contoso.Billing_Db.Tests`). Without `-n`, the name of the output folder.
@@ -1058,42 +1029,47 @@ DbLive has no baseline command. Recommended approach:
 3. Deploy to a copy of production first, then to production. The `dblive` schema is added; existing tables are untouched.
 
 ### 18.3 Add a table
-`Migrations/<v>.create-orders.sql` with `create table ...`; `Migrations/<v>.undo.sql` with `drop table if exists ...`. Add a procedure in `Code/` and a test next to it.
+`Migrations/<v>.create-orders.sql` with `create table ...`. Add a procedure in `Code/` and a test next to it.
 
 ### 18.4 Add a column (no downtime)
-Migration: add a nullable column, or a non-null column with a default. Undo: drop the column (`if exists`). Update procedures in `Code/` (new version name if the contract changes).
+Migration: add a nullable column, or a non-null column with a default. Update procedures in `Code/` (new version name if the contract changes). The previous application keeps working: it does not know the column.
 
 ### 18.5 Rename or move a column (expand/contract)
 1. Migration v: add the new column/table, backfill it, add a temporary trigger that keeps old and new in sync.
 2. Code: new procedure versions (`..._v2`) use the new structure; old versions keep working.
 3. Breaking v: drop the sync trigger and the old column. Drop the old procedure versions in breaking scripts next to their files (Section 6.1); they run before the migration breaking scripts, so a view or function of the old version that reads the old column is gone before the column is dropped.
-4. Undo v: restore the old column and data if the breaking script ran (check with `sys.columns` / `information_schema.columns`), then drop the new objects.
-5. Release: deploy `Default` → deploy the new app → drain the old app → deploy `Breaking`.
+4. Release: deploy `Default` → deploy the new app → drain the old app → deploy `Breaking`. Until `Breaking` runs, the previous application works on the new schema, so a rollback is a rollback of the application (Section 18.8). Run `Breaking` only when the release is confirmed.
 
 ### 18.6 Change a procedure's contract
 Rename the object in its file (`GetUser_v1` → `GetUser_v2`), update the test file, and create (or extend) the breaking script next to the file: `Code/dbo/GetUser.breaking.sql` with `drop proc if exists dbo.GetUser_v1;` (PostgreSQL: `drop function if exists get_user_v1(int);`). No migration is needed. Always `if exists`: the script runs on every breaking deployment (Section 6.1). When `_v3` replaces `_v2` later, replace the content with the drop of `_v2`; keeping the old drops is harmless. Do not put the drop into AfterDeploy (Section 7), and do not create a migration version only to carry the drop. If only the implementation changes and the contract stays the same, keep the name and just edit the file.
 
 ### 18.7 Long-running index / data backfill
-Own migration version with `<v>.migration.settings.json` `{ "TransactionWrapLevel": "None", "Timeout": "01:00:00" }`. SQL Server: `with (online = on)`. PostgreSQL: `create index concurrently if not exists ...`, alone in its file. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied and the next deployment runs the whole script again. If the undo drops the index online/concurrently, give it `<v>.undo.settings.json` `{ "TransactionWrapLevel": "None" }` too; the migration's settings file does not apply to the undo. Batch large updates.
+Own migration version with `<v>.migration.settings.json` `{ "TransactionWrapLevel": "None", "Timeout": "01:00:00" }`. SQL Server: `with (online = on)`. PostgreSQL: `create index concurrently if not exists ...`, alone in its file. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied and the next deployment runs the whole script again. A breaking script that drops an index online/concurrently needs its own `<v>.breaking.settings.json` `{ "TransactionWrapLevel": "None" }`; the migration's settings file does not apply to it. Batch large updates.
 
 ### 18.8 Roll back a release
-Deploy the previous build with `AllowDatabaseDowngrade = true`. Versions missing from that build are reverted newest first, using the undo scripts and undo settings stored in the database, each undo in its own transaction. If one undo fails, the newer versions stay reverted; fix the cause and deploy the same build again to continue. Code objects introduced by the newer release are not dropped. The code of the previous build is restored: a file whose content changed (`GetUser.sql` with `_v1` again) is executed because its hash differs, and a file the newer release had deleted is executed because its row is `removed` (Section 6), so an old version dropped by the newer release's breaking phase is back. A code-only release has no migrations, so its rollback is a plain deployment of the previous build. Do not run a breaking deployment of the newer build afterwards: it fails with `CodeNotDeployedException`.
+DbLive has no undo scripts and does not roll back a database. Roll a release back this way:
+
+- **Before the breaking phase: roll back the application, keep the database.** Migrations only add (rule 4, expand/contract), so the previous application runs on the new schema; the old versions of code objects (`GetUser_v1`) are still there, because DbLive never drops code and only the breaking phase drops them. The database serves both versions. Do not deploy the previous build of the database: its project lacks the new migration versions, so it fails with `DatabaseAheadOfProjectException` and changes nothing (Section 5.2).
+- **A bug in a code object**: revert the file in git and deploy a new release (`Default`). Code is deployed by state: the reverted file's hash differs, so it runs and the old version of the object is back; a file the release had deleted runs again when it comes back, because its row is `removed` (Section 6). A code-only release (no new migration version) can also be rolled back by deploying the previous build, which redeploys its code; a breaking deployment of the newer build then fails with `CodeNotDeployedException`.
+- **A wrong migration**: fix it with a new migration version. Never edit or delete an applied one (rules 1 and 2).
+- **The breaking phase is the point of no return.** It drops what the previous application uses. Run it only when the release is confirmed, and never for a release whose application was rolled back: no guard sees that case, because the code of the release is still deployed (Section 5.5). After the breaking phase, fix forward with a new release, or restore a backup.
+
+Why there are no undo scripts: before the breaking phase the database needs no rollback; after it an undo would restore the structure, not the data the breaking scripts dropped; an undo of a migration would drop the data written since it ran. An undo file left in a project fails the deployment with `UndoNotSupportedException` (Section 5.1).
 
 ### 18.9 Someone edited an applied migration
 Preferred: revert the file to its applied content (git history) and add a new version with the intended change. If the edit is cosmetic and the database already matches: deploy once with `RepairMigrationChecksums = true`.
 
 ### 18.10 CI/CD pipeline
 1. Build.
-2. `dotnet test` (Testcontainers): runs `[SqlDeployFact]` (deploy + undo paths with schema checks + all SQL tests) and `[SqlFact]` tests.
+2. `dotnet test` (Testcontainers): runs `[SqlDeployFact]` (release, breaking phase with every migration breaking script run twice, breaking phase again, schema checks, all SQL tests) and `[SqlFact]` tests.
 3. Deploy the database: `dotnet MyDb.Deploy.dll` with `DeployParameters.Default`. The deployer does not run the SQL tests (step 2 did).
 4. Deploy the application; old and new versions run side by side.
 5. Remove the old application.
-6. Deploy breaking changes: `dotnet MyDb.Deploy.dll --breaking` (`DeployParameters.Breaking`), with the same build as step 3. It fails with `CodeNotDeployedException` if step 3 did not complete for this build.
+6. Deploy breaking changes: `dotnet MyDb.Deploy.dll --breaking` (`DeployParameters.Breaking`), with the same build as step 3, once the release is confirmed. It fails with `CodeNotDeployedException` if step 3 did not complete for this build. Up to this step a rollback is a rollback of the application (steps 4–5); after it, fix forward (Section 18.8).
 
 Production settings (the defaults are the safe values, except `ProjectId`):
 - `ProjectId` set in `settings.json` (rule 17, Section 14).
 - `CreateDbIfNotExists = false` (default): the production database is created outside DbLive, and the deployer's login needs no permission to create databases (rule 18).
-- `AllowDatabaseDowngrade = false` (default); `true` only in the rollback pipeline (Section 18.8).
 - `RepairMigrationChecksums = false` (default); `true` only for one deployment after checking that the database matches the files (Section 18.9).
 - `MigrationChecksumMode: Strict` (default).
 - `TransactionWrapLevel: Migration` (default); `None` in the item settings of a script that cannot run in a transaction (Section 18.7). Not `Deployment`: it holds locks for the whole deployment and deploys code single-threaded (Section 10).

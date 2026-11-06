@@ -106,7 +106,7 @@ public class MigrationsTests
 
 		mockSet.ScriptSource.AddFiles(
 			"Migrations/003.migration.some-note.sql",
-			"Migrations/003.undo.note.sql",
+			"Migrations/003.migration.settings.json",
 			"Migrations/003.breaking.sql"
 		);
 
@@ -125,7 +125,7 @@ public class MigrationsTests
 
 		mockSet.ScriptSource.AddFiles(
 			"Migrations/002.m.test.sql",
-			"Migrations/002.u.test.sql",
+			"Migrations/002.m.s.test.json",
 			"Migrations/002.b.test.sql"
 		);
 
@@ -146,7 +146,7 @@ public class MigrationsTests
 			"Migrations/001.m.01.sql",
 			"Migrations/001.b.01.sql",
 			"Migrations/002.m.first.sql",
-			"Migrations/002.undo.one.sql",
+			"Migrations/002.m.s.json",
 			"Migrations/002.b.test.sql",
 			"Migrations/003.m.sql",
 			"Migrations/003.b.sql"
@@ -160,7 +160,7 @@ public class MigrationsTests
 
 		Assert.Equal(3, migrationItems.Count);
 		Assert.Equal("Migrations/002.m.first.sql", migrationItems[MigrationItemType.Migration].FileData.RelativePath);
-		Assert.Equal("Migrations/002.undo.one.sql", migrationItems[MigrationItemType.Undo].FileData.RelativePath);
+		Assert.Equal("Migrations/002.m.s.json", migrationItems[MigrationItemType.MigrationSettings].FileData.RelativePath);
 		Assert.Equal("Migrations/002.b.test.sql", migrationItems[MigrationItemType.Breaking].FileData.RelativePath);
 	}
 
@@ -173,7 +173,7 @@ public class MigrationsTests
 
 		mockSet.ScriptSource.AddFiles(
 			"Migrations/no-version-provided.sql",
-			"Migrations/001.undo.sql",
+			"Migrations/001.migration.sql",
 			"Migrations/001.breaking.sql"
 		);
 
@@ -205,7 +205,7 @@ public class MigrationsTests
 		mockSet.ScriptSource
 			.AddFile("Migrations/001.migration.SQL", "-- migration")
 			.AddFile("Migrations/001.m.s.JSON", """{ "TransactionWrapLevel": "None" }""")
-			.AddFile("Migrations/001.Undo.Sql", "-- undo")
+			.AddFile("Migrations/001.B.Sql", "-- breaking")
 			.AddFile("Migrations/002.create-users.Sql", "-- migration 2");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
@@ -215,7 +215,7 @@ public class MigrationsTests
 		Assert.Equal(2, migrations.Count);
 		Assert.Equal(3, migrations[0].Items.Count);
 		Assert.Equal(TransactionWrapLevel.None, migrations[0].GetItemSettings(MigrationItemType.Migration).TransactionWrapLevel);
-		Assert.Equal("Migrations/001.Undo.Sql", migrations[0].Items[MigrationItemType.Undo].FileData.RelativePath);
+		Assert.Equal("Migrations/001.B.Sql", migrations[0].Items[MigrationItemType.Breaking].FileData.RelativePath);
 		Assert.Equal("create-users", migrations[1].Items[MigrationItemType.Migration].Name);
 	}
 
@@ -228,7 +228,7 @@ public class MigrationsTests
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.ScriptSource.AddFiles(
-			"Migrations/005.undo.sql",
+			"Migrations/005.breaking.settings.json",
 			"Migrations/005.breaking.sql"
 		);
 
@@ -266,9 +266,7 @@ public class MigrationsTests
 			.AddFile("Migrations/004.migration.sql", "-- migration")
 			.AddFile("Migrations/004.migration.settings.json", """{ "TransactionWrapLevel": "None" }""")
 			.AddFile("Migrations/004.breaking.sql", "-- breaking")
-			.AddFile("Migrations/004.b.s.json", """{ "Timeout": "00:05:00" }""")
-			.AddFile("Migrations/004.undo.sql", "-- undo")
-			.AddFile("Migrations/004.u.settings.json", """{ "TransactionWrapLevel": "Migration" }""");
+			.AddFile("Migrations/004.b.s.json", """{ "Timeout": "00:05:00" }""");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
@@ -277,15 +275,38 @@ public class MigrationsTests
 
 		// Assert
 		Migration migration = Assert.Single(migrations);
-		Assert.Equal(6, migration.Items.Count);
+		Assert.Equal(4, migration.Items.Count);
 		Assert.Equal(TransactionWrapLevel.None, migration.GetItemSettings(MigrationItemType.Migration).TransactionWrapLevel);
 		Assert.Equal(TimeSpan.FromMinutes(5), migration.GetItemSettings(MigrationItemType.Breaking).Timeout);
-		Assert.Equal(TransactionWrapLevel.Migration, migration.GetItemSettings(MigrationItemType.Undo).TransactionWrapLevel);
+	}
+
+	[Theory]
+	[InlineData("Migrations/004.undo.sql")]
+	[InlineData("Migrations/004.u.sql")]
+	[InlineData("Migrations/004.undo.settings.json")]
+	[InlineData("Migrations/Old/004.u.s.json")]
+	public async Task GetMigrations_throws_when_project_has_an_undo_file(string undoFile)
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource
+			.AddFile("Migrations/004.migration.sql", "create table t1 (id int);")
+			.AddFile(undoFile, "drop table t1;");
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// Act
+		Task act() => sqlProject.GetMigrationsAsync();
+
+		// Assert
+		UndoNotSupportedException ex = await Assert.ThrowsAsync<UndoNotSupportedException>(act);
+		Assert.Equal(undoFile, ex.RelativePath);
 	}
 
 	[Theory]
 	[InlineData("Migrations/004.breaking.settings.json")]
-	[InlineData("Migrations/004.u.s.json")]
+	[InlineData("Migrations/004.b.s.json")]
 	public async Task GetMigrations_throws_when_settings_file_has_no_script(string settingsFile)
 	{
 		// Arrange

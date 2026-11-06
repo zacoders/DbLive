@@ -32,7 +32,7 @@ public class BreakingChangesDeployer(
 		// of a migration breaking script.
 		await _codeBreakingDeployer.DeployAsync().ConfigureAwait(false);
 
-		await DeployMigrationBreakingAsync().ConfigureAwait(false);
+		await DeployMigrationBreakingAsync(parameters.CheckBreakingSecondRun).ConfigureAwait(false);
 	}
 
 	/// <summary>
@@ -68,7 +68,7 @@ public class BreakingChangesDeployer(
 		}
 	}
 
-	private async Task DeployMigrationBreakingAsync()
+	private async Task DeployMigrationBreakingAsync(bool checkSecondRun)
 	{
 		IReadOnlyCollection<MigrationItemDto> migrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
@@ -112,6 +112,34 @@ public class BreakingChangesDeployer(
 		foreach ((long version, MigrationItem item, MigrationItemSettings settings) in breakingToApply.OrderBy(b => b.Version))
 		{
 			await _migrationItemDeployer.DeployAsync(version, item, settings).ConfigureAwait(false);
+
+			if (checkSecondRun)
+			{
+				await DeploySecondRunAsync(version, item, settings).ConfigureAwait(false);
+			}
+		}
+	}
+
+	/// <summary>
+	/// The deployment tests run a migration breaking script twice: a breaking script that failed with TransactionWrapLevel None
+	/// runs again on the next deployment, over what its first run already changed. The second run must not change the schema.
+	/// </summary>
+	/// <exception cref="SchemaChangedException"/>
+	private async Task DeploySecondRunAsync(long version, MigrationItem item, MigrationItemSettings settings)
+	{
+		SchemaSnapshot afterFirstRun = await _da.GetSchemaSnapshotAsync().ConfigureAwait(false);
+
+		await _migrationItemDeployer.DeployAsync(version, item, settings).ConfigureAwait(false);
+
+		SchemaDiff diff = SchemaDiff.Compare(afterFirstRun, await _da.GetSchemaSnapshotAsync().ConfigureAwait(false));
+
+		if (!diff.IsEmpty)
+		{
+			throw new SchemaChangedException(
+				SchemaCheck.BreakingSecondRun,
+				$"Deployment test: the breaking script {item.FileData.RelativePath} is not idempotent, its second run changed the schema:",
+				diff
+			);
 		}
 	}
 }

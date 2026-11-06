@@ -40,7 +40,7 @@ DbLive does not drop objects. When you delete a file, rename an object in its fi
 drop proc if exists dbo.GetUser_v1;
 ```
 
-When code is deployed, the row of a file deleted from the project is marked `removed` in `dblive.code`. If the file comes back, for example with a rollback to the build that still had it, it is executed again, so the object it creates is restored.
+When code is deployed, the row of a file deleted from the project is marked `removed` in `dblive.code`. If a later release brings the file back (a `git revert` of its deletion), it is executed again even if its content did not change, because the breaking phase may have dropped its object in between. So the object it creates is restored.
 
 ## Versioned interface
 
@@ -65,7 +65,7 @@ go
 drop proc if exists dbo.GetUsers_v1;
 ```
 
-After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)). Rolling back to the previous build redeploys `GetUsers.sql` with `_v1`; `_v2` stays.
+After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)). Code is deployed by state: to make `_v1` the current version again, revert `GetUsers.sql` in git and deploy a new release; `_v2` stays. See [Roll back a release](migrations.md#roll-back-a-release).
 
 When only the implementation changes and the contract stays the same, keep the name: the object is redeployed and its callers do not notice. See [Database as a Service](../database-as-service.md#a-procedure-is-a-module-with-a-history) and [Zero-Downtime Deployment](zero-downtime.md).
 

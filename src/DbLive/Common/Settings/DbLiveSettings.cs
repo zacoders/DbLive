@@ -25,7 +25,7 @@ public class DbLiveSettings
 
 	public TimeSpan DeploymentTimeout { get; init; } = TimeSpan.FromDays(1);
 	/// <summary>
-	/// Default timeout of a migration, breaking or undo script, its transaction and its SQL command.
+	/// Default timeout of a migration or breaking script, its transaction and its SQL command.
 	/// An item settings file overrides it with <see cref="MigrationItemSettings.Timeout"/>.
 	/// </summary>
 	public TimeSpan MigrationTimeout { get; init; } = TimeSpan.FromHours(12);

@@ -4,9 +4,9 @@
 [![CI](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Database Lifecycle Management for .NET** — versioned migrations, code deployment, SQL unit tests, and safe rollback in one workflow.
+**Database Lifecycle Management for .NET** — versioned migrations, code deployment, SQL unit tests, and zero-downtime releases in one workflow.
 
-DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
+DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, tested and deployed as part of CI/CD like any other code.
 
 DbLive is built around one idea: the database is a **separate service** with its own interface, release cycle and tests, so it can be deployed without stopping the applications that use it. The model is optional: you can use DbLive as an ordinary migration tool and adopt the rest later.
 
@@ -20,7 +20,7 @@ DbLive is built around one idea: the database is a **separate service** with its
 
 A deployment stops before any of your scripts runs when:
 
-- **an older build is deployed by mistake**: the database has migrations the build lacks → `DowngradeNotAllowedException`, nothing changes. A rollback is deliberate: with `AllowDatabaseDowngrade = true` DbLive reverts those versions with the undo scripts stored in the database.
+- **an older build is deployed**: the database has migrations the build lacks → `DatabaseAheadOfProjectException`, nothing changes. DbLive does not roll back a database: before the breaking phase a release is rolled back by rolling back the application ([Roll back a release](docs/deployment/migrations.md#roll-back-a-release)).
 - **an applied migration was edited** → `MigrationChecksumMismatchException` (`MigrationChecksumMode` is `Strict` by default).
 - **the database belongs to another project** → `ProjectIdMismatchException`, once the project sets `ProjectId` in `settings.json`.
 
@@ -36,11 +36,11 @@ Actively developed. Every merge to `main` is published to NuGet (the current ver
 
 | Area | Description |
 |------|-------------|
-| **Migrations** | Versioned schema changes with optional undo scripts; ordered, repeatable deployments. |
+| **Migrations** | Versioned schema changes; ordered, repeatable deployments. |
 | **Code** | Deploy stored procedures, views, functions, and other code objects separately from migrations. |
 | **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI, against a temporary database built from your scripts (Docker or a local server). |
 | **Breaking changes** | Deploy breaking changes in a dedicated phase (e.g. after app rollout). |
-| **Rollback** | Opt-in: deploy the previous build with `AllowDatabaseDowngrade = true`, and DbLive reverts the newer versions using the undo scripts stored in the database. Without it, an older build fails and changes nothing. |
+| **Rollback** | Roll back the application, not the database: before the breaking phase the database serves both versions. A wrong migration is fixed by a new one; an older build deployed by mistake fails and changes nothing. |
 | **CI/CD** | Works with GitHub Actions, Azure DevOps, TeamCity, Jenkins, or any build system that runs `dotnet`. |
 
 ---
@@ -59,8 +59,8 @@ dotnet run --project MyDb               # deploys to the local database named in
 
 The template creates a solution with two projects:
 
-- `MyDb`: the SQL in `Scripts/` (a migration with its undo script, a procedure with its test, a data rule test, `settings.json` with the `ProjectId`) and the deployer `Program.cs`.
-- `MyDb.Tests`: every SQL test file as an xUnit test case, and the deployment test, which deploys the project as production does and runs the undo script. The database runs in Docker (Testcontainers), so Docker must be running.
+- `MyDb`: the SQL in `Scripts/` (a migration, a procedure with its test, a data rule test, `settings.json` with the `ProjectId`) and the deployer `Program.cs`.
+- `MyDb.Tests`: every SQL test file as an xUnit test case, and the deployment test, which deploys the project as production does: the release, then the breaking phase twice. The database runs in Docker (Testcontainers), so Docker must be running.
 
 The projects reference the DbLive packages of the template's version; `dotnet new install DbLive.Templates` updates it.
 
@@ -146,14 +146,14 @@ DbLive expects a clear separation of **migrations**, **code**, and **tests**. Yo
 
 | Folder | Purpose |
 |--------|--------|
-| **Migrations** | Schema and data changes in version order. Optional `*.undo.sql` per version for rollback, `*.breaking.sql` for breaking changes. |
+| **Migrations** | Schema and data changes in version order. Optional `*.breaking.sql` per version for breaking changes. |
 | **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests, paired `*.breaking.sql` files drop old object versions in the breaking phase. |
 | **Tests** | Standalone SQL tests (e.g. cross-object checks, data rules). |
 | **BeforeDeploy** / **AfterDeploy** | Scripts run on every deployment, before migrations or after breaking changes (optional; must be idempotent). |
 
 Naming examples:
 
-- Migrations: `001.migration.sql`, `002.migration.sql`, `002.undo.sql`
+- Migrations: `001.migration.sql`, `002.migration.sql`, `002.breaking.sql`
 - Code: `GetUser.sql`, `GetUser.test.sql`
 - Tests: every `.sql` file in `Tests`; in `Code`, files matching `*.test.sql` or `t.*.sql` (patterns configurable)
 
@@ -295,15 +295,14 @@ See [Database as a Service](docs/database-as-service.md) for why breaking change
 
 A single `DeployAsync` run typically does (in order):
 
-1. **Checks** — `ProjectId`, settings, checksums of applied migrations
-2. **Downgrade** — if the database has versions this build lacks: fails unless `AllowDatabaseDowngrade = true`, which runs their stored undo scripts, newest first
-3. **BeforeDeploy** — scripts that run before migrations, on every deployment
-4. **Migrations** — apply pending migrations in version order
-5. **Code** — deploy or update code objects (procedures, views, etc.)
-6. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
-7. **AfterDeploy** — scripts that run at the end, on every deployment
+1. **Checks** — `ProjectId`, settings, every migration version applied to the database is in the build (otherwise `DatabaseAheadOfProjectException`), checksums of applied migrations
+2. **BeforeDeploy** — scripts that run before migrations, on every deployment
+3. **Migrations** — apply pending migrations in version order
+4. **Code** — deploy or update code objects (procedures, views, etc.)
+5. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
+6. **AfterDeploy** — scripts that run at the end, on every deployment
 
-You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
+You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
 
 SQL tests are not part of a deployment: they run as xUnit tests (`dotnet test`) against a disposable database, so a production deployer does not run them.
 
@@ -316,9 +315,11 @@ DbLive fits into a release pipeline like this:
 3. **Deploy database** — migrations and code (`DeployParameters.Default`)
 4. **Deploy application** — new app version; old and new versions run side by side
 5. **Drop old application** — remove the previous app version
-6. **Deploy breaking changes** — run the deployer with `DeployParameters.Breaking` when the old app is gone
+6. **Deploy breaking changes** — run the deployer with `DeployParameters.Breaking` when the old app is gone and the release is confirmed
 
-The settings of a production deployment (`ProjectId`, database creation, downgrade, transactions, timeouts) are collected in [Production](docs/deployment/index.md#production).
+Until step 6 a release is rolled back by rolling back the application; the database stays. After it, fix forward ([Roll back a release](docs/deployment/migrations.md#roll-back-a-release)).
+
+The settings of a production deployment (`ProjectId`, database creation, transactions, timeouts) are collected in [Production](docs/deployment/index.md#production).
 
 ---
 
@@ -340,8 +341,8 @@ DbLive design follows [zero-downtime, backward-compatible delivery](docs/databas
 - **Database is not a special snowflake** — it is code: versioned in repo, reviewed, and deployed like application code.
 - **SQL is testable** — procedures, views, and migrations can have automated tests.
 - **Deployments are predictable** — same order, same scripts, same outcome in dev and prod.
-- **Deployments are reversible** — rollback is built-in via undo scripts, not a manual emergency fix.
-- **Rollback is part of the system** — deploying the previous build with `AllowDatabaseDowngrade = true` is a normal operation, not an exception; without that flag an older build is refused.
+- **Releases roll forward** — until the breaking phase a release is rolled back by rolling back the application, because the database serves both versions; a wrong migration is fixed by a new one.
+- **Mistakes are refused** — an older build, an edited applied migration or the wrong database stops the deployment before anything changes.
 
 ---
 
