@@ -62,7 +62,7 @@ flowchart LR
 
 ## Moving the existing data
 
-The trigger keeps new writes in sync; the rows that already exist still have to be copied. How to do it is up to the SQL developers; this is one example. DemoMSSQL copies them with one `update` that fires the trigger, which is fine for a small table. On a large, busy table a single statement in one transaction would lock the table for the whole copy. Instead, copy the data in the background in small batches, in a migration that runs without a transaction (`"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings)), so each batch commits on its own. Such a script must be re-runnable: if it stops halfway, the next deployment runs it again from the start.
+The trigger keeps new writes in sync; the rows that already exist still have to be copied. How to do it is up to the SQL developers; this is one example. DemoMSSQL copies them with one `update` that fires the trigger, which is fine for a small table. On a large, busy table a single statement in one transaction would lock the table for the whole copy. Instead, copy the data in the background in small batches, in a migration that runs without a transaction (`"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings)), so each batch commits on its own. On PostgreSQL put the loop in a `do` block with a `commit` after each batch, alone in its file: a file with several statements runs as one implicit transaction ([example](../project/configuration.md#item-settings)). Such a script must be re-runnable: if it stops halfway, the next deployment runs it again from the start.
 
 ## In DemoMSSQL
 

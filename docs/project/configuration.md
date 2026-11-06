@@ -120,9 +120,49 @@ Typical use: the migration builds an index online without holding a long transac
 }
 ```
 
-Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; a breaking script that drops such an index needs its own `<version>.breaking.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction.
+Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; a breaking script that drops such an index needs its own `<version>.breaking.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction: two `create index concurrently` in one file fail with `CREATE INDEX CONCURRENTLY cannot run inside a transaction block`.
+
+The implicit transaction also means that on PostgreSQL several `update` statements in one file commit together, even with `"TransactionWrapLevel": "None"`. To commit a large update in batches, put the loop in a `do` block with a `commit` after each batch (or `call` a procedure that does it), and keep the `do` block alone in its file. Comments around it are fine; another statement in the file, or a transaction around the script, fails with `invalid transaction termination`.
+
+```sql
+-- 20260815130000.migration.sql, with "TransactionWrapLevel": "None" in its settings file
+do $$
+declare
+    n int;
+begin
+    loop
+        update users set active = true
+        where user_id in (select user_id from users where active is null limit 10000);
+        get diagnostics n = row_count;
+        exit when n = 0;
+        commit;
+    end loop;
+end $$;
+```
 
 `"TransactionWrapLevel": "None"` is the author's promise that the database keeps working if the script stops halfway. A failed script is not marked as applied, so the next deployment runs the **whole** script again: write it to be re-runnable (`if not exists`, `drop ... if exists`, `create index concurrently if not exists`).
+
+On PostgreSQL a failed or cancelled `create index concurrently` leaves an invalid index behind (PostgreSQL behavior), and `if not exists` skips it on the next run: the deployment succeeds, and the index stays invalid, unused by queries but updated on every write. Add a `BeforeDeploy` script that drops the index if it is invalid. BeforeDeploy runs on every deployment before the migrations, so after a failure the next deployment drops the index, and the migration builds it again.
+
+```sql
+-- 20260815120000.migration.sql, with "TransactionWrapLevel": "None" in its settings file
+create index concurrently if not exists ix_users_name on users (name);
+```
+
+```sql
+-- BeforeDeploy/drop-invalid-ix_users_name.sql
+do $$
+begin
+    if exists (select from pg_index where indexrelid = to_regclass('ix_users_name') and not indisvalid) then
+        drop index ix_users_name;
+    end if;
+end $$;
+```
+
+- The `drop` cannot go into the file of the migration: with a second statement the file runs as one implicit transaction, and `create index concurrently` fails.
+- `drop index concurrently` cannot run in a `do` block, so this `drop` takes a short exclusive lock on the table.
+- Drop the index by name, not every invalid index: an index that another session is building concurrently right now is invalid too.
+- Remove the script once every database has the index.
 
 When the project uses `"TransactionWrapLevel": "Deployment"`, every script runs inside the deployment transaction, with its isolation level and `DeploymentTimeout`. An item file with `None` then has no effect, and DbLive logs a warning; its `TransactionIsolationLevel` is not used either, and its `Timeout` limits only the command.
 

@@ -74,7 +74,7 @@ and enforce the format in `settings.json`:
 
 ## Long-running migrations
 
-A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 hours by default (see [Timeouts](../project/configuration.md#timeouts)), and holds its locks until it commits. Large index builds and data backfills should get their own version with `"TransactionWrapLevel": "None"` in `<version>.migration.settings.json` (and a `Timeout` that fits), should be re-runnable, and should update data in batches.
+A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 hours by default (see [Timeouts](../project/configuration.md#timeouts)), and holds its locks until it commits: a large index build or data backfill blocks the tables it touches for the whole migration, and the application waits. Give such a script its own version with `"TransactionWrapLevel": "None"` in `<version>.migration.settings.json` (and a `Timeout` that fits). Without the transaction an online index build (`with (online = on)` on SQL Server, `create index concurrently` on PostgreSQL) and an update in batches that commit one by one lock a table only briefly, and the database stays online while the migration runs. On PostgreSQL a file with several statements still runs as one implicit transaction: keep `create index concurrently` alone in its file, and commit the batches in a `do` block (see [Item settings](../project/configuration.md#item-settings)). A failed script without a transaction stays partly applied, and the next deployment runs it again from the start: make it re-runnable. A failed `create index concurrently` leaves an invalid index that `if not exists` skips: drop it in a `BeforeDeploy` script ([example](../project/configuration.md#item-settings)).
 
 ## Errors
 
