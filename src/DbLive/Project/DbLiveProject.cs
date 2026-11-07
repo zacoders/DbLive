@@ -26,6 +26,12 @@ public class DbLiveProject(
 
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
 
+	// a builder deploys one build: the project is read once per builder, like settings.json. The phases of a deployment ask
+	// for the same migrations and code several times; the files are listed and checked once, and each file is read and hashed once.
+	private readonly object _filesLock = new();
+	private IReadOnlyList<string>? _files;
+	private readonly ConcurrentDictionary<string, Task<FileData>> _fileData = new(StringComparer.Ordinal);
+
 	public async Task<IReadOnlyList<CodeGroup>> GetCodeGroupsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
@@ -86,7 +92,7 @@ public class DbLiveProject(
 			var codeItem = new CodeItem
 			{
 				Name = Path.GetFileName(relativePath),
-				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+				FileData = await ReadFileDataAsync(relativePath).ConfigureAwait(false)
 			};
 			codeItems.Add(codeItem);
 		}
@@ -106,7 +112,7 @@ public class DbLiveProject(
 			var item = new GenericItem
 			{
 				Name = Path.GetFileName(relativePath),
-				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+				FileData = await ReadFileDataAsync(relativePath).ConfigureAwait(false)
 			};
 			items.Add(item);
 		}
@@ -155,7 +161,7 @@ public class DbLiveProject(
 				{
 					MigrationItemType = item.MigrationItemType,
 					Name = item.Name,
-					FileData = await scriptSource.ReadFileDataAsync(item.RelativePath).ConfigureAwait(false)
+					FileData = await ReadFileDataAsync(item.RelativePath).ConfigureAwait(false)
 				};
 				items.Add(item.MigrationItemType, migrationItem);
 			}
@@ -220,7 +226,7 @@ public class DbLiveProject(
 			TestItem testItem = new()
 			{
 				Name = Path.GetFileName(relativePath),
-				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false),
+				FileData = await ReadFileDataAsync(relativePath).ConfigureAwait(false),
 				SetupFileData = setupFileData
 			};
 
@@ -236,7 +242,7 @@ public class DbLiveProject(
 
 		string? setupFile = files.FirstOrDefault(f => f.Equals(setupFilePath, StringComparison.OrdinalIgnoreCase));
 
-		return setupFile is null ? null : await scriptSource.ReadFileDataAsync(setupFile).ConfigureAwait(false);
+		return setupFile is null ? null : await ReadFileDataAsync(setupFile).ConfigureAwait(false);
 	}
 
 	/// <inheritdoc/>
@@ -258,7 +264,7 @@ public class DbLiveProject(
 			var item = new GenericItem
 			{
 				Name = Path.GetFileName(relativePath),
-				FileData = await scriptSource.ReadFileDataAsync(relativePath).ConfigureAwait(false)
+				FileData = await ReadFileDataAsync(relativePath).ConfigureAwait(false)
 			};
 			items.Add(item);
 		}
@@ -266,9 +272,21 @@ public class DbLiveProject(
 		return items.AsReadOnly();
 	}
 
+	private Task<FileData> ReadFileDataAsync(string relativePath) =>
+		_fileData.GetOrAdd(relativePath, path => scriptSource.ReadFileDataAsync(path));
+
+	private IReadOnlyList<string> GetFiles(DbLiveSettings projectSettings)
+	{
+		lock (_filesLock)
+		{
+			return _files ??= ReadFiles(projectSettings);
+		}
+	}
+
 	/// <summary>
 	/// All files of the project. Every read checks all of them, so the deployment stops at its first read (migrations),
-	/// before anything is deployed, whatever folder the files are in.
+	/// before anything is deployed, whatever folder the files are in. The files pass the checks once; files that fail them
+	/// are checked again on the next read, and fail again.
 	/// </summary>
 	/// <exception cref="ScriptPathsDifferOnlyByCaseException">
 	/// Two paths differ only by case (possible on Linux): DbLive finds files and identifies them in the database
@@ -281,7 +299,7 @@ public class DbLiveProject(
 	/// A file of the Code folder is named as a breaking script and matches TestFilePatterns (test.breaking.sql),
 	/// so it would be both.
 	/// </exception>
-	private IReadOnlyList<string> GetFiles(DbLiveSettings projectSettings)
+	private IReadOnlyList<string> ReadFiles(DbLiveSettings projectSettings)
 	{
 		IReadOnlyList<string> files = scriptSource.GetFiles();
 

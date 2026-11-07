@@ -9,7 +9,7 @@ internal sealed class FolderScriptSource(string path) : IScriptSource
 	public string Location => path;
 
 	/// <summary>
-	/// Enumerates the folder on every call, so files added or deleted after the builder was created are seen.
+	/// Enumerates the folder on every call. The project reads it once per builder (<see cref="DbLiveProject"/>).
 	/// </summary>
 	public IReadOnlyList<string> GetFiles() =>
 		[.. Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Select(filePath => filePath.GetRelativePath(path))];

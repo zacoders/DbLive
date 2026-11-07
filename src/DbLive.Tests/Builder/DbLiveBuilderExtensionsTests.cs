@@ -75,7 +75,7 @@ public class DbLiveBuilderExtensionsTests
 	}
 
 	[Fact]
-	public async Task SetScriptsFolder_SeesFilesAddedAndDeletedAfterTheBuilderWasCreated()
+	public async Task SetScriptsFolder_ReadsTheProjectOncePerBuilder()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Code/v1.sql", "create view dbo.v1 as select 1 as x;");
@@ -83,18 +83,23 @@ public class DbLiveBuilderExtensionsTests
 		using DbLiveBuilder builder = new DbLiveBuilder()
 			.SetScriptsFolder(project.Path);
 
-		IDbLiveProject dbLiveProject = builder.CreateProject();
-
-		Assert.Single(Assert.Single(await dbLiveProject.GetCodeGroupsAsync()).CodeItems);
+		Assert.Single(Assert.Single(await builder.CreateProject().GetCodeGroupsAsync()).CodeItems);
 
 		project
-			.AddFile("Code/v2.sql", "create view dbo.v2 as select 2 as x;")
-			.AddFile("Code/v3.sql", "create view dbo.v3 as select 3 as x;")
-			.DeleteFiles("v1.sql");
+			.AddFile("Code/v1.sql", "create view dbo.v1 as select 10 as x;")
+			.AddFile("Code/v2.sql", "create view dbo.v2 as select 2 as x;");
+
+		// the same builder: the files as they were at the first read.
+		CodeItem item = Assert.Single(Assert.Single(await builder.CreateProject().GetCodeGroupsAsync()).CodeItems);
+		Assert.Equal("create view dbo.v1 as select 1 as x;", item.FileData.Content);
+
+		// a new builder for the new build.
+		using DbLiveBuilder newBuilder = new DbLiveBuilder()
+			.SetScriptsFolder(project.Path);
 
 		Assert.Equal(
-			["Code/v2.sql", "Code/v3.sql"],
-			Assert.Single(await dbLiveProject.GetCodeGroupsAsync()).CodeItems.Select(i => i.FileData.RelativePath)
+			["create view dbo.v1 as select 10 as x;", "create view dbo.v2 as select 2 as x;"],
+			Assert.Single(await newBuilder.CreateProject().GetCodeGroupsAsync()).CodeItems.Select(i => i.FileData.Content)
 		);
 	}
 

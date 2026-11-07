@@ -3,7 +3,6 @@ using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
 using System.Data;
-using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
@@ -426,14 +425,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
-	// relative_path is stored in lower case, so a file is identified ignoring case, the same way it is found in the project.
-	// lower() runs in the database, like in the self-deploy script that lower-cased the existing paths, so both agree.
+	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
-			using ( select 1 ) s(c) on t.relative_path = lower(@relative_path)
+			using ( select 1 ) s(c) on t.relative_path = @relative_path
 			when matched then update
 				set item_type = @item_type
 					, status = @status
@@ -453,7 +451,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, error
 				)
 				values (
-					lower(@relative_path)
+					@relative_path
 					, @item_type
 					, @status
 					, @content_hash
@@ -465,7 +463,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
+				relative_path = item.RelativePath.ToStoredPath(),
 				item_type = item.ItemType.ToString().ToLower(),
 				status = item.Status.ToString().ToLower(),
 				content_hash = item.ContentHash,
@@ -477,41 +475,70 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
+	/// <summary>
+	/// The paths as one table-valued parameter (self-migration 13), whatever their number: a command takes at most 2100 parameters.
+	/// The paths of the project are unique, also in lower case: two paths that differ only by case stop the deployment.
+	/// </summary>
+	private static SqlMapper.ICustomQueryParameter ToPathList(IEnumerable<string> relativePaths)
+	{
+		DataTable table = new();
+		_ = table.Columns.Add("value", typeof(string));
+
+		foreach (string relativePath in relativePaths)
+		{
+			_ = table.Rows.Add(relativePath.ToStoredPath());
+		}
+
+		return table.AsTableValuedParameter("dblive.tvp_unique_string_list");
+	}
+
+	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
-			update dblive.code
+			update c
 			set verified_utc = @verified_utc
-			where relative_path = lower(@relative_path)
+			from dblive.code as c
+			join @paths as p on p.value = c.relative_path;
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }
+			new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
 
-	// the project paths are sent as one xml parameter: lower() runs in the database, like in every other query,
-	// and the number of files is not limited by the 2100 parameters of a command. xml works with any compatibility level.
 	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
 	{
-		string paths = new XElement("paths", projectRelativePaths.Select(p => new XElement("p", p))).ToString(SaveOptions.DisableFormatting);
-
 		using var cnn = GetConnection();
 		return (await cnn.QueryAsync<string>(
 			"""
-			declare @project_paths xml = @paths;
-
-			update dblive.code
+			update c
 			set status = 'removed'
 			  , verified_utc = @verified_utc
 			output inserted.relative_path
-			where status <> 'removed'
-			  and relative_path not in (
-				select lower(p.value('.', 'nvarchar(4000)'))
-				from @project_paths.nodes('/paths/p') as x(p)
-			  );
+			from dblive.code as c
+			where c.status <> 'removed'
+			  and not exists ( select 1 from @paths as p where p.value = c.relative_path );
 			""",
-			new { paths, verified_utc = verifiedUtc }
+			new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc }
+		).ConfigureAwait(false)).ToList();
+	}
+
+	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
+	{
+		using var cnn = GetConnection();
+		return (await cnn.QueryAsync<CodeItemDto>(
+			"""
+			select relative_path
+				 , item_type
+				 , content_hash
+				 , applied_utc
+				 , created_utc
+				 , execution_time_ms
+				 , verified_utc
+				 , error as error_message
+				 , status
+			from dblive.code
+			"""
 		).ConfigureAwait(false)).ToList();
 	}
 
@@ -530,9 +557,9 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , error as error_message
 			     , status			  
 			from dblive.code
-			where relative_path = lower(@relative_path)
+			where relative_path = @relative_path
 			""",
-			new { relative_path = relativePath }
+			new { relative_path = relativePath.ToStoredPath() }
 		).ConfigureAwait(false);
 	}
 
@@ -545,7 +572,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			when matched then update 
 			set status = @status
 				, content_hash = @content_hash
-				, relative_path = lower(@relative_path)
+				, relative_path = @relative_path
 			when not matched then
 			insert (
 				version
@@ -560,7 +587,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				@version
 				, @name
 				, @item_type
-				, lower(@relative_path)
+				, @relative_path
 				, @status
 				, @content_hash
 				, @created_utc
@@ -571,7 +598,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version = item.Version,
 				name = item.Name,
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
-				relative_path = item.RelativePath,
+				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
 				status = item.Status.ToString().ToLower(),
 				created_utc = item.CreatedUtc
@@ -585,7 +612,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash
-			  , relative_path = lower(@relative_path)
+			  , relative_path = @relative_path
 			where version = @version
 			  and item_type = @item_type
 			  and status = 'applied'
@@ -595,7 +622,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				version = item.Version,
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				content_hash = item.ContentHash,
-				relative_path = item.RelativePath
+				relative_path = item.RelativePath.ToStoredPath()
 			}
 		).ConfigureAwait(false);
 
@@ -642,7 +669,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(
 			"""			
 			merge into dblive.unit_test_run as t
-			using ( select 1 ) s(c) on t.relative_path = lower(@relative_path)
+			using ( select 1 ) s(c) on t.relative_path = @relative_path
 			when matched then update 
 				set content_hash = @content_hash
 				  , run_utc = @run_utc
@@ -659,7 +686,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				  , error
 				)
 				values (
-					lower(@relative_path)
+					@relative_path
 				  , @content_hash
 				  , @run_utc
 				  , @execution_time_ms
@@ -669,7 +696,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
+				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
 				run_utc = item.StartedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -692,7 +719,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(
 			"""
 			merge into dblive.folder_items as t
-			using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = lower(@relative_path)
+			using ( select 1 ) s(c) on t.folder_type = @folder_type and t.relative_path = @relative_path
 			when matched then 
 				update set 
 					started_utc = @started_utc,
@@ -711,7 +738,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				)
 				values (
 					  @folder_type
-					, lower(@relative_path)
+					, @relative_path
 					, sysutcdatetime()
 					, @started_utc
 					, @completed_utc
@@ -722,7 +749,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				folder_type = projectFolder.ToString(),
-				relative_path = relativePath,
+				relative_path = relativePath.ToStoredPath(),
 				started_utc = startedUtc,
 				completed_utc = completedUtc,
 				execution_time_ms = executionTimeMs,

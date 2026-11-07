@@ -548,16 +548,17 @@ public class BreakingChangesDeployerTests
 			new CodeGroup { Path = "Code", CodeItems = [item2] }
 		]);
 
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/schemas/dbo.sql").Returns(GetCodeRow(item1, CodeItemStatus.Applied));
-
-		// deployed from a CRLF checkout by a DbLive version that hashed the raw text: the code deployer skips it, so the guard passes.
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/dbo/GetUser.sql").Returns(new CodeItemDto
-		{
-			RelativePath = "code/dbo/getuser.sql",
-			ItemType = CodeItemType.Code,
-			ContentHash = LegacyContentHash.Of("create or alter proc dbo.GetUser_v2\r\nas\r\nselect 1;\r\n"),
-			Status = CodeItemStatus.Applied
-		});
+		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
+			GetCodeRow(item1, CodeItemStatus.Applied),
+			// deployed from a CRLF checkout by a DbLive version that hashed the raw text: the code deployer skips it, so the guard passes.
+			new CodeItemDto
+			{
+				RelativePath = "code/dbo/getuser.sql",
+				ItemType = CodeItemType.Code,
+				ContentHash = LegacyContentHash.Of("create or alter proc dbo.GetUser_v2\r\nas\r\nselect 1;\r\n"),
+				Status = CodeItemStatus.Applied
+			}
+		]);
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
@@ -604,13 +605,13 @@ public class BreakingChangesDeployerTests
 			new CodeGroup { Path = "Code", CodeItems = [missing7, applied, missing, changed, failed, removed, missing6] }
 		]);
 
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f1.sql").Returns(GetCodeRow(applied, CodeItemStatus.Applied));
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f2.sql").ReturnsNull();
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f3.sql").Returns(GetCodeRow(GetCodeItem("Code/f3.sql", "f3 of the previous build"), CodeItemStatus.Applied));
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f4.sql").Returns(GetCodeRow(failed, CodeItemStatus.Error));
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f5.sql").Returns(GetCodeRow(removed, CodeItemStatus.Removed));
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f6.sql").ReturnsNull();
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/f7.sql").ReturnsNull();
+		// no rows for f2, f6 and f7.
+		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
+			GetCodeRow(applied, CodeItemStatus.Applied),
+			GetCodeRow(GetCodeItem("Code/f3.sql", "f3 of the previous build"), CodeItemStatus.Applied),
+			GetCodeRow(failed, CodeItemStatus.Error),
+			GetCodeRow(removed, CodeItemStatus.Removed)
+		]);
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
@@ -638,7 +639,6 @@ public class BreakingChangesDeployerTests
 		CodeItem item = GetCodeItem("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser_v2 as select 1;");
 
 		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([new CodeGroup { Path = "Code", CodeItems = [item] }]);
-		mockSet.DbLiveDA.FindCodeItemAsync("Code/dbo/GetUser.sql").ReturnsNull();
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 

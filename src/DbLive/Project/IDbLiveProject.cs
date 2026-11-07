@@ -1,5 +1,9 @@
 ﻿namespace DbLive.Project;
 
+/// <summary>
+/// The scripts of the project, read once per builder like settings.json: files added, deleted or changed after the first read
+/// are not seen. A builder deploys one build.
+/// </summary>
 public interface IDbLiveProject
 {
 	/// <summary>

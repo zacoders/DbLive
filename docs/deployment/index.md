@@ -130,6 +130,8 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 | `dblive.unit_test_run` | Last result of each SQL test |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
 
+On SQL Server the schema also has the table type `dblive.tvp_unique_string_list`: DbLive passes lists of file paths to its queries in it.
+
 Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`).
 
 ### The DbLive version a database requires

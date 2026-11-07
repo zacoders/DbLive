@@ -44,21 +44,18 @@ public class BreakingChangesDeployer(
 	/// <exception cref="CodeNotDeployedException"/>
 	private async Task ValidateCodeDeployedAsync()
 	{
-		List<string> notDeployed = [];
+		IReadOnlyList<CodeGroup> codeGroups = await _project.GetCodeGroupsAsync().ConfigureAwait(false);
 
-		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
-		{
-			foreach (CodeItem codeItem in group.CodeItems)
-			{
-				CodeItemDto? row = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
+		CodeRows rows = new(await _da.GetCodeItemsAsync().ConfigureAwait(false));
 
-				// the check of CodeItemDeployer: the guard passes exactly when the code deployment has nothing left to execute.
-				if (row is null || row.Status != CodeItemStatus.Applied || !codeItem.FileData.MatchesHash(row.ContentHash))
-				{
-					notDeployed.Add(codeItem.FileData.RelativePath);
-				}
-			}
-		}
+		// the check of CodeDeployer: the guard passes exactly when the code deployment has nothing left to execute.
+		List<string> notDeployed =
+		[
+			.. codeGroups
+				.SelectMany(group => group.CodeItems)
+				.Where(codeItem => !rows.IsDeployed(codeItem.FileData))
+				.Select(codeItem => codeItem.FileData.RelativePath)
+		];
 
 		if (notDeployed.Count > 0)
 		{

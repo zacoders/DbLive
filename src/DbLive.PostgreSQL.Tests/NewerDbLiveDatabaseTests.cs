@@ -37,6 +37,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		_ = project
 			.AddFile("Migrations/002.migration.sql", "create table t2 (id int not null);")
 			.AddFile("Code/public/v1.sql", "create or replace view v1 as select 1 as x;");
+		builder = CreateBuilder(project);
 
 		DatabaseRequiresNewerDbLiveException ex = await Assert.ThrowsAsync<DatabaseRequiresNewerDbLiveException>(
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default));
@@ -67,6 +68,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		await da.ExecuteNonQueryAsync("update dblive.version set version = 1000;");
 
 		_ = project.AddFile("Migrations/002.migration.sql", "create table t2 (id int not null);");
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -101,6 +103,9 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		Assert.Equal(DbLiveCompatibility.MinCompatibleVersion, await da.GetMinDbLiveLibVersionAsync());
 	}
 
+	/// <summary>
+	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
+	/// </summary>
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{
 		return new DbLiveBuilder()

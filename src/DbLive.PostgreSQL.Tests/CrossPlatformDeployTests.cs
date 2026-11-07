@@ -53,6 +53,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		_ = project
 			.AddFile("Migrations/001.migration.sql", MigrationCrLf.Replace("\r\n", "\n"))
 			.AddFile("Code/public/v1.sql", CodeCrLf.Replace("\r\n", "\n"));
+		builder = CreateBuilder(project);
 
 		// MigrationChecksumMode is Strict by default.
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
@@ -210,6 +211,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		_ = project
 			.DeleteFiles("V1.sql")
 			.AddFile("Code/public/v1.sql", Code);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -269,6 +271,9 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		);
 	}
 
+	/// <summary>
+	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
+	/// </summary>
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{
 		return new DbLiveBuilder()

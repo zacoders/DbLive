@@ -23,14 +23,55 @@ public class CodeDeployer(
 
 		IReadOnlyList<CodeGroup> codeGroups = await _project.GetCodeGroupsAsync().ConfigureAwait(false);
 
-		foreach (CodeGroup group in codeGroups)
+		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = await SkipDeployedAsync(codeGroups).ConfigureAwait(false);
+
+		foreach (IReadOnlyCollection<CodeItem> codeItems in groupsToDeploy.Where(items => items.Count > 0))
 		{
-			await DeployGroupAsync(group.CodeItems).ConfigureAwait(false);
+			await DeployGroupAsync(codeItems).ConfigureAwait(false);
 		}
 
 		await MarkRemovedFilesAsync(codeGroups).ConfigureAwait(false);
 
 		_logger.Information("Code deploy successfully completed.");
+	}
+
+	/// <summary>
+	/// The code items left to execute, by group. A deployment where nothing changed reads <c>dblive.code</c> with one query and sets
+	/// <c>verified_utc</c> of the files it skips with one command, instead of two round trips per file.
+	/// </summary>
+	private async Task<List<IReadOnlyCollection<CodeItem>>> SkipDeployedAsync(IReadOnlyList<CodeGroup> codeGroups)
+	{
+		CodeRows rows = new(await _da.GetCodeItemsAsync().ConfigureAwait(false));
+
+		List<string> deployedFiles = [];
+		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = [];
+
+		foreach (CodeGroup group in codeGroups)
+		{
+			List<CodeItem> codeItems = [];
+
+			foreach (CodeItem codeItem in group.CodeItems)
+			{
+				if (rows.IsDeployed(codeItem.FileData))
+				{
+					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
+					deployedFiles.Add(codeItem.FileData.RelativePath);
+				}
+				else
+				{
+					codeItems.Add(codeItem);
+				}
+			}
+
+			groupsToDeploy.Add(codeItems);
+		}
+
+		if (deployedFiles.Count > 0)
+		{
+			await _da.MarkCodeAsVerifiedAsync(deployedFiles, _timeProvider.UtcNow()).ConfigureAwait(false);
+		}
+
+		return groupsToDeploy;
 	}
 
 	/// <summary>

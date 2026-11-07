@@ -28,6 +28,7 @@ public class DbLiveTablesSnapshotTests
 		"self-migration mssql 10.code-item-type.sql 3550310615360531122",
 		"self-migration mssql 11.remove-undo.sql -2866849754408976792",
 		"self-migration mssql 12.min-dblive-lib-version.sql 2255103403618828717",
+		"self-migration mssql 13.tvp-unique-string-list.sql 5352230546051605070",
 		"self-migration postgresql 01.migration.sql -8163480040521449432",
 		"self-migration postgresql 02.migration-version-bigint.sql 6347519236500195150",
 		"self-migration postgresql 03.project-id.sql -6108490539713440686",

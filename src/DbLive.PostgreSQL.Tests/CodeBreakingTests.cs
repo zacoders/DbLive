@@ -43,6 +43,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		_ = project
 			.AddFile("Code/public/get_user.sql", FunctionV2)
 			.AddFile("Code/public/get_user.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -64,6 +65,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		_ = project
 			.DeleteFiles("get_user.breaking.sql")
 			.AddFile("Code/public/get_user.sql", FunctionV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -74,6 +76,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		_ = project
 			.AddFile("Code/public/get_user.sql", FunctionV2)
 			.AddFile("Code/public/get_user.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -102,6 +105,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 			.DeleteFiles("get_user_v1.sql")
 			.AddFile("Code/public/get_user_v2.sql", FunctionV2)
 			.AddFile("Code/public/get_user_v1.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Breaking);
@@ -117,6 +121,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 			.DeleteFiles("get_user_v2.sql")
 			.DeleteFiles("get_user_v1.breaking.sql")
 			.AddFile("Code/public/get_user_v1.sql", FunctionV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -158,6 +163,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		_ = project
 			.AddFile("Code/public/get_user.sql", FunctionV2)
 			.AddFile("Code/public/get_user.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		CodeNotDeployedException ex = await Assert.ThrowsAsync<CodeNotDeployedException>(
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
@@ -193,6 +199,9 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from information_schema.columns where table_name = 'users' and column_name = 'phone'"));
 	}
 
+	/// <summary>
+	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
+	/// </summary>
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{
 		return new DbLiveBuilder()

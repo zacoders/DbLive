@@ -16,17 +16,6 @@ public class CodeItemDeployer(
 		DateTime migrationStartedUtc = _timeProvider.UtcNow();
 		try
 		{
-			CodeItemDto? codeItemDto = await _da.FindCodeItemAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
-
-			if (codeItemDto != null
-				&& codeItem.FileData.MatchesHash(codeItemDto.ContentHash)
-				&& codeItemDto.Status == CodeItemStatus.Applied)
-			{
-				await _da.MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, _timeProvider.UtcNow()).ConfigureAwait(false);
-				_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
-				return CodeItemDeployResult.Success();
-			}
-
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
 			await _da.ExecuteNonQueryAsync(

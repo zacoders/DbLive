@@ -378,8 +378,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 
-	// relative_path is stored in lower case, so a file is identified ignoring case, the same way it is found in the project.
-	// lower() runs in the database, like in the self-deploy script that lower-cased the existing paths, so both agree.
+	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
@@ -389,7 +388,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					execution_time_ms, created_utc, error
 				)
 				values (
-					lower(@relative_path), @item_type, @status, @content_hash, @applied_utc,
+					@relative_path, @item_type, @status, @content_hash, @applied_utc,
 					@execution_time_ms, @created_utc, @error
 				)
 				on conflict (relative_path) do update set
@@ -402,7 +401,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
+				relative_path = item.RelativePath.ToStoredPath(),
 				item_type = item.ItemType.ToString().ToLower(),
 				status = item.Status.ToString().ToLower(),
 				content_hash = item.ContentHash,
@@ -414,20 +413,40 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
+	// the paths are sent as one text[] parameter.
+	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
 			update dblive.code
 			set verified_utc = @verified_utc
-			where relative_path = lower(@relative_path)
+			where relative_path in ( select p from unnest(@paths) as p )
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }
+			new { paths = relativePaths.Select(p => p.ToStoredPath()).ToArray(), verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
 
-	// the project paths are sent as one text[] parameter: lower() runs in the database, like in every other query.
+	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		return (await cnn.QueryAsync<CodeItemDto>(
+			"""
+			select relative_path
+				 , item_type
+				 , content_hash
+				 , applied_utc
+				 , created_utc
+				 , execution_time_ms
+				 , verified_utc
+				 , error as error_message
+				 , status
+			from dblive.code
+			"""
+		).ConfigureAwait(false)).ToList();
+	}
+
+	// the project paths are sent as one text[] parameter.
 	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
@@ -437,10 +456,10 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set status = 'removed'
 			  , verified_utc = @verified_utc
 			where status <> 'removed'
-			  and relative_path not in ( select lower(p) from unnest(@paths) as p )
+			  and relative_path not in ( select p from unnest(@paths) as p )
 			returning relative_path
 			""",
-			new { paths = projectRelativePaths.ToArray(), verified_utc = verifiedUtc }
+			new { paths = projectRelativePaths.Select(p => p.ToStoredPath()).ToArray(), verified_utc = verifiedUtc }
 		).ConfigureAwait(false)).ToList();
 	}
 
@@ -459,9 +478,9 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , error as error_message
 				 , status
 			from dblive.code
-			where relative_path = lower(@relative_path)
+			where relative_path = @relative_path
 			""",
-			new { relative_path = relativePath }
+			new { relative_path = relativePath.ToStoredPath() }
 		).ConfigureAwait(false);
 	}
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
@@ -473,7 +492,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				status, content_hash, created_utc
 			)
 			values (
-				@version, @name, @item_type, lower(@relative_path),
+				@version, @name, @item_type, @relative_path,
 				@status, @content_hash, @created_utc
 			)
 			on conflict (version, item_type) do update set
@@ -486,7 +505,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			version = item.Version,
 			name = item.Name,
 			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
-			relative_path = item.RelativePath,
+			relative_path = item.RelativePath.ToStoredPath(),
 			content_hash = item.ContentHash,
 			status = item.Status.ToString().ToLower(),
 			created_utc = item.CreatedUtc
@@ -499,7 +518,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash,
-				relative_path = lower(@relative_path)
+				relative_path = @relative_path
 			where version = @version
 			  and item_type = @item_type
 			  and status = 'applied'
@@ -509,7 +528,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			version = item.Version,
 			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 			content_hash = item.ContentHash,
-			relative_path = item.RelativePath
+			relative_path = item.RelativePath.ToStoredPath()
 		}).ConfigureAwait(false);
 
 		if (rowsAffected == 0)
@@ -560,7 +579,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms, pass, error
 			)
 			values (
-				lower(@relative_path), @content_hash, @run_utc,
+				@relative_path, @content_hash, @run_utc,
 				@execution_time_ms, @pass, @error
 			)
 			on conflict (relative_path) do update set
@@ -572,7 +591,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 		new
 		{
-			relative_path = item.RelativePath,
+			relative_path = item.RelativePath.ToStoredPath(),
 			content_hash = item.ContentHash,
 			run_utc = item.StartedUtc,
 			execution_time_ms = item.ExecutionTimeMs,
@@ -604,7 +623,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				started_utc, completed_utc, execution_time_ms, content_hash
 			)
 			values (
-				@folder_type, lower(@relative_path), now(),
+				@folder_type, @relative_path, now(),
 				@started_utc, @completed_utc, @execution_time_ms, @content_hash
 			)
 			on conflict (folder_type, relative_path) do update set
@@ -616,7 +635,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		new
 		{
 			folder_type = projectFolder.ToString(),
-			relative_path = relativePath,
+			relative_path = relativePath.ToStoredPath(),
 			started_utc = startedUtc,
 			completed_utc = completedUtc,
 			execution_time_ms = executionTimeMs,

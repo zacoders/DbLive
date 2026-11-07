@@ -82,7 +82,7 @@ var deployer = new DbLiveBuilder()
     .CreateDeployer();
 ```
 
-The folder is read again on every deployment, so files added or deleted after `SetScriptsFolder` are picked up. Only `settings.json` is read once per builder: to pick up a change to it, create a new builder.
+A builder reads the folder once, on first use, together with `settings.json`: a later deployment from the same builder does not see files added, deleted or changed since. Create a new builder for each build to deploy.
 
 Both calls give DbLive the same scripts. DbLive works only with paths relative to the scripts root, such as `Migrations/001.migration.sql`, with `/` on every OS. Folders and file patterns are matched ignoring case, and logs and error messages show the real names of the files and folders. The database stores the paths in lower case, so a file renamed only by case is still the same file, and two files whose paths differ only by case stop the deployment ([details](structure.md#folders)).
 

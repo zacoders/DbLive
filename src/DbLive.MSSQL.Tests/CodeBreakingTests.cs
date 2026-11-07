@@ -42,6 +42,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		_ = project
 			.AddFile("Code/dbo/GetUser.sql", ProcV2)
 			.AddFile("Code/dbo/GetUser.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -63,6 +64,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		_ = project
 			.DeleteFiles("GetUser.breaking.sql")
 			.AddFile("Code/dbo/GetUser.sql", ProcV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -73,6 +75,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		_ = project
 			.AddFile("Code/dbo/GetUser.sql", ProcV2)
 			.AddFile("Code/dbo/GetUser.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -101,6 +104,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.DeleteFiles("GetUser_v1.sql")
 			.AddFile("Code/dbo/GetUser_v2.sql", ProcV2)
 			.AddFile("Code/dbo/GetUser_v1.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Breaking);
@@ -116,6 +120,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.DeleteFiles("GetUser_v2.sql")
 			.DeleteFiles("GetUser_v1.breaking.sql")
 			.AddFile("Code/dbo/GetUser_v1.sql", ProcV1);
+		builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -157,6 +162,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		_ = project
 			.AddFile("Code/dbo/GetUser.sql", ProcV2)
 			.AddFile("Code/dbo/GetUser.breaking.sql", DropV1);
+		builder = CreateBuilder(project);
 
 		CodeNotDeployedException ex = await Assert.ThrowsAsync<CodeNotDeployedException>(
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
@@ -192,6 +198,9 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.Users') and name = 'Phone'"));
 	}
 
+	/// <summary>
+	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
+	/// </summary>
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{
 		return new DbLiveBuilder()

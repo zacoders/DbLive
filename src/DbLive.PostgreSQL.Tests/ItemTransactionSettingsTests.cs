@@ -73,6 +73,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		// the build of the release before: no 003, and a new BeforeDeploy script.
 		_ = project.DeleteFiles("003.*").AddFile("BeforeDeploy/drop-t1.sql", "drop table t1;");
+		builder = CreateBuilder(project);
 
 		foreach (DeployParameters parameters in new[] { DeployParameters.Default, DeployParameters.Breaking })
 		{
@@ -214,6 +215,9 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		Assert.Equal(MigrationItemStatus.None, GetItem(items, 2, MigrationItemType.Breaking).Status);
 	}
 
+	/// <summary>
+	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
+	/// </summary>
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{
 		return new DbLiveBuilder()

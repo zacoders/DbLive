@@ -50,6 +50,9 @@ public class MockSet
 		// a database without a minimum DbLive version unless a test sets one.
 		DbLiveDA.GetMinDbLiveLibVersionAsync().Returns((Version?)null);
 
+		// a database without rows in dblive.code unless a test sets them.
+		DbLiveDA.GetCodeItemsAsync().Returns([]);
+
 		// the schema checks of the deployment tests compare equal snapshots unless a test sets them.
 		DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 

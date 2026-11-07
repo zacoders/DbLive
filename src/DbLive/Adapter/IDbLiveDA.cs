@@ -43,7 +43,10 @@ public interface IDbLiveDA
 	/// <exception cref="DbLiveSqlException"/>
 	Task SaveCodeItemAsync(CodeItemDto item);
 
-	Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc);
+	/// <summary>
+	/// Sets <c>verified_utc</c> of the rows of <c>dblive.code</c> of <paramref name="relativePaths"/>, with one command.
+	/// </summary>
+	Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc);
 
 	/// <summary>
 	/// Marks the rows of <c>dblive.code</c> whose file is not one of <paramref name="projectRelativePaths"/> as removed,
@@ -77,6 +80,11 @@ public interface IDbLiveDA
 	);
 
 	Task<CodeItemDto?> FindCodeItemAsync(string relativePath);
+
+	/// <summary>
+	/// All rows of <c>dblive.code</c>, with one query.
+	/// </summary>
+	Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync();
 
 	Task SaveMigrationItemAsync(MigrationItemSaveDto item);
 

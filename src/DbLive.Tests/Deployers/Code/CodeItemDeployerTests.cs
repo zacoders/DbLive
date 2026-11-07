@@ -3,152 +3,12 @@ namespace DbLive.Tests.Deployers.Code;
 public class CodeItemDeployerTests
 {
 	[Fact]
-	public async Task DeployCodeItem_Redeploy_CodeItem_Success()
+	public async Task Deploy_CodeItem_Success()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
 		CodeItem codeItem = GetCodeItem();
-
-		CodeItemDto codeItemDto = new()
-		{
-			ContentHash = codeItem.FileData.ContentHash, // same hash
-			AppliedUtc = new DateTime(2023, 1, 1),
-			ExecutionTimeMs = 5,
-			RelativePath = codeItem.FileData.RelativePath,
-			ItemType = CodeItemType.Code,
-			Status = CodeItemStatus.Applied,
-			CreatedUtc = new DateTime(2023, 1, 1, 1, 1, 1),
-			ErrorMessage = null,
-			VerifiedUtc = new DateTime(2023, 1, 2)
-		};
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
-
-		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
-
-		// Act
-		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
-
-		// Assert
-		Assert.True(res.IsSuccess);
-
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(Arg.Any<CodeItemDto>());
-	}
-
-	[Fact]
-	public async Task DeployCodeItem_Hash_Of_Other_Line_Endings_Is_A_Match()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		CodeItem codeItem = GetCodeItem("select 1 as a\nunion all\nselect 2;\n");
-
-		CodeItemDto codeItemDto = new()
-		{
-			// deployed from a CRLF checkout by a DbLive version that hashed the raw text.
-			ContentHash = LegacyContentHash.Of("select 1 as a\r\nunion all\r\nselect 2;\r\n"),
-			AppliedUtc = new DateTime(2023, 1, 1),
-			RelativePath = codeItem.FileData.RelativePath,
-			ItemType = CodeItemType.Code,
-			Status = CodeItemStatus.Applied
-		};
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
-
-		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
-
-		// Act
-		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
-
-		// Assert
-		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received().MarkCodeAsVerifiedAsync(codeItem.FileData.RelativePath, Arg.Any<DateTime>());
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(Arg.Any<CodeItemDto>());
-	}
-
-	[Fact]
-	public async Task DeployCodeItem_DifferentHash()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		CodeItem codeItem = GetCodeItem();
-
-		long differentHash = codeItem.FileData.ContentHash + 123;
-
-		CodeItemDto codeItemDto = new()
-		{
-			ContentHash = differentHash,
-			AppliedUtc = new DateTime(2023, 1, 1),
-			ExecutionTimeMs = 5,
-			RelativePath = codeItem.FileData.RelativePath,
-			ItemType = CodeItemType.Code,
-			Status = CodeItemStatus.Applied,
-			CreatedUtc = new DateTime(2023, 1, 1, 1, 1, 1),
-			ErrorMessage = null,
-			VerifiedUtc = new DateTime(2023, 1, 2)
-		};
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
-
-		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
-
-		// Act
-		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
-
-		// Assert
-		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
-	}
-
-
-	[Fact]
-	public async Task DeployCodeItem_Removed_File_Is_Executed_Again()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		CodeItem codeItem = GetCodeItem();
-
-		// the file was deleted by a release, and a later release brought it back (git revert) with the same content.
-		CodeItemDto codeItemDto = new()
-		{
-			ContentHash = codeItem.FileData.ContentHash,
-			AppliedUtc = new DateTime(2023, 1, 1),
-			RelativePath = codeItem.FileData.RelativePath,
-			ItemType = CodeItemType.Code,
-			Status = CodeItemStatus.Removed,
-			VerifiedUtc = new DateTime(2023, 1, 2)
-		};
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).Returns(codeItemDto);
-
-		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
-
-		// Act
-		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
-
-		// Assert
-		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync(codeItem.FileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.Received(1).SaveCodeItemAsync(Arg.Is<CodeItemDto>(i =>
-			i.Status == CodeItemStatus.Applied && i.ItemType == CodeItemType.Code));
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkCodeAsVerifiedAsync(default!, default);
-	}
-
-	[Fact]
-	public async Task Deploy_New_CodeItem_Success()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		CodeItem codeItem = GetCodeItem();
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -168,8 +28,6 @@ public class CodeItemDeployerTests
 		MockSet mockSet = new();
 
 		CodeItem codeItem = GetCodeItem();
-
-		mockSet.DbLiveDA.FindCodeItemAsync(codeItem.FileData.RelativePath).ReturnsNull();
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
@@ -195,8 +53,6 @@ public class CodeItemDeployerTests
 		// the database stores the path in lower case, the deployer passes and logs the path of the file.
 		CodeItem codeItem = GetCodeItem(relativePath: "Code/dbo/GetUser.sql");
 
-		mockSet.DbLiveDA.FindCodeItemAsync(Arg.Any<string>()).ReturnsNull();
-
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		// Act
@@ -204,7 +60,6 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received().FindCodeItemAsync("Code/dbo/GetUser.sql");
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.RelativePath == "Code/dbo/GetUser.sql"));
 		mockSet.Logger.Received().Information("Deploying code file: {filePath}", "Code/dbo/GetUser.sql");
 	}
