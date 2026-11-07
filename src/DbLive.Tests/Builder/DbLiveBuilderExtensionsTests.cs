@@ -29,7 +29,7 @@ public class DbLiveBuilderExtensionsTests
 		Assert.Equal("DbLive", ex.AssemblyName);
 		Assert.Contains("'DbLive'", ex.Message);
 		Assert.Contains("""<PackageReference Include="DbLive" />""", ex.Message);
-		Assert.Contains("<DbLiveScriptsFolder>", ex.Message);
+		Assert.Contains("<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>", ex.Message);
 	}
 
 	[Theory]

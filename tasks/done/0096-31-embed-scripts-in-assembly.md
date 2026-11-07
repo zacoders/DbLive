@@ -8,10 +8,10 @@ breaking: true
 # Embed the scripts in the SQL project assembly
 
 ## Release note
-**Scripts are embedded in the SQL project assembly.** `SetProject(assembly)` reads the scripts from the resources of the assembly instead of a copy in the output folder: a deleted or renamed script no longer stays in `bin/` to be deployed, and the working directory no longer matters. The `DbLive` package embeds the `Scripts` folder when the project builds; it comes with `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`, so the `.csproj` needs no DbLive block. `SetScriptsFolder(path)` reads a folder instead, for example in a deployer that gets the scripts as an argument. Existing databases deploy as before: relative paths and checksums do not change.
+**Scripts are embedded in the SQL project assembly.** `SetProject(assembly)` reads the scripts from the resources of the assembly instead of a copy in the output folder: a deleted or renamed script no longer stays in `bin/` to be deployed, and the working directory no longer matters. The `DbLive` package embeds the folder that the `.csproj` names, `<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>`, when the project builds; it comes with `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`. `SetScriptsFolder(path)` reads a folder instead, for example in a deployer that gets the scripts as an argument. Existing databases deploy as before: relative paths and checksums do not change.
 
 To upgrade:
-- Remove the DbLive block from the `.csproj` of the SQL project: the `ClearOutput` target, the `None` items that copy `Scripts` to the output folder, and the `AssemblyAttribute` with `ProjectDir`. The package adds what DbLive needs.
+- Remove the DbLive block from the `.csproj` of the SQL project: the `ClearOutput` target, the `None` items that copy `Scripts` to the output folder, and the `AssemblyAttribute` with `ProjectDir`. Add `<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>` to a `PropertyGroup` instead: the package adds what DbLive needs. Without it, `SetProject` fails with `ScriptsNotEmbeddedException`.
 - A SQL project with only scripts, without a provider package, needs a reference to DbLive: `dotnet add package DbLive`. Without it, `SetProject` fails with `ScriptsNotEmbeddedException`, which it throws for any assembly without embedded scripts.
 - Remove the `useVsProjectPath` argument of `SetProject`: a test project reads the scripts from the dll of the SQL project it references.
 

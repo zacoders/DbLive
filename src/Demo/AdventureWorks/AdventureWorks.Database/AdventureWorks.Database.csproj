@@ -4,10 +4,12 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- The DbLive package embeds this folder in the assembly when the project builds. -->
+		<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
 	</PropertyGroup>
 
 	<!--
-	Only scripts. With the packages, this project references DbLive, which embeds the Scripts folder:
+	Only scripts. With the packages, this project references DbLive, which embeds the folder:
 	<PackageReference Include="DbLive" />. The demos get the same from src/Demo/Directory.Build.props.
 	-->
 

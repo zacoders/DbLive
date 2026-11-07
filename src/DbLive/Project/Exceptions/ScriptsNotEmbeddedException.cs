@@ -5,10 +5,10 @@ namespace DbLive.Project.Exceptions;
 public class ScriptsNotEmbeddedException(string assemblyName)
 	: Exception($"""
 		Assembly '{assemblyName}' has no embedded DbLive scripts. Pass the assembly of the SQL project, the project that contains the scripts.
-		The DbLive package embeds the Scripts folder of every project that references it, directly or through DbLive.MSSQL, DbLive.PostgreSQL or DbLive.xunit. Check that:
-		- the SQL project references a DbLive package; a project with only scripts needs <PackageReference Include="DbLive" />;
-		- the scripts are in its Scripts folder, or its .csproj names their folder: <DbLiveScriptsFolder>Db</DbLiveScriptsFolder>;
-		- its .csproj does not set <DbLiveEmbedScripts>false</DbLiveEmbedScripts>.
+		The DbLive package embeds the folder that the .csproj of the SQL project names. Check that:
+		- the .csproj names the folder of the scripts, relative to the project: <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>;
+		- the SQL project references a DbLive package, directly or through DbLive.MSSQL, DbLive.PostgreSQL or DbLive.xunit; a project with only scripts needs <PackageReference Include="DbLive" />;
+		- the folder exists and has the scripts.
 		""")
 {
 	public string AssemblyName { get; private set; } = assemblyName;

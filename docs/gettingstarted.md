@@ -55,7 +55,15 @@ cd MyDb
 dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
 ```
 
-The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds. There is nothing to add to the `.csproj` (see [Embedding the scripts](project/index.md#embedding-the-scripts)).
+Name the scripts folder in `MyDb.csproj`:
+
+```xml
+<PropertyGroup>
+  <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
+</PropertyGroup>
+```
+
+The DbLive package embeds all files of that folder in the project assembly when the project builds (see [Embedding the scripts](project/index.md#embedding-the-scripts)).
 
 ## 3. Add SQL Scripts to Your Project
 

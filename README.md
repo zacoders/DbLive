@@ -81,7 +81,15 @@ dotnet add package DbLive.xunit
 dotnet add package DbLive.Testcontainers.MSSQL   # or DbLive.Testcontainers.PostgreSQL: the test database runs in Docker
 ```
 
-The DbLive package embeds all files in the `Scripts` folder in the project assembly when the project builds, so the dll you build is the dll you deploy. There is nothing to add to the `.csproj`.
+Name the scripts folder in the `.csproj` of the project:
+
+```xml
+<PropertyGroup>
+  <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
+</PropertyGroup>
+```
+
+The DbLive package embeds all files of that folder in the project assembly when the project builds, so the dll you build is the dll you deploy.
 
 #### 2. Add SQL scripts to your project
 

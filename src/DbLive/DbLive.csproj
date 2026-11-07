@@ -48,7 +48,7 @@
 			<PackagePath>\</PackagePath>
 		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
-		<!-- Embeds the scripts of every project that has DbLive in its graph; NuGet imports only files named after the package. -->
+		<!-- Embeds the scripts folder that a project with DbLive in its graph names in DbLiveScriptsFolder; NuGet imports only files named after the package. -->
 		<None Include="buildTransitive\DbLive.props" Pack="true" PackagePath="buildTransitive/" />
 	</ItemGroup>
 	

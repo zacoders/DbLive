@@ -5,9 +5,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The DbLive package embeds this folder in the assembly when the project builds. -->
+    <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
   </PropertyGroup>
 
-  <!-- The DbLive package embeds the Scripts folder in the assembly when the project builds. -->
+  <!-- The provider brings the DbLive package. -->
   <ItemGroup>
     <!--#if (mssql) -->
     <PackageReference Include="DbLive.MSSQL" Version="DBLIVE_VERSION" />
