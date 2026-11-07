@@ -40,8 +40,8 @@ It reads the scripts embedded in the SQL project assembly, so it deploys exactly
 Every `DeployAsync` call runs these steps in this order:
 
 1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
-2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database that a newer DbLive changed in a way this version cannot read stops the deployment here, before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
-3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations. The applied versions check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
+2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
+3. **Validate**: isolation levels, that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations. The applied versions check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
 4. **Record** all migration files of the project in `dblive.migration`.
 5. **BeforeDeploy** scripts.
 6. **Migrations**: pending versions in ascending order (`DeployMigrations`).
@@ -96,7 +96,7 @@ builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger));   // 
 ## A typical pipeline
 
 1. **Build** the solution.
-2. **Test**: `dotnet test` deploys the database into a Docker container (Testcontainers) as production does, runs every breaking script twice and all SQL tests. See [Unit Testing](../unit-testing/index.md).
+2. **Test**: `dotnet test` deploys the database into a Docker container (Testcontainers) as production does, with the breaking phase twice, and runs all SQL tests. See [Unit Testing](../unit-testing/index.md).
 3. **Deploy the database**: run the deployer with `Default`.
 4. **Deploy the application**. Old and new versions run side by side.
 5. **Remove the old application version.**

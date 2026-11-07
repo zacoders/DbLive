@@ -26,8 +26,7 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
     /// <summary>
     /// Deploys MyDb to an empty database as production does, in three deployments:
     /// 1. migrations and code, then the SQL tests;
-    /// 2. the breaking phase, where the breaking script of every migration runs twice and its second run
-    ///    must not change the schema, then the SQL tests again;
+    /// 2. the breaking phase, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
     /// </summary>
     [SqlDeployFact]

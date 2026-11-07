@@ -10,6 +10,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 
+	public bool ErrorAbortsTransaction => false;
+
 	static MsSqlDA()
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
@@ -35,18 +37,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		using var cnn = GetConnection();
 		return (await cnn.QueryAsync<MigrationItemRow>(query).ConfigureAwait(false)).Select(r => r.ToDto()).ToList();
-	}
-
-	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
-	{
-		const string query = @"
-			select content_hash
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-		";
-		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = MigrationItemTypeMapper.ToDbValue(itemType) }).ConfigureAwait(false);
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -115,11 +105,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { min_dblive_lib_version = version.ToString() }).ConfigureAwait(false);
 	}
 
+	// the column comes with self-migration 6, and the ProjectId is checked before the self-deployment: a database deployed
+	// before it has none. Without the column the batch returns no result set, and the value is null.
 	public async Task<string?> GetProjectIdAsync()
 	{
 		const string query = @"
-			select project_id
-			from dblive.version
+			if col_length('dblive.version', 'project_id') is not null
+				exec sys.sp_executesql N'select project_id from dblive.version';
 		";
 		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
@@ -540,27 +532,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.code
 			"""
 		).ConfigureAwait(false)).ToList();
-	}
-
-	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
-	{
-		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
-			"""
-			select relative_path
-				 , item_type
-				 , content_hash
-				 , applied_utc
-				 , created_utc
-				 , execution_time_ms
-				 , verified_utc
-				 , error as error_message
-			     , status			  
-			from dblive.code
-			where relative_path = @relative_path
-			""",
-			new { relative_path = relativePath.ToStoredPath() }
-		).ConfigureAwait(false);
 	}
 
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)

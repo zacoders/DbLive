@@ -19,10 +19,6 @@ public class DbLiveDeployerTests
 
 		List<string> calls = [];
 
-		mockSet.ProjectIdValidator
-			.When(x => x.ValidateAsync())
-			.Do(_ => calls.Add("project-id"));
-
 		mockSet.AppliedMigrationsValidator
 			.When(x => x.ValidateAsync())
 			.Do(_ => calls.Add("applied-versions"));
@@ -64,7 +60,6 @@ public class DbLiveDeployerTests
 		await mockSet.TransactionSettingsValidator.Received(1).ValidateAsync(Arg.Any<DbLiveSettings>());
 		Assert.Equal(
 			[
-				"project-id",
 				"applied-versions",
 				"checksum",
 				"save",
@@ -98,7 +93,6 @@ public class DbLiveDeployerTests
 		await deployer.DeployAsync(parameters);
 
 		// assert
-		await mockSet.ProjectIdValidator.Received(1).ValidateAsync();
 		mockSet.Logger.Received(1).Information("Starting project deploy from {Location}.", "memory");
 		mockSet.Logger.Received(1).Information("Project deploy completed.");
 	}

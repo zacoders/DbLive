@@ -73,6 +73,41 @@ public class DbLiveTests
 	}
 
 	[Fact]
+	public async Task ProjectId_is_checked_before_the_self_deployment_and_bound_after_it()
+	{
+		MockSet mockSet = new();
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		await dbLive.DeployAsync(DeployParameters.Default);
+
+		Received.InOrder(() =>
+		{
+			mockSet.ProjectIdValidator.ValidateAsync();
+			mockSet.DbLiveSelfDeployer.DeployAsync();
+			mockSet.ProjectIdValidator.BindAsync();
+			mockSet.DbLiveInternalDeployer.DeployAsync(DeployParameters.Default);
+		});
+	}
+
+	[Fact]
+	public async Task Database_of_another_project_stops_the_deployment_before_the_self_deployment()
+	{
+		MockSet mockSet = new();
+		mockSet.ProjectIdValidator.ValidateAsync()
+			.Returns(Task.FromException(new ProjectIdMismatchException("ProjectId mismatch.")));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		_ = await Assert.ThrowsAsync<ProjectIdMismatchException>(() => dbLive.DeployAsync(DeployParameters.Default));
+
+		// the self-migrations would change the dblive tables of the other project.
+		await mockSet.DbLiveSelfDeployer.DidNotReceive().DeployAsync();
+		await mockSet.ProjectIdValidator.DidNotReceive().BindAsync();
+		await mockSet.DbLiveInternalDeployer.DidNotReceive().DeployAsync(Arg.Any<DeployParameters>());
+	}
+
+	[Fact]
 	public void Database_is_not_created_by_default()
 	{
 		// a typo in the database name of a production connection string must fail, not create an empty database.

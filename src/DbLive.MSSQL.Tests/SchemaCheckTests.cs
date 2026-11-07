@@ -8,8 +8,8 @@ namespace DbLive.MSSQL.Tests;
 
 
 /// <summary>
-/// The schema checks of the deployment tests: a breaking script does not change the schema on a second run,
-/// a second breaking deployment does not change it either.
+/// The schema check of the deployment tests: a second breaking deployment does not change the schema.
+/// A migration breaking script runs once.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
@@ -31,20 +31,13 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 		alter table dbo.Person drop constraint if exists CK_Person_Name;
 		if col_length('dbo.Person', 'Email') is null alter table dbo.Person add Email nvarchar(100) null;
 		""";
-	private const string Breaking = "alter table dbo.Person drop column if exists Phone;";
-
-	// the condition is checked before the trigger is dropped: the first run drops the trigger, the second one the column.
-	private const string MigrationWithTrigger = "create or alter trigger dbo.TMP_sync on dbo.Person after insert as set nocount on;";
-	private const string BreakingThatDropsMoreOnItsSecondRun = """
-		if object_id('dbo.TMP_sync') is null
-			alter table dbo.Person drop column if exists Phone;
-		drop trigger if exists dbo.TMP_sync;
-		""";
+	// without 'if exists': the deployment test does not run a migration breaking script a second time.
+	private const string Breaking = "alter table dbo.Person drop column Phone;";
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	[Fact]
-	public async Task Idempotent_breaking_script_passes()
+	public async Task Breaking_script_runs_once()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", CreatePerson)
@@ -52,52 +45,6 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.breaking.sql", Breaking);
 
 		await DeployWithFixtureAsync(project);
-	}
-
-	[Fact]
-	public async Task Breaking_script_whose_second_run_drops_more_fails()
-	{
-		using TempProject project = new TempProject()
-			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", MigrationWithTrigger)
-			.AddFile("Migrations/002.breaking.sql", BreakingThatDropsMoreOnItsSecondRun);
-
-		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployWithFixtureAsync(project)
-		);
-
-		Assert.Equal(SchemaCheck.BreakingSecondRun, ex.Check);
-		Assert.Equal(
-			"""
-			Deployment test: the breaking script Migrations/002.breaking.sql is not idempotent, its second run changed the schema:
-			  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null
-			""".ReplaceLineEndings().TrimEnd(),
-			ex.Message
-		);
-	}
-
-	[Theory]
-	[InlineData(Breaking, false)]
-	[InlineData(BreakingThatDropsMoreOnItsSecondRun, true)]
-	public async Task Checks_read_the_schema_inside_the_deployment_transaction(string breaking, bool fails)
-	{
-		// the snapshot joins the deployment transaction: it sees the uncommitted schema and does not wait for its locks.
-		using TempProject project = new TempProject()
-			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
-			.AddFile("Migrations/001.migration.sql", CreatePerson)
-			.AddFile("Migrations/002.migration.sql", MigrationWithTrigger)
-			.AddFile("Migrations/002.breaking.sql", breaking);
-
-		Exception? ex = await Record.ExceptionAsync(() => DeployWithFixtureAsync(project));
-
-		if (fails)
-		{
-			Assert.Equal(SchemaCheck.BreakingSecondRun, Assert.IsType<SchemaChangedException>(ex).Check);
-		}
-		else
-		{
-			Assert.Null(ex);
-		}
 	}
 
 	[Fact]
@@ -117,7 +64,6 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			() => DeployWithFixtureAsync(project)
 		);
 
-		Assert.Equal(SchemaCheck.BreakingSecondDeployment, ex.Check);
 		Assert.EndsWith("  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null", ex.Message);
 	}
 

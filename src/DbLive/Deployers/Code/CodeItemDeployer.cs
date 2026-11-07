@@ -43,7 +43,19 @@ public class CodeItemDeployer(
 		}
 		catch (Exception ex)
 		{
-			//_logger.Error(ex, "Deploy code file error. File path: {filePath}", codeItem.FileData.RelativePath);
+			CodeDeploymentException error = new($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex);
+
+			// in a transaction the error row would never be seen: a failed deployment rolls it back, a successful retry overwrites it.
+			// It cannot be written there either when the error aborted the transaction (PostgreSQL), and neither can a retry run.
+			if (Transaction.Current is not null)
+			{
+				return new CodeItemDeployResult
+				{
+					IsSuccess = false,
+					CanRetry = !_da.ErrorAbortsTransaction,
+					Exception = error
+				};
+			}
 
 			DateTime appliedUtc = _timeProvider.UtcNow();
 			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
@@ -58,11 +70,8 @@ public class CodeItemDeployer(
 				CreatedUtc = _timeProvider.UtcNow(),
 				ErrorMessage = ex.ToString()
 			}).ConfigureAwait(false);
-			return new CodeItemDeployResult
-			{
-				IsSuccess = false,
-				Exception = new CodeDeploymentException($"Deploy code file error. File path: {codeItem.FileData.RelativePath}", ex)
-			};
+
+			return CodeItemDeployResult.Failed(error);
 		}
 	}
 }

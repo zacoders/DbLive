@@ -6,7 +6,7 @@ Code objects are the **interface** of the database: procedures, functions, views
 
 - Every `*.sql` file under `Code` that is not a [test file](../project/structure.md#test-files) and not a [breaking script](breaking-changes.md#dropping-an-old-procedure-version) (`breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql`) is a code item, identified by its path relative to `Scripts`, ignoring case (for example `Code/dbo/GetUser.sql`).
 - DbLive executes a code file when the database has no successful run of that path with the same content. Unchanged files are skipped and logged as `[hash match]`.
-- A file is executed again when its content changes, when it is moved or renamed, and on every new database. A rename that changes only case (`GetUser.sql` to `getUser.sql`) is not a change. **Code files must be re-runnable.**
+- A file is executed again when its content changes, when it is moved or renamed, and on every new database. A rename that changes only case (`GetUser.sql` to `getUser.sql`) is not a change. A file that DbLive 1.x deployed from a Windows checkout (CRLF line endings) runs once more after the upgrade to 2.0. **Code files must be re-runnable.**
 - Code runs after migrations, so it can use the tables they create.
 
 | Engine | Re-runnable pattern |
@@ -74,6 +74,7 @@ When only the implementation changes and the contract stays the same, keep the n
 - Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order. Everything else forms the last group. Nested subfolders such as `"dbo/functions"` work with either `/` or `\`.
 - Within a group, up to `NumberOfThreadsForCodeDeploy` files (10 by default) are deployed in parallel.
 - A file that fails goes to the end of the queue and is retried, up to `MaxCodeDeployRetries` attempts (5 by default). Dependencies therefore usually resolve themselves: a view that uses a function deployed later succeeds on its second attempt.
+- On PostgreSQL with `TransactionWrapLevel: Deployment`, an error aborts the deployment transaction, so a failed file is not retried: the deployment fails at once with the error of that file. Order dependencies with `CodeSubFoldersDeploymentOrder` there.
 - When a file still fails after the last attempt, the deployment stops with `CodeDeploymentAggregateException`, which contains the SQL errors.
 
 Use the ordering setting for objects that everything else depends on, so that you do not spend retries on them:
@@ -92,4 +93,4 @@ On PostgreSQL a file with several statements runs as one implicit transaction, s
 
 - **Manual changes are not detected.** If someone alters a procedure directly in the database, the file's checksum still matches and DbLive will not redeploy it. Change the file, or delete its row from `dblive.code`, to force a redeploy. Paths are stored there in lower case: `delete from dblive.code where relative_path = lower('Code/dbo/GetUser.sql');`.
 - **One object per file** keeps redeployments small and errors easy to locate. On SQL Server, a file may contain several batches separated by `GO`.
-- **Status** of every file is in `dblive.code` (`applied`, `error`, or `removed` for a file no longer in the project), together with the breaking scripts of the Code folder (`item_type = 'breaking'`); the last error of a failed file is in its `error` column.
+- **Status** of every file is in `dblive.code` (`applied`, `error`, or `removed` for a file no longer in the project), together with the breaking scripts of the Code folder (`item_type = 'breaking'`); the last error of a failed file is in its `error` column. With `TransactionWrapLevel: Deployment` a failed deployment is rolled back and leaves no `error` row: the error is in the exception and the log.

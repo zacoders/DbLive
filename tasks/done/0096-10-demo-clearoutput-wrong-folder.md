@@ -27,8 +27,8 @@ The snippets in `README.md`, `docs/gettingstarted.md`, `docs/project/index.md` a
 - If the block moves to a targets file, rewrite the `.csproj` setup section in all four places.
 
 ## Done when
-- [ ] All four demos fixed
-- [ ] Docs updated
+- [x] All four demos fixed: by 0096-31, which removed `ClearOutput` from the demos
+- [x] Docs updated: by 0096-31, which removed `ClearOutput` and the note of §3.1 from the docs (it is named only in the upgrade steps from 1.5.0)
 
 ## Result
 Not fixed separately: replaced by 0096-31, which embeds the scripts in the dll and removes `ClearOutput` from the demos and the docs. Experiments made while checking this task are in the Notes of 0096-31: in a normal build `IncrementalClean` already deletes removed scripts, and they stay in `bin/` only when `obj/` is lost.

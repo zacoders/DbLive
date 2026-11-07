@@ -92,13 +92,13 @@ The breaking deployment is safe to repeat: the breaking scripts of the Code fold
 
 Test databases usually get everything at once. The `[SqlFact]` fixture deploys migrations, code **and** breaking scripts before the SQL tests run.
 
-The `[SqlDeployFact]` deployment test deploys as production does: `DeployParameters.Default`, then `DeployParameters.Breaking` (with the SQL tests after each of them), then `DeployParameters.Breaking` once more. So the guard above must pass after a normal deployment, and every breaking script of the Code folder runs twice. In the first breaking deployment every breaking script of a migration runs twice in a row, because a breaking script that failed without a transaction runs again on the next deployment. A script whose second run fails or changes the schema fails the test: the test compares the schema after the first and the second run of a migration breaking script, and before and after the second breaking deployment ([schema checks](../unit-testing/deployment-tests.md#schema-checks)). A typical cause is a condition on an object that the script itself drops later:
+The `[SqlDeployFact]` deployment test deploys as production does: `DeployParameters.Default`, then `DeployParameters.Breaking` (with the SQL tests after each of them), then `DeployParameters.Breaking` once more. So the guard above must pass after a normal deployment, and every breaking script of the Code folder runs twice; the breaking script of a migration runs once. A code breaking script whose second run fails or changes the schema fails the test: the test compares the schema before and after the second breaking deployment ([schema check](../unit-testing/deployment-tests.md#schema-check)). A typical cause is a condition on an object that the script itself drops later:
 
 ```sql
--- wrong: the first run drops only the trigger, the second one also drops the column
-if object_id('dbo.TMP_sync') is null
+-- wrong: the first run drops only GetUser_v1, the second one also drops the column
+if object_id('dbo.GetUser_v1') is null
     alter table dbo.Person drop column if exists Phone;
-drop trigger if exists dbo.TMP_sync;
+drop proc if exists dbo.GetUser_v1;
 ```
 
 The test database is new, so an old version such as `_v1` never existed there: dropping an `_v1` that really exists is not tested. See [Deployment Tests](../unit-testing/deployment-tests.md).

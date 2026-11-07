@@ -2,9 +2,13 @@
 
 
 [ExcludeFromCodeCoverage]
-public class InvalidMigrationVersionException(string fileName, string migrationVersionStr)
-	: Exception($"Cannot parse file '{fileName}', and version part '{migrationVersionStr}'.")
+public class InvalidMigrationVersionException(string fileName, string reason)
+	: Exception($"Invalid migration version in file '{fileName}'. {reason}")
 {
 	public string FileName { get; private set; } = fileName;
-	public string MigrationVersionStr { get; private set; } = migrationVersionStr;
+
+	/// <summary>
+	/// Why the version is invalid (the name is historical: it never held the version part).
+	/// </summary>
+	public string MigrationVersionStr { get; private set; } = reason;
 }

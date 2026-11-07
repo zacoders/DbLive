@@ -24,7 +24,8 @@ public class FileData
 
 	/// <summary>
 	/// True when a hash stored in the database belongs to this content with any line endings,
-	/// including hashes stored by DbLive versions that hashed the raw file text.
+	/// including hashes stored by DbLive versions that hashed the raw file text. For migrations: an applied migration must keep
+	/// matching. A code file compares only <see cref="ContentHash"/> and runs once more instead.
 	/// </summary>
 	public bool MatchesHash(long storedHash) =>
 		storedHash == ContentHash || _content.ComputeLegacyFileHashes().Contains(storedHash);

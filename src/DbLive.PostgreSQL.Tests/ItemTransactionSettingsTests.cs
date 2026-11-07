@@ -36,12 +36,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
-		// the breaking script runs twice, as in the deployment tests: both runs by its settings.
-		await builder.CreateDeployer().DeployAsync(new DeployParameters
-		{
-			DeployBreaking = true,
-			CheckBreakingSecondRun = true
-		});
+		await builder.CreateDeployer().DeployAsync(new DeployParameters { DeployBreaking = true });
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
 

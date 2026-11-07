@@ -198,6 +198,55 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.Users') and name = 'Phone'"));
 	}
 
+	[Theory]
+	[InlineData("Migration", "code/dbo/getuser.breaking.sql:breaking:error")]
+	// in a deployment transaction no error row is written, and the deployment is rolled back.
+	[InlineData("Deployment", null)]
+	public async Task Failed_code_breaking_script_fails_with_its_own_error(string transactionWrapLevel, string? breakingRow)
+	{
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", $$"""{ "TransactionWrapLevel": "{{transactionWrapLevel}}" }""")
+			.AddFile("Code/dbo/GetUser.sql", ProcV2)
+			// without 'if exists': GetUser_v1 never existed in this database.
+			.AddFile("Code/dbo/GetUser.breaking.sql", "set xact_abort on; drop proc dbo.GetUser_v1;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		IDbLiveDA da = builder.CreateDbLiveDA();
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
+		);
+
+		Assert.Equal("Deploy code breaking script error. File path: Code/dbo/GetUser.breaking.sql", ex.Message);
+		Assert.Contains("Cannot drop the procedure 'dbo.GetUser_v1'", Assert.IsType<DbLiveSqlException>(ex.InnerException).Message);
+
+		Assert.Equal(
+			[.. new[] { breakingRow, "code/dbo/getuser.sql:code:applied" }.OfType<string>()],
+			await CodeRowsAsync(da)
+		);
+	}
+
+	[Fact]
+	public async Task Failed_code_file_in_a_deployment_transaction_is_retried()
+	{
+		// an error keeps the deployment transaction of SQL Server usable: the view, deployed first (path order),
+		// fails without the function and succeeds on its retry.
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
+			.AddFile("Code/a_view.sql", "create or alter view dbo.UserOne as select dbo.GetOne() as one;")
+			.AddFile("Code/b_function.sql", "create or alter function dbo.GetOne() returns int as begin return 1; end;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		IDbLiveDA da = builder.CreateDbLiveDA();
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		Assert.Equal(["code/a_view.sql:code:applied", "code/b_function.sql:code:applied"], await CodeRowsAsync(da));
+		Assert.Equal(1, await ScalarAsync(da, "select one from dbo.UserOne"));
+	}
+
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>

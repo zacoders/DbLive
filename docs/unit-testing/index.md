@@ -194,7 +194,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 
 ### Deployment tests
 
-`[SqlDeployFact]` deploys the project to an empty database the way production does (the release, the breaking phase, the breaking phase again), runs every breaking script a second time, and checks that the second run does not change the schema. It takes the same fixture builders: [Deployment Tests](deployment-tests.md).
+`[SqlDeployFact]` deploys the project to an empty database the way production does (the release, the breaking phase, the breaking phase again) and checks that the second breaking deployment does not change the schema. It takes the same fixture builders: [Deployment Tests](deployment-tests.md).
 
 ## Running all tests without xUnit
 

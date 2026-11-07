@@ -35,11 +35,11 @@ The SQL tests (`RunAllTestsAsync()`) do not log it.
 
 ### First deploy with ProjectId set
 
-When `ProjectId` is configured and `dblive.version.project_id` is null in the target database, DbLive persists the settings value before any other project deploy steps.
+When `ProjectId` is configured and `dblive.version.project_id` is null in the target database, DbLive persists the settings value right after its self-deployment, before any other project deploy steps.
 
 ### Subsequent deploys
 
-On every deploy, DbLive compares the settings value with `dblive.version.project_id`. If they differ, deployment is blocked with a `ProjectIdMismatchException`.
+On every deploy, DbLive compares the settings value with `dblive.version.project_id`. If they differ, deployment is blocked with a `ProjectIdMismatchException`. The check runs first, before DbLive upgrades its own `dblive` tables, so nothing in the other project's database changes.
 
 ### Before the SQL tests
 

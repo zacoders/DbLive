@@ -7,7 +7,7 @@ closed: 2026-10-31
 # Checksums depend on line endings and path separators
 
 ## Release note
-**Checksums no longer depend on line endings.** A Windows checkout (CRLF) and a Linux checkout (LF) of the same migration have the same checksum, so one database can be deployed from both without `MigrationChecksumMismatchException`, and `.gitattributes` is no longer required. Checksums stored by earlier versions keep matching; nothing to repair. Relative paths in the `dblive` tables now use `/` on every OS; rows written on Windows are converted on the first deployment, so switching the deploying OS no longer redeploys all code. SQL test names in Test Explorer show `/` (`Tests/GetUser.test.sql`).
+**Checksums no longer depend on line endings.** A Windows checkout (CRLF) and a Linux checkout (LF) of the same migration have the same checksum, so one database can be deployed from both without `MigrationChecksumMismatchException`, and `.gitattributes` is no longer required. Checksums of migrations stored by earlier versions keep matching; nothing to repair. A code file that an earlier version deployed from a Windows checkout runs once more on the first deployment. Relative paths in the `dblive` tables now use `/` on every OS; rows written on Windows are converted on the first deployment, so switching the deploying OS no longer redeploys all code. SQL test names in Test Explorer show `/` (`Tests/GetUser.test.sql`).
 
 ## Problem
 The hash is computed over the raw file text. On Windows with `core.autocrlf=true` files have CRLF, on a Linux CI they have LF, so an applied migration fails with `MigrationChecksumMismatchException`. The repository has no `.gitattributes`. Likewise `relative_path` is stored with the OS separator, so switching OS redeploys all code once.

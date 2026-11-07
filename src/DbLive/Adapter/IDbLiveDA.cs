@@ -5,9 +5,13 @@ public interface IDbLiveDA
 {
 	DbProvider Provider { get; }
 
-	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
+	/// <summary>
+	/// True when an error of a statement aborts the open transaction, so no later statement can run in it (PostgreSQL).
+	/// False when the transaction stays usable after an error (SQL Server).
+	/// </summary>
+	bool ErrorAbortsTransaction { get; }
 
-	Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType);
+	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
 	Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync();
 
@@ -36,6 +40,11 @@ public interface IDbLiveDA
 	/// </summary>
 	Task SetMinDbLiveLibVersionAsync(Version version);
 
+	/// <summary>
+	/// The ProjectId bound to the database, from <c>dblive.version.project_id</c>. Null when there is none, also when the column
+	/// does not exist yet (a database deployed before the self-migration that adds it). Call it only when the database has the
+	/// DbLive tables (<see cref="DbLiveInstalledAsync"/>).
+	/// </summary>
 	Task<string?> GetProjectIdAsync();
 
 	Task SetProjectIdAsync(string projectId);
@@ -79,8 +88,6 @@ public interface IDbLiveDA
 		TimeSpan? timeout = null
 	);
 
-	Task<CodeItemDto?> FindCodeItemAsync(string relativePath);
-
 	/// <summary>
 	/// All rows of <c>dblive.code</c>, with one query.
 	/// </summary>
@@ -99,7 +106,7 @@ public interface IDbLiveDA
 	Task SaveUnitTestResultAsync(UnitTestItemDto item);
 
 	/// <summary>
-	/// Reads the schema of the database from its catalog, for the schema checks of the deployment tests (<see cref="SchemaCheck"/>).
+	/// Reads the schema of the database from its catalog, for the schema check of the deployment test (<see cref="SchemaChangedException"/>).
 	/// </summary>
 	Task<SchemaSnapshot> GetSchemaSnapshotAsync();
 

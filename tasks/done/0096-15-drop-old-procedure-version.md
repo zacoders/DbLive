@@ -13,7 +13,7 @@ breaking: true
 What can break:
 - The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build no longer drops anything.
 - Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
-- The deployment test (`[SqlDeployFact]`) runs the breaking phase a second time, and every migration breaking script twice. A breaking script that fails on its second run (for example `drop trigger` without `if exists`) fails the test.
+- The deployment test (`[SqlDeployFact]`) runs the breaking phase a second time. A breaking script of the `Code` folder that fails on its second run (for example `drop proc` without `if exists`) fails the test.
 
 Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that comes back with a rollback is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
 

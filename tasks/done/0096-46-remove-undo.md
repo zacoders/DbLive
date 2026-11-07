@@ -14,7 +14,7 @@ To upgrade:
 
 - Delete the undo scripts (`<version>.undo.sql`, `<version>.u.sql`) and their settings files (`<version>.undo.settings.json`, `<version>.u.s.json`). A deployment fails with `UndoNotSupportedException` while one of them is in the project.
 - Remove `AllowDatabaseDowngrade` from `DeployParameters`. Deploying a build that does not have every migration version applied to the database fails before it changes anything, with `DatabaseAheadOfProjectException` (was `DowngradeNotAllowedException`; `DowngradeImpossibleException` is gone).
-- `[SqlDeployFact]` runs the breaking script of every migration twice now, not only of the migrations with an undo script, and fails with `SchemaCheck.BreakingSecondRun` when the second run changes the schema: make such a script safe to run again. `SchemaCheck.Undo` is gone. The deployment test of the template is renamed `ReleaseDeploysAndRollsBack` → `ReleaseDeploys`.
+- `[SqlDeployFact]` no longer runs undo scripts, and `SchemaCheck.Undo` is gone. The deployment test of the template is renamed `ReleaseDeploysAndRollsBack` → `ReleaseDeploys`.
 - The first deployment deletes the undo rows from `dblive.migration` and drops its `content` column. A version that a downgrade rolled back is deployed again if the project has it.
 - API: `MigrationItemType.Undo` and `UndoSettings`, `MigrationItemStatus.Reverted`, `IDbLiveDA.MigrationItemExistsAsync` and `GetMigrationContentAsync`, and the `Content` of `MigrationItemSaveDto` and `MigrationChecksumRepairDto` are removed; `IMigrationVersionDeployer.DeployAsync` takes only the migration.
 

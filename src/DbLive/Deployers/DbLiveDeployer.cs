@@ -11,7 +11,6 @@ public class DbLiveDeployer(
 		IAppliedMigrationsValidator _appliedMigrationsValidator,
 		IMigrationsSaver _migrationsSaver,
 		IMigrationChecksumValidator _migrationChecksumValidator,
-		IProjectIdValidator _projectIdValidator,
 		ITransactionSettingsValidator _transactionSettingsValidator,
 		IScriptSource _scriptSource
 	) : IDbLiveDeployer
@@ -21,8 +20,6 @@ public class DbLiveDeployer(
 	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting project deploy from {Location}.", _scriptSource.Location);
-
-		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
 
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
 

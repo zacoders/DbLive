@@ -52,19 +52,24 @@ public class CodeBreakingDeployer(
 		{
 			_logger.Error(ex, "Deploy code breaking script error. File path: {FilePath}", item.FileData.RelativePath);
 
-			await SaveAsync(item, CodeItemStatus.Error, startedUtc, ex.ToString()).ConfigureAwait(false);
+			// in a transaction the error row would never be seen: the failed deployment rolls it back. It cannot be written there
+			// either when the error aborted the transaction (PostgreSQL).
+			if (Transaction.Current is null)
+			{
+				await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Error, startedUtc, ex.ToString())).ConfigureAwait(false);
+			}
 
 			throw new CodeDeploymentException($"Deploy code breaking script error. File path: {item.FileData.RelativePath}", ex);
 		}
 
-		await SaveAsync(item, CodeItemStatus.Applied, startedUtc, "").ConfigureAwait(false);
+		await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Applied, startedUtc, "")).ConfigureAwait(false);
 	}
 
-	private async Task SaveAsync(GenericItem item, CodeItemStatus status, DateTime startedUtc, string errorMessage)
+	private CodeItemDto CreateRow(GenericItem item, CodeItemStatus status, DateTime startedUtc, string errorMessage)
 	{
 		DateTime appliedUtc = _timeProvider.UtcNow();
 
-		await _da.SaveCodeItemAsync(new CodeItemDto
+		return new CodeItemDto
 		{
 			RelativePath = item.FileData.RelativePath,
 			ItemType = CodeItemType.Breaking,
@@ -74,6 +79,6 @@ public class CodeBreakingDeployer(
 			ExecutionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds,
 			CreatedUtc = appliedUtc,
 			ErrorMessage = errorMessage
-		}).ConfigureAwait(false);
+		};
 	}
 }

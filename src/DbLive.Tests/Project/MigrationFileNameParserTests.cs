@@ -12,6 +12,25 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
+	[InlineData("+001.migration.sql")] // would be version 1 next to 001.migration.sql
+	[InlineData("-5.migration.sql")]
+	[InlineData(" 001.migration.sql")]
+	[InlineData("001 .migration.sql")]
+	public void Throws_When_Version_Is_Not_Only_Digits(string file)
+	{
+		Assert.Throws<InvalidMigrationVersionException>(() => MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Fact]
+	public void Invalid_Version_Message_Names_The_File_And_The_Version_Part()
+	{
+		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(
+			() => MigrationFileNameParser.GetMigrationInfo("Migrations/+001.migration.sql"));
+
+		Assert.Equal("Invalid migration version in file '+001.migration.sql'. The version part '+001' must be digits only.", ex.Message);
+	}
+
+	[Theory]
 	[InlineData("001.migration.sql", MigrationItemType.Migration)]
 	[InlineData("001.m.sql", MigrationItemType.Migration)]
 	[InlineData("001.breaking.sql", MigrationItemType.Breaking)]

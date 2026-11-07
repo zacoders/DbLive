@@ -32,7 +32,6 @@ public class DeploymentTestFixture(
 	/// <summary>
 	/// Deploys the project to the database as production does: the release, then the breaking phase, then the breaking
 	/// phase again, which must not change the schema. The SQL tests run after the release and after the first breaking phase.
-	/// In the first breaking phase the breaking script of every migration runs twice, and its second run must not change the schema.
 	/// </summary>
 	public async Task DeployAsync(ITestOutputHelper output)
 	{
@@ -57,8 +56,7 @@ public class DeploymentTestFixture(
 		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		// a separate breaking run, as in production: the breaking phase guard passes after a normal deployment.
-		// a breaking script that failed with TransactionWrapLevel None runs again on the next deployment, so each one runs twice.
-		await deployer.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true }).ConfigureAwait(false);
+		await deployer.DeployAsync(DeployParameters.Breaking).ConfigureAwait(false);
 		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
 		IDbLiveDA da = _builder.CreateDbLiveDA();
@@ -73,7 +71,6 @@ public class DeploymentTestFixture(
 		if (!diff.IsEmpty)
 		{
 			throw new SchemaChangedException(
-				SchemaCheck.BreakingSecondDeployment,
 				"Deployment test: a second breaking deployment changed the schema. The breaking scripts of the Code folder and the BeforeDeploy/AfterDeploy scripts run again on it and must not change the schema:",
 				diff
 			);

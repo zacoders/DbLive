@@ -55,7 +55,7 @@ Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `C
 <version>.<item>.settings.json       (settings of the migration or breaking script)
 ```
 
-**Version.** The first part of the name, a whole number (64-bit). `001`, `1` and `20260808104925` are valid; `001` and `1` are the same version. For teams, use UTC timestamps (`yyyyMMddHHmmss`) so that branches do not collide, and set `"EnforceTimestampVersion": true` to reject anything else.
+**Version.** The first part of the name, a whole number (64-bit) of digits only. `001`, `1` and `20260808104925` are valid, `+001` and `-5` are not; `001` and `1` are the same version. For teams, use UTC timestamps (`yyyyMMddHHmmss`) so that branches do not collide, and set `"EnforceTimestampVersion": true` to reject anything else.
 
 **Type.** Case-insensitive, with a short form:
 

@@ -46,7 +46,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
-		CodeItemDto codeBefore = (await da.FindCodeItemAsync("Code/dbo/v1.sql"))!;
 
 		// what DbLive stored on Windows before line endings, separators and case were normalized.
 		await da.ExecuteNonQueryAsync($"""
@@ -72,11 +71,12 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal("migrations/001.migration.sql", items.Single(i => i.Version == 1 && i.ItemType == MigrationItemType.Migration).RelativePath);
 
-		// found by the new path and not redeployed.
-		CodeItemDto? code = await da.FindCodeItemAsync("Code/dbo/v1.sql");
+		// found by the new path. Only the current hash counts for code: the file deployed by an older DbLive from a CRLF checkout
+		// runs once more, and its row gets the current hash.
+		CodeItemDto? code = await FindCodeRowAsync(da, "code/dbo/v1.sql");
 		Assert.NotNull(code);
-		Assert.Equal(codeBefore.AppliedUtc, code.AppliedUtc);
-		_ = Assert.NotNull(code.VerifiedUtc);
+		Assert.Equal(CodeItemStatus.Applied, code.Status);
+		Assert.Equal(CodeCrLf.ComputeFileHash(), code.ContentHash);
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from dblive.code"));
 	}
 
@@ -217,7 +217,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
-		CodeItemDto codeBefore = (await da.FindCodeItemAsync("Code/dbo/V1.sql"))!;
+		CodeItemDto codeBefore = (await FindCodeRowAsync(da, "code/dbo/v1.sql"))!;
 
 		_ = project
 			.DeleteFiles("V1.sql")
@@ -226,7 +226,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		CodeItemDto? code = await da.FindCodeItemAsync("Code/dbo/v1.sql");
+		CodeItemDto? code = await FindCodeRowAsync(da, "code/dbo/v1.sql");
 		Assert.NotNull(code);
 		Assert.Equal(codeBefore.AppliedUtc, code.AppliedUtc);
 		_ = Assert.NotNull(code.VerifiedUtc);
@@ -245,7 +245,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		IDbLiveDA da = builder.CreateDbLiveDA();
-		CodeItemDto codeBefore = (await da.FindCodeItemAsync("Code/dbo/V1.sql"))!;
+		CodeItemDto codeBefore = (await FindCodeRowAsync(da, "code/dbo/v1.sql"))!;
 
 		// DbLive on Windows took the folder part of the path from the settings and the file name from the disk.
 		await da.ExecuteNonQueryAsync("""
@@ -256,7 +256,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		CodeItemDto? code = await da.FindCodeItemAsync("Code/dbo/V1.sql");
+		CodeItemDto? code = await FindCodeRowAsync(da, "code/dbo/v1.sql");
 		Assert.NotNull(code);
 		Assert.Equal(codeBefore.AppliedUtc, code.AppliedUtc);
 		Assert.Equal(["code/dbo/v1.sql:applied"], await RowsAsync(da, "select relative_path, status from dblive.code"));
@@ -293,6 +293,10 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 			.SetDbConnection(_dbCnnString)
 			.SetScriptsFolder(project.Path);
 	}
+
+	// the row of a code file by its stored (lower-case) path.
+	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveDA da, string storedPath) =>
+		(await da.GetCodeItemsAsync()).SingleOrDefault(row => row.RelativePath == storedPath);
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{

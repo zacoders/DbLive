@@ -142,7 +142,8 @@ public class CodeDeployer(
 		if (exceptions.Count > 0)
 		{
 			throw new CodeDeploymentAggregateException(
-				$"Code deployment failed after {maxRetries} attempts.",
+				// not "after N attempts": a file whose error left the transaction unusable is not retried.
+				"Code deployment failed.",
 				exceptions
 			);
 		}
@@ -180,7 +181,7 @@ public class CodeDeployer(
 				static (_, current) => current + 1
 			);
 
-			if (retry >= maxRetries)
+			if (retry >= maxRetries || !result.CanRetry)
 			{
 				_logger.Error(
 					result.Exception,

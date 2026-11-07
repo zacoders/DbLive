@@ -1,4 +1,5 @@
-﻿
+﻿using System.Globalization;
+
 namespace DbLive.Project;
 
 internal static class MigrationFileNameParser
@@ -31,9 +32,10 @@ internal static class MigrationFileNameParser
 			_ => null
 		};
 
-		if (!long.TryParse(migrationVersionStr, out long version))
+		// digits only, in any culture: no sign, no spaces, no culture's minus sign.
+		if (!long.TryParse(migrationVersionStr, NumberStyles.None, CultureInfo.InvariantCulture, out long version))
 		{
-			string errorMessage = "Version prefix failed to parse into a long integer.";
+			string errorMessage = $"The version part '{migrationVersionStr}' must be digits only.";
 			throw new InvalidMigrationVersionException(fileName, errorMessage);
 		}
 

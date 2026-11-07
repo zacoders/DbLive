@@ -136,7 +136,7 @@ public class CodeDeployerTests
 		// the database stores the paths in lower case.
 		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
 			GetCodeRow(applied, CodeItemStatus.Applied, applied.FileData.ContentHash),
-			// deployed from a CRLF checkout by a DbLive version that hashed the raw text.
+			// deployed from a CRLF checkout by DbLive 1.x, which hashed the raw text: only the current hash counts, so it runs once more.
 			GetCodeRow(crlf, CodeItemStatus.Applied, LegacyContentHash.Of("select 1 as a\r\nunion all\r\nselect 2;\r\n")),
 			GetCodeRow(changed, CodeItemStatus.Applied, changed.FileData.ContentHash + 123),
 			// the file was deleted by a release, and a later release brought it back (git revert) with the same content.
@@ -154,18 +154,18 @@ public class CodeDeployerTests
 		await deployer.DeployAsync(DeployParameters.Default);
 
 		await mockSet.CodeItemDeployer.DidNotReceive().DeployAsync(applied);
-		await mockSet.CodeItemDeployer.DidNotReceive().DeployAsync(crlf);
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(crlf);
 		await mockSet.CodeItemDeployer.Received(1).DeployAsync(changed);
 		await mockSet.CodeItemDeployer.Received(1).DeployAsync(removed);
 		await mockSet.CodeItemDeployer.Received(1).DeployAsync(failed);
 		await mockSet.CodeItemDeployer.Received(1).DeployAsync(added);
 
 		await mockSet.DbLiveDA.Received(1).MarkCodeAsVerifiedAsync(
-			Arg.Is<IReadOnlyCollection<string>>(paths => paths.SequenceEqual(new[] { "/some_path/dbo.sql", "/some_path/GetUser.sql" })),
+			Arg.Is<IReadOnlyCollection<string>>(paths => paths.SequenceEqual(new[] { "/some_path/dbo.sql" })),
 			now
 		);
 
-		mockSet.Logger.Received(1).Information("Deploying code file: {filePath} [hash match]", "/some_path/GetUser.sql");
+		mockSet.Logger.Received(1).Information("Deploying code file: {filePath} [hash match]", "/some_path/dbo.sql");
 	}
 
 	[Fact]
@@ -336,6 +336,40 @@ public class CodeDeployerTests
 
 		await mockSet.CodeItemDeployer.Received(3)
 			.DeployAsync(Arg.Is<CodeItem>(i => i.Name == failingItem.Name));
+	}
+
+	[Fact]
+	public async Task DeployCode_Does_Not_Retry_An_Item_That_Cannot_Be_Retried()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			NumberOfThreadsForCodeDeploy = 1,
+			MaxCodeDeployRetries = 3
+		});
+
+		CodeItem failingItem = GetCodeItem("aborts-the-transaction");
+		CodeItem otherItem = GetCodeItem("other");
+
+		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
+			new CodeGroup { Path = "Code", CodeItems = [failingItem, otherItem] }
+		]);
+
+		CodeDeploymentException error = new("Deploy code file error.", new Exception("syntax error"));
+		mockSet.CodeItemDeployer
+			.DeployAsync(failingItem)
+			.Returns(new CodeItemDeployResult { IsSuccess = false, CanRetry = false, Exception = error });
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => deployer.DeployAsync(DeployParameters.Default)
+		);
+
+		// the error of the file, not of a retry in the aborted transaction; the files after it do not run.
+		Assert.Same(error, Assert.Single(ex.InnerExceptions));
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(failingItem);
+		await mockSet.CodeItemDeployer.DidNotReceive().DeployAsync(otherItem);
 	}
 
 	private static CodeItem GetCodeItem(string name, string? content = null)

@@ -40,8 +40,63 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.False(res.IsSuccess);
+		Assert.True(res.CanRetry);
 		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
+	}
+
+	[Theory]
+	[InlineData(true, false)]
+	[InlineData(false, true)]
+	public async Task Failed_code_item_in_a_transaction_saves_no_error_row(bool errorAbortsTransaction, bool canRetry)
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.ErrorAbortsTransaction.Returns(errorAbortsTransaction);
+
+		CodeItem codeItem = GetCodeItem(relativePath: "Code/dbo/GetUser.sql");
+
+		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
+		mockSet.DbLiveDA
+			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(codeItem);
+		}
+
+		Assert.False(res.IsSuccess);
+		Assert.Equal(canRetry, res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
+	}
+
+	[Fact]
+	public async Task Failed_code_item_fails_with_the_error_of_its_error_row_when_the_row_cannot_be_saved()
+	{
+		MockSet mockSet = new();
+
+		CodeItem codeItem = GetCodeItem();
+
+		mockSet.DbLiveDA
+			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(new DbLiveSqlException("Incorrect syntax near 'selec'.")));
+
+		DbLiveSqlException saveError = new("Invalid column name 'error'.");
+		mockSet.DbLiveDA
+			.SaveCodeItemAsync(Arg.Any<CodeItemDto>())
+			.Returns(Task.FromException(saveError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => deployer.DeployAsync(codeItem));
+
+		Assert.Same(saveError, ex);
 	}
 
 	[Fact]

@@ -81,7 +81,7 @@ A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 
 
 | Exception | Cause |
 |-----------|-------|
-| `InvalidMigrationVersionException` | The version is not a number (also a file such as `config.json` in `Migrations`), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion`. |
+| `InvalidMigrationVersionException` | The version is not digits only (also a file such as `config.json` in `Migrations`), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion`. |
 | `DuplicateMigrationItemException` | Two files with the same version and type (`001.migration.sql` and `1.m.sql` count). |
 | `MigrationItemMustExistsException` | A breaking or settings file without a migration file of the same version. |
 | `UndoNotSupportedException` | An undo script or its settings file (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`): DbLive has no undo scripts. Delete the file. |

@@ -34,13 +34,6 @@ public record DeployParameters
 	public bool CreateDbIfNotExists { get; set; } = false;
 
 	/// <summary>
-	/// For the deployment tests only (<c>[SqlDeployFact]</c>): the breaking phase runs the breaking script of every migration twice
-	/// and fails with <see cref="SchemaCheck.BreakingSecondRun"/> when the second run changes the schema. A breaking script that
-	/// failed with TransactionWrapLevel None runs again on the next deployment, over what its first run already changed.
-	/// </summary>
-	internal bool CheckBreakingSecondRun { get; set; } = false;
-
-	/// <summary>
 	/// Updates stored checksums for applied migrations whose files no longer match.
 	/// Use only after confirming the database schema already matches the project files.
 	/// </summary>

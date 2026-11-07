@@ -24,11 +24,11 @@ public class DeploymentTestFixtureTests
 		{
 			// the release, without breaking changes, then the SQL tests.
 			dbLive.DeployAsync(Arg.Is<DeployParameters>(p =>
-				p.CreateDbIfNotExists && p.DeployMigrations && p.DeployCode && !p.DeployBreaking && !p.CheckBreakingSecondRun));
+				p.CreateDbIfNotExists && p.DeployMigrations && p.DeployCode && !p.DeployBreaking));
 			tester.RunAllTestsAsync();
 
-			// the breaking phase as a run of its own, every migration breaking script twice, with the SQL tests after it.
-			dbLive.DeployAsync(DeployParameters.Breaking with { CheckBreakingSecondRun = true });
+			// the breaking phase as a run of its own, with the SQL tests after it.
+			dbLive.DeployAsync(DeployParameters.Breaking);
 			tester.RunAllTestsAsync();
 
 			// the second breaking run must not change the schema.
@@ -54,7 +54,6 @@ public class DeploymentTestFixtureTests
 			() => fixture.DeployAsync(Substitute.For<ITestOutputHelper>())
 		);
 
-		Assert.Equal(SchemaCheck.BreakingSecondDeployment, ex.Check);
 		Assert.StartsWith("Deployment test: a second breaking deployment changed the schema.", ex.Message);
 		Assert.EndsWith("  missing column dbo.Person.Phone: varchar(20) null", ex.Message);
 	}

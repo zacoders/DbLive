@@ -199,6 +199,55 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from information_schema.columns where table_name = 'users' and column_name = 'phone'"));
 	}
 
+	[Theory]
+	[InlineData("Migration", "code/public/get_user.breaking.sql:breaking:error")]
+	// in a deployment transaction no error row is written, and the deployment is rolled back.
+	[InlineData("Deployment", null)]
+	public async Task Failed_code_breaking_script_fails_with_its_own_error(string transactionWrapLevel, string? breakingRow)
+	{
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", $$"""{ "TransactionWrapLevel": "{{transactionWrapLevel}}" }""")
+			.AddFile("Code/public/get_user.sql", FunctionV2)
+			// without 'if exists': get_user_v1 never existed in this database.
+			.AddFile("Code/public/get_user.breaking.sql", "drop function get_user_v1();");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		IDbLiveDA da = builder.CreateDbLiveDA();
+
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
+		);
+
+		Assert.Equal("Deploy code breaking script error. File path: Code/public/get_user.breaking.sql", ex.Message);
+		Assert.Contains("get_user_v1() does not exist", Assert.IsType<DbLiveSqlException>(ex.InnerException).Message);
+
+		Assert.Equal(
+			[.. new[] { breakingRow, "code/public/get_user.sql:code:applied" }.OfType<string>()],
+			await CodeRowsAsync(da)
+		);
+	}
+
+	[Fact]
+	public async Task Failed_code_file_in_a_deployment_transaction_fails_with_its_own_error()
+	{
+		// the error aborts the deployment transaction: the file is not retried, and no error row is written.
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
+			.AddFile("Code/public/get_user.sql", "create or replace function get_user_v2() returns int language sql as $$ selec 1 $$;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: Code/public/get_user.sql", codeEx.Message);
+		Assert.Contains("syntax error at or near \"selec\"", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
+	}
+
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
