@@ -10,8 +10,9 @@ internal class MigrationsSaver(
 {
 	public async Task SaveAsync()
 	{
-		// By default saving all migrations, skip content for all except UNDO.
-		// Options can be added to control what to save
+		// a row for every migration item of the project, with its hash, not its content: the project is the source of the scripts.
+		// rows of items deleted from the project stay. nothing runs them: the migration and breaking phases and the checksum
+		// validation take the scripts and their settings from the project and skip a row the project has no item for.
 
 		_logger.Information("Saving migration items.");
 
@@ -26,7 +27,7 @@ internal class MigrationsSaver(
 			{
 				if (dbItemsByKey.TryGetValue((migration.Version, migrationItem.MigrationItemType), out MigrationItemDto? dbItem))
 				{
-					if (dbItem.ContentHash == migrationItem.FileData.ContentHash)
+					if (migrationItem.FileData.MatchesHash(dbItem.ContentHash))
 					{
 						continue;
 					}
@@ -50,7 +51,6 @@ internal class MigrationsSaver(
 					Name = migrationItem.Name,
 					RelativePath = migrationItem.FileData.RelativePath,
 					Status = MigrationItemStatus.None,
-					Content = migrationItem.MigrationItemType == MigrationItemType.Undo ? migrationItem.FileData.Content : null,
 					ContentHash = migrationItem.FileData.ContentHash,
 					CreatedUtc = _timeProvider.UtcNow()
 				}).ConfigureAwait(false);

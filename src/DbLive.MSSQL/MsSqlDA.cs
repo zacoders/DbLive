@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using DbLive.Schema;
 using System.Data;
 
 namespace DbLive.MSSQL;
@@ -8,6 +9,8 @@ namespace DbLive.MSSQL;
 public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
+
+	public bool ErrorAbortsTransaction => false;
 
 	static MsSqlDA()
 	{
@@ -33,19 +36,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		";
 
 		using var cnn = GetConnection();
-		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
-	}
-
-	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
-	{
-		const string query = @"
-			select content_hash
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-		";
-		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString().ToLower() }).ConfigureAwait(false);
+		return (await cnn.QueryAsync<MigrationItemRow>(query).ConfigureAwait(false)).Select(r => r.ToDto()).ToList();
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -70,7 +61,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long> GetDbLiveVersionAsync()
+	public async Task<long> GetSelfMigrationVersionAsync()
 	{
 		const string query = @"
 			select version
@@ -80,7 +71,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
+	public async Task SetSelfMigrationVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			update dblive.version
@@ -91,11 +82,36 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
 	}
 
+	// the column comes with self-migration 12: a database deployed before it has none, and a batch that names
+	// a missing column does not compile. Without the column the batch returns no result set, and the value is null.
+	public async Task<Version?> GetMinDbLiveLibVersionAsync()
+	{
+		const string query = @"
+			if col_length('dblive.version', 'min_dblive_lib_version') is not null
+				exec sys.sp_executesql N'select min_dblive_lib_version from dblive.version';
+		";
+		using var cnn = GetConnection();
+		string? version = await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+		return version is null ? null : Version.Parse(version);
+	}
+
+	public async Task SetMinDbLiveLibVersionAsync(Version version)
+	{
+		const string query = @"
+			update dblive.version
+			set min_dblive_lib_version = @min_dblive_lib_version;
+		";
+		using var cnn = GetConnection();
+		_ = await cnn.ExecuteAsync(query, new { min_dblive_lib_version = version.ToString() }).ConfigureAwait(false);
+	}
+
+	// the column comes with self-migration 6, and the ProjectId is checked before the self-deployment: a database deployed
+	// before it has none. Without the column the batch returns no result set, and the value is null.
 	public async Task<string?> GetProjectIdAsync()
 	{
 		const string query = @"
-			select project_id
-			from dblive.version
+			if col_length('dblive.version', 'project_id') is not null
+				exec sys.sp_executesql N'select project_id from dblive.version';
 		";
 		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
@@ -173,7 +189,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
 			cmd.CommandText = sqlStatement;
 
-			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
+			// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
+			using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
 
 			List<SqlResult> multipleResults = [];
 			do
@@ -310,6 +327,61 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
+	// Cannot open database "..." requested by the login. The login failed.
+	private const int CannotOpenDatabaseError = 4060;
+
+	public async Task CheckDatabaseExistsAsync()
+	{
+		// without retries: SqlClient retries error 4060 for 10 seconds. Any other outcome is left to the next connection,
+		// which retries transient errors (a database on Azure SQL coming online) by the settings of the connection string.
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { ConnectRetryCount = 0 };
+
+		try
+		{
+			using SqlConnection cnn = new(builder.ConnectionString);
+			await cnn.OpenAsync().ConfigureAwait(false);
+		}
+		catch (SqlException e) when (e.Number == CannotOpenDatabaseError)
+		{
+			// a login without access to an existing database gets the same error: master tells the two apart.
+			if (await DatabaseIsMissingAsync(builder).ConfigureAwait(false))
+			{
+				throw new DatabaseNotFoundException(builder.InitialCatalog, builder.DataSource, e);
+			}
+		}
+		catch (SqlException)
+		{
+			// not a missing database: the next connection fails with this error, or succeeds after a retry.
+		}
+	}
+
+	/// <summary>
+	/// True only when master shows that the database does not exist. False when it exists, and when master cannot tell:
+	/// the login cannot connect to master, or sees only its own databases (no VIEW ANY DATABASE permission).
+	/// </summary>
+	private static async Task<bool> DatabaseIsMissingAsync(SqlConnectionStringBuilder builder)
+	{
+		const string query = @"
+			select case
+				when exists (select 1 from sys.databases where name = @name) then 0
+				when has_perms_by_name(null, null, 'VIEW ANY DATABASE') = 1 then 1
+				else 0
+			end
+		";
+
+		SqlConnectionStringBuilder masterBuilder = new(builder.ConnectionString) { InitialCatalog = "master" };
+
+		try
+		{
+			using SqlConnection cnn = new(masterBuilder.ConnectionString);
+			return await cnn.ExecuteScalarAsync<bool>(query, new { name = builder.InitialCatalog }).ConfigureAwait(false);
+		}
+		catch (SqlException)
+		{
+			return false;
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
@@ -345,21 +417,24 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		serverCnn.Disconnect();
 	}
 
+	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
 			using ( select 1 ) s(c) on t.relative_path = @relative_path
-			when matched then update 
-				set status = @status
+			when matched then update
+				set item_type = @item_type
+					, status = @status
 					, content_hash = @content_hash
 					, applied_utc = @applied_utc
 					, execution_time_ms = @execution_time_ms
 					, error = @error
-			when not matched then 
+			when not matched then
 				insert (
 					relative_path
+					, item_type
 					, status
 					, content_hash
 					, applied_utc
@@ -369,6 +444,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				)
 				values (
 					@relative_path
+					, @item_type
 					, @status
 					, @content_hash
 					, @applied_utc
@@ -379,8 +455,9 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
-				status = item.Status.ToString().ToLower(),
+				relative_path = item.RelativePath.ToStoredPath(),
+				item_type = item.ItemType.ToString().ToLowerInvariant(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -390,37 +467,71 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
+	/// <summary>
+	/// The paths as one table-valued parameter (self-migration 13), whatever their number: a command takes at most 2100 parameters.
+	/// The paths of the project are unique, also in lower case: two paths that differ only by case stop the deployment.
+	/// </summary>
+	private static SqlMapper.ICustomQueryParameter ToPathList(IEnumerable<string> relativePaths)
+	{
+		DataTable table = new();
+		_ = table.Columns.Add("value", typeof(string));
+
+		foreach (string relativePath in relativePaths)
+		{
+			_ = table.Rows.Add(relativePath.ToStoredPath());
+		}
+
+		return table.AsTableValuedParameter("dblive.tvp_unique_string_list");
+	}
+
+	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
-			update dblive.code
+			update c
 			set verified_utc = @verified_utc
-			where relative_path = @relative_path
+			from dblive.code as c
+			join @paths as p on p.value = c.relative_path;
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }
+			new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
 
-	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
+	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
+		return (await cnn.QueryAsync<string>(
+			"""
+			update c
+			set status = 'removed'
+			  , verified_utc = @verified_utc
+			output inserted.relative_path
+			from dblive.code as c
+			where c.status <> 'removed'
+			  and not exists ( select 1 from @paths as p where p.value = c.relative_path );
+			""",
+			new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc }
+		).ConfigureAwait(false)).ToList();
+	}
+
+	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
+	{
+		using var cnn = GetConnection();
+		return (await cnn.QueryAsync<CodeItemDto>(
 			"""
 			select relative_path
+				 , item_type
 				 , content_hash
 				 , applied_utc
 				 , created_utc
 				 , execution_time_ms
 				 , verified_utc
 				 , error as error_message
-			     , status			  
+				 , status
 			from dblive.code
-			where relative_path = @relative_path
-			""",
-			new { relative_path = relativePath }
-		).ConfigureAwait(false);
+			"""
+		).ConfigureAwait(false)).ToList();
 	}
 
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
@@ -432,9 +543,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			when matched then update 
 			set status = @status
 				, content_hash = @content_hash
-				, content = @content
 				, relative_path = @relative_path
-			when not matched then 
+			when not matched then
 			insert (
 				version
 				, name
@@ -442,7 +552,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, relative_path
 				, status
 				, content_hash
-				, content
 				, created_utc
 			)
 			values (
@@ -452,7 +561,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, @relative_path
 				, @status
 				, @content_hash
-				, @content
 				, @created_utc
 			);
 			""",
@@ -460,11 +568,10 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				version = item.Version,
 				name = item.Name,
-				item_type = item.ItemType.ToString().ToLower(),
-				relative_path = item.RelativePath,
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
-				content = item.Content,
-				status = item.Status.ToString().ToLower(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				created_utc = item.CreatedUtc
 			}
 		).ConfigureAwait(false);
@@ -476,7 +583,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash
-			  , content = @content
 			  , relative_path = @relative_path
 			where version = @version
 			  and item_type = @item_type
@@ -485,10 +591,9 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				content_hash = item.ContentHash,
-				content = item.Content,
-				relative_path = item.RelativePath
+				relative_path = item.RelativePath.ToStoredPath()
 			}
 		).ConfigureAwait(false);
 
@@ -515,8 +620,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
-				status = item.Status.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+				status = item.Status.ToString().ToLowerInvariant(),
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				error = item.ErrorMessage
@@ -527,42 +632,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			throw new DbLiveMigrationItemMissedSqlException($"Migration item not found. Version: {item.Version}, Type: {item.ItemType}");
 		}
-	}
-
-	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType ItemType)
-	{
-		using var cnn = GetConnection();
-		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
-			select 1
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = ItemType.ToString().ToLower()
-			}
-		).ConfigureAwait(false);
-		return exists is not null;
-	}
-
-	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
-	{
-		using var cnn = GetConnection();
-		string? content = await cnn.QueryFirstOrDefaultAsync<string?>("""
-			select content
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = migrationType.ToString().ToLower()
-			}
-		).ConfigureAwait(false);
-		return content;
 	}
 
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
@@ -598,7 +667,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
+				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
 				run_utc = item.StartedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -606,6 +675,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				error = item.ErrorMessage
 			}
 		).ConfigureAwait(false);
+	}
+
+	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()
+	{
+		using var cnn = GetConnection();
+		IEnumerable<SchemaObjectRow> rows = await cnn.QueryAsync<SchemaObjectRow>(MsSqlSchemaSnapshot.Query).ConfigureAwait(false);
+		return new SchemaSnapshot(rows.Select(r => MsSqlSchemaSnapshot.Normalize(r.ToSchemaObject())));
 	}
 
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash)
@@ -644,7 +720,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				folder_type = projectFolder.ToString(),
-				relative_path = relativePath,
+				relative_path = relativePath.ToStoredPath(),
 				started_utc = startedUtc,
 				completed_utc = completedUtc,
 				execution_time_ms = executionTimeMs,

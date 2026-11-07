@@ -12,6 +12,7 @@ public class DeploySqlIntegrationFullBreakingTests(
 	public async Task DeployProject_Full_Plus_Breaking()
 	{
 		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveTester.RunAllTestsAsync();
 
 		await DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
 	}

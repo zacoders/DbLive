@@ -1,0 +1,12 @@
+<Project>
+
+	<!-- This file hides src/Directory.Build.props, so it imports it. -->
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
+
+	<!--
+	The demos reference the DbLive projects, not the packages, so NuGet does not import the file of the DbLive
+	package that embeds the folder named by DbLiveScriptsFolder. A project that references the packages does not need this.
+	-->
+	<Import Project="$(MSBuildThisFileDirectory)..\DbLive\buildTransitive\DbLive.props" />
+
+</Project>

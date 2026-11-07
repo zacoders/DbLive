@@ -1,6 +1,7 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using DbLive.Schema;
 using Npgsql.Schema;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -11,6 +12,8 @@ namespace DbLive.PostgreSQL;
 public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.PostgreSql;
+
+	public bool ErrorAbortsTransaction => true;
 
 	static PostgreSqlDA()
 	{
@@ -35,24 +38,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		""";
 
 		using NpgsqlConnection cnn = CreateConnection();
-		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
-	}
-
-	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
-	{
-		const string query = """
-			select content_hash
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-		""";
-
-		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new
-		{
-			version,
-			item_type = itemType.ToString().ToLower()
-		}).ConfigureAwait(false);
+		return (await cnn.QueryAsync<MigrationItemRow>(query).ConfigureAwait(false)).Select(r => r.ToDto()).ToList();
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -82,14 +68,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long> GetDbLiveVersionAsync()
+	public async Task<long> GetSelfMigrationVersionAsync()
 	{
 		const string query = "select version from dblive.version;";
 		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
+	public async Task SetSelfMigrationVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = """
 			update dblive.version
@@ -105,9 +91,32 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}).ConfigureAwait(false);
 	}
 
+	// the column comes with self-migration 9: a database deployed before it has none, and a query that names
+	// a missing column fails. The row as json has the key only when the column exists, so the value is null without it.
+	public async Task<Version?> GetMinDbLiveLibVersionAsync()
+	{
+		const string query = "select to_jsonb(v) ->> 'min_dblive_lib_version' from dblive.version as v;";
+		using NpgsqlConnection cnn = CreateConnection();
+		string? version = await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+		return version is null ? null : Version.Parse(version);
+	}
+
+	public async Task SetMinDbLiveLibVersionAsync(Version version)
+	{
+		const string query = """
+			update dblive.version
+			set min_dblive_lib_version = @min_dblive_lib_version;
+		""";
+
+		using NpgsqlConnection cnn = CreateConnection();
+		_ = await cnn.ExecuteAsync(query, new { min_dblive_lib_version = version.ToString() }).ConfigureAwait(false);
+	}
+
+	// the column comes with self-migration 3, and the ProjectId is checked before the self-deployment: a database deployed
+	// before it has none. The row as json has the key only when the column exists, so the value is null without it.
 	public async Task<string?> GetProjectIdAsync()
 	{
-		const string query = "select project_id from dblive.version;";
+		const string query = "select to_jsonb(v) ->> 'project_id' from dblive.version as v;";
 		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
 	}
@@ -150,11 +159,15 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
+	// 'set transaction' outside a transaction block only emits a warning and has no effect.
+	// The session default applies to the implicit transaction of each next command on this connection,
+	// also to a command that cannot run in a transaction block ('create index concurrently', 'vacuum').
+	// Npgsql resets the session ('discard all') when the connection goes back to the pool.
 	private static async Task SetTransactionIsolationLevelAsync(NpgsqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
 		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.PostgreSql);
 
-		using NpgsqlCommand cmd = new($"set transaction isolation level {isolationLevelSql};", cnn);
+		using NpgsqlCommand cmd = new($"set session characteristics as transaction isolation level {isolationLevelSql};", cnn);
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
@@ -302,6 +315,21 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
+	public async Task CheckDatabaseExistsAsync()
+	{
+		try
+		{
+			using NpgsqlConnection cnn = CreateConnection();
+			await cnn.OpenAsync().ConfigureAwait(false);
+		}
+		// a login without access to the database gets 42501 (insufficient_privilege) instead.
+		catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.InvalidCatalogName)
+		{
+			NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+			throw new DatabaseNotFoundException(builder.Database ?? "", builder.Host ?? "", e);
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
@@ -337,19 +365,21 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 
+	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 				insert into dblive.code (
-					relative_path, status, content_hash, applied_utc,
+					relative_path, item_type, status, content_hash, applied_utc,
 					execution_time_ms, created_utc, error
 				)
 				values (
-					@relative_path, @status, @content_hash, @applied_utc,
+					@relative_path, @item_type, @status, @content_hash, @applied_utc,
 					@execution_time_ms, @created_utc, @error
 				)
 				on conflict (relative_path) do update set
+					item_type = excluded.item_type,
 					status = excluded.status,
 					content_hash = excluded.content_hash,
 					applied_utc = excluded.applied_utc,
@@ -358,8 +388,9 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 			new
 			{
-				relative_path = item.RelativePath,
-				status = item.Status.ToString().ToLower(),
+				relative_path = item.RelativePath.ToStoredPath(),
+				item_type = item.ItemType.ToString().ToLowerInvariant(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -369,24 +400,27 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
+	// the paths are sent as one text[] parameter.
+	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync(
 			"""
 			update dblive.code
 			set verified_utc = @verified_utc
-			where relative_path = @relative_path
+			where relative_path in ( select p from unnest(@paths) as p )
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }
+			new { paths = relativePaths.Select(p => p.ToStoredPath()).ToArray(), verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
 	}
-	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
+
+	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
 	{
 		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
+		return (await cnn.QueryAsync<CodeItemDto>(
 			"""
 			select relative_path
+				 , item_type
 				 , content_hash
 				 , applied_utc
 				 , created_utc
@@ -395,38 +429,52 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , error as error_message
 				 , status
 			from dblive.code
-			where relative_path = @relative_path
-			""",
-			new { relative_path = relativePath }
-		).ConfigureAwait(false);
+			"""
+		).ConfigureAwait(false)).ToList();
 	}
+
+	// the project paths are sent as one text[] parameter.
+	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		return (await cnn.QueryAsync<string>(
+			"""
+			update dblive.code
+			set status = 'removed'
+			  , verified_utc = @verified_utc
+			where status <> 'removed'
+			  and relative_path not in ( select p from unnest(@paths) as p )
+			returning relative_path
+			""",
+			new { paths = projectRelativePaths.Select(p => p.ToStoredPath()).ToArray(), verified_utc = verifiedUtc }
+		).ConfigureAwait(false)).ToList();
+	}
+
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		_ = await cnn.ExecuteAsync("""
 			insert into dblive.migration (
 				version, name, item_type, relative_path,
-				status, content_hash, content, created_utc
+				status, content_hash, created_utc
 			)
 			values (
 				@version, @name, @item_type, @relative_path,
-				@status, @content_hash, @content, @created_utc
+				@status, @content_hash, @created_utc
 			)
 			on conflict (version, item_type) do update set
 				status = excluded.status,
 				content_hash = excluded.content_hash,
-				content = excluded.content,
 				relative_path = excluded.relative_path;
 			""",
 		new
 		{
 			version = item.Version,
 			name = item.Name,
-			item_type = item.ItemType.ToString().ToLower(),
-			relative_path = item.RelativePath,
+			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+			relative_path = item.RelativePath.ToStoredPath(),
 			content_hash = item.ContentHash,
-			content = item.Content,
-			status = item.Status.ToString().ToLower(),
+			status = item.Status.ToString().ToLowerInvariant(),
 			created_utc = item.CreatedUtc
 		}).ConfigureAwait(false);
 	}
@@ -437,7 +485,6 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash,
-				content = @content,
 				relative_path = @relative_path
 			where version = @version
 			  and item_type = @item_type
@@ -446,10 +493,9 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		new
 		{
 			version = item.Version,
-			item_type = item.ItemType.ToString().ToLower(),
+			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 			content_hash = item.ContentHash,
-			content = item.Content,
-			relative_path = item.RelativePath
+			relative_path = item.RelativePath.ToStoredPath()
 		}).ConfigureAwait(false);
 
 		if (rowsAffected == 0)
@@ -476,8 +522,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		new
 		{
 			version = item.Version,
-			item_type = item.ItemType.ToString().ToLower(),
-			status = item.Status.ToString().ToLower(),
+			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+			status = item.Status.ToString().ToLowerInvariant(),
 			applied_utc = item.AppliedUtc,
 			execution_time_ms = item.ExecutionTimeMs,
 			error = item.ErrorMessage
@@ -490,38 +536,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			);
 		}
 	}
-	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType)
-	{
-		using NpgsqlConnection cnn = CreateConnection();
-		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
-			select 1
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-		new
-		{
-			version,
-			item_type = itemType.ToString().ToLower()
-		}).ConfigureAwait(false);
 
-		return exists is not null;
-	}
-	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
-	{
-		using NpgsqlConnection cnn = CreateConnection();
-		return await cnn.QueryFirstOrDefaultAsync<string?>("""
-			select content
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-		new
-		{
-			version,
-			item_type = migrationType.ToString().ToLower()
-		}).ConfigureAwait(false);
-	}
 	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
 	{
 		using NpgsqlConnection cnn = CreateConnection();
@@ -543,7 +558,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			""",
 		new
 		{
-			relative_path = item.RelativePath,
+			relative_path = item.RelativePath.ToStoredPath(),
 			content_hash = item.ContentHash,
 			run_utc = item.StartedUtc,
 			execution_time_ms = item.ExecutionTimeMs,
@@ -551,6 +566,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			error = item.ErrorMessage
 		}).ConfigureAwait(false);
 	}
+
+	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		IEnumerable<SchemaObjectRow> rows = await cnn.QueryAsync<SchemaObjectRow>(PostgreSqlSchemaSnapshot.Query).ConfigureAwait(false);
+		return new SchemaSnapshot(rows.Select(r => PostgreSqlSchemaSnapshot.Normalize(r.ToSchemaObject())));
+	}
+
 	public async Task MarkItemAsAppliedAsync(
 		ProjectFolder projectFolder,
 		string relativePath,
@@ -579,7 +602,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		new
 		{
 			folder_type = projectFolder.ToString(),
-			relative_path = relativePath,
+			relative_path = relativePath.ToStoredPath(),
 			started_utc = startedUtc,
 			completed_utc = completedUtc,
 			execution_time_ms = executionTimeMs,

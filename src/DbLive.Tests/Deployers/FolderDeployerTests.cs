@@ -67,7 +67,6 @@ public class FolderDeployerTests
 			FileData = new FileData
 			{
 				Content = $"Content of {fileName}",
-				FilePath = Path.Combine(@"C:/DB", relativePath),
 				RelativePath = relativePath
 			}
 		};

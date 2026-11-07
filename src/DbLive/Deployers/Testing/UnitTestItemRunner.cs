@@ -18,7 +18,7 @@ public class UnitTestItemRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
-		bool initFileDeployed = false;
+		bool setupFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
 		try
@@ -28,14 +28,14 @@ public class UnitTestItemRunner(
 				projectSettings.UnitTestItemTimeout
 			);
 
-			if (test.InitFileData is not null)
+			if (test.SetupFileData is not null)
 			{
 				await _da.ExecuteNonQueryAsync(
-					test.InitFileData.Content,
+					test.SetupFileData.Content,
 					testsIsolationLevel,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
-				initFileDeployed = true;
+				setupFileDeployed = true;
 			}
 
 			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
@@ -61,10 +61,10 @@ public class UnitTestItemRunner(
 		}
 		catch (Exception ex)
 		{
-			if (test.InitFileData is not null && !initFileDeployed)
+			if (test.SetupFileData is not null && !setupFileDeployed)
 			{
 				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR: Init file deployment error. " + ex.Message + Environment.NewLine + result.Output;
+				result.Output = "ERROR: Setup file error. " + ex.Message + Environment.NewLine + result.Output;
 				result.Exception = ex;
 			}
 			else

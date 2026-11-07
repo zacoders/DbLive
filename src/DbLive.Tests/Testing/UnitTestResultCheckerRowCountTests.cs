@@ -160,7 +160,30 @@ public class UnitTestResultCheckerRowCountTests
 		Assert.False(validationResult.IsValid);
 		Assert.Equal(
 		"""
-		Expected 0 rows, but result set is not recieved.
+		Expected 0 row(s), but no result set received.
+		""", validationResult.Output);
+	}
+
+
+	[Fact]
+	public void RowCount_NoActualResult_Invalid()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult assertMark = new(
+			sqlColumns: [new SqlColumn("assert", "..."),],
+			resultRows: [new SqlRow("row-count=3")]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([assertMark]);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+		"""
+		Expected 3 row(s), but no result set received.
 		""", validationResult.Output);
 	}
 
@@ -207,7 +230,7 @@ public class UnitTestResultCheckerRowCountTests
 		Assert.False(validationResult.IsValid);
 		Assert.Equal(
 		"""
-		Expected 0 rows, but result set is not recieved.
+		Expected 0 row(s), but no result set received.
 		""", validationResult.Output);
 	}
 }

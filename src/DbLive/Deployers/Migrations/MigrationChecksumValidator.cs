@@ -34,7 +34,7 @@ internal class MigrationChecksumValidator(
 				continue;
 			}
 
-			if (dbItem.ContentHash == projectItem.FileData.ContentHash)
+			if (projectItem.FileData.MatchesHash(dbItem.ContentHash))
 			{
 				continue;
 			}
@@ -56,7 +56,6 @@ internal class MigrationChecksumValidator(
 					Version = dbItem.Version,
 					ItemType = dbItem.ItemType,
 					ContentHash = projectItem.FileData.ContentHash,
-					Content = dbItem.ItemType == MigrationItemType.Undo ? projectItem.FileData.Content : null,
 					RelativePath = projectItem.FileData.RelativePath
 				}).ConfigureAwait(false);
 

@@ -31,5 +31,23 @@
 		-->
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
+		<!--
+		Every `dotnet pack` also produces a symbols package (.snupkg) with the PDBs.
+		`dotnet nuget push` uploads it to the nuget.org symbol server next to the .nupkg,
+		so users can step into DbLive code (Source Link maps the PDBs to GitHub).
+		Only affects packing; projects that are not packed ignore it.
+		-->
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+	</PropertyGroup>
+
+	<!--
+	Deterministic CI build: source paths in the PDBs become /_/... instead of the build agent's paths.
+	Package validators (NuGet Package Explorer) require it. Only on CI: locally it would break
+	navigation from the debugger to the local files.
+	-->
+	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 </Project>

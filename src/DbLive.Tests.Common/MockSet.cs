@@ -1,6 +1,7 @@
 ﻿
 using DbLive.Deployers;
 using DbLive.Deployers.Folder;
+using DbLive.Schema;
 using DbLive.SelfDeployer;
 using System.Reflection;
 
@@ -11,13 +12,12 @@ public class MockSet
 	private readonly IServiceCollection _container = new ServiceCollection();
 
 	public readonly ILogger Logger = Substitute.For<ILogger>();
-	public readonly IFileSystem FileSystem = Substitute.For<IFileSystem>();
+	public readonly InMemoryScriptSource ScriptSource = new();
+	public readonly InMemoryScriptSource InternalScriptSource = new();
 	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
 	public readonly IInternalDbLiveProject IInternalDbLiveProject = Substitute.For<IInternalDbLiveProject>();
 	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
-	public readonly IInternalProjectPath InternalProjectPath = Substitute.For<IInternalProjectPath>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
-	public readonly IProjectPath ProjectPath = Substitute.For<IProjectPath>();
 	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();
 	public readonly ICodeItemDeployer CodeItemDeployer = Substitute.For<ICodeItemDeployer>();
@@ -26,8 +26,9 @@ public class MockSet
 	public readonly ITransactionRunner TransactionRunner = Substitute.For<ITransactionRunner>();
 	public readonly IUnitTestItemRunner UnitTestItemRunner = Substitute.For<IUnitTestItemRunner>();
 	public readonly ICodeDeployer CodeDeployer = Substitute.For<ICodeDeployer>();
+	public readonly ICodeBreakingDeployer CodeBreakingDeployer = Substitute.For<ICodeBreakingDeployer>();
 	public readonly IFolderDeployer FolderDeployer = Substitute.For<IFolderDeployer>();
-	public readonly IDowngradeDeployer DowngradeDeployer = Substitute.For<IDowngradeDeployer>();
+	public readonly IAppliedMigrationsValidator AppliedMigrationsValidator = Substitute.For<IAppliedMigrationsValidator>();
 	public readonly IBreakingChangesDeployer BreakingChangesDeployer = Substitute.For<IBreakingChangesDeployer>();
 	public readonly IMigrationsDeployer MigrationsDeployer = Substitute.For<IMigrationsDeployer>();
 	public readonly IMigrationsSaver MigrationsSaver = Substitute.For<IMigrationsSaver>();
@@ -45,6 +46,15 @@ public class MockSet
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
+
+		// a database without a minimum DbLive version unless a test sets one.
+		DbLiveDA.GetMinDbLiveLibVersionAsync().Returns((Version?)null);
+
+		// a database without rows in dblive.code unless a test sets them.
+		DbLiveDA.GetCodeItemsAsync().Returns([]);
+
+		// the schema checks of the deployment tests compare equal snapshots unless a test sets them.
+		DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 
 		TransactionSettingsValidator
 			.ValidateAsync(Arg.Any<DbLiveSettings>())
@@ -70,6 +80,10 @@ public class MockSet
 			//		_container.AddTransient(_ => Logger);
 			_container.AddTransient(fld.FieldType, _ => fld.GetValue(this)!);
 		}
+
+		// both script sources have the same field type, so they are registered by their interfaces.
+		_container.AddTransient<IScriptSource>(_ => ScriptSource);
+		_container.AddTransient<IInternalScriptSource>(_ => InternalScriptSource);
 
 		// Simplifying testing, ForContext() method returns the same mocked logger.
 		Logger.ForContext(Arg.Any<Type>()).Returns(Logger);

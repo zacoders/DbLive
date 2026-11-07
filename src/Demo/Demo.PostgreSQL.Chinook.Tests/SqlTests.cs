@@ -1,4 +1,5 @@
 using DbLive.Deployers.Testing;
+using DbLive.PostgreSQL;
 using DbLive.xunit.SqlTest;
 using Xunit.Abstractions;
 
@@ -6,7 +7,7 @@ namespace Demo.PostgreSQL.Chinook.Tests;
 
 public class MySqlTestFixture()
 	: DbLiveTestFixture(
-		fixtureBuilder: new DockerPostgresFixtureBuilder(),
+		fixtureBuilder: new PostgreSqlContainerFixtureBuilder(typeof(DemoPostgreSQLChinookLink).Assembly),
 		dropDatabaseOnComplete: true
 	  )
 {

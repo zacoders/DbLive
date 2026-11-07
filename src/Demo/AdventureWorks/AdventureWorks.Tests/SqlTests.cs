@@ -1,5 +1,7 @@
 using DbLive.Deployers.Testing;
+using DbLive.MSSQL;
 using DbLive.xunit.SqlTest;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -8,7 +10,7 @@ namespace AdventureWorks.Tests;
 
 public class MyDbLiveTestingMSSQLFixture()
 	: DbLiveTestFixture(
-		fixtureBuilder: new DockerMsSqlFixtureBuilder(),
+		fixtureBuilder: new MsSqlContainerFixtureBuilder(Assembly.Load("AdventureWorks.Database")),
 		dropDatabaseOnComplete: true
 	  )
 {

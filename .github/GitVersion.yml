@@ -1,6 +1,8 @@
 mode: Mainline
 
-# Enable conventional commit messages for version bumping
+# Version bump by the messages of the merge commit (it holds the PR title) and of the merged commits; the largest
+# bump wins, patch when none matches. The PR title decides the version: see "Releases" in Development.md.
+# .github/scripts/release-notes.cs reads these three patterns too.
 major-version-bump-message: '(?i)(feat!|.*breaking change:.*)'
 minor-version-bump-message: '(?i)\bfeat(\s*\(.+\))?:'
 patch-version-bump-message: '(?i)\bfix(\s*\(.+\))?:'
@@ -10,15 +12,6 @@ branches:
     regex: ^main$
     is-release-branch: true
     is-mainline: true
-
-  dev:
-    regex: ^dev$
-    mode: ContinuousDeployment
-    tag: preview
-    increment: inherit
-    is-mainline: false
-    source-branches:
-      - main
 
 ignore:
   sha: []

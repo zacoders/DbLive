@@ -59,16 +59,19 @@ public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 	}
 
 	public IDbLive CreateDeployer()
-		=> BuildServiceProvider().GetRequiredService<IDbLive>();
+		=> GetRequiredService<IDbLive>();
 
 	public IDbLiveDA CreateDbLiveDA()
-		=> BuildServiceProvider().GetRequiredService<IDbLiveDA>();
+		=> GetRequiredService<IDbLiveDA>();
 
 	public IDbLiveTester CreateTester()
-		=> BuildServiceProvider().GetRequiredService<IDbLiveTester>();
+		=> GetRequiredService<IDbLiveTester>();
 
 	public IDbLiveProject CreateProject()
-		=> BuildServiceProvider().GetRequiredService<IDbLiveProject>();
+		=> GetRequiredService<IDbLiveProject>();
+
+	internal T GetRequiredService<T>() where T : notnull
+		=> BuildServiceProvider().GetRequiredService<T>();
 
 	public void Dispose()
 	{

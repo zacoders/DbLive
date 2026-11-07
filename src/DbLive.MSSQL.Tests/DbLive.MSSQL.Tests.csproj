@@ -35,6 +35,7 @@
     <ProjectReference Include="..\Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj" />
     <ProjectReference Include="..\Demo\DemoMSSQL\DemoMSSQL.csproj" />
     <ProjectReference Include="..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
+    <ProjectReference Include="..\DbLive.Testcontainers.MSSQL\DbLive.Testcontainers.MSSQL.csproj" />
     <ProjectReference Include="..\DbLive.Tests.Common\DbLive.Tests.Common.csproj" />
     <ProjectReference Include="..\DbLive.xunit\DbLive.xunit.csproj" />
   </ItemGroup>

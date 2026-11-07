@@ -1,19 +1,10 @@
-﻿
-namespace DbLive.Deployers.Testing;
+﻿namespace DbLive.Deployers.Testing;
 
-[Serializable]
 [ExcludeFromCodeCoverage]
-internal class UnitTestsFailedException : Exception
+public class UnitTestsFailedException(int failedCount, int totalCount, IReadOnlyList<string> failedTests)
+	: Exception($"Unit test run failed. Failed test count {failedCount} of {totalCount}.")
 {
-	public UnitTestsFailedException()
-	{
-	}
-
-	public UnitTestsFailedException(string? message) : base(message)
-	{
-	}
-
-	public UnitTestsFailedException(string? message, Exception? innerException) : base(message, innerException)
-	{
-	}
+	public int FailedCount { get; private set; } = failedCount;
+	public int TotalCount { get; private set; } = totalCount;
+	public IReadOnlyList<string> FailedTests { get; private set; } = failedTests;
 }

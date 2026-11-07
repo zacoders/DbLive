@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Project.Exceptions;
 
-internal class InvalidMigrationItemTypeException : Exception
+public class InvalidMigrationItemTypeException : Exception
 {
 	public InvalidMigrationItemTypeException(
 		string fileName,

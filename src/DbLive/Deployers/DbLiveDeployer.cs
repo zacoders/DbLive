@@ -5,24 +5,21 @@ public class DbLiveDeployer(
 		IBreakingChangesDeployer _breakingChangesDeployer,
 		IMigrationsDeployer _migrationsDeployer,
 		IFolderDeployer _folderDeployer,
-		IUnitTestsRunner _unitTestsRunner,
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		ITransactionRunner _transactionRunner,
-		IDowngradeDeployer _downgradeDeployer,
+		IAppliedMigrationsValidator _appliedMigrationsValidator,
 		IMigrationsSaver _migrationsSaver,
 		IMigrationChecksumValidator _migrationChecksumValidator,
-		IProjectIdValidator _projectIdValidator,
-		ITransactionSettingsValidator _transactionSettingsValidator
+		ITransactionSettingsValidator _transactionSettingsValidator,
+		IScriptSource _scriptSource
 	) : IDbLiveDeployer
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveDeployer));
 
 	public async Task DeployAsync(DeployParameters parameters)
 	{
-		_logger.Information("Starting project deploy.");
-
-		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
+		_logger.Information("Starting project deploy from {Location}.", _scriptSource.Location);
 
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
 
@@ -34,12 +31,13 @@ public class DbLiveDeployer(
 			projectSettings.DeploymentTimeout,
 			async () =>
 			{
+				// an older build fails here, before anything is changed: DbLive does not roll back a database.
+				await _appliedMigrationsValidator.ValidateAsync().ConfigureAwait(false);
+
 				await _migrationChecksumValidator.ValidateAsync(parameters).ConfigureAwait(false);
 
 				// saving migrations to the log table before actual deployment.
 				await _migrationsSaver.SaveAsync().ConfigureAwait(false);
-
-				await _downgradeDeployer.DeployAsync(parameters).ConfigureAwait(false);
 
 				await _folderDeployer.DeployAsync(ProjectFolder.BeforeDeploy, parameters).ConfigureAwait(false);
 
@@ -52,8 +50,6 @@ public class DbLiveDeployer(
 				await _folderDeployer.DeployAsync(ProjectFolder.AfterDeploy, parameters).ConfigureAwait(false);
 			}
 		).ConfigureAwait(false);
-
-		await _unitTestsRunner.RunAllTestsAsync(parameters).ConfigureAwait(false);
 
 		_logger.Information("Project deploy completed.");
 	}

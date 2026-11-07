@@ -11,16 +11,16 @@ public static class Bootstrapper
 	{
 		// ordered alphabetically
 		_ = container
+			.AddSingleton<IAppliedMigrationsValidator, AppliedMigrationsValidator>()
 			.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>()
+			.AddSingleton<ICodeBreakingDeployer, CodeBreakingDeployer>()
 			.AddSingleton<ICodeDeployer, CodeDeployer>()
 			.AddSingleton<ICodeItemDeployer, CodeItemDeployer>()
 			.AddSingleton<IDbLive, DbLive>()
 			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
 			.AddSingleton<IDbLiveProject, DbLiveProject>()
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
-			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()
-			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
-			.AddSingleton<IFileSystem, FileSystem>()
+			.AddSingleton<IDbLiveTester, DbLiveTester>()
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
 			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()
 			.AddSingleton<IMigrationChecksumValidator, MigrationChecksumValidator>()

@@ -7,6 +7,7 @@ global using DbLive.Deployers.Migrations;
 global using DbLive.Deployers.Testing;
 global using DbLive.Project;
 global using DbLive.Project.Exceptions;
+global using DbLive.Schema;
 global using DbLive.Testing;
 global using Microsoft.Extensions.DependencyInjection;
 global using Serilog;

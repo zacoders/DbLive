@@ -4,17 +4,15 @@ using System.Reflection;
 
 const string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
 
-IDbLive deployer = new DbLiveBuilder()
+DbLiveBuilder builder = new DbLiveBuilder()
 	.LogToConsole()
 	.SqlServer()
 	.SetDbConnection(dbCnnString)
-	.SetProject(Assembly.GetExecutingAssembly())
-	.CreateDeployer();
+	.SetProject(Assembly.GetExecutingAssembly());
 
-await deployer.DeployAsync(new DeployParameters
+await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
 	CreateDbIfNotExists = true,
 	DeployCode = true,
-	DeployMigrations = true,
-	RunTests = true
+	DeployMigrations = true
 }).ConfigureAwait(false);
