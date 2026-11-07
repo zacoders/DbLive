@@ -11,7 +11,7 @@ breaking: true
 **Breaking scripts in the `Code` folder.** `<name>.breaking.sql` next to `<name>.sql`, or `breaking.sql` for its folder (short forms `<name>.b.sql`, `b.sql`), drops an old version of a code object in the breaking phase, for example `drop proc if exists dbo.GetUser_v1;`. They run on every breaking deployment, before the breaking scripts of migrations, so they must be idempotent. A code-only release no longer needs a migration to carry the drop.
 
 What can break:
-- The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build, or after a rollback, no longer drops anything.
+- The breaking phase (`DeployBreaking = true`) fails with `CodeNotDeployedException` unless every code file of the build is deployed with its current content. This applies to the breaking scripts of migrations too: a `Breaking` run after a failed or missing `Default` run of the same build no longer drops anything.
 - Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
 - The deployment test (`[SqlDeployFact]`) runs the breaking phase a second time, and every migration breaking script twice. A breaking script that fails on its second run (for example `drop trigger` without `if exists`) fails the test.
 

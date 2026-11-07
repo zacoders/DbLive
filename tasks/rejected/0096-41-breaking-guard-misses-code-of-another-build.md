@@ -2,8 +2,12 @@
 type: bug
 priority: high
 created: 2026-11-05
+rejected: 2026-11-07
 ---
 # The breaking phase guard does not notice the code of another build
+
+## Rejected
+Rejected by the maintainer on 2026-11-07: the case needs an operator mistake, and DbLive does not guard against it. The normal flow (`Default`, then `Breaking` of the same build) never meets it: it happens only when the `Breaking` stage of an abandoned release runs after a later release (a `git revert`, or the previous build of a code-only release) brought a deleted code file back, which §18.8 already forbids. The docs that promised the guard catches this case are corrected in the same commit (`docs/llms-full.txt` §5.5 and §18.8, `docs/deployment/breaking-changes.md`, `docs/deployment/migrations.md`, the release note of 0096-15, the comment of `ValidateCodeDeployedAsync`). The round trip per code file and the copied "is deployed" check moved to 0096-44.
 
 ## Problem
 `BreakingChangesDeployer.ValidateCodeDeployedAsync` checks only that every code file of this build has an `applied` row with its current hash. It does not notice that the database has code of another build. So a stale `Breaking` job of build N+1 after a rollback to N passes the guard when N+1 only deleted code files, and it drops what application N uses.

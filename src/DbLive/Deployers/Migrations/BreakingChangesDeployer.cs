@@ -37,8 +37,9 @@ public class BreakingChangesDeployer(
 
 	/// <summary>
 	/// The breaking phase runs only after the normal deployment of this build completed: every code file has an applied row with its
-	/// current hash. Otherwise a breaking run started too early (the Default run failed, Breaking before Default, a stale Breaking job
-	/// after a rollback) drops what the running application still uses. A failure, not a skip: a skipped phase leaves the pipeline green.
+	/// current hash. Otherwise a breaking run started too early (the Default run failed, Breaking before Default) drops what the running
+	/// application still uses. A failure, not a skip: a skipped phase leaves the pipeline green. Not a check that the release is still the
+	/// current one: a stale Breaking job of a release that a later one replaced can pass (0096-41, rejected).
 	/// </summary>
 	/// <exception cref="CodeNotDeployedException"/>
 	private async Task ValidateCodeDeployedAsync()
