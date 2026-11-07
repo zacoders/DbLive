@@ -7,7 +7,7 @@ closed: 2026-11-01
 # Store relative paths in lower case in `dblive`
 
 ## Release note
-Relative paths in the `dblive` tables are stored in lower case. A file renamed only by case (`GetUser.sql` → `getUser.sql`) is no longer a new code item, and a project behaves the same on SQL Server and PostgreSQL. Existing rows are converted on the first deployment. Logs, exceptions and Test Explorer keep the real casing; only the downgrade shows the paths read from the database, in lower case.
+Relative paths in the `dblive` tables are stored in lower case. A file renamed only by case (`GetUser.sql` → `getUser.sql`) is no longer a new code item, and a project behaves the same on SQL Server and PostgreSQL. Existing rows are converted on the first deployment. Logs, exceptions and Test Explorer keep the real casing; only the log of code files removed from the project shows the paths read from the database, in lower case.
 
 ## Goal
 DbLive identifies code items, test runs and BeforeDeploy/AfterDeploy items in the database by `relative_path`, and the comparison depends on the engine: SQL Server compares by the collation of the database (usually case-insensitive), PostgreSQL is case-sensitive. Files are already found ignoring case (0096-31, kept in 0096-31-01), so the model is inconsistent:

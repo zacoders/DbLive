@@ -2,6 +2,7 @@
 type: bug
 priority: high
 created: 2026-10-31
+closed: 2026-11-02
 ---
 # Published DLLs have version 0.0.0.0, and there are no symbols
 
@@ -38,10 +39,17 @@ The ProductVersion comes from the environment, not from `Version`: the GitVersio
 
 ## Done when
 - [x] A locally packed package has the right AssemblyVersion, FileVersion and ProductVersion
-- [ ] NuGet Package Explorer shows Source Link, deterministic build and compiler flags as valid
-- [ ] The next release on nuget.org has a symbols package
+- [x] NuGet Package Explorer shows Source Link, deterministic build and compiler flags as valid: moved to 0096-49, checked on the release
+- [x] The next release on nuget.org has a symbols package: moved to 0096-49
 
 ## Notes
 - Local run of the new CI steps, 2026-11-02: `GITHUB_ACTIONS=true` and an `informationalVersion=1.6.0+Branch.main.Sha.111…` environment variable (as GitVersion leaves it), `dotnet build src/DbLive.sln -c Release -p:Version=1.6.0 -p:InformationalVersion=1.6.0`, then `dotnet pack --no-build -p:Version=1.6.0` for the four packages. All 12 DLLs: AssemblyVersion and FileVersion `1.6.0.0`, ProductVersion `1.6.0+f00f8fd…` (one hash). Each package has a `.snupkg` with the PDBs of the three frameworks. The PDBs hold the Source Link map `https://raw.githubusercontent.com/zacoders/DbLive/<sha>/*`, paths `/_/...` and no local paths, and the compiler options (`compiler-version`, `language-version`, `optimization=release`). The provider and xunit packages depend on `DbLive 1.6.0`. Tests on that Release build, as the new "Test" step runs them (`--no-build -c Release --filter "Category!=LocalOnly"`, SQL Server and PostgreSQL in Docker): 486 passed, 0 failed, the same count as on the Debug build in 0096-17.
 - NuGet Package Explorer itself was not run: its command-line validator (`dotnet-validate`) was not allowed in the agent session. Check with NuGet Package Explorer on the next package, or on nuget.org after the release.
 - Alternative not taken: `DebugType=embedded` (PDB inside the DLL). Debugging works without enabling the nuget.org symbol server, but the DLLs grow. The `.snupkg` is the standard way for nuget.org.
+- 2026-11-07 (0096-45): the task was moved to `done/` without `closed:` and `## Result`, with two checks that need a release. Decision of the maintainer: close it here and check on the release in 0096-49. Moving the task back to `tasks/` would take its release note out of the notes of 2.0.0, which ships the change.
+
+## Result
+- CI builds once in Release with `-p:Version=<NuGetVersionV2> -p:InformationalVersion=<NuGetVersionV2>`, then tests and packs that build with `--no-build`: the tests run on the assemblies that go into the packages. AssemblyVersion and FileVersion follow the package version (`1.6.0.0`), ProductVersion is `<version>+<sha>` with one hash.
+- `src/Directory.Build.props`: symbols packages (`IncludeSymbols`, `snupkg`) for every package, and `ContinuousIntegrationBuild` when `GITHUB_ACTIONS` is `true`. `Development.md` describes how CI versions the assemblies.
+- Tests: a local run of the new CI steps (Notes, 2026-11-02): versions, `.snupkg` with Source Link and compiler options, 486 tests passed on the Release build. The checks on nuget.org and with NuGet Package Explorer are in 0096-49.
+- Commits: c125347, 28f5118.

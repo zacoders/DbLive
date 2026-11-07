@@ -464,8 +464,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				relative_path = item.RelativePath.ToStoredPath(),
-				item_type = item.ItemType.ToString().ToLower(),
-				status = item.Status.ToString().ToLower(),
+				item_type = item.ItemType.ToString().ToLowerInvariant(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
@@ -600,7 +600,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
-				status = item.Status.ToString().ToLower(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				created_utc = item.CreatedUtc
 			}
 		).ConfigureAwait(false);
@@ -650,7 +650,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				version = item.Version,
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
-				status = item.Status.ToString().ToLower(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				error = item.ErrorMessage

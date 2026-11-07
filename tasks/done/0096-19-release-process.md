@@ -68,7 +68,7 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
   - fails when the PR title and the commits give another bump than the tasks need: `breaking: true` needs `BREAKING CHANGE:`, a `feature` task with a note needs `feat:` (the same regexes as `GitVersion.yml`). The plan said "a smaller bump"; see Notes for "another".
 
 ### Versions
-- [ ] Next release (#96, PR #98): 2.0.0, the PR title starts with `BREAKING CHANGE:` (breaking: 0096-04, 0096-07, 0096-11, 0096-13, 0096-15, 0096-17, 0096-31, 0096-31-01, 0096-31-02-01, 0096-32, 0096-32-02, 0096-33).
+- [x] Next release (#96, PR #98): 2.0.0, the PR title starts with `BREAKING CHANGE:` (breaking: 0096-04, 0096-07, 0096-11, 0096-13, 0096-15, 0096-17, 0096-31, 0096-31-01, 0096-31-02-01, 0096-32, 0096-32-02, 0096-33): the title is set (Notes, 2026-11-02); the release itself moved to 0096-49.
 - [x] Versioning policy: what is public API (`DbLiveBuilder`, `DeployParameters`, `IDbLive`, `settings.json` keys, file naming, assert semantics, the `dblive` schema); breaking changes only in a major version. `docs/versioning.md`.
 
 ### Cleanup
@@ -87,7 +87,7 @@ The code and the tasks are written by an AI agent, and nothing tells it to write
 ## Done when
 - [x] `main` protected
 - [x] The agent instructions require `## Release note`, and the PR check fails a closed task without it
-- [ ] Every release gets a GitHub Release with notes, starting with 2.0.0
+- [x] Every release gets a GitHub Release with notes, starting with 2.0.0: checked on 2.0.0 in 0096-49
 - [x] Versioning policy published
 
 ## Notes

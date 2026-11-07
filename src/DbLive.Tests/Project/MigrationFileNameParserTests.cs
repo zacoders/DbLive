@@ -1,3 +1,4 @@
+using System.Globalization;
 
 namespace DbLive.Tests.Project;
 
@@ -177,6 +178,31 @@ public class MigrationFileNameParserTests
 		Assert.Equal(expectedType, result.MigrationItemType);
 		Assert.Equal(expectedName, result.Name);
 		Assert.Equal(file, result.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("001.MIGRATION.sql", MigrationItemType.Migration)]
+	[InlineData("001.BREAKING.sql", MigrationItemType.Breaking)]
+	[InlineData("001.MIGRATION.SETTINGS.json", MigrationItemType.MigrationSettings)]
+	[InlineData("001.BREAKING.SETTINGS.json", MigrationItemType.BreakingSettings)]
+	public void Parses_Upper_Case_Parts_In_Turkish_Culture(string file, MigrationItemType expectedType)
+	{
+		CultureInfo culture = CultureInfo.CurrentCulture;
+		try
+		{
+			// in tr-TR "I".ToLower() is the dotless "ı": "BREAKING" would become "breakıng", a migration named "BREAKING".
+			CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+			Assert.Equal("ı", "I".ToLower(CultureInfo.CurrentCulture));
+
+			MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+			Assert.Equal(expectedType, result.MigrationItemType);
+			Assert.Equal("", result.Name);
+		}
+		finally
+		{
+			CultureInfo.CurrentCulture = culture;
+		}
 	}
 
 	[Fact]

@@ -94,9 +94,9 @@ public class DbLiveTablesSnapshotTests
 
 		// the values as the providers write them.
 		lines.AddRange(Enum.GetValues<MigrationItemType>().Select(v => $"dblive.migration.item_type {MigrationItemTypeMapper.ToDbValue(v)}"));
-		lines.AddRange(Enum.GetValues<MigrationItemStatus>().Select(v => $"dblive.migration.status {v.ToString().ToLower()}"));
-		lines.AddRange(Enum.GetValues<CodeItemType>().Select(v => $"dblive.code.item_type {v.ToString().ToLower()}"));
-		lines.AddRange(Enum.GetValues<CodeItemStatus>().Select(v => $"dblive.code.status {v.ToString().ToLower()}"));
+		lines.AddRange(Enum.GetValues<MigrationItemStatus>().Select(v => $"dblive.migration.status {v.ToString().ToLowerInvariant()}"));
+		lines.AddRange(Enum.GetValues<CodeItemType>().Select(v => $"dblive.code.item_type {v.ToString().ToLowerInvariant()}"));
+		lines.AddRange(Enum.GetValues<CodeItemStatus>().Select(v => $"dblive.code.status {v.ToString().ToLowerInvariant()}"));
 		lines.AddRange(Enum.GetValues<ProjectFolder>().Select(v => $"dblive.folder_items.folder_type {v}"));
 
 		return lines;

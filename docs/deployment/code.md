@@ -40,7 +40,7 @@ DbLive does not drop objects. When you delete a file, rename an object in its fi
 drop proc if exists dbo.GetUser_v1;
 ```
 
-When code is deployed, the row of a file deleted from the project is marked `removed` in `dblive.code`. If a later release brings the file back (a `git revert` of its deletion), it is executed again even if its content did not change, because the breaking phase may have dropped its object in between. So the object it creates is restored.
+When code is deployed, the row of a file deleted from the project is marked `removed` in `dblive.code`. The log lists these files with the paths stored in `dblive.code`, in lower case (`code/dbo/getuser.sql`): the files are gone, so their real names are not known. If a later release brings the file back (a `git revert` of its deletion), it is executed again even if its content did not change, because the breaking phase may have dropped its object in between. So the object it creates is restored.
 
 ## Versioned interface
 

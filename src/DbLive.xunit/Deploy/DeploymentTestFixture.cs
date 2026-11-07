@@ -13,14 +13,11 @@ public class DeploymentTestFixture(
 	)
 	: IAsyncLifetime
 {
-	public IDbLive? Deployer { get; private set; }
-
 	private DbLiveBuilder? _builder;
 
 	public async Task InitializeAsync()
 	{
 		_builder = await builderProvider.GetBuilderAsync().ConfigureAwait(false);
-		Deployer = _builder.CreateDeployer();
 	}
 
 	public async Task DisposeAsync()
