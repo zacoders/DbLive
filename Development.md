@@ -16,6 +16,9 @@ mkdocs build --strict   # what CI runs
 
 The workflow builds with `--strict`, also on pull requests that change the docs, so a broken link or anchor fails the check.
 
+## Scripts
+`.github/scripts/` holds the scripts of CI, .NET file-based apps run with `dotnet run <script>.cs` (.NET 10 SDK). A script file is the outline: it reads the arguments and calls the steps in order. The steps are in the folder of the same name, one file each, included with `#:include`: `release-notes.cs` and `release-notes/`, `package-tests.cs` and `package-tests/`. The comment at the top of a script lists its arguments and its files.
+
 ## Releases
 Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and tests the solution, publishes the seven packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`, and the `dotnet new` template `DbLive.Templates`) to nuget.org, tags the merge commit with the version and creates a GitHub Release with the release notes. Work happens in branches and reaches `main` through a pull request, merged with a merge commit. Small fix releases are fine; the versioning policy for users is [docs/versioning.md](docs/versioning.md).
 
