@@ -83,14 +83,14 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long> GetDbLiveVersionAsync()
+	public async Task<long> GetSelfMigrationVersionAsync()
 	{
 		const string query = "select version from dblive.version;";
 		using NpgsqlConnection cnn = CreateConnection();
 		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
+	public async Task SetSelfMigrationVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = """
 			update dblive.version
@@ -104,6 +104,27 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			version,
 			applied_utc = migrationDateTime
 		}).ConfigureAwait(false);
+	}
+
+	// the column comes with self-migration 9: a database deployed before it has none, and a query that names
+	// a missing column fails. The row as json has the key only when the column exists, so the value is null without it.
+	public async Task<Version?> GetMinDbLiveLibVersionAsync()
+	{
+		const string query = "select to_jsonb(v) ->> 'min_dblive_lib_version' from dblive.version as v;";
+		using NpgsqlConnection cnn = CreateConnection();
+		string? version = await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+		return version is null ? null : Version.Parse(version);
+	}
+
+	public async Task SetMinDbLiveLibVersionAsync(Version version)
+	{
+		const string query = """
+			update dblive.version
+			set min_dblive_lib_version = @min_dblive_lib_version;
+		""";
+
+		using NpgsqlConnection cnn = CreateConnection();
+		_ = await cnn.ExecuteAsync(query, new { min_dblive_lib_version = version.ToString() }).ConfigureAwait(false);
 	}
 
 	public async Task<string?> GetProjectIdAsync()

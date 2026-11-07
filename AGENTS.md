@@ -23,6 +23,10 @@ Work items (features, bugs, chores) are Markdown files in `tasks/`, one file per
   2. Set `rejected:` in the front matter.
   3. `git mv` the file to `tasks/rejected/`. It keeps its name and number, and needs no `## Release note`.
 
+## The `dblive` tables
+
+A change after which an older DbLive misreads or miswrites the `dblive` tables (a new stored value, a dropped or renamed column, a `NOT NULL` column without a default), with a self-migration or in C# alone, raises `MinCompatibleVersion` to the version of the release. The rule and the release check: "Compatibility of the `dblive` tables" in [Development.md](Development.md).
+
 ## Commits and pull requests
 
 Do not write `feat:`, `feat!` or `breaking change:` in commit messages: GitVersion takes the version bump from them. The PR title decides the version: start it with `BREAKING CHANGE:` when a task it closes has `breaking: true`, with `feat:` when a `feature` task has a release note, with neither otherwise. The "Release notes" check of the PR fails on a mismatch. See "Releases" in [Development.md](Development.md).

@@ -9,6 +9,7 @@ public interface IDbLiveTester
 	/// </summary>
 	/// <exception cref="UnitTestsFailedException">A test failed. All tests run first.</exception>
 	/// <exception cref="DatabaseNotDeployedException">The database has no DbLive tables.</exception>
+	/// <exception cref="SelfDeployer.DatabaseRequiresNewerDbLiveException">A newer DbLive has deployed the database, and this one cannot write its tables.</exception>
 	/// <exception cref="ProjectIdMismatchException">The settings have a ProjectId and the database has another one or none.</exception>
 	Task RunAllTestsAsync();
 

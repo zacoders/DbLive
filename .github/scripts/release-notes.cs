@@ -9,6 +9,8 @@
 // --check           PR check: the version bump of the PR title and the commits must be the one the tasks need
 //
 // Fails (exit code 1) when a closed task has no "## Release note", and with --check when the bump differs.
+// With --check or --version, also when MinCompatibleVersion changed since the previous release and is not the version
+// of this release ("Compatibility of the dblive tables" in Development.md).
 // The notes are written in any case, so the PR check can show them next to the errors.
 
 using System.Diagnostics;
@@ -107,7 +109,31 @@ foreach (var (source, message) in messages)
 	}
 }
 
+bool versionKnown = check || version is not null;
 version ??= Next(previous, actual);
+
+// The minimum DbLive version a database needs ("Compatibility of the dblive tables" in Development.md) is the version of the
+// release that ships the incompatible change. Checked when the version of the release is known: in the PR check, with the PR
+// title, and on main. Any commit since the previous release that changed it counts, not only the difference to the release:
+// two pull requests that raised it to the same version at the same time merge without a conflict, and the second one is released
+// with a later version.
+const string CompatibilityFile = "src/DbLive/SelfDeployer/DbLiveCompatibility.cs";
+const string MinVersionDeclaration = "Version MinCompatibleVersion = ";
+if (versionKnown)
+{
+	string? minVersion = MinCompatibleVersion(File.Exists(CompatibilityFile) ? File.ReadAllText(CompatibilityFile) : null);
+	string? previousMinVersion = MinCompatibleVersion(GitOrNull("show", $"{previous}:{CompatibilityFile}"));
+	// --full-history: without it git drops the branch of the second pull request, whose merge leaves the file as it was.
+	var minVersionCommits = Git("log", "--full-history", "--format=%h", "-G", MinVersionDeclaration, $"{previous}..HEAD", "--", CompatibilityFile)
+		.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+	if (minVersion is null)
+		errors.Add($"{CompatibilityFile}: '{MinVersionDeclaration}new(<major>, <minor>, <patch>);' not found.");
+	else if ((minVersion != previousMinVersion || minVersionCommits.Length > 0) && minVersion != version)
+		errors.Add($"MinCompatibleVersion in {CompatibilityFile} changed since {previous} "
+			+ $"({previousMinVersion ?? "none"} -> {minVersion}{(minVersionCommits.Length > 0 ? $", commits {string.Join(", ", minVersionCommits)}" : "")}), "
+			+ $"so it must be the version of this release: set it to {version}. A database deployed by this release then needs DbLive {version} or newer.");
+}
 
 if (check && required is { } need && need != actual)
 {
@@ -176,6 +202,21 @@ Regex BumpRegex(string bump)
 
 static string Git(params string[] args)
 {
+	var (exitCode, result, error) = RunGit(args);
+	if (exitCode != 0)
+		throw new InvalidOperationException($"git {string.Join(' ', args)} failed: {error.Trim()}");
+	return result;
+}
+
+// null when git fails: a file that is not in the commit.
+static string? GitOrNull(params string[] args)
+{
+	var (exitCode, result, _) = RunGit(args);
+	return exitCode == 0 ? result : null;
+}
+
+static (int ExitCode, string Output, string Error) RunGit(string[] args)
+{
 	var start = new ProcessStartInfo("git")
 	{
 		RedirectStandardOutput = true,
@@ -188,10 +229,16 @@ static string Git(params string[] args)
 	var error = process.StandardError.ReadToEndAsync();
 	string result = process.StandardOutput.ReadToEnd();
 	process.WaitForExit();
-	if (process.ExitCode != 0)
-		throw new InvalidOperationException($"git {string.Join(' ', args)} failed: {error.Result.Trim()}");
-	return result;
+	return (process.ExitCode, result, error.Result);
 }
+
+// The value of MinCompatibleVersion in the source of DbLiveCompatibility.cs, as major.minor.patch;
+// null without the file or the declaration.
+static string? MinCompatibleVersion(string? source)
+	=> source is not null
+		&& Regex.Match(source, @"Version MinCompatibleVersion = new\((\d+), (\d+), (\d+)\);") is { Success: true } match
+		? $"{match.Groups[1].Value}.{match.Groups[2].Value}.{match.Groups[3].Value}"
+		: null;
 
 // The title of the merged PR: GitHub writes "Merge pull request #N from <branch>", an empty line and the title.
 static string MergedTitle()

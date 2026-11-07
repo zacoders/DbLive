@@ -47,6 +47,9 @@ public class MockSet
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
 
+		// a database without a minimum DbLive version unless a test sets one.
+		DbLiveDA.GetMinDbLiveLibVersionAsync().Returns((Version?)null);
+
 		// the schema checks of the deployment tests compare equal snapshots unless a test sets them.
 		DbLiveDA.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 

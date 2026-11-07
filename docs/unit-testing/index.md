@@ -226,6 +226,7 @@ Before the first test, `RunAllTestsAsync` checks the database and runs no test i
 
 - The database exists. Otherwise `DatabaseNotFoundException`, which names the database and the server.
 - The DbLive tables exist. Otherwise `DatabaseNotDeployedException`: the project was never deployed there, or the connection string points to another database.
+- The database does not require a newer DbLive. Otherwise `DatabaseRequiresNewerDbLiveException`: a newer DbLive has deployed it (see [The DbLive version a database requires](../deployment/index.md#the-dblive-version-a-database-requires)).
 - The [ProjectId](../features/project-id.md) matches. The check only compares: with a `ProjectId` in `settings.json`, a database with another value or with none fails with `ProjectIdMismatchException`. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
 - The isolation levels in `settings.json` are supported by the database engine, as at the start of a deployment.
 

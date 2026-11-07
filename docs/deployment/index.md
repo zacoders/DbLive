@@ -40,7 +40,7 @@ It reads the scripts embedded in the SQL project assembly, so it deploys exactly
 Every `DeployAsync` call runs these steps in this order:
 
 1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
-2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema.
+2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database that a newer DbLive changed in a way this version cannot read stops the deployment here, before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
 3. **Validate**: [ProjectId](../features/project-id.md), isolation levels, that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations. The applied versions check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
 4. **Record** all migration files of the project in `dblive.migration`.
 5. **BeforeDeploy** scripts.
@@ -124,13 +124,19 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 
 | Table | Content |
 |-------|---------|
-| `dblive.version` | DbLive's own schema version and the bound `project_id` |
+| `dblive.version` | DbLive's own schema version, the bound `project_id`, and the oldest DbLive version that can deploy the database (`min_dblive_lib_version`) |
 | `dblive.migration` | One row per migration file: version, type, status (`none`, `applied`), checksum, applied time |
 | `dblive.code` | One row per code file: status, checksum, last error |
 | `dblive.unit_test_run` | Last result of each SQL test |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
 
 Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`).
+
+### The DbLive version a database requires
+
+A newer DbLive can store in these tables what an older one cannot read. So the database keeps the oldest DbLive version that can deploy it, in `dblive.version.min_dblive_lib_version`. Every deployment raises it to the minimum of its DbLive version and never lowers it. A deployment or `RunAllTestsAsync()` with an older DbLive fails with `DatabaseRequiresNewerDbLiveException` before it changes anything; the message names the version to update the DbLive packages to.
+
+A release of DbLive after which older versions can no longer deploy the database says so in its [release notes](https://github.com/zacoders/DbLive/releases). If you roll back a release that upgraded to such a version, roll back the application and keep the database (see [Roll back a release](migrations.md#roll-back-a-release)): the previous build of the database fails with this exception. DbLive versions before 2.0.0 do not check the required version: do not deploy a database that DbLive 2.0 or later has deployed with them.
 
 ```sql
 select version, item_type, status, applied_utc, relative_path

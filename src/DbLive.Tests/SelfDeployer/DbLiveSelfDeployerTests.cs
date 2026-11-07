@@ -1,4 +1,6 @@
-﻿namespace DbLive.Tests.SelfDeployer;
+﻿using NSubstitute.Extensions;
+
+namespace DbLive.Tests.SelfDeployer;
 
 
 public class DbLiveSelfDeployerTests
@@ -77,8 +79,8 @@ public class DbLiveSelfDeployerTests
 
 		// Assert
 		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
-		await mockSet.DbLiveDA.Received(1).SetDbLiveVersionAsync(1, Arg.Any<DateTime>());
-		await mockSet.DbLiveDA.Received(1).SetDbLiveVersionAsync(2, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(1).SetSelfMigrationVersionAsync(1, Arg.Any<DateTime>());
+		await mockSet.DbLiveDA.Received(1).SetSelfMigrationVersionAsync(2, Arg.Any<DateTime>());
 	}
 
 	[Fact]
@@ -90,7 +92,7 @@ public class DbLiveSelfDeployerTests
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
 
 		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
 
@@ -110,13 +112,13 @@ public class DbLiveSelfDeployerTests
 		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
 
 		await mockSet.DbLiveDA.DidNotReceive()
-			.SetDbLiveVersionAsync(1, Arg.Any<DateTime>());
+			.SetSelfMigrationVersionAsync(1, Arg.Any<DateTime>());
 
 		await mockSet.DbLiveDA.Received(1)
-			.SetDbLiveVersionAsync(2, Arg.Any<DateTime>());
+			.SetSelfMigrationVersionAsync(2, Arg.Any<DateTime>());
 
 		await mockSet.DbLiveDA.Received(1)
-			.SetDbLiveVersionAsync(3, Arg.Any<DateTime>());
+			.SetSelfMigrationVersionAsync(3, Arg.Any<DateTime>());
 	}
 
 
@@ -168,6 +170,150 @@ public class DbLiveSelfDeployerTests
 		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync("-- exact sql");
 	}
 
+
+	[Fact]
+	public async Task Deploy_reads_the_database_inside_its_transaction()
+	{
+		MockSet mockSet = new();
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([CreateMigration(1, "-- migration 1")]);
+		// the transaction does not run its body.
+		mockSet.TransactionRunner
+			.Configure()
+			.ExecuteWithinTransactionAsync(default, default, default, default!)
+			.ReturnsForAnyArgs(Task.CompletedTask);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		await deployer.DeployAsync();
+
+		_ = await mockSet.DbLiveDA.DidNotReceive().DbLiveInstalledAsync();
+		_ = await mockSet.DbLiveDA.DidNotReceive().GetMinDbLiveLibVersionAsync();
+		_ = await mockSet.DbLiveDA.DidNotReceive().GetSelfMigrationVersionAsync();
+	}
+
+	[Fact]
+	public async Task Deploy_fails_before_any_change_when_the_database_requires_a_newer_DbLive()
+	{
+		Version newerVersion = NewerThanMinCompatibleVersion();
+
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync().Returns(newerVersion);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
+		[
+			CreateMigration(1, "-- migration 1"),
+			CreateMigration(2, "-- migration 2")
+		]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		DatabaseRequiresNewerDbLiveException ex = await Assert.ThrowsAsync<DatabaseRequiresNewerDbLiveException>(deployer.DeployAsync);
+
+		Assert.Equal(newerVersion, ex.RequiredVersion);
+		Assert.Equal(DbLiveCompatibility.MinCompatibleVersion, ex.MinCompatibleVersion);
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!, default, default);
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetSelfMigrationVersionAsync(default, default);
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetMinDbLiveLibVersionAsync(default!);
+	}
+
+	[Fact]
+	public async Task Deploy_stores_MinCompatibleVersion_after_the_self_migrations_of_a_new_database()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
+		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
+		[
+			CreateMigration(1, "-- migration 1"),
+			CreateMigration(2, "-- migration 2")
+		]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		await deployer.DeployAsync();
+
+		Received.InOrder(() =>
+		{
+			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 1");
+			_ = mockSet.DbLiveDA.SetSelfMigrationVersionAsync(1, new DateTime(2025, 1, 1));
+			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 2");
+			_ = mockSet.DbLiveDA.SetSelfMigrationVersionAsync(2, new DateTime(2025, 1, 1));
+			_ = mockSet.DbLiveDA.SetMinDbLiveLibVersionAsync(DbLiveCompatibility.MinCompatibleVersion);
+		});
+		// a database without the DbLive tables has no column to read.
+		_ = await mockSet.DbLiveDA.DidNotReceive().GetMinDbLiveLibVersionAsync();
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData("0.0.1")]
+	public async Task Deploy_raises_a_missing_or_lower_requirement_to_MinCompatibleVersion(string? storedVersion)
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync().Returns(storedVersion is null ? null : Version.Parse(storedVersion));
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([CreateMigration(1, "-- migration 1")]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		await deployer.DeployAsync();
+
+		await mockSet.DbLiveDA.Received(1).SetMinDbLiveLibVersionAsync(DbLiveCompatibility.MinCompatibleVersion);
+	}
+
+	[Fact]
+	public async Task Deploy_does_not_write_the_requirement_when_the_database_has_it()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync().Returns(DbLiveCompatibility.MinCompatibleVersion);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns([CreateMigration(1, "-- migration 1")]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		await deployer.DeployAsync();
+
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetMinDbLiveLibVersionAsync(default!);
+	}
+
+	[Fact]
+	public async Task Deploy_goes_on_when_a_newer_DbLive_applied_more_self_migrations()
+	{
+		// a newer DbLive deployed the database, and its requirement allows this DbLive.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(5);
+		mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync().Returns(DbLiveCompatibility.MinCompatibleVersion);
+		mockSet.IInternalDbLiveProject.GetMigrationsAsync().Returns(
+		[
+			CreateMigration(1, "-- migration 1"),
+			CreateMigration(2, "-- migration 2"),
+			CreateMigration(3, "-- migration 3")
+		]);
+
+		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();
+
+		await deployer.DeployAsync();
+
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!, default, default);
+		// the self-migration version is not lowered.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetSelfMigrationVersionAsync(default, default);
+		mockSet.Logger.Received(1).Information(
+			Arg.Is<string>(m => m.StartsWith("The dblive schema of the database is at self-migration {AppliedVersion}, newer than the last one of this DbLive")),
+			5L,
+			3L,
+			DbLiveCompatibility.MinCompatibleVersion
+		);
+	}
+
+	private static Version NewerThanMinCompatibleVersion()
+	{
+		Version min = DbLiveCompatibility.MinCompatibleVersion;
+		return new Version(min.Major, min.Minor + 1, 0);
+	}
 
 	private static InternalMigration CreateMigration(int version, string sql)
 	{

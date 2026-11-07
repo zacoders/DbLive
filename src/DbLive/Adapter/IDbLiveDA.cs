@@ -13,9 +13,28 @@ public interface IDbLiveDA
 
 	Task<bool> DbLiveInstalledAsync();
 
-	Task<long> GetDbLiveVersionAsync();
+	/// <summary>
+	/// The number of the last self-migration applied to the <c>dblive</c> schema, from <c>dblive.version.version</c>.
+	/// Not a DbLive release version: that is <see cref="GetMinDbLiveLibVersionAsync"/>.
+	/// </summary>
+	Task<long> GetSelfMigrationVersionAsync();
 
-	Task SetDbLiveVersionAsync(long version, DateTime migrationDatetime);
+	/// <summary>
+	/// Stores the number of the last self-migration applied in <c>dblive.version.version</c>.
+	/// </summary>
+	Task SetSelfMigrationVersionAsync(long version, DateTime migrationDatetime);
+
+	/// <summary>
+	/// The oldest DbLive version that can deploy the database, from <c>dblive.version.min_dblive_lib_version</c>.
+	/// Null when there is no requirement, also when the column does not exist yet (a database deployed before the
+	/// self-migration that adds it). Call it only when the database has the DbLive tables (<see cref="DbLiveInstalledAsync"/>).
+	/// </summary>
+	Task<Version?> GetMinDbLiveLibVersionAsync();
+
+	/// <summary>
+	/// Stores the oldest DbLive version that can deploy the database in <c>dblive.version.min_dblive_lib_version</c>.
+	/// </summary>
+	Task SetMinDbLiveLibVersionAsync(Version version);
 
 	Task<string?> GetProjectIdAsync();
 

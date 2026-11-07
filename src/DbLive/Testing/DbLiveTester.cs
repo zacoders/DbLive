@@ -1,4 +1,5 @@
 ﻿using DbLive.Deployers;
+using DbLive.SelfDeployer;
 
 namespace DbLive.Testing;
 
@@ -27,6 +28,9 @@ public class DbLiveTester(
 		{
 			throw new DatabaseNotDeployedException();
 		}
+
+		// the tests write dblive.unit_test_run, which a newer DbLive may have changed. Only checked: a deployment writes the requirement.
+		DbLiveCompatibility.Check(await _da.GetMinDbLiveLibVersionAsync().ConfigureAwait(false));
 
 		await _projectIdValidator.ValidateBeforeTestsAsync().ConfigureAwait(false);
 

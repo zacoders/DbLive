@@ -76,12 +76,15 @@ public class DbLiveTesterTests
 		{
 			_ = mockSet.DbLiveDA.CheckDatabaseExistsAsync();
 			_ = mockSet.DbLiveDA.DbLiveInstalledAsync();
+			_ = mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync();
 			_ = mockSet.ProjectIdValidator.ValidateBeforeTestsAsync();
 			_ = mockSet.TransactionSettingsValidator.ValidateAsync(settings);
 			_ = mockSet.UnitTestsRunner.RunAllTestsAsync();
 		});
 		// the tests only compare the ProjectId: binding it is the job of a deployment.
 		await mockSet.ProjectIdValidator.DidNotReceive().ValidateAsync();
+		// the requirement is only checked: a deployment writes it.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetMinDbLiveLibVersionAsync(default!);
 	}
 
 	[Fact]
@@ -115,6 +118,25 @@ public class DbLiveTesterTests
 		);
 		await mockSet.ProjectIdValidator.DidNotReceive().ValidateBeforeTestsAsync();
 		await mockSet.UnitTestsRunner.DidNotReceive().RunAllTestsAsync();
+	}
+
+	[Fact]
+	public async Task RunAllTests_throws_when_the_database_requires_a_newer_DbLive()
+	{
+		Version newerVersion = new(DbLiveCompatibility.MinCompatibleVersion.Major + 1, 0, 0);
+
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+		mockSet.DbLiveDA.GetMinDbLiveLibVersionAsync().Returns(newerVersion);
+
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+
+		DatabaseRequiresNewerDbLiveException ex = await Assert.ThrowsAsync<DatabaseRequiresNewerDbLiveException>(tester.RunAllTestsAsync);
+
+		Assert.Equal(newerVersion, ex.RequiredVersion);
+		await mockSet.ProjectIdValidator.DidNotReceive().ValidateBeforeTestsAsync();
+		await mockSet.UnitTestsRunner.DidNotReceive().RunAllTestsAsync();
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SetMinDbLiveLibVersionAsync(default!);
 	}
 
 	[Fact]

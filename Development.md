@@ -40,8 +40,31 @@ dotnet run .github/scripts/release-notes.cs
 dotnet run .github/scripts/release-notes.cs -- --check --title "<PR title>"
 ```
 
-- **On a pull request**, the "Release notes" workflow (`.github/workflows/release-notes.yml`) runs the script with `--check` and writes the version and the notes to the job summary. It fails when a closed task has no `## Release note`, or when the bump of the PR title and the commits differs from the one the tasks need: major for a `breaking: true` task, minor for a `feature` task with a note, patch otherwise. A PR that closes no task is not checked: its title decides. The workflow runs again when the title is edited.
-- **On `main`**, CI builds the notes right after GitVersion, so a task without a note stops the release before anything is published, and creates the GitHub Release after pushing the tag.
+- **On a pull request**, the "Release notes" workflow (`.github/workflows/release-notes.yml`) runs the script with `--check` and writes the version and the notes to the job summary. It fails when a closed task has no `## Release note`, or when the bump of the PR title and the commits differs from the one the tasks need: major for a `breaking: true` task, minor for a `feature` task with a note, patch otherwise. A PR that closes no task is not checked: its title decides. It also fails when `MinCompatibleVersion` changed and is not the version of the release (see [Compatibility of the `dblive` tables](#compatibility-of-the-dblive-tables)). The workflow runs again when the title is edited.
+- **On `main`**, CI builds the notes right after GitVersion, so a task without a note, or a `MinCompatibleVersion` that is not the version of the release, stops the release before anything is published, and creates the GitHub Release after pushing the tag.
+
+### Compatibility of the `dblive` tables
+An older DbLive meets a database that a newer DbLive has deployed when an older build is deployed again: by mistake, or as the rollback of a release that upgraded DbLive. A newer DbLive can store in the `dblive` tables what an older one cannot read or understands differently, so the database keeps the oldest DbLive version that can deploy it, `dblive.version.min_dblive_lib_version`. The self-deployer checks it before any change, and so does `RunAllTestsAsync`: an older DbLive fails with `DatabaseRequiresNewerDbLiveException`. Every deployment writes the `MinCompatibleVersion` of its DbLive there (`src/DbLive/SelfDeployer/DbLiveCompatibility.cs`) and never lowers the stored value. The requirement is compared with the constant, not with the assembly version: that is `0.0.0-placeholder` in a local build and a prerelease on a branch.
+
+Raise `MinCompatibleVersion` to the version of the release in the change after which an older DbLive misreads or miswrites the `dblive` tables:
+
+- a new value of a stored column, or a new meaning of a value or a column: a status, an item type, the format of `relative_path`;
+- a dropped or renamed column or table, or converted data that an older DbLive reads differently;
+- a new `NOT NULL` column without a default: an older DbLive inserts rows without it.
+
+Do not raise it for a change that the older code does not see: a nullable column, a column with a default, a new table or index.
+
+The change can come with a self-migration or from the C# code alone. `DbLiveTablesSnapshotTests` (`src/DbLive.Tests/SelfDeployer`) fails on a new or changed self-migration of either provider and on a new value of an enum stored in the `dblive` tables; decide, then raise the constant or only update the snapshot. A change of behavior in C# alone is not caught: check a change of `MsSqlDA`, `PostgreSqlDA` and of what they write against the list above.
+
+A change that raises it:
+
+1. Sets `MinCompatibleVersion` to the version of the release; the PR check shows it ("Merging this pull request releases ...").
+2. Says in the release note of its task that DbLive versions before this one can no longer deploy a database this version has deployed, and that a rollback of the release is a rollback of the application that keeps the database. The task is not `breaking: true`: an upgrade needs no change on the user's side.
+3. Updates the snapshot of `DbLiveTablesSnapshotTests`.
+
+`release-notes.cs` checks the version: when a commit since the previous release changed `MinCompatibleVersion`, it must be the version of the release. In the PR check the title decides the version, so the check runs again when the title is edited. On `main` it runs before anything is published, and also catches two pull requests that raised the constant at the same time: they merge without a conflict, and the second one is released with a later version. Then set it to the version of the next release in a new pull request.
+
+The guard runs in the older DbLive, so a DbLive without it is never protected: DbLive before 2.0.0 does not check the requirement.
 
 ### Protected `main`
 `main` takes changes only through a pull request, with the checks "Build > Test > Publish" and "Release notes" passed and merged with a merge commit; no force push, no deletion, no bypass. Required approvals are 0, because the only maintainer cannot approve their own PR; for the same reason the extra approval for unattributed changes is off (GitHub turns it on when the ruleset does not set it). The tag pushed by CI is not a branch, so the ruleset does not block it.
