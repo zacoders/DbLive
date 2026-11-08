@@ -145,8 +145,46 @@ public class MigrationItemDeployerTests
 
 		// Assert
 		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
-		Assert.Contains("some sql error", ex.Message);
-		Assert.Null(ex.InnerException);
+		Assert.Equal("""
+			Error deploying db/migrations/002.m.broken.sql file.
+			some sql error
+			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
+		Assert.Same(exception, ex.InnerException);
+	}
+
+	[Fact]
+	public async Task Error_without_sql_error_puts_the_exception_message_in_the_message()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		// what PostgreSqlDA throws on a command timeout: no SqlError, the messages of the chain in the message.
+		var exception = new DbLiveSqlException(
+			$"Exception while reading from stream{Environment.NewLine}Timeout during reading attempt",
+			"",
+			new Exception("Exception while reading from stream", new TimeoutException("Timeout during reading attempt"))
+		);
+
+		mockSet.DbLiveDA
+			.When(d => d.ExecuteNonQueryAsync(
+				Arg.Any<string>(),
+				Arg.Any<TranIsolationLevel>(),
+				Arg.Any<TimeSpan>()))
+			.Do(_ => throw exception);
+
+		// Act
+		Task act() => deployer.DeployAsync(1, NewMigrationItem(), new MigrationItemSettings());
+
+		// Assert
+		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
+		Assert.Equal("""
+			Error deploying db/migrations/001.m.some-migration.sql file.
+			Exception while reading from stream
+			Timeout during reading attempt
+			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
+		Assert.Same(exception, ex.InnerException);
 	}
 
 	[Fact]

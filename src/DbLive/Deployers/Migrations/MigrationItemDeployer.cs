@@ -83,17 +83,21 @@ public class MigrationItemDeployer(
 		}
 		catch (DbLiveSqlException ex)
 		{
+			// SqlError is empty for an error that does not come from the server, such as a command timeout.
+			string error = string.IsNullOrWhiteSpace(ex.SqlError) ? ex.Message : ex.SqlError.TrimEnd();
+
 			_logger.Error(
 				ex,
 				"Error deploying {RelativePath}. Type {MigrationType}. SQL Error: {SqlError}",
 				migrationItem.FileData.RelativePath,
 				migrationItem.MigrationItemType,
-				ex.SqlError
+				error
 			);
 			throw new MigrationDeploymentException($"""
 				Error deploying {migrationItem.FileData.RelativePath} file.
-				{ex.SqlError}.
-				"""
+				{error}
+				""",
+				ex
 			);
 		}
 		catch (Exception ex)

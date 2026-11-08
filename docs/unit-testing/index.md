@@ -119,7 +119,7 @@ Code/
 
 ## Isolation and parallelism
 
-- Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result.
+- Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result. A test that runs longer fails with the timeout error of the provider: `Execution Timeout Expired` on SQL Server, `Timeout during reading attempt` on PostgreSQL.
 - The [deployment test](deployment-tests.md) and `RunAllTestsAsync()` run all tests in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
 
 ## Running tests in Visual Studio and CI (xUnit)

@@ -1,4 +1,4 @@
-﻿using DbLive.Adapter;
+using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
@@ -155,7 +155,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			throw new DbLiveSqlException(e.Message, GetSqlError(e), e);
+			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
 		}
 	}
 
@@ -213,7 +213,7 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e)
 		{
-			throw new DbLiveSqlException(e.Message, GetSqlError(e), e);
+			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
 		}
 	}
 
@@ -608,6 +608,30 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			execution_time_ms = executionTimeMs,
 			content_hash = contentHash
 		}).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// The message of an error of the server, or the distinct messages of the exception chain, one per line.
+	/// Npgsql reports a command timeout and a lost connection as <see cref="NpgsqlException"/> "Exception while reading from stream",
+	/// and the cause ("Timeout during reading attempt") is in its inner exception.
+	/// </summary>
+	internal static string GetMessage(Exception ex)
+	{
+		if (ex is PostgresException)
+		{
+			return ex.Message;
+		}
+
+		List<string> messages = [];
+		for (Exception? cur = ex; cur is not null; cur = cur.InnerException)
+		{
+			if (!messages.Contains(cur.Message))
+			{
+				messages.Add(cur.Message);
+			}
+		}
+
+		return string.Join(Environment.NewLine, messages);
 	}
 
 	private static string GetSqlError(Exception ex)

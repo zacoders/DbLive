@@ -22,7 +22,7 @@ For each pending version DbLive:
 3. runs the migration script and marks it `applied`;
 4. commits.
 
-If a script fails, the deployment stops with `MigrationDeploymentException` (the message contains the SQL error) and that version is not marked as applied. With the default `Migration` level, earlier versions stay committed, and the next deployment continues where this one stopped. A script that ran without a transaction may have been applied partly; the next deployment runs it again from the start, so it must be re-runnable.
+If a script fails, the deployment stops with `MigrationDeploymentException` (the message names the file and contains the SQL error, or the cause of a timeout; the provider's exception is inside its inner exception) and that version is not marked as applied. With the default `Migration` level, earlier versions stay committed, and the next deployment continues where this one stopped. A script that ran without a transaction may have been applied partly; the next deployment runs it again from the start, so it must be re-runnable.
 
 On SQL Server, scripts may contain `GO` batch separators. On PostgreSQL, a file is sent as one multi-statement command.
 
@@ -91,4 +91,4 @@ A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 
 | `InvalidMigrationItemSettingsException` | An item settings file with an unknown key (also the old `MigrationTimeout`) or `"TransactionWrapLevel": "Deployment"`. |
 | `MigrationChecksumMismatchException` | An applied file was changed. |
 | `DatabaseAheadOfProjectException` | Applied versions are missing from the project: an older build is deployed, or migration files were deleted. See [Roll back a release](#roll-back-a-release). |
-| `MigrationDeploymentException` | A script failed; see the SQL error in the message. |
+| `MigrationDeploymentException` | A script failed or ran longer than its `Timeout`; see the SQL error or the timeout in the message. |
