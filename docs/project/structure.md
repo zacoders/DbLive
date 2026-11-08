@@ -101,6 +101,8 @@ See [Unit Testing](../unit-testing/index.md).
 
 These scripts run on every deployment, also when only breaking changes are deployed, so they must be idempotent. The database may still be empty when `BeforeDeploy` runs for the first time. Typical uses: permissions, database options, reference data kept up to date with `merge`.
 
+A failed script stops the deployment with `FolderDeploymentException`: the message names the file and contains the SQL error, and the inner exception is the `DbLiveSqlException`. The scripts after it do not run.
+
 ## Line endings
 
 Line endings do not matter. A Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same [checksum](../deployment/migrations.md#checksums), so developers on Windows and CI on Linux can deploy to the same database without `.gitattributes`. Scripts run with the line endings they have in the file.

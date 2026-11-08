@@ -39,16 +39,30 @@ public class FolderDeployer(
 
 		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		await _da.ExecuteNonQueryAsync(
-			item.FileData.Content,
-			projectSettings.TransactionIsolationLevel,
-			projectFolder switch
-			{
-				ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
-				ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
-				_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
-			}
-		).ConfigureAwait(false);
+		TimeSpan timeout = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
+			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
+		};
+
+		try
+		{
+			await _da.ExecuteNonQueryAsync(
+				item.FileData.Content,
+				projectSettings.TransactionIsolationLevel,
+				timeout
+			).ConfigureAwait(false);
+		}
+		catch (DbLiveSqlException ex)
+		{
+			// SqlError is empty for an error that does not come from the server, such as a command timeout.
+			string error = ex.GetSqlErrorOrMessage();
+
+			_logger.Error(ex, "Error deploying {RelativePath}. SQL Error: {SqlError}", item.FileData.RelativePath, error);
+
+			throw new FolderDeploymentException(item.FileData.RelativePath, error, ex);
+		}
 
 		DateTime completedUtc = _timeProvider.UtcNow();
 
