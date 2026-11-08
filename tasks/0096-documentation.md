@@ -37,7 +37,7 @@ The new pages are committed (fa118f6).
 ### D6. Keep the docs from going stale
 - [x] After D1 and D2, run `mkdocs build --strict` in `.github/workflows/docs.yml`, so a broken link fails the build. Also on pull requests that change the docs (build only, no deploy); `pip install -r requirements.txt` (MkDocs below 2.0); `mkdocs.yml` reports a missing anchor and a page missing from `nav:` as warnings, so `--strict` fails on them (verified: a link to a missing anchor aborts the build). Local build in `Development.md` ("Documentation").
 - [x] Add a PR template (none exists yet) with the item "behavior changed → `docs/llms-full.txt` and the page under `docs/` updated". `.github/pull_request_template.md`, added with 0096-19.
-- [ ] Before merging to `main`: remove `96-documentation` from the `push` branches of `.github/workflows/docs.yml`, so only `main` publishes the site.
+- [ ] Before merging to `main`: remove `96-documentation` from the `push` branches of `.github/workflows/docs.yml`, so only `main` publishes the site. Task `0096-71`.
 
 ## Found during this task
 
@@ -50,6 +50,8 @@ Tasks `0096-40` to `0096-45` come from the code review of 2026-11-05 (docs again
 Tasks `0096-51` to `0096-57` come from the code review of 2026-11-07 (the state of the branch): the error row of a failed code file hid its SQL error (51), ProjectId checked after the self-deployment (52), the second run of migration breaking scripts removed (53), code compared with the current hash only (54), the version of a migration with a sign or spaces (55), small fixes (56), the builder of the `[SqlFact]` discovery (57, open).
 
 Tasks `0096-58` to `0096-64` come from the code review of 2026-11-08 (the library code of the branch), open unless marked done: the `[SqlFact]` discovery hides the errors of the project (58), a failed migration can lose its cause (59), a long error text fails the write of the error row on SQL Server (60, not verified), a code file retried after its error rolled back the SQL Server transaction (61, not verified), the default image `postgres:latest` (62, done: `postgres:18` since 2026-11-08), the error of a BeforeDeploy/AfterDeploy script without the file name (63), a failed read of a file cached for the life of the builder (64).
+
+Tasks `0096-65` to `0096-72` come from the code review of 2026-11-09 (what to fix before the release): the self-deployment changes the `dblive` tables before the project is checked (65), release notes that describe undo scripts (66), the breaking guard after a `Default` run that failed before the code phase (67, needs an operator mistake), an exception of the transaction check hides the error of a code file on SQL Server (68, not verified), the `EXECUTE` permission on the table type of self-migration 13 (69, not verified), its primary key on accent-insensitive collations (70, not verified), the site published from this branch (71, the last item of D6), the isolation level of an item settings file checked only when its script runs (72).
 
 Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10-31): safe defaults, release process, how the project looks to someone evaluating it, and gaps compared with tSQLt. They do not block this task. The testing ones (0096-23, 0096-24, 0096-28, 0096-29) moved to #99 on 2026-11-03: `0099-unit-testing-improvements.md`. The comparison page with tSQLt (0096-21) followed on 2026-11-08 as 0099-05.
 
