@@ -244,7 +244,7 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/public/get_user.sql", codeEx.Message);
+		Assert.Equal("Deploy code file error. File path: Code/public/get_user.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
 		Assert.Contains("syntax error at or near \"selec\"", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 	}
 

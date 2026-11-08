@@ -52,8 +52,8 @@ public class CodeBreakingDeployer(
 		{
 			_logger.Error(ex, "Deploy code breaking script error. File path: {FilePath}", item.FileData.RelativePath);
 
-			// in a transaction the error row would never be seen: the failed deployment rolls it back. It cannot be written there
-			// either when the error aborted the transaction (PostgreSQL).
+			// in a transaction the error row would never be seen: the failed deployment rolls it back. When the error ended the transaction,
+			// it cannot be written there either: on PostgreSQL the write fails, on SQL Server it would be committed outside the transaction.
 			if (Transaction.Current is null)
 			{
 				await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Error, startedUtc, ex.GetSqlErrorOrMessage())).ConfigureAwait(false);

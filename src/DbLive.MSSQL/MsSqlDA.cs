@@ -10,7 +10,13 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 
-	public bool ErrorAbortsTransaction => false;
+	public async Task<bool> IsTransactionUsableAfterErrorAsync()
+	{
+		// a transaction rolled back by the server does not fail the next commands of the scope: they run in autocommit mode.
+		// Transaction.Current stays Active then, only the server knows.
+		using var cnn = GetConnection();
+		return await cnn.ExecuteScalarAsync<int>("select @@trancount").ConfigureAwait(false) > 0;
+	}
 
 	internal const int ErrorColumnLength = 4000;
 	internal const string TruncatedMark = "... [truncated]";

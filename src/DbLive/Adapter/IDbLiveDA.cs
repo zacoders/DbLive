@@ -6,10 +6,12 @@ public interface IDbLiveDA
 	DbProvider Provider { get; }
 
 	/// <summary>
-	/// True when an error of a statement aborts the open transaction, so no later statement can run in it (PostgreSQL).
-	/// False when the transaction stays usable after an error (SQL Server).
+	/// Called inside the ambient transaction after a statement failed: true when later statements still run in that transaction.
+	/// On PostgreSQL an error aborts the transaction, so this is false. On SQL Server most errors leave it open, but some roll it back:
+	/// any run-time error with <c>XACT_ABORT ON</c>, a failed conversion, a deadlock. The next statements then do not fail, they run
+	/// in autocommit mode and are committed at once, even when the deployment fails and is rolled back.
 	/// </summary>
-	bool ErrorAbortsTransaction { get; }
+	Task<bool> IsTransactionUsableAfterErrorAsync();
 
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 

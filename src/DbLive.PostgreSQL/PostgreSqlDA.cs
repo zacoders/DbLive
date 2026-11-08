@@ -13,7 +13,8 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.PostgreSql;
 
-	public bool ErrorAbortsTransaction => true;
+	// an error aborts the transaction: every later statement fails until the rollback.
+	public Task<bool> IsTransactionUsableAfterErrorAsync() => Task.FromResult(false);
 
 	static PostgreSqlDA()
 	{

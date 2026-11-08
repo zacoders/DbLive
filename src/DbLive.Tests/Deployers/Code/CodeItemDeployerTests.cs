@@ -74,12 +74,12 @@ public class CodeItemDeployerTests
 	}
 
 	[Theory]
-	[InlineData(true, false)]
-	[InlineData(false, true)]
-	public async Task Failed_code_item_in_a_transaction_saves_no_error_row(bool errorAbortsTransaction, bool canRetry)
+	[InlineData(true, "Deploy code file error. File path: Code/dbo/GetUser.sql")]
+	[InlineData(false, "Deploy code file error. File path: Code/dbo/GetUser.sql. The error ended the deployment transaction, so the file is not retried.")]
+	public async Task Failed_code_item_in_a_transaction_saves_no_error_row(bool transactionUsable, string message)
 	{
 		MockSet mockSet = new();
-		mockSet.DbLiveDA.ErrorAbortsTransaction.Returns(errorAbortsTransaction);
+		mockSet.DbLiveDA.IsTransactionUsableAfterErrorAsync().Returns(transactionUsable);
 
 		CodeItem codeItem = GetCodeItem(relativePath: "Code/dbo/GetUser.sql");
 
@@ -97,9 +97,9 @@ public class CodeItemDeployerTests
 		}
 
 		Assert.False(res.IsSuccess);
-		Assert.Equal(canRetry, res.CanRetry);
+		Assert.Equal(transactionUsable, res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql", ex.Message);
+		Assert.Equal(message, ex.Message);
 		Assert.Same(scriptError, ex.InnerException);
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}

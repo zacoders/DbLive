@@ -181,7 +181,16 @@ public class CodeDeployer(
 				static (_, current) => current + 1
 			);
 
-			if (retry >= maxRetries || !result.CanRetry)
+			if (!result.CanRetry)
+			{
+				_logger.Error(result.Exception, "Deployment failed for {FilePath}, not retried", relativePath);
+
+				await cts.CancelAsync().ConfigureAwait(false);
+
+				return result.Exception;
+			}
+
+			if (retry >= maxRetries)
 			{
 				_logger.Error(
 					result.Exception,

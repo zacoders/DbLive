@@ -74,7 +74,7 @@ When only the implementation changes and the contract stays the same, keep the n
 - Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order. Everything else forms the last group. Nested subfolders such as `"dbo/functions"` work with either `/` or `\`.
 - Within a group, up to `NumberOfThreadsForCodeDeploy` files (10 by default) are deployed in parallel.
 - A file that fails goes to the end of the queue and is retried, up to `MaxCodeDeployRetries` attempts (5 by default). Dependencies therefore usually resolve themselves: a view that uses a function deployed later succeeds on its second attempt.
-- On PostgreSQL with `TransactionWrapLevel: Deployment`, an error aborts the deployment transaction, so a failed file is not retried: the deployment fails at once with the error of that file. Order dependencies with `CodeSubFoldersDeploymentOrder` there.
+- With `TransactionWrapLevel: Deployment`, a file whose error ended the deployment transaction is not retried: the deployment fails at once with the error of that file. On PostgreSQL every error does that. On SQL Server most errors leave the transaction open, but any run-time error with `XACT_ABORT ON` rolls it back (a missing dependency included), and so do a failed conversion and a deadlock. Order dependencies with `CodeSubFoldersDeploymentOrder` there, and on SQL Server leave `set xact_abort on` out of code files.
 - When a file still fails after the last attempt, the deployment stops with `CodeDeploymentAggregateException`, which contains the SQL errors.
 
 Use the ordering setting for objects that everything else depends on, so that you do not spend retries on them:
@@ -87,7 +87,7 @@ Use the ordering setting for objects that everything else depends on, so that yo
 
 Each code file runs as its own command, without a transaction, with a timeout of `CodeItemTimeout` (30 seconds by default; on SQL Server per `GO` batch). With `TransactionWrapLevel: Deployment`, code runs single-threaded inside the deployment transaction.
 
-On PostgreSQL a file with several statements runs as one implicit transaction, so it fails or succeeds as a whole. With `Deployment` on PostgreSQL, the first failing file aborts the deployment transaction and a retry cannot succeed: order the dependencies with `CodeSubFoldersDeploymentOrder`.
+On PostgreSQL a file with several statements runs as one implicit transaction, so it fails or succeeds as a whole. With `Deployment` on PostgreSQL, the first failing file aborts the deployment transaction and is not retried: order the dependencies with `CodeSubFoldersDeploymentOrder`. On SQL Server see the retries above for the errors that end the transaction.
 
 ## Things to know
 
