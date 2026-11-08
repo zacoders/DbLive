@@ -2,8 +2,12 @@
 type: bug
 priority: medium
 created: 2026-11-08
+rejected: 2026-11-08
 ---
 # The discovery of `[SqlFact]` hides the errors of the project
+
+## Rejected
+Maintainer, 2026-11-08: rejected, the bug does not exist. xUnit 2.9.2 and later, which every user of `DbLive.xunit` gets, report an exception of the discoverer as a failing test, "Exception during discovery", with the exception, and `dotnet test` exits with 1 (verified, see Notes). The proposed fix would change only the first line of the message. The behavior is documented in `docs/llms-full.txt` §13.2 and `docs/unit-testing/index.md`, and `SqlFactDiscovererTests.Discover_ProjectError_Throws` keeps the discoverer from catching the error (done with 0096-57).
 
 ## Problem
 `SqlFactDiscoverer` turns an invalid `TestFixture` type into an `ExecutionErrorTestCase`, a failing test that explains the fix. An exception while it reads the project does not get that treatment: `Activator.CreateInstance` of the fixture, `GetProject()` (`ScriptsNotEmbeddedException`) and `GetTestsAsync()` (`FilesOutsideProjectFoldersException`, `ScriptPathsDifferOnlyByCaseException`, `BreakingScriptMatchesTestPatternException`, an invalid `settings.json`). xUnit v2 catches an exception of a discoverer in `TestFrameworkDiscoverer.FindTestsForTypeAndWrapExceptions` and reports it only as a diagnostic message, "Exception during discovery", which `dotnet test` and Test Explorer do not show by default (from the xUnit v2 source, not verified by an experiment).
@@ -23,7 +27,7 @@ Proposal: read the tests before the first `yield` (an iterator cannot `yield` in
 
 Same code as 0096-57 (the builder of `GetProject()` is not disposed): do both together.
 
-- [ ] Not reproduced (see Notes): reject the task? The behavior is documented, and the discoverer has a test that it does not catch the error.
+- [x] Not reproduced (see Notes): reject the task? The behavior is documented, and the discoverer has a test that it does not catch the error. Maintainer, 2026-11-08: rejected.
 - [ ] A project that discovered no tests and passed now has a failing test: `breaking: true`, or a bug fix with a release note only? Moot if rejected.
 
 ## Docs to update
