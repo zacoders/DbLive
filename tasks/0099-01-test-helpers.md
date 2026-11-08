@@ -80,7 +80,7 @@ Open questions:
 - `docs/unit-testing/index.md` (new section: isolating dependencies)
 - `docs/llms-full.txt` §8 (helpers and examples), §15 (helpers in the `dblive` schema), §16 (`exec` vs `call`), §17 (new errors)
 - `docs/deployment/index.md`, where it lists the `dblive` schema
-- Comparison page (0096-21): `FakeTable`, `SpyProcedure`, `FakeFunction` rows, "install into the database" row
+- Comparison page (0099-05): `FakeTable`, `SpyProcedure`, `FakeFunction` rows, "install into the database" row
 
 ## Done when
 - [x] Design agreed with the maintainer (2026-11-03)

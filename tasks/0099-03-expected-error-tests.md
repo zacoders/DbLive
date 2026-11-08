@@ -20,7 +20,7 @@ Not verified yet:
 ## Docs to update
 - `docs/llms-full.txt` §8.3 (custom checks), §8.4 (example)
 - `docs/unit-testing/index.md` ("Custom checks")
-- Comparison page (0096-21): `ExpectException` row
+- Comparison page (0099-05): `ExpectException` row
 
 ## Done when
 - [ ] Patterns verified on SQL Server and PostgreSQL with demo tests

@@ -22,3 +22,6 @@ People evaluating DbLive compare it with "Flyway / DbUp / grate for migrations +
 ## Done when
 - [ ] Page published, `mkdocs build --strict` passes
 - [ ] Linked from README and docs home
+
+## Notes
+- 2026-11-08: moved from #96 (0096-21) to #99, decision of the maintainer: the page is mostly about tests, and its tSQLt rows follow 0099-01 and 0099-03.

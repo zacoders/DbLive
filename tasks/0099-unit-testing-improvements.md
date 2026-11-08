@@ -15,6 +15,7 @@ Tests are now written mostly by LLMs. Prefer APIs they already know: the helpers
 - [ ] `0099-02-rows-unordered-assert.md`: an assertion that compares rows in any order
 - [ ] `0099-03-expected-error-tests.md`: testing that a procedure raises an error
 - [ ] `0099-04-several-assertions-per-test.md`: several assertions in one test
+- [ ] `0099-05-comparison-and-tsqlt-page.md`: comparison page and "Coming from tSQLt"; its tSQLt rows follow the tasks above
 
 Ideas about tests, not decided yet:
 - `tasks/ideas/migration-step-tests.md`: tests of a migration step on prepared data
@@ -22,10 +23,9 @@ Ideas about tests, not decided yet:
 
 `tasks/rejected/undo-test-data-round-trip.md` (data checks through undo) was rejected on 2026-11-06 with undo scripts (0096-46).
 
-The comparison page with tSQLt (`tasks/0096-21-comparison-and-tsqlt-page.md`) stays under #96, because it is documentation; its tSQLt rows follow the tasks above.
-
 ## Done when
 - [ ] Every task above closed, or its decision not to do it recorded in its Notes
 
 ## Notes
 - 2026-11-03: the testing tasks found during #96 (outside review of 2026-10-31) moved here: 0096-29 → 0099-01, 0096-23 → 0099-02, 0096-24 → 0099-03, 0096-28 → 0099-04.
+- 2026-11-08: the comparison page moved here too, 0096-21 → 0099-05 (decision of the maintainer: the page is mostly about tests). Before, it stayed under #96 as documentation.
