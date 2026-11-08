@@ -9,12 +9,30 @@ public class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 	private Task<DbLiveSettings>? _settingsTask;
 	private readonly object _settingsLock = new();
 
-	public Task<DbLiveSettings> GetProjectSettingsAsync()
+	public async Task<DbLiveSettings> GetProjectSettingsAsync()
 	{
-		if (_settingsTask is not null) return _settingsTask;
+		Task<DbLiveSettings> load;
 		lock (_settingsLock)
 		{
-			return _settingsTask ??= LoadSettingsAsync();
+			load = _settingsTask ??= LoadSettingsAsync();
+		}
+
+		try
+		{
+			return await load.ConfigureAwait(false);
+		}
+		catch
+		{
+			// a failed read is not kept, so the next deployment from this builder reads settings.json again (a file locked
+			// for a moment by an antivirus).
+			lock (_settingsLock)
+			{
+				if (_settingsTask == load)
+				{
+					_settingsTask = null;
+				}
+			}
+			throw;
 		}
 	}
 

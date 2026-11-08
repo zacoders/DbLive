@@ -222,4 +222,29 @@ public class CodeItemsTests
 
 		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>(), Arg.Any<string>());
 	}
+
+	[Fact]
+	public async Task GetCodeItems_FailedRead_ReadAgain()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource
+			.AddFile("Code/first.sql", "first")
+			.AddFile("Code/second.sql", "second")
+			.FailNextRead("Code/second.sql", new IOException("The file is being used by another process."));
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// a file locked for a moment: the first deployment fails.
+		_ = await Assert.ThrowsAsync<IOException>(sqlProject.GetCodeGroupsAsync);
+
+		// the next deployment from the same builder reads the file again.
+		CodeGroup group = Assert.Single(await sqlProject.GetCodeGroupsAsync());
+		Assert.Equal(["first", "second"], group.CodeItems.Select(i => i.FileData.Content));
+
+		// a successful read is kept.
+		_ = await sqlProject.GetCodeGroupsAsync();
+		Assert.Equal(1, mockSet.ScriptSource.ReadCount("Code/first.sql"));
+		Assert.Equal(2, mockSet.ScriptSource.ReadCount("Code/second.sql"));
+	}
 }

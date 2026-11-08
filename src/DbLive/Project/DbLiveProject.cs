@@ -28,6 +28,7 @@ public class DbLiveProject(
 
 	// a builder deploys one build: the project is read once per builder, like settings.json. The phases of a deployment ask
 	// for the same migrations and code several times; the files are listed and checked once, and each file is read and hashed once.
+	// A failed listing or read is not kept: the next call tries again.
 	private readonly object _filesLock = new();
 	private IReadOnlyList<string>? _files;
 	private readonly ConcurrentDictionary<string, Task<FileData>> _fileData = new(StringComparer.Ordinal);
@@ -272,8 +273,22 @@ public class DbLiveProject(
 		return items.AsReadOnly();
 	}
 
-	private Task<FileData> ReadFileDataAsync(string relativePath) =>
-		_fileData.GetOrAdd(relativePath, path => scriptSource.ReadFileDataAsync(path));
+	private async Task<FileData> ReadFileDataAsync(string relativePath)
+	{
+		Task<FileData> read = _fileData.GetOrAdd(relativePath, path => scriptSource.ReadFileDataAsync(path));
+
+		try
+		{
+			return await read.ConfigureAwait(false);
+		}
+		catch
+		{
+			// a failed read is not kept, so the next deployment from this builder reads the file again (a file locked for
+			// a moment by an antivirus). Only this read is removed: a later successful one may already be in the cache.
+			_ = _fileData.TryRemove(new KeyValuePair<string, Task<FileData>>(relativePath, read));
+			throw;
+		}
+	}
 
 	private IReadOnlyList<string> GetFiles(DbLiveSettings projectSettings)
 	{
