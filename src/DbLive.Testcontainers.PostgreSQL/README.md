@@ -11,7 +11,7 @@ public class MyDbTestFixture()
     : DbLiveTestFixture(new PostgreSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
 ```
 
-- The image is `postgres:latest` unless you pass another one: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`.
+- The image is `postgres:18` unless you pass another one: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`.
 - Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends.
 - Without Docker, use `PostgreSqlFixtureBuilder` from `DbLive.PostgreSQL` with a connection string to your server.
 

@@ -13,7 +13,9 @@ namespace DbLive.PostgreSQL;
 public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string image = PostgreSqlContainerFixtureBuilder.DefaultImage)
 	: IDbLiveFixtureBuilder
 {
-	public const string DefaultImage = "postgres:latest";
+	// a major version, not latest: a new release of PostgreSQL does not change the image of the tests; a DbLive release
+	// raises it.
+	public const string DefaultImage = "postgres:18";
 
 	// the start of each image: its connection string, or the error every fixture gets when the start failed.
 	private static readonly Dictionary<string, Task<string>> _servers = [];

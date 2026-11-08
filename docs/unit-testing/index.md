@@ -157,7 +157,7 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
 - The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends. Docker must be running.
-- The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:latest`. Pass another one as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
+- The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`; a DbLive release raises the PostgreSQL major version. Pass another one as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
 - For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a `DbLiveBuilder` with the provider, the connection string of a new database and the project. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 
 ### 2. SQL tests: `[SqlFact]`

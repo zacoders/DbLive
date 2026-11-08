@@ -89,7 +89,7 @@ workspace.Project("Fixtures", packages: ["DbLive.xunit", "DbLive.Testcontainers.
 		using System.Reflection;
 
 		public class MsSqlContainerFixture() : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
-		public class PostgreSqlContainerFixture() : DbLiveTestFixture(new PostgreSqlContainerFixtureBuilder(Assembly.Load("MyDb"), "postgres:17"), dropDatabaseOnComplete: true);
+		public class PostgreSqlContainerFixture() : DbLiveTestFixture(new PostgreSqlContainerFixtureBuilder(Assembly.Load("MyDb"), "postgres:18"), dropDatabaseOnComplete: true);
 		public class MsSqlFixture() : DbLiveTestFixture(new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master;"), dropDatabaseOnComplete: true);
 		public class PostgreSqlFixture() : DbLiveTestFixture(new PostgreSqlFixtureBuilder(Assembly.Load("MyDb"), "Host=localhost;Username=postgres"), dropDatabaseOnComplete: true);
 		""")

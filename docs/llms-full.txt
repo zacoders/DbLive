@@ -751,7 +751,7 @@ Ready-made implementations; each takes the SQL project assembly and gives every 
 | `MsSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.MSSQL` / `DbLive.MSSQL` | On the server of `connectionString`; its database name is replaced. |
 | `PostgreSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.PostgreSQL` / `DbLive.PostgreSQL` | Same, PostgreSQL. |
 | `MsSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.MSSQL` / `DbLive.MSSQL` | SQL Server in Docker; `DefaultImage` = `mcr.microsoft.com/mssql/server:2025-latest`. |
-| `PostgreSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.PostgreSQL` / `DbLive.PostgreSQL` | PostgreSQL in Docker; `DefaultImage` = `postgres:latest`. |
+| `PostgreSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.PostgreSQL` / `DbLive.PostgreSQL` | PostgreSQL in Docker; `DefaultImage` = `postgres:18`, a major version that a DbLive release raises. |
 
 Container builders: one container per image per test process, started by the first `GetBuilderAsync` call; concurrent calls wait for that start and share the container. A failed start is not retried: every fixture of the run fails with its exception (Docker not running, image not found). The container is not stopped by DbLive; the Testcontainers resource reaper removes it when the test process ends.
 
@@ -798,7 +798,7 @@ new MsSqlFixtureBuilder(typeof(MyDbMarker).Assembly,
     "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;")   // a local server
 
 // PostgreSQL (using DbLive.PostgreSQL):
-new PostgreSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)            // postgres:latest in Docker
+new PostgreSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)            // postgres:18 in Docker
 new PostgreSqlFixtureBuilder(typeof(MyDbMarker).Assembly, "Host=localhost;Username=postgres;Password=...")
 ```
 
