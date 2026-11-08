@@ -744,6 +744,8 @@ public interface IDbLiveFixtureBuilder
 }
 ```
 
+The fixture (`DbLiveTestFixture`, `DeploymentTestFixture`) owns the builder it gets and disposes it at the end, after the drop of the database. `GetBuilderAsync` returns a new builder on every call, never a shared one.
+
 Ready-made implementations; each takes the SQL project assembly and gives every `GetBuilderAsync` call a new random database name (`DbLive--<guid>` on SQL Server, `dblive--<guid>` on PostgreSQL). They do not create the database: the fixture's deployment does (`CreateDbIfNotExists = true`).
 
 | Class | Package / namespace | Database |
@@ -802,7 +804,7 @@ new PostgreSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)            //
 new PostgreSqlFixtureBuilder(typeof(MyDbMarker).Assembly, "Host=localhost;Username=postgres;Password=...")
 ```
 
-Every fixture gets a new database with a random name on that server, so test classes that xUnit runs in parallel never share one. A custom builder implements both members of `IDbLiveFixtureBuilder` (namespace `DbLive`): `GetBuilderAsync()` returns `new DbLiveBuilder().SqlServer().SetDbConnection(<connection string with a new database name>).SetProject(<assembly>)`, `GetProjectAssembly()` returns the same assembly.
+Every fixture gets a new database with a random name on that server, so test classes that xUnit runs in parallel never share one. A custom builder implements both members of `IDbLiveFixtureBuilder` (namespace `DbLive`): `GetBuilderAsync()` returns `new DbLiveBuilder().SqlServer().SetDbConnection(<connection string with a new database name>).SetProject(<assembly>)`, a new builder on every call (the fixture disposes it, Section 11.6), `GetProjectAssembly()` returns the same assembly.
 
 ### 13.2 Every SQL test as its own xUnit test: `[SqlFact]`
 
@@ -833,6 +835,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 - Discovery reads tests from the SQL project's dll (`SetProject`), so a new test file appears after a build; Test Explorer and `dotnet test` build before running.
 - The fixture deploys once per test class (migrations, code and breaking; no tests) into a fresh database, then drops it if `dropDatabaseOnComplete`.
 - An invalid `TestFixture` type produces a failing test case that explains the fix.
+- An error of the project found while discovery reads the tests (`ScriptsNotEmbeddedException`, `FilesOutsideProjectFoldersException` and the other checks of Section 4, an invalid `settings.json`) produces one failing test case named after the test method: xUnit reports "Exception during discovery" with the exception, and `dotnet test` fails.
 
 ### 13.3 Deployment test: `[SqlDeployFact]`
 

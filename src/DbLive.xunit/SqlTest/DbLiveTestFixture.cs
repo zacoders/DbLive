@@ -17,11 +17,18 @@ public class DbLiveTestFixture(
 
 	public IDbLiveTester? Tester { get; private set; }
 
-	public IDbLiveProject GetProject()
+	/// <summary>
+	/// The SQL tests of the project, for discovery. The builder lives only for this read.
+	/// </summary>
+	internal async Task<IReadOnlyCollection<TestItem>> GetTestsAsync()
 	{
-		DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(GetProjectAssembly());
-		return builder.CreateProject();
+		using DbLiveBuilder builder = new();
+
+		return await builder
+			.SetProject(GetProjectAssembly())
+			.CreateProject()
+			.GetTestsAsync()
+			.ConfigureAwait(false);
 	}
 
 	internal Assembly GetProjectAssembly() => fixtureBuilder.GetProjectAssembly();
@@ -45,10 +52,22 @@ public class DbLiveTestFixture(
 
 	public async Task DisposeAsync()
 	{
-		if (dropDatabaseOnComplete && _builder is not null)
+		if (_builder is null)
 		{
-			IDbLiveDA da = _builder.CreateDbLiveDA();
-			await da.DropDbAsync().ConfigureAwait(false);
+			return;
+		}
+
+		try
+		{
+			if (dropDatabaseOnComplete)
+			{
+				IDbLiveDA da = _builder.CreateDbLiveDA();
+				await da.DropDbAsync().ConfigureAwait(false);
+			}
+		}
+		finally
+		{
+			await _builder.DisposeAsync().ConfigureAwait(false);
 		}
 	}
 }

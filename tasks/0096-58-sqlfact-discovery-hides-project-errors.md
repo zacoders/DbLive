@@ -23,7 +23,8 @@ Proposal: read the tests before the first `yield` (an iterator cannot `yield` in
 
 Same code as 0096-57 (the builder of `GetProject()` is not disposed): do both together.
 
-- [ ] A project that discovered no tests and passed now has a failing test: `breaking: true`, or a bug fix with a release note only?
+- [ ] Not reproduced (see Notes): reject the task? The behavior is documented, and the discoverer has a test that it does not catch the error.
+- [ ] A project that discovered no tests and passed now has a failing test: `breaking: true`, or a bug fix with a release note only? Moot if rejected.
 
 ## Docs to update
 - `docs/llms-full.txt` §13.2 (an error of the project gives a failing test case, like an invalid `TestFixture` type)
@@ -33,3 +34,10 @@ Same code as 0096-57 (the builder of `GetProject()` is not disposed): do both to
 - [ ] Reproduced: a `[SqlFact]` class over a project with a file outside the project folders discovers no tests and `dotnet test` exits with 0
 - [ ] Fixed, with a unit test of the discoverer
 - [ ] Docs updated
+
+## Notes
+- **Not reproduced (verified 2026-11-08).** A scratch xUnit test project that is its own SQL project (`Scripts/Tests/example.sql` and `Scripts/README.md`), with a `DbLiveTestFixture` and one `[SqlFact]` method, referencing `DbLive.xunit` of this repository: `dotnet test` shows one failing test, `Repro58.SqlTests.Sql`, with "System.InvalidOperationException : Exception during discovery:" followed by the `FilesOutsideProjectFoldersException` with its message and stack trace, and exits with 1. Same result with xunit 2.9.3 and 2.9.2, before and after the change of 0096-57. In these versions `XunitTestFrameworkDiscoverer.FindTestsForType` catches the exception of `FindTestsForMethod` and reports it as a failing test case; the premise above (a diagnostic message only) does not hold for them.
+- Verified: `DbLive.xunit` depends on `Serilog.Sinks.XUnit` 3.0.19, which requires `xunit.extensibility.execution` 2.9.2 or later, so every user of `DbLive.xunit` gets a discovery that reports the error.
+- Not checked in Visual Studio Test Explorer; it runs the same discovery through `xunit.runner.visualstudio`.
+- The proposed fix would change only the first line of the message (the fixture type instead of "Exception during discovery").
+- The verified behavior is written in `docs/llms-full.txt` §13.2 and `docs/unit-testing/index.md`, and `SqlFactDiscovererTests.Discover_ProjectError_Throws` checks that the discoverer does not catch the error, in the commit of 0096-57.

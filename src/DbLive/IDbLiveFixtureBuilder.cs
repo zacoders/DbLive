@@ -10,7 +10,8 @@ namespace DbLive;
 public interface IDbLiveFixtureBuilder
 {
 	/// <summary>
-	/// A builder with the provider, the connection string of a new database and the project. Called once per fixture.
+	/// A new builder with the provider, the connection string of a new database and the project. Called once per fixture;
+	/// the fixture disposes the builder at the end, so never return the same builder twice.
 	/// </summary>
 	Task<DbLiveBuilder> GetBuilderAsync();
 

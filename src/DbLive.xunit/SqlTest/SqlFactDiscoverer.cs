@@ -56,12 +56,13 @@ public class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTestC
 			yield break;
 		}
 
+		// an exception here (an error of the project) is not caught: xUnit turns it into a failing test,
+		// "Exception during discovery", with the exception.
 		var fixture = (DbLiveTestFixture)Activator.CreateInstance(fixtureType)!;
-		var project = fixture.GetProject();
 
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 
-		IReadOnlyCollection<TestItem> tests = project
+		IReadOnlyCollection<TestItem> tests = fixture
 			.GetTestsAsync()
 			.GetAwaiter()
 			.GetResult();

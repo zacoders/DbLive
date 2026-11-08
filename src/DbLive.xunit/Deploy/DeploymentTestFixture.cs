@@ -22,10 +22,22 @@ public class DeploymentTestFixture(
 
 	public async Task DisposeAsync()
 	{
-		if (dropDatabaseOnComplete && _builder is not null)
+		if (_builder is null)
 		{
-			IDbLiveDA da = _builder.CreateDbLiveDA();
-			await da.DropDbAsync().ConfigureAwait(false);
+			return;
+		}
+
+		try
+		{
+			if (dropDatabaseOnComplete)
+			{
+				IDbLiveDA da = _builder.CreateDbLiveDA();
+				await da.DropDbAsync().ConfigureAwait(false);
+			}
+		}
+		finally
+		{
+			await _builder.DisposeAsync().ConfigureAwait(false);
 		}
 	}
 

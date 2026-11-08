@@ -34,6 +34,17 @@ public class SqlFactDiscovererTests
 	}
 
 	[Fact]
+	public void Discover_ProjectError_Throws()
+	{
+		// not caught: xUnit turns an exception of a discoverer into a failing test, "Exception during discovery".
+		ScriptsNotEmbeddedException ex = Assert.Throws<ScriptsNotEmbeddedException>(
+			() => Discover(nameof(SqlTestsHost.SqlWithoutScriptsAsync)).ToList()
+		);
+
+		Assert.Equal("DbLive", ex.AssemblyName);
+	}
+
+	[Fact]
 	public void GetSourceScriptsPath_FromProjectDirMetadata()
 	{
 		string? sourcePath = SqlFactDiscoverer.GetSourceScriptsPath(Assembly.Load("DemoMSSQLEmpty"));
@@ -99,13 +110,18 @@ public class SqlFactDiscovererTests
 
 		[SqlFact(TestFixture = typeof(ProjectDirFixture))]
 		public Task SqlWithProjectDirAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(WithoutScriptsFixture))]
+		public Task SqlWithoutScriptsAsync(string testFileRelativePath) => Task.CompletedTask;
 	}
 
 	public class EmbeddedScriptsFixture() : DbLiveTestFixture(new FixtureBuilder(typeof(EmbeddedScriptsFixture).Assembly), dropDatabaseOnComplete: false);
 
 	public class ProjectDirFixture() : DbLiveTestFixture(new FixtureBuilder(Assembly.Load("DemoMSSQLEmpty")), dropDatabaseOnComplete: false);
 
-	/// <param name="projectAssembly">This assembly, which has no ProjectDir metadata, or a demo with it.</param>
+	public class WithoutScriptsFixture() : DbLiveTestFixture(new FixtureBuilder(typeof(DbLiveBuilder).Assembly), dropDatabaseOnComplete: false);
+
+	/// <param name="projectAssembly">This assembly, which has no ProjectDir metadata, a demo with it, or an assembly without scripts.</param>
 	private sealed class FixtureBuilder(Assembly projectAssembly) : IDbLiveFixtureBuilder
 	{
 		public Task<DbLiveBuilder> GetBuilderAsync() => throw new NotSupportedException("Only discovery is tested.");

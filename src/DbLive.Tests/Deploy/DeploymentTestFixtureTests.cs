@@ -58,10 +58,29 @@ public class DeploymentTestFixtureTests
 		Assert.EndsWith("  missing column dbo.Person.Phone: varchar(20) null", ex.Message);
 	}
 
+	[Fact]
+	public async Task DisposeAsync_DropsTheDatabase_AndDisposesTheBuilder()
+	{
+		IDbLiveDA da = Substitute.For<IDbLiveDA>();
+		FixtureBuilder fixtureBuilder = new(Substitute.For<IDbLive>(), da, Substitute.For<IDbLiveTester>());
+		DeploymentTestFixture fixture = new(fixtureBuilder, dropDatabaseOnComplete: true);
+		await fixture.InitializeAsync();
+
+		await fixture.DisposeAsync();
+
+		await da.Received(1).DropDbAsync();
+		Assert.Throws<ObjectDisposedException>(() => fixtureBuilder.Builder!.CreateDeployer());
+	}
+
 	private sealed class FixtureBuilder(IDbLive dbLive, IDbLiveDA da, IDbLiveTester tester) : IDbLiveFixtureBuilder
 	{
-		public Task<DbLiveBuilder> GetBuilderAsync() =>
-			Task.FromResult(new DbLiveBuilder().ConfigureServices(services => services.AddSingleton(dbLive).AddSingleton(da).AddSingleton(tester)));
+		public DbLiveBuilder? Builder { get; private set; }
+
+		public Task<DbLiveBuilder> GetBuilderAsync()
+		{
+			Builder = new DbLiveBuilder().ConfigureServices(services => services.AddSingleton(dbLive).AddSingleton(da).AddSingleton(tester));
+			return Task.FromResult(Builder);
+		}
 
 		public Assembly GetProjectAssembly() => typeof(FixtureBuilder).Assembly;
 	}

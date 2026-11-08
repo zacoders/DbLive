@@ -158,7 +158,7 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
 - The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends. Docker must be running.
 - The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`; a DbLive release raises the PostgreSQL major version. Pass another one as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
-- For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a `DbLiveBuilder` with the provider, the connection string of a new database and the project. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
+- For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 
 ### 2. SQL tests: `[SqlFact]`
 
@@ -189,6 +189,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 - The fixture deploys the project once per test class (migrations, code and breaking changes, no tests) into a fresh database and drops it at the end if `dropDatabaseOnComplete` is true.
 - Each SQL file appears in Test Explorer under its relative path; "Go to source" opens the `.sql` file (it needs the project folder that the [DbLive package](../project/index.md#embedding-the-scripts) records in the SQL project's assembly).
 - The tests read the scripts embedded in the SQL project's dll. Test Explorer and `dotnet test` build before running, so changed scripts are picked up; new test files appear after a build.
+- An error in the project, for example a file outside the [project folders](../project/structure.md#folders), appears as one failing test named after the test method, "Exception during discovery", with the error.
 
 ![Visual Studio Tests](../visual-studio-tests.png)
 
