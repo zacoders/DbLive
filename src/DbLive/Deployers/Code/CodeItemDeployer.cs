@@ -68,7 +68,8 @@ public class CodeItemDeployer(
 				AppliedUtc = appliedUtc,
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),
-				ErrorMessage = ex.ToString()
+				// the full exception with its stack traces is in the result: CodeDeployer logs it.
+				ErrorMessage = ex.GetSqlErrorOrMessage()
 			}).ConfigureAwait(false);
 
 			return CodeItemDeployResult.Failed(error);

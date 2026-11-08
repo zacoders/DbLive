@@ -46,6 +46,10 @@
     </ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Include="..\dblive-icon.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

@@ -56,7 +56,7 @@ public class CodeBreakingDeployer(
 			// either when the error aborted the transaction (PostgreSQL).
 			if (Transaction.Current is null)
 			{
-				await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Error, startedUtc, ex.ToString())).ConfigureAwait(false);
+				await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Error, startedUtc, ex.GetSqlErrorOrMessage())).ConfigureAwait(false);
 			}
 
 			throw new CodeDeploymentException($"Deploy code breaking script error. File path: {item.FileData.RelativePath}", ex);

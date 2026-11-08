@@ -42,7 +42,35 @@ public class CodeItemDeployerTests
 		Assert.False(res.IsSuccess);
 		Assert.True(res.CanRetry);
 		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error));
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error && i.ErrorMessage == "some exception"));
+	}
+
+	[Fact]
+	public async Task Failed_code_item_saves_the_sql_error_without_stack_traces()
+	{
+		MockSet mockSet = new();
+
+		CodeItem codeItem = GetCodeItem();
+
+		DbLiveSqlException scriptError = new(
+			"Invalid object name 'dbo.Missing'.",
+			"SQL Server error:\nMsg 208, Level 16, State 1, Line 3\nInvalid object name 'dbo.Missing'.\n",
+			new InvalidOperationException("inner")
+		);
+		mockSet.DbLiveDA
+			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
+
+		Assert.False(res.IsSuccess);
+		Assert.Same(scriptError, res.Exception!.InnerException);
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i =>
+			i.Status == CodeItemStatus.Error
+			&& i.ErrorMessage == "SQL Server error:\nMsg 208, Level 16, State 1, Line 3\nInvalid object name 'dbo.Missing'."
+		));
 	}
 
 	[Theory]

@@ -91,7 +91,7 @@ public class CodeBreakingDeployerTests
 			d.RelativePath == "Code/a.breaking.sql"
 			&& d.ItemType == CodeItemType.Breaking
 			&& d.Status == CodeItemStatus.Error
-			&& d.ErrorMessage!.Contains("Cannot drop the procedure 'dbo.a_v1'.")
+			&& d.ErrorMessage == "Cannot drop the procedure 'dbo.a_v1'."
 		));
 
 		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync("drop proc if exists dbo.b_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());

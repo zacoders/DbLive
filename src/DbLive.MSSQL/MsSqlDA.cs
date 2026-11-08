@@ -12,6 +12,31 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public bool ErrorAbortsTransaction => false;
 
+	internal const int ErrorColumnLength = 4000;
+	internal const string TruncatedMark = "... [truncated]";
+
+	/// <summary>
+	/// The column <c>error</c> of the dblive tables is <c>nvarchar(4000)</c>: a longer text would fail the write of the row, and that error
+	/// would replace the one being recorded. The text is cut to fit; the full error is in the exception and in the log.
+	/// </summary>
+	internal static string? FitErrorColumn(string? error)
+	{
+		if (error is null || error.Length <= ErrorColumnLength)
+		{
+			return error;
+		}
+
+		int length = ErrorColumnLength - TruncatedMark.Length;
+
+		// do not split a surrogate pair.
+		if (char.IsHighSurrogate(error[length - 1]))
+		{
+			length--;
+		}
+
+		return string.Concat(error.AsSpan(0, length), TruncatedMark);
+	}
+
 	static MsSqlDA()
 	{
 		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
@@ -462,7 +487,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				created_utc = item.CreatedUtc,
-				error = item.ErrorMessage
+				error = FitErrorColumn(item.ErrorMessage)
 			}
 		).ConfigureAwait(false);
 	}
@@ -624,7 +649,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				status = item.Status.ToString().ToLowerInvariant(),
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
-				error = item.ErrorMessage
+				error = FitErrorColumn(item.ErrorMessage)
 			}
 		).ConfigureAwait(false);
 
@@ -672,7 +697,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				run_utc = item.StartedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				pass = item.IsSuccess,
-				error = item.ErrorMessage
+				error = FitErrorColumn(item.ErrorMessage)
 			}
 		).ConfigureAwait(false);
 	}
@@ -744,7 +769,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			_ = sb.AppendLine($"""
 			Msg {err.Number}, Level {err.Class}, State {err.State}, Line {err.LineNumber}
-			{err.Message}			
+			{err.Message}
 			""");
 
 			if (!string.IsNullOrEmpty(err.Procedure))

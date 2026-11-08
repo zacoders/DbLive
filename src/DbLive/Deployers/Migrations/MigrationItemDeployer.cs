@@ -84,7 +84,7 @@ public class MigrationItemDeployer(
 		catch (DbLiveSqlException ex)
 		{
 			// SqlError is empty for an error that does not come from the server, such as a command timeout.
-			string error = string.IsNullOrWhiteSpace(ex.SqlError) ? ex.Message : ex.SqlError.TrimEnd();
+			string error = ex.GetSqlErrorOrMessage();
 
 			_logger.Error(
 				ex,
