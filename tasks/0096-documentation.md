@@ -49,6 +49,8 @@ Tasks `0096-40` to `0096-45` come from the code review of 2026-11-05 (docs again
 
 Tasks `0096-51` to `0096-57` come from the code review of 2026-11-07 (the state of the branch): the error row of a failed code file hid its SQL error (51), ProjectId checked after the self-deployment (52), the second run of migration breaking scripts removed (53), code compared with the current hash only (54), the version of a migration with a sign or spaces (55), small fixes (56), the builder of the `[SqlFact]` discovery (57, open).
 
+Tasks `0096-58` to `0096-64` come from the code review of 2026-11-08 (the library code of the branch), all open: the `[SqlFact]` discovery hides the errors of the project (58), a failed migration can lose its cause (59), a long error text fails the write of the error row on SQL Server (60, not verified), a code file retried after its error rolled back the SQL Server transaction (61, not verified), the default image `postgres:latest` (62, against the decision of 2026-11-03), the error of a BeforeDeploy/AfterDeploy script without the file name (63), a failed read of a file cached for the life of the builder (64).
+
 Tasks `0096-17` to `0096-30` come from an outside review of the project (2026-10-31): safe defaults, release process, how the project looks to someone evaluating it, and gaps compared with tSQLt. They do not block this task. The testing ones (0096-23, 0096-24, 0096-28, 0096-29) moved to #99 on 2026-11-03: `0099-unit-testing-improvements.md`.
 
 ## Done when
