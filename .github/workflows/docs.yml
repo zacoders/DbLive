@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      # Intended, decided on 2026-11-13: nothing links to the site before 2.0.
+      # tasks/rejected/0096-71-docs-published-from-branch.md
       - 96-documentation
   # Build only: a broken link fails the pull request before it reaches main.
   pull_request:

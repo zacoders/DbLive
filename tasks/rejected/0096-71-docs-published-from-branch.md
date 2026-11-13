@@ -2,8 +2,12 @@
 type: chore
 priority: high
 created: 2026-11-09
+rejected: 2026-11-13
 ---
 # The docs site is published from the branch `96-documentation`
+
+## Rejected
+Maintainer, 2026-11-13: rejected. Publishing the site from `96-documentation` before the merge is fine: nothing links to it, DbLive has no users yet, and the maintainer reads the site published from the branch. `main` and the tag `1.5.0` (the READMEs of the packages on nuget.org) have no link to zacoders.github.io/DbLive (verified: `git grep github.io main` and `git grep github.io 1.5.0` find nothing); the links come with 2.0. The branch stays in `docs.yml`; a code review does not report it again.
 
 ## Problem
 `.github/workflows/docs.yml` publishes the site on a push to `main` and to `96-documentation`. Until the branch is merged, every push publishes zacoders.github.io/DbLive and its `llms-full.txt` with the behavior of 2.0, while nuget.org has 1.5.0: users and agents read docs that do not match the package.
@@ -18,7 +22,7 @@ Removing the branch does not take back what it already published: the site stays
 ## Fix
 Remove `- 96-documentation` from `on.push.branches`.
 
-- [ ] Now, or in the last commit before the merge? Until the merge and the release of 2.0, the site shows 2.0 either way.
+- [x] Now, or in the last commit before the merge? Until the merge and the release of 2.0, the site shows 2.0 either way. Maintainer, 2026-11-13: neither, the branch stays (see Rejected).
 
 ## Done when
 - [ ] `96-documentation` removed from `docs.yml`
