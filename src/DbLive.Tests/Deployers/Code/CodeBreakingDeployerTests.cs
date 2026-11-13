@@ -16,7 +16,7 @@ public class CodeBreakingDeployerTests
 		GenericItem item1 = GetItem("Code/dbo/GetOrder.breaking.sql", "drop proc if exists dbo.GetOrder_v1");
 		GenericItem item2 = GetItem("Code/dbo/GetUser.b.sql", "drop proc if exists dbo.GetUser_v1");
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([item1, item2]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [item1, item2] };
 
 		DateTime startedUtc = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 		DateTime appliedUtc = startedUtc.AddMilliseconds(15);
@@ -24,7 +24,7 @@ public class CodeBreakingDeployerTests
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		await deployer.DeployAsync();
+		await deployer.DeployAsync(project);
 
 		Received.InOrder(() =>
 		{
@@ -55,12 +55,12 @@ public class CodeBreakingDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([GetItem("Code/GetUser.breaking.sql", "drop proc if exists dbo.GetUser_v1")]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/GetUser.breaking.sql", "drop proc if exists dbo.GetUser_v1")] };
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		await deployer.DeployAsync();
-		await deployer.DeployAsync();
+		await deployer.DeployAsync(project);
+		await deployer.DeployAsync(project);
 
 		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync("drop proc if exists dbo.GetUser_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
 		await mockSet.DbLiveDA.DidNotReceive().GetCodeItemsAsync();
@@ -71,10 +71,13 @@ public class CodeBreakingDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([
-			GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1"),
-			GetItem("Code/b.breaking.sql", "drop proc if exists dbo.b_v1")
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeBreakingItems = [
+				GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1"),
+				GetItem("Code/b.breaking.sql", "drop proc if exists dbo.b_v1")
+			]
+		};
 
 		mockSet.DbLiveDA
 			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
@@ -82,7 +85,7 @@ public class CodeBreakingDeployerTests
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(deployer.DeployAsync);
+		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
 
 		Assert.Contains("Code/a.breaking.sql", ex.Message);
 		_ = Assert.IsType<DbLiveSqlException>(ex.InnerException);
@@ -102,7 +105,7 @@ public class CodeBreakingDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")] };
 
 		DbLiveSqlException scriptError = new("Cannot drop the procedure 'dbo.a_v1'.");
 		mockSet.DbLiveDA
@@ -114,7 +117,7 @@ public class CodeBreakingDeployerTests
 		CodeDeploymentException ex;
 		using (TransactionScope _ = TransactionScopeManager.Create())
 		{
-			ex = await Assert.ThrowsAsync<CodeDeploymentException>(deployer.DeployAsync);
+			ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
 		}
 
 		Assert.Equal("Deploy code breaking script error. File path: Code/a.breaking.sql", ex.Message);
@@ -127,7 +130,7 @@ public class CodeBreakingDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")] };
 
 		mockSet.DbLiveDA
 			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
@@ -140,7 +143,7 @@ public class CodeBreakingDeployerTests
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(deployer.DeployAsync);
+		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => deployer.DeployAsync(project));
 
 		Assert.Same(saveError, ex);
 	}
@@ -150,11 +153,11 @@ public class CodeBreakingDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		await deployer.DeployAsync();
+		await deployer.DeployAsync(project);
 
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!, default, default);
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);

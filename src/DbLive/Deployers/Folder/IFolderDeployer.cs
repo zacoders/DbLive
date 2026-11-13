@@ -1,6 +1,6 @@
-﻿namespace DbLive.Deployers.Folder;
+namespace DbLive.Deployers.Folder;
 
-public interface IFolderDeployer
+internal interface IFolderDeployer
 {
-	Task DeployAsync(ProjectFolder projectFolder, DeployParameters parameters);
+	Task DeployAsync(ProjectSnapshot project, ProjectFolder projectFolder, DeployParameters parameters);
 }

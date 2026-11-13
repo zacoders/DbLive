@@ -1,13 +1,15 @@
 ﻿
-using DbLive.Deployers;
 using DbLive.Deployers.Folder;
-using DbLive.Schema;
-using DbLive.SelfDeployer;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using System.Reflection;
 
-namespace DbLive.Tests.Common;
+namespace DbLive.Tests;
 
-public class MockSet
+/// <summary>
+/// Internal: the phases of the deployment are internal to DbLive, which shows its internals to this project only.
+/// </summary>
+internal class MockSet
 {
 	private readonly IServiceCollection _container = new ServiceCollection();
 
@@ -35,6 +37,7 @@ public class MockSet
 	public readonly IMigrationChecksumValidator MigrationChecksumValidator = Substitute.For<IMigrationChecksumValidator>();
 	public readonly IUnitTestsRunner UnitTestsRunner = Substitute.For<IUnitTestsRunner>();
 	public readonly IDbLiveDeployer DbLiveInternalDeployer = Substitute.For<IDbLiveDeployer>();
+	public readonly IProjectLoader ProjectLoader = Substitute.For<IProjectLoader>();
 	public readonly IDbLiveSelfDeployer DbLiveSelfDeployer = Substitute.For<IDbLiveSelfDeployer>();
 	public readonly IUnitTestResultChecker UnitTestResultChecker = Substitute.For<IUnitTestResultChecker>();
 	public readonly IMigrationVersionValidator MigrationVersionValidator = Substitute.For<IMigrationVersionValidator>();
@@ -46,6 +49,9 @@ public class MockSet
 		SettingsAccessor.GetProjectSettingsAsync().Returns(Task.FromResult(new DbLiveSettings()));
 
 		DbLiveDA.Provider.Returns(DbProvider.MsSql);
+
+		// an empty project unless a test sets one.
+		ProjectLoader.LoadAsync().Returns(_ => ProjectSnapshots.Empty);
 
 		// a database without a minimum DbLive version unless a test sets one.
 		DbLiveDA.GetMinDbLiveLibVersionAsync().Returns((Version?)null);
@@ -61,7 +67,7 @@ public class MockSet
 			.Returns(Task.CompletedTask);
 
 		MigrationChecksumValidator
-			.ValidateAsync(Arg.Any<DeployParameters>())
+			.ValidateAsync(Arg.Any<ProjectSnapshot>(), Arg.Any<DeployParameters>())
 			.Returns(Task.CompletedTask);
 
 		TransactionRunner

@@ -3,9 +3,10 @@ using DbLive.SelfDeployer;
 
 namespace DbLive;
 
-public class DbLive(
+internal class DbLive(
 		IDbLiveDA _da,
 		ILogger _logger,
+		IProjectLoader _projectLoader,
 		IDbLiveDeployer _deployer,
 		IDbLiveSelfDeployer _selfDeployer,
 		IProjectIdValidator _projectIdValidator
@@ -16,6 +17,10 @@ public class DbLive(
 	public async Task DeployAsync(DeployParameters parameters)
 	{
 		_logger.Information("Starting deployment.");
+
+		// first: an error of the project leaves the server as it was. The self-migrations below cannot be undone, and after them
+		// an older DbLive may no longer deploy the database; a database created here would stay empty.
+		ProjectSnapshot project = await _projectLoader.LoadAsync().ConfigureAwait(false);
 
 		if (parameters.RecreateDatabase)
 		{
@@ -43,6 +48,6 @@ public class DbLive(
 		await _projectIdValidator.BindAsync().ConfigureAwait(false);
 
 		// Deploy actual project
-		await _deployer.DeployAsync(parameters).ConfigureAwait(false);
+		await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
 	}
 }

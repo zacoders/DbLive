@@ -2,9 +2,8 @@
 
 namespace DbLive.Deployers.Migrations;
 
-public class BreakingChangesDeployer(
+internal class BreakingChangesDeployer(
 		ILogger _logger,
-		IDbLiveProject _project,
 		IDbLiveDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ICodeBreakingDeployer _codeBreakingDeployer
@@ -17,7 +16,7 @@ public class BreakingChangesDeployer(
 
 	private readonly ILogger _logger = _logger.ForContext(typeof(BreakingChangesDeployer));
 
-	public async Task DeployAsync(DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, DeployParameters parameters)
 	{
 		if (!parameters.DeployBreaking)
 		{
@@ -26,13 +25,13 @@ public class BreakingChangesDeployer(
 
 		_logger.Information("Deploying breaking changes.");
 
-		await ValidateCodeDeployedAsync().ConfigureAwait(false);
+		await ValidateCodeDeployedAsync(project).ConfigureAwait(false);
 
 		// dependents are dropped before what they depend on: on PostgreSQL a view of the old version blocks the 'drop column'
 		// of a migration breaking script.
-		await _codeBreakingDeployer.DeployAsync().ConfigureAwait(false);
+		await _codeBreakingDeployer.DeployAsync(project).ConfigureAwait(false);
 
-		await DeployMigrationBreakingAsync().ConfigureAwait(false);
+		await DeployMigrationBreakingAsync(project).ConfigureAwait(false);
 	}
 
 	/// <summary>
@@ -42,16 +41,14 @@ public class BreakingChangesDeployer(
 	/// current one: a stale Breaking job of a release that a later one replaced can pass (0096-41, rejected).
 	/// </summary>
 	/// <exception cref="CodeNotDeployedException"/>
-	private async Task ValidateCodeDeployedAsync()
+	private async Task ValidateCodeDeployedAsync(ProjectSnapshot project)
 	{
-		IReadOnlyList<CodeGroup> codeGroups = await _project.GetCodeGroupsAsync().ConfigureAwait(false);
-
 		CodeRows rows = new(await _da.GetCodeItemsAsync().ConfigureAwait(false));
 
 		// the check of CodeDeployer: the guard passes exactly when the code deployment has nothing left to execute.
 		List<string> notDeployed =
 		[
-			.. codeGroups
+			.. project.CodeGroups
 				.SelectMany(group => group.CodeItems)
 				.Where(codeItem => !rows.IsDeployed(codeItem.FileData))
 				.Select(codeItem => codeItem.FileData.RelativePath)
@@ -66,7 +63,7 @@ public class BreakingChangesDeployer(
 		}
 	}
 
-	private async Task DeployMigrationBreakingAsync()
+	private async Task DeployMigrationBreakingAsync(ProjectSnapshot project)
 	{
 		IReadOnlyCollection<MigrationItemDto> migrations = await _da.GetMigrationsAsync().ConfigureAwait(false);
 
@@ -87,7 +84,7 @@ public class BreakingChangesDeployer(
 		HashSet<long> breakingVersionsToApply = appliedMigrationVersions.Intersect(notAppliedBreakingVersions).ToHashSet();
 
 		List<(long Version, MigrationItem Item, MigrationItemSettings Settings)> breakingToApply = [];
-		foreach (Migration migration in await _project.GetMigrationsAsync().ConfigureAwait(false))
+		foreach (Migration migration in project.Migrations)
 		{
 			if (!breakingVersionsToApply.Contains(migration.Version))
 			{

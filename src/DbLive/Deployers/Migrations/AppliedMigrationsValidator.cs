@@ -5,13 +5,12 @@ namespace DbLive.Deployers.Migrations;
 /// (DbLive does not roll back a database), or migration files deleted from the project.
 /// </summary>
 internal class AppliedMigrationsValidator(
-	IDbLiveProject project,
 	IDbLiveDA da
 ) : IAppliedMigrationsValidator
 {
-	public async Task ValidateAsync()
+	public async Task ValidateAsync(ProjectSnapshot project)
 	{
-		HashSet<long> projectVersions = [.. (await project.GetMigrationsAsync().ConfigureAwait(false)).Select(m => m.Version)];
+		HashSet<long> projectVersions = [.. project.Migrations.Select(m => m.Version)];
 
 		IReadOnlyCollection<long> appliedVersions = await da.GetAppliedMigrationVersionsAsync().ConfigureAwait(false);
 

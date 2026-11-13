@@ -3,13 +3,12 @@ namespace DbLive.Deployers.Migrations;
 internal class MigrationChecksumValidator(
 	ILogger logger,
 	ISettingsAccessor settingsAccessor,
-	IDbLiveProject project,
 	IDbLiveDA da
 ) : IMigrationChecksumValidator
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(MigrationChecksumValidator));
 
-	public async Task ValidateAsync(DeployParameters parameters)
+	public async Task ValidateAsync(ProjectSnapshot project, DeployParameters parameters)
 	{
 		if (!await da.DbLiveInstalledAsync().ConfigureAwait(false))
 		{
@@ -18,10 +17,9 @@ internal class MigrationChecksumValidator(
 
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 		IReadOnlyCollection<MigrationItemDto> dbItems = await da.GetMigrationsAsync().ConfigureAwait(false);
-		IReadOnlyList<Migration> projectMigrations = await project.GetMigrationsAsync().ConfigureAwait(false);
 
 		Dictionary<(long Version, MigrationItemType ItemType), MigrationItem> projectItems =
-			projectMigrations
+			project.Migrations
 				.SelectMany(m => m.Items.Select(i => ((m.Version, i.Key), i.Value)))
 				.ToDictionary(x => x.Item1, x => x.Value);
 

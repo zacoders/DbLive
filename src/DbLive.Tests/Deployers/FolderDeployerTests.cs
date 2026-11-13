@@ -11,7 +11,7 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = ProjectFolder.BeforeDeploy;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 			GetGenericItem("file2.sql"),
 			GetGenericItem("file3.sql")
@@ -19,7 +19,7 @@ public class FolderDeployerTests
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.Received(3)
 			.ExecuteNonQueryAsync(
@@ -39,13 +39,13 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = ProjectFolder.AfterDeploy;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.Received()
 			.ExecuteNonQueryAsync(
@@ -65,7 +65,7 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = ProjectFolder.AfterDeploy;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 			GetGenericItem("file2.sql"),
 			GetGenericItem("file3.sql")
@@ -85,7 +85,7 @@ public class FolderDeployerTests
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(
-			() => deploy.DeployAsync(projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
 		);
 
 		Assert.Equal("""
@@ -112,7 +112,7 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = ProjectFolder.BeforeDeploy;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
@@ -130,7 +130,7 @@ public class FolderDeployerTests
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(
-			() => deploy.DeployAsync(projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
 		);
 
 		Assert.Equal("""
@@ -162,11 +162,11 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = ProjectFolder.BeforeDeploy;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(ReadOnlyCollection<GenericItem>.Empty);
+		ProjectSnapshot project = WithFolderItems(projectFolder, ReadOnlyCollection<GenericItem>.Empty);
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>());
 	}
@@ -178,14 +178,21 @@ public class FolderDeployerTests
 
 		ProjectFolder projectFolder = (ProjectFolder)999;
 
-		mockSet.DbLiveProject.GetFolderItemsAsync(projectFolder).Returns(new List<GenericItem>{
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-			() => deploy.DeployAsync(projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
 		);
 	}
+
+	private static ProjectSnapshot WithFolderItems(ProjectFolder projectFolder, IReadOnlyList<GenericItem> items) => projectFolder switch
+	{
+		ProjectFolder.BeforeDeploy => ProjectSnapshots.Empty with { BeforeDeployItems = items },
+		ProjectFolder.AfterDeploy => ProjectSnapshots.Empty with { AfterDeployItems = items },
+		_ => ProjectSnapshots.Empty
+	};
 }

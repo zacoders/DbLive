@@ -3,12 +3,11 @@ namespace DbLive.Deployers.Migrations;
 
 internal class MigrationsSaver(
 		ILogger _logger,
-		IDbLiveProject _project,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider
 	) : IMigrationsSaver
 {
-	public async Task SaveAsync()
+	public async Task SaveAsync(ProjectSnapshot project)
 	{
 		// a row for every migration item of the project, with its hash, not its content: the project is the source of the scripts.
 		// rows of items deleted from the project stay. nothing runs them: the migration and breaking phases and the checksum
@@ -16,12 +15,11 @@ internal class MigrationsSaver(
 
 		_logger.Information("Saving migration items.");
 
-		IEnumerable<Migration> migrationsToApply = await _project.GetMigrationsAsync().ConfigureAwait(false);
 		IReadOnlyCollection<MigrationItemDto> dbItems = await _da.GetMigrationsAsync().ConfigureAwait(false);
 		Dictionary<(long Version, MigrationItemType ItemType), MigrationItemDto> dbItemsByKey =
 			dbItems.ToDictionary(i => (i.Version, i.ItemType));
 
-		foreach (Migration migration in migrationsToApply)
+		foreach (Migration migration in project.Migrations)
 		{
 			foreach ((MigrationItemType _, MigrationItem migrationItem) in migration.Items)
 			{

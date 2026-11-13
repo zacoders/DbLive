@@ -11,11 +11,10 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		await deployer.DeployAsync(new DeployParameters { DeployBreaking = false });
+		await deployer.DeployAsync(ProjectSnapshots.Empty, new DeployParameters { DeployBreaking = false });
 
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
-		await mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 		await mockSet.MigrationItemDeployer.DidNotReceive()
 			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
@@ -28,25 +27,28 @@ public class BreakingChangesDeployerTests
 
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			new Migration
+		ProjectSnapshot project = ProjectSnapshots.Empty with
 		{
-			Version = 1,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
+			Migrations = [
+				new Migration
 			{
-				[MigrationItemType.Migration] = new()
+				Version = 1,
+				Items = new Dictionary<MigrationItemType, MigrationItem>
 				{
-					MigrationItemType = MigrationItemType.Migration,
-					FileData = GetFileData("001.m.sql", "-- content")
+					[MigrationItemType.Migration] = new()
+					{
+						MigrationItemType = MigrationItemType.Migration,
+						FileData = GetFileData("001.m.sql", "-- content")
+					}
 				}
 			}
-		}
-		]);
+			]
+		};
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		// Assert
 		await mockSet.MigrationItemDeployer.DidNotReceive()
@@ -124,12 +126,12 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration2, migration3]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration2, migration3] };
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		// Assert
 		await mockSet.MigrationItemDeployer.Received(1)
@@ -242,12 +244,12 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2, migration3]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration1, migration2, migration3] };
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		// Assert
 		Received.InOrder(() =>
@@ -345,12 +347,12 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1, migration2]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration1, migration2] };
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		// Act
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		// Assert
 		Received.InOrder(() =>
@@ -376,24 +378,27 @@ public class BreakingChangesDeployerTests
 
 		// 001.breaking.sql was saved by a release and deleted from the project before its breaking phase.
 		_ = ArrangePendingMigrationBreaking(mockSet);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			new Migration
-			{
-				Version = 1,
-				Items = new Dictionary<MigrationItemType, MigrationItem>
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				new Migration
 				{
-					[MigrationItemType.Migration] = new()
+					Version = 1,
+					Items = new Dictionary<MigrationItemType, MigrationItem>
 					{
-						MigrationItemType = MigrationItemType.Migration,
-						FileData = GetFileData("001.migration.sql", "-- migration 1")
+						[MigrationItemType.Migration] = new()
+						{
+							MigrationItemType = MigrationItemType.Migration,
+							FileData = GetFileData("001.migration.sql", "-- migration 1")
+						}
 					}
 				}
-			}
-		]);
+			]
+		};
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		// the scripts come from the project, the row alone runs nothing.
 		await mockSet.MigrationItemDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default, default!, default!);
@@ -405,10 +410,11 @@ public class BreakingChangesDeployerTests
 		MockSet mockSet = new();
 
 		Migration migration1 = ArrangePendingMigrationBreaking(mockSet);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration1] };
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		await mockSet.MigrationItemDeployer.Received(1)
 			.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], Arg.Any<MigrationItemSettings>());
@@ -422,10 +428,9 @@ public class BreakingChangesDeployerTests
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(ProjectSnapshots.Empty, DeployParameters.Default);
 
-		await mockSet.DbLiveProject.DidNotReceive().GetCodeGroupsAsync();
-		await mockSet.CodeBreakingDeployer.DidNotReceive().DeployAsync();
+		await mockSet.CodeBreakingDeployer.DidNotReceive().DeployAsync(Arg.Any<ProjectSnapshot>());
 	}
 
 	[Fact]
@@ -434,11 +439,12 @@ public class BreakingChangesDeployerTests
 		MockSet mockSet = new();
 
 		Migration migration1 = ArrangePendingMigrationBreaking(mockSet);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration1] };
 
 		List<string> calls = [];
 
 		mockSet.CodeBreakingDeployer
-			.When(x => x.DeployAsync())
+			.When(x => x.DeployAsync(Arg.Any<ProjectSnapshot>()))
 			.Do(_ => calls.Add("code breaking"));
 
 		mockSet.MigrationItemDeployer
@@ -447,7 +453,7 @@ public class BreakingChangesDeployerTests
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
 		Assert.Equal(["code breaking", "migration breaking"], calls);
 	}
@@ -458,13 +464,13 @@ public class BreakingChangesDeployerTests
 		MockSet mockSet = new();
 
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
-		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync();
+		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync(Arg.Any<ProjectSnapshot>());
 	}
 
 	[Fact]
@@ -477,10 +483,14 @@ public class BreakingChangesDeployerTests
 		CodeItem item1 = GetCodeItem("Code/schemas/dbo.sql", "create schema dbo");
 		CodeItem item2 = GetCodeItem("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser_v2\nas\nselect 1;\n");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code/schemas", CodeItems = [item1] },
-			new CodeGroup { Path = "Code", CodeItems = [item2] }
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code/schemas", CodeItems = [item1] },
+				new CodeGroup { Path = "Code", CodeItems = [item2] }
+			],
+			Migrations = [migration1]
+		};
 
 		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
 			GetCodeRow(item1, CodeItemStatus.Applied),
@@ -489,9 +499,9 @@ public class BreakingChangesDeployerTests
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
-		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync();
+		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync(Arg.Any<ProjectSnapshot>());
 		await mockSet.MigrationItemDeployer.Received(1)
 			.DeployAsync(1, migration1.Items[MigrationItemType.Breaking], Arg.Any<MigrationItemSettings>());
 	}
@@ -501,15 +511,14 @@ public class BreakingChangesDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Breaking);
+		await deployer.DeployAsync(project, DeployParameters.Breaking);
 
-		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync();
+		await mockSet.CodeBreakingDeployer.Received(1).DeployAsync(Arg.Any<ProjectSnapshot>());
 	}
 
 	[Fact]
@@ -518,7 +527,7 @@ public class BreakingChangesDeployerTests
 		MockSet mockSet = new();
 
 		// the migration of version 1 is applied, so without the guard its breaking script would run.
-		_ = ArrangePendingMigrationBreaking(mockSet);
+		Migration migration1 = ArrangePendingMigrationBreaking(mockSet);
 
 		CodeItem applied = GetCodeItem("Code/f1.sql", "f1");
 		CodeItem missing = GetCodeItem("Code/f2.sql", "f2");
@@ -528,9 +537,13 @@ public class BreakingChangesDeployerTests
 		CodeItem missing6 = GetCodeItem("Code/f6.sql", "f6");
 		CodeItem missing7 = GetCodeItem("Code/f7.sql", "f7");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code", CodeItems = [missing7, applied, missing, changed, failed, removed, missing6] }
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code", CodeItems = [missing7, applied, missing, changed, failed, removed, missing6] }
+			],
+			Migrations = [migration1]
+		};
 
 		// no rows for f2, f6 and f7.
 		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
@@ -543,7 +556,7 @@ public class BreakingChangesDeployerTests
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		CodeNotDeployedException ex = await Assert.ThrowsAsync<CodeNotDeployedException>(
-			() => deployer.DeployAsync(DeployParameters.Breaking)
+			() => deployer.DeployAsync(project, DeployParameters.Breaking)
 		);
 
 		Assert.Equal(6, ex.Count);
@@ -553,7 +566,7 @@ public class BreakingChangesDeployerTests
 		Assert.DoesNotContain("Code/f7.sql", ex.Message);
 		Assert.Contains("DeployParameters.Default", ex.Message);
 
-		await mockSet.CodeBreakingDeployer.DidNotReceive().DeployAsync();
+		await mockSet.CodeBreakingDeployer.DidNotReceive().DeployAsync(Arg.Any<ProjectSnapshot>());
 		await mockSet.MigrationItemDeployer.DidNotReceiveWithAnyArgs()
 			.DeployAsync(default, default!, default!);
 	}
@@ -565,12 +578,12 @@ public class BreakingChangesDeployerTests
 
 		CodeItem item = GetCodeItem("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser_v2 as select 1;");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([new CodeGroup { Path = "Code", CodeItems = [item] }]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeGroups = [new CodeGroup { Path = "Code", CodeItems = [item] }] };
 
 		BreakingChangesDeployer deployer = mockSet.CreateUsingMocks<BreakingChangesDeployer>();
 
 		CodeNotDeployedException ex = await Assert.ThrowsAsync<CodeNotDeployedException>(
-			() => deployer.DeployAsync(DeployParameters.Breaking)
+			() => deployer.DeployAsync(project, DeployParameters.Breaking)
 		);
 
 		Assert.Equal(1, ex.Count);
@@ -616,7 +629,6 @@ public class BreakingChangesDeployerTests
 			}
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration1]);
 
 		return migration1;
 	}

@@ -25,4 +25,4 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 
 The template `DbLive.Templates` (`dotnet new dblive`) creates new projects and does not change existing ones, so a change in what it creates (file names, example scripts) is not a breaking change. A removed or renamed option of the template is.
 
-Types that are public but not described in the documentation (the deployers, the provider data access classes, the classes behind the dependency injection) are public so that the provider packages and `DbLive.xunit` can use them. They may change in any version.
+Types that are public but not described in the documentation (the deployers of single scripts, the provider data access classes, the classes behind the dependency injection) are public so that the provider packages and `DbLive.xunit` can use them. They may change in any version.

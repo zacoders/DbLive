@@ -39,19 +39,20 @@ It reads the scripts embedded in the SQL project assembly, so it deploys exactly
 
 Every `DeployAsync` call runs these steps in this order:
 
-1. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
-2. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
-3. **Validate**: isolation levels, that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations. The applied versions check is the first read of the project files, so a file outside the project folders or a wrong migration file name stops the deployment here, before any of your scripts runs.
-4. **Record** all migration files of the project in `dblive.migration`.
-5. **BeforeDeploy** scripts.
-6. **Migrations**: pending versions in ascending order (`DeployMigrations`).
-7. **Code**: new and changed code files (`DeployCode`).
-8. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
-9. **AfterDeploy** scripts.
+1. **Load the project**: read `settings.json` and every script the deployment runs, and check them: the isolation levels against the database engine, the file names, files outside the project folders, the item settings files. A mistake in the project stops the deployment here, before it changes anything on the server: no database is created and the `dblive` schema is not touched.
+2. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
+3. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
+4. **Validate**: that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations.
+5. **Record** all migration files of the project in `dblive.migration`.
+6. **BeforeDeploy** scripts.
+7. **Migrations**: pending versions in ascending order (`DeployMigrations`).
+8. **Code**: new and changed code files (`DeployCode`).
+9. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
+10. **AfterDeploy** scripts.
 
-With `TransactionWrapLevel: Deployment`, steps 3 (from the applied versions check) to 9 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
+With `TransactionWrapLevel: Deployment`, steps 4 to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
-Steps 2 to 5 and 9 run whatever the flags say. A breaking-only deployment therefore still validates, records migrations and runs BeforeDeploy and AfterDeploy.
+Steps 1, 3 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still reads the whole project, validates, records migrations and runs BeforeDeploy and AfterDeploy.
 
 ## DeployParameters
 
@@ -136,7 +137,7 @@ Files are identified by their path relative to the scripts root, stored in lower
 
 ### The DbLive version a database requires
 
-A newer DbLive can store in these tables what an older one cannot read. So the database keeps the oldest DbLive version that can deploy it, in `dblive.version.min_dblive_lib_version`. Every deployment raises it to the minimum of its DbLive version and never lowers it. A deployment or `RunAllTestsAsync()` with an older DbLive fails with `DatabaseRequiresNewerDbLiveException` before it changes anything; the message names the version to update the DbLive packages to.
+A newer DbLive can store in these tables what an older one cannot read. So the database keeps the oldest DbLive version that can deploy it, in `dblive.version.min_dblive_lib_version`. Every deployment raises it to the minimum of its DbLive version and never lowers it; a deployment that stops on a mistake in the project (step 1 of [What a deployment does](#what-a-deployment-does)), such as an undo script left in it, does not raise it. A deployment or `RunAllTestsAsync()` with an older DbLive fails with `DatabaseRequiresNewerDbLiveException` before it changes anything; the message names the version to update the DbLive packages to.
 
 A release of DbLive after which older versions can no longer deploy the database says so in its [release notes](https://github.com/zacoders/DbLive/releases). If you roll back a release that upgraded to such a version, roll back the application and keep the database (see [Roll back a release](migrations.md#roll-back-a-release)): the previous build of the database fails with this exception. DbLive versions before 2.0.0 do not check the required version: do not deploy a database that DbLive 2.0 or later has deployed with them.
 

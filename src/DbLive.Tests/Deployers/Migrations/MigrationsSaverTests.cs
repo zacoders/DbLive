@@ -10,11 +10,11 @@ public class MigrationsSaverTests
 		MockSet mockSet = new();
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -38,13 +38,13 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied)
 		]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive()
@@ -68,7 +68,7 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(2, MigrationItemType.Migration, fileData.ContentHash + 123, MigrationItemStatus.None)
 		]);
@@ -77,7 +77,7 @@ public class MigrationsSaverTests
 		mockSet.TimeProvider.UtcNow().Returns(now);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		mockSet.Logger.Received(1)
@@ -113,14 +113,14 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			// saved from a CRLF checkout by a DbLive version that hashed the raw text.
 			NewDbItem(1, MigrationItemType.Breaking, LegacyContentHash.Of("drop table t1;\r\ngo\r\n"), MigrationItemStatus.None)
 		]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive()
@@ -144,13 +144,13 @@ public class MigrationsSaverTests
 				FileData = fileData
 			});
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([migration]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [migration] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 123, MigrationItemStatus.Applied)
 		]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		await mockSet.DbLiveDA.DidNotReceive()
@@ -175,11 +175,11 @@ public class MigrationsSaverTests
 			FileData = GetFileData("/001.item", "item content")
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, item)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1, item)] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		await mockSet.DbLiveDA.Received(1)
@@ -206,13 +206,13 @@ public class MigrationsSaverTests
 			FileData = GetFileData("/001.breaking.settings.json", """{ "Timeout": "00:05:00" }""")
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, settingsItem)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1, settingsItem)] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.BreakingSettings, settingsItem.FileData.ContentHash + 1, MigrationItemStatus.None)
 		]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert
 		await mockSet.DbLiveDA.Received(1)
@@ -236,7 +236,7 @@ public class MigrationsSaverTests
 			FileData = GetFileData("/001.migration.sql", "migration content")
 		};
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1, migrationItem)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1, migrationItem)] };
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, migrationItem.FileData.ContentHash, MigrationItemStatus.Applied),
 			// 001.breaking.sql was saved by a release and deleted from the project before its breaking phase.
@@ -244,7 +244,7 @@ public class MigrationsSaverTests
 		]);
 
 		// Act
-		await saver.SaveAsync();
+		await saver.SaveAsync(project);
 
 		// Assert: the saver neither saves nor deletes rows of items the project does not have.
 		await mockSet.DbLiveDA.DidNotReceive()

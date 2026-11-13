@@ -6,24 +6,24 @@ public class AppliedMigrationsValidatorTests
 	public async Task Passes_when_the_project_has_every_applied_version()
 	{
 		MockSet mockSet = new();
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1), NewMigration(2), NewMigration(3)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1), NewMigration(2), NewMigration(3)] };
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns([1, 2]);
 
 		AppliedMigrationsValidator validator = mockSet.CreateUsingMocks<AppliedMigrationsValidator>();
 
-		await validator.ValidateAsync();
+		await validator.ValidateAsync(project);
 	}
 
 	[Fact]
 	public async Task Passes_for_a_new_database()
 	{
 		MockSet mockSet = new();
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1)] };
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns([]);
 
 		AppliedMigrationsValidator validator = mockSet.CreateUsingMocks<AppliedMigrationsValidator>();
 
-		await validator.ValidateAsync();
+		await validator.ValidateAsync(project);
 	}
 
 	[Fact]
@@ -31,12 +31,12 @@ public class AppliedMigrationsValidatorTests
 	{
 		MockSet mockSet = new();
 		// the database was deployed by a release with versions 3 and 20260105120000, the project is the release before it.
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([NewMigration(1), NewMigration(2)]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [NewMigration(1), NewMigration(2)] };
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns([20260105120000, 1, 3, 2]);
 
 		AppliedMigrationsValidator validator = mockSet.CreateUsingMocks<AppliedMigrationsValidator>();
 
-		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(validator.ValidateAsync);
+		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(() => validator.ValidateAsync(project));
 
 		Assert.Equal([3, 20260105120000], ex.Versions);
 		Assert.StartsWith("The database has applied migration versions that the project does not have: 3, 20260105120000. ", ex.Message);
@@ -50,29 +50,14 @@ public class AppliedMigrationsValidatorTests
 	public async Task Project_without_migrations_fails_on_a_database_with_applied_versions()
 	{
 		MockSet mockSet = new();
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns([1]);
 
 		AppliedMigrationsValidator validator = mockSet.CreateUsingMocks<AppliedMigrationsValidator>();
 
-		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(validator.ValidateAsync);
+		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(() => validator.ValidateAsync(project));
 
 		Assert.Equal([1], ex.Versions);
-	}
-
-	[Fact]
-	public async Task Undo_file_in_the_project_fails_before_the_database_is_read()
-	{
-		MockSet mockSet = new();
-		mockSet.ScriptSource.AddFile("Migrations/001.migration.sql", "create table t1 (id int);");
-		mockSet.ScriptSource.AddFile("Migrations/001.undo.sql", "drop table t1;");
-
-		AppliedMigrationsValidator validator = new(mockSet.CreateUsingMocks<DbLiveProject>(), mockSet.DbLiveDA);
-
-		UndoNotSupportedException ex = await Assert.ThrowsAsync<UndoNotSupportedException>(validator.ValidateAsync);
-
-		Assert.Equal("Migrations/001.undo.sql", ex.RelativePath);
-		await mockSet.DbLiveDA.DidNotReceive().GetAppliedMigrationVersionsAsync();
 	}
 
 	private static Migration NewMigration(long version) => new()

@@ -40,6 +40,8 @@
         <InternalsVisibleTo Include="DbLive.MSSQL" />
         <InternalsVisibleTo Include="DbLive.PostgreSQL" />
         <InternalsVisibleTo Include="DbLive.xunit" />
+        <!-- NSubstitute (Castle DynamicProxy) mocks the internal interfaces in the tests. The assembly is not signed: no public key. -->
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
 	<ItemGroup>

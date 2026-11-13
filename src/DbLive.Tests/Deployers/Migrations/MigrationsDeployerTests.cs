@@ -16,21 +16,22 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(3),
 				NewMigration(4)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync()
 			.Returns([1L, 2L]);
 
-		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
+		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync(project)).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
@@ -46,13 +47,14 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(3)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
@@ -60,7 +62,7 @@ public class MigrationsDeployerTests
 		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		await mockSet.MigrationVersionDeployer.Received(3)
@@ -76,7 +78,7 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
@@ -84,7 +86,7 @@ public class MigrationsDeployerTests
 		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
@@ -101,14 +103,15 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(2),
 				NewMigration(3)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
@@ -117,7 +120,7 @@ public class MigrationsDeployerTests
 		deployParams.DeployMigrations = false;
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		await mockSet.MigrationVersionDeployer.DidNotReceive()

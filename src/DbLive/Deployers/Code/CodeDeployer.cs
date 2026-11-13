@@ -1,9 +1,8 @@
 namespace DbLive.Deployers.Code;
 
 
-public class CodeDeployer(
+internal class CodeDeployer(
 	ILogger logger,
-	IDbLiveProject _project,
 	ICodeItemDeployer _codeItemDeployer,
 	ISettingsAccessor settingsAccessor,
 	IDbLiveDA _da,
@@ -12,7 +11,7 @@ public class CodeDeployer(
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
 
-	public async Task DeployAsync(DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -21,16 +20,14 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		IReadOnlyList<CodeGroup> codeGroups = await _project.GetCodeGroupsAsync().ConfigureAwait(false);
-
-		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = await SkipDeployedAsync(codeGroups).ConfigureAwait(false);
+		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = await SkipDeployedAsync(project.CodeGroups).ConfigureAwait(false);
 
 		foreach (IReadOnlyCollection<CodeItem> codeItems in groupsToDeploy.Where(items => items.Count > 0))
 		{
 			await DeployGroupAsync(codeItems).ConfigureAwait(false);
 		}
 
-		await MarkRemovedFilesAsync(codeGroups).ConfigureAwait(false);
+		await MarkRemovedFilesAsync(project).ConfigureAwait(false);
 
 		_logger.Information("Code deploy successfully completed.");
 	}
@@ -79,12 +76,12 @@ public class CodeDeployer(
 	/// would be skipped by its hash, and the object it creates would not be restored. Its row is marked removed instead,
 	/// and a removed file is executed again. Breaking scripts of the Code folder are files of the project too.
 	/// </summary>
-	private async Task MarkRemovedFilesAsync(IReadOnlyList<CodeGroup> codeGroups)
+	private async Task MarkRemovedFilesAsync(ProjectSnapshot project)
 	{
 		List<string> projectFiles =
 		[
-			.. codeGroups.SelectMany(g => g.CodeItems).Select(i => i.FileData.RelativePath),
-			.. (await _project.GetCodeBreakingItemsAsync().ConfigureAwait(false)).Select(i => i.FileData.RelativePath)
+			.. project.CodeGroups.SelectMany(g => g.CodeItems).Select(i => i.FileData.RelativePath),
+			.. project.CodeBreakingItems.Select(i => i.FileData.RelativePath)
 		];
 
 		IReadOnlyCollection<string> removedFiles = await _da.MarkMissingCodeAsRemovedAsync(projectFiles, _timeProvider.UtcNow()).ConfigureAwait(false);

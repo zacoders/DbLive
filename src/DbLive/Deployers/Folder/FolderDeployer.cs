@@ -1,9 +1,8 @@
 
 namespace DbLive.Deployers.Folder;
 
-public class FolderDeployer(
+internal class FolderDeployer(
 		ILogger _logger,
-		IDbLiveProject _project,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
@@ -11,11 +10,16 @@ public class FolderDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
 
-	public async Task DeployAsync(ProjectFolder projectFolder, DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, ProjectFolder projectFolder, DeployParameters parameters)
 	{
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 
-		ReadOnlyCollection<GenericItem> items = await _project.GetFolderItemsAsync(projectFolder).ConfigureAwait(false);
+		IReadOnlyList<GenericItem> items = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => project.BeforeDeployItems,
+			ProjectFolder.AfterDeploy => project.AfterDeployItems,
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolder.")
+		};
 
 		if (items.Count == 0)
 		{

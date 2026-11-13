@@ -2,8 +2,14 @@
 type: bug
 priority: high
 created: 2026-11-09
+closed: 2026-11-13
 ---
 # The self-deployment changes the `dblive` tables before the project is checked
+
+## Release note
+A deployment that stops on a mistake in the project no longer changes anything on the server: an undo script left in `Migrations`, an old `<version>.settings.json`, a file outside the project folders, a wrong file name or item settings file, an isolation level the database engine does not support, a script file that cannot be read. Before, DbLive had already created the database (with `CreateDbIfNotExists`) and upgraded its `dblive` tables at that point, so after a first deployment with DbLive 2.0 that failed this way, the previous DbLive version could no longer deploy the database. DbLive now reads and checks the whole project first.
+
+The deployment phases (`IDbLiveDeployer`, `ICodeDeployer`, `IMigrationsDeployer` and the others) and the class `DbLive` behind `IDbLive` are internal now. They were not documented; only `ConfigureServices` could replace them. Nothing to change on upgrade.
 
 ## Problem
 `DbLive.DeployAsync` runs the self-deployment (the self-migrations of the `dblive` tables) before it reads the project. The checks of the project run later, inside `DbLiveDeployer`:
@@ -111,12 +117,12 @@ The other public types behind the dependency injection are 0096-73.
 - `docs/versioning.md` (the last paragraph names "the deployers" among the public types not described in the docs: they are internal now)
 
 ## Done when
-- [ ] `ProjectLoader` and `ProjectSnapshot`; no phase of the deployment depends on `IDbLiveProject`
-- [ ] The phases, `DbLiveDeployer`, the loader and the snapshot are internal
-- [ ] Unit test: an error of the project fails `DeployAsync` before the database is created and before the self-deployment
-- [ ] Integration test on SQL Server and PostgreSQL: a new database and a project with `Migrations/001.undo.sql`: the deployment fails with `UndoNotSupportedException` and the database has no `dblive` schema; with `CreateDbIfNotExists` and no database, the database is not created
-- [ ] The comments in `DbLiveDeployer` and `DbLiveProject.ReadFiles` corrected
-- [ ] Docs updated
+- [x] `ProjectLoader` and `ProjectSnapshot`; no phase of the deployment depends on `IDbLiveProject`
+- [x] The phases, `DbLiveDeployer`, the loader and the snapshot are internal
+- [x] Unit test: an error of the project fails `DeployAsync` before the database is created and before the self-deployment
+- [x] Integration test on SQL Server and PostgreSQL: a new database and a project with `Migrations/001.undo.sql`: the deployment fails with `UndoNotSupportedException` and the database has no `dblive` schema; with `CreateDbIfNotExists` and no database, the database is not created
+- [x] The comments in `DbLiveDeployer` and `DbLiveProject.ReadFiles` corrected
+- [x] Docs updated
 
 ## Notes
 - 2026-11-09, maintainer: the snapshot (two stages, the phases take the loaded project) over a preflight step. The preflight step: `DbLive.DeployAsync` calls the same reads of `IDbLiveProject` before the self-deployment, and the phases stay as they are and take the data from the cache. Smaller, but it holds only by convention: a new read in a phase that the preflight step does not make runs after the self-deployment again, and no test notices.
@@ -124,3 +130,16 @@ The other public types behind the dependency injection are 0096-73.
 - Verified in the code: `TransactionSettingsValidator` uses only `IDbLiveDA.Provider`, a constant of the provider class, so the load can run before the database exists.
 - The integration test uses a new database: on a database deployed by this DbLive no self-migration is pending, so "the version in `dblive.version` does not change" would pass without the fix.
 - Not covered by the fix: `AppliedMigrationsValidator` and `MigrationChecksumValidator` compare the project with the `dblive` tables in the format of this DbLive, so they stay after the self-deployment. So do the errors of the SQL of the project.
+- 2026-11-13, maintainer: the validators stay where they are. Considered: run them inside the transaction of the self-deployment, after the self-migrations and before the commit, so that their failure rolls the self-migrations back. Not worth the code: the self-deployment may update the `dblive` tables before a validator fails. Such a failure needs a build with a newer DbLive and an older project (an older build has no pending self-migration), which is rare. Nothing in the docs either: their "changes nothing" for `DatabaseAheadOfProjectException` is about an older build, and holds.
+- `DbLive`, the class behind `IDbLive`, became internal too: its constructor takes `IProjectLoader` and `IDbLiveDeployer`, and a public class cannot take internal types. `DbLiveBuilder.CreateDeployer()` returns `IDbLive`; no doc names the class.
+- The helper for snapshots (`ProjectSnapshots.Empty`) is in `DbLive.Tests`, not in `DbLive.Tests.Common` as planned under Tests: `ProjectSnapshot` is internal, and `DbLive` does not show its internals to `DbLive.Tests.Common`.
+- The tests that checked that a phase does not read the project when its flag is off (`DeployCode = false`, `DeployBreaking = false`, a database without the `dblive` tables) lost that assertion: no phase reads the project now.
+- Verified: the integration tests of `InvalidProjectTests` fail on the code before the fix, on both providers (the `dblive` schema exists after the failed deployment; the database is created).
+- 2026-11-13, maintainer: the content of every file of the deployment stays in memory, as before this task (the cache of `IDbLiveProject`, 0096-44; the snapshot only refers to it). Estimated, not measured: a large project of 3000 code files of 8 KB and 2000 migrations of 4 KB is about 32 MB of text, about 65 MB as .NET strings. Acceptable. Not done: a snapshot of paths and hashes with the content read when a script runs. It would drop the cache, bring a failed read back after the self-deployment, and let a file of `SetScriptsFolder` change between the check and the run.
+
+## Result
+- `ProjectLoader` (`src/DbLive/Project/ProjectLoader.cs`) reads `settings.json` and checks its transaction settings (`TransactionSettingsValidator`, moved there from `DbLiveDeployer`), then the migrations (the first read checks all files of the project), the code groups, the breaking scripts of the Code folder, BeforeDeploy and AfterDeploy, and returns a `ProjectSnapshot` (an internal record of these five lists). It reads through `IDbLiveProject` and its cache.
+- `DbLive.DeployAsync` loads the project first, before `RecreateDatabase`, `CreateDbIfNotExists` and `CheckDatabaseExistsAsync`, and passes the snapshot to `IDbLiveDeployer.DeployAsync(ProjectSnapshot, DeployParameters)`. The eight phases take the snapshot and no longer depend on `IDbLiveProject`. `DbLiveTester` and `UnitTestsRunner` keep it.
+- Internal: `DbLive`, `IDbLiveDeployer`, `DbLiveDeployer`, the eight phases and their interfaces, `ProjectSnapshot`, `IProjectLoader`, `ProjectLoader`. `DbLive.csproj` shows its internals to `DynamicProxyGenAssembly2` for NSubstitute. `MockSet` moved to `DbLive.Tests` and is internal.
+- Tests: the unit tests of the phases build a snapshot (`ProjectSnapshots.Empty with { ... }`). `ProjectLoaderTests`: every part is loaded, the transaction settings are checked before the files are read, an undo script, a file outside the project folders and a file that cannot be read (in each folder) fail the load, the tests are not read. `DbLiveTests`: the order of the steps, and an error of the loader with `Default`, `Breaking`, `CreateDbIfNotExists` and `RecreateDatabase` calls nothing on `IDbLiveDA`, `IProjectIdValidator`, `IDbLiveSelfDeployer` and `IDbLiveDeployer`. `DbLiveDeployerTests`: every phase gets the loaded project, `IDbLiveProject` is not called. `InvalidProjectTests` on SQL Server and PostgreSQL: a new database and `Migrations/001.undo.sql` leave no `dblive` schema; with `CreateDbIfNotExists`, no database is created.
+- Docs: `docs/llms-full.txt` §4 and §5.1 (the checks stop the deployment when it loads the project), §5.2, §12 (step 1 loads the project; the old step 5 is part of it), §15 (a deployment that fails on its project does not write `min_dblive_lib_version`), §18.8; `docs/deployment/index.md` (the steps, "The DbLive version a database requires"); `docs/versioning.md` (the item deployers are what stays public).

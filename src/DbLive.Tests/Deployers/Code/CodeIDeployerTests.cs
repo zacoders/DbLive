@@ -9,7 +9,7 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(ProjectSnapshots.Empty, DeployParameters.Default);
 	}
 
 	[Fact]
@@ -19,9 +19,8 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(new DeployParameters { DeployCode = false });
+		await deployer.DeployAsync(ProjectSnapshots.Empty, new DeployParameters { DeployCode = false });
 
-		await mockSet.DbLiveProject.DidNotReceive().GetCodeGroupsAsync();
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkMissingCodeAsRemovedAsync(default!, default);
 	}
 
@@ -30,19 +29,21 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code/schemas", CodeItems = [GetCodeItem("dbo.sql")] },
-			new CodeGroup { Path = "Code", CodeItems = [GetCodeItem("GetUser.sql"), GetCodeItem("GetOrder.sql")] }
-		]);
-
-		// a breaking script of the Code folder is a file of the project too: its row is not marked.
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([
-			new GenericItem
-			{
-				Name = "GetUser.breaking.sql",
-				FileData = new FileData { RelativePath = "Code/GetUser.breaking.sql", Content = "drop proc if exists dbo.GetUser_v1" }
-			}
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code/schemas", CodeItems = [GetCodeItem("dbo.sql")] },
+				new CodeGroup { Path = "Code", CodeItems = [GetCodeItem("GetUser.sql"), GetCodeItem("GetOrder.sql")] }
+			],
+			// a breaking script of the Code folder is a file of the project too: its row is not marked.
+			CodeBreakingItems = [
+				new GenericItem
+				{
+					Name = "GetUser.breaking.sql",
+					FileData = new FileData { RelativePath = "Code/GetUser.breaking.sql", Content = "drop proc if exists dbo.GetUser_v1" }
+				}
+			]
+		};
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
@@ -54,7 +55,7 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.Received(1).MarkMissingCodeAsRemovedAsync(
 			Arg.Is<IReadOnlyCollection<string>>(paths => paths.SequenceEqual(new[]
@@ -75,12 +76,11 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([]);
-		mockSet.DbLiveProject.GetCodeBreakingItemsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.Received(1).MarkMissingCodeAsRemovedAsync(
 			Arg.Is<IReadOnlyCollection<string>>(paths => paths.Count == 0),
@@ -93,24 +93,27 @@ public class CodeDeployerTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup
-			{
-				Path = "Code1",
-				CodeItems = [GetCodeItem("item1"), GetCodeItem("item2"), GetCodeItem("item3")]
-			},
-			new CodeGroup
-			{
-				Path = "Code2",
-				CodeItems = [GetCodeItem("item11"), GetCodeItem("item22")]
-			}
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup
+				{
+					Path = "Code1",
+					CodeItems = [GetCodeItem("item1"), GetCodeItem("item2"), GetCodeItem("item3")]
+				},
+				new CodeGroup
+				{
+					Path = "Code2",
+					CodeItems = [GetCodeItem("item11"), GetCodeItem("item22")]
+				}
+			]
+		};
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 
 		await mockSet.CodeItemDeployer.Received(5).DeployAsync(Arg.Any<CodeItem>());
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkCodeAsVerifiedAsync(default!, default);
@@ -128,10 +131,13 @@ public class CodeDeployerTests
 		CodeItem failed = GetCodeItem("Failed.sql");
 		CodeItem added = GetCodeItem("New.sql");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code/schemas", CodeItems = [applied] },
-			new CodeGroup { Path = "Code", CodeItems = [crlf, changed, removed, failed, added] }
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code/schemas", CodeItems = [applied] },
+				new CodeGroup { Path = "Code", CodeItems = [crlf, changed, removed, failed, added] }
+			]
+		};
 
 		// the database stores the paths in lower case.
 		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
@@ -151,7 +157,7 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 
 		await mockSet.CodeItemDeployer.DidNotReceive().DeployAsync(applied);
 		await mockSet.CodeItemDeployer.Received(1).DeployAsync(crlf);
@@ -186,9 +192,12 @@ public class CodeDeployerTests
 			GetCodeItem("item5")
 		];
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code", CodeItems = codeItems }
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code", CodeItems = codeItems }
+			]
+		};
 
 		int concurrent = 0;
 		int maxConcurrent = 0;
@@ -215,7 +224,7 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		using TransactionScope scope = TransactionScopeManager.Create();
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 		scope.Complete();
 
 		Assert.Equal(1, maxConcurrent);
@@ -235,13 +244,16 @@ public class CodeDeployerTests
 			MaxCodeDeployRetries = 3
 		});
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup
-			{
-				Path = "Code2",
-				CodeItems = [GetCodeItem("item11"), GetCodeItem("item22")]
-			}
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup
+				{
+					Path = "Code2",
+					CodeItems = [GetCodeItem("item11"), GetCodeItem("item22")]
+				}
+			]
+		};
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>())
 			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
@@ -249,7 +261,7 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
-			async () => await deployer.DeployAsync(DeployParameters.Default).ConfigureAwait(false)
+			async () => await deployer.DeployAsync(project, DeployParameters.Default).ConfigureAwait(false)
 		);
 
 		await mockSet.CodeItemDeployer.Received().DeployAsync(Arg.Any<CodeItem>());
@@ -271,13 +283,16 @@ public class CodeDeployerTests
 		CodeItem dependentItem = GetCodeItem("dependent");
 		CodeItem mainItem = GetCodeItem("main");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup
-			{
-				Path = "Code",
-				CodeItems = [dependentItem, mainItem]
-			}
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup
+				{
+					Path = "Code",
+					CodeItems = [dependentItem, mainItem]
+				}
+			]
+		};
 
 		List<string> attempts = [];
 
@@ -299,7 +314,7 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(DeployParameters.Default);
+		await deployer.DeployAsync(project, DeployParameters.Default);
 
 		Assert.Equal([dependentItem.Name, mainItem.Name, dependentItem.Name], attempts);
 	}
@@ -316,13 +331,16 @@ public class CodeDeployerTests
 
 		CodeItem failingItem = GetCodeItem("always-failing");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup
-			{
-				Path = "Code",
-				CodeItems = [failingItem]
-			}
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup
+				{
+					Path = "Code",
+					CodeItems = [failingItem]
+				}
+			]
+		};
 
 		mockSet.CodeItemDeployer
 			.DeployAsync(Arg.Is<CodeItem>(i => i.Name == failingItem.Name))
@@ -331,7 +349,7 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
-			async () => await deployer.DeployAsync(DeployParameters.Default).ConfigureAwait(false)
+			async () => await deployer.DeployAsync(project, DeployParameters.Default).ConfigureAwait(false)
 		);
 
 		await mockSet.CodeItemDeployer.Received(3)
@@ -351,9 +369,12 @@ public class CodeDeployerTests
 		CodeItem failingItem = GetCodeItem("aborts-the-transaction");
 		CodeItem otherItem = GetCodeItem("other");
 
-		mockSet.DbLiveProject.GetCodeGroupsAsync().Returns([
-			new CodeGroup { Path = "Code", CodeItems = [failingItem, otherItem] }
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code", CodeItems = [failingItem, otherItem] }
+			]
+		};
 
 		CodeDeploymentException error = new("Deploy code file error.", new Exception("syntax error"));
 		mockSet.CodeItemDeployer
@@ -363,7 +384,7 @@ public class CodeDeployerTests
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
 		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
-			() => deployer.DeployAsync(DeployParameters.Default)
+			() => deployer.DeployAsync(project, DeployParameters.Default)
 		);
 
 		// the error of the file, not of a retry in the aborted transaction; the files after it do not run.

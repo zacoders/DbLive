@@ -10,10 +10,9 @@ public class MigrationChecksumValidatorTests
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(ProjectSnapshots.Empty, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
-		await mockSet.DbLiveProject.DidNotReceive().GetMigrationsAsync();
 	}
 
 	[Fact]
@@ -27,14 +26,17 @@ public class MigrationChecksumValidatorTests
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
 		MigrationChecksumMismatchException ex = await Assert.ThrowsAsync<MigrationChecksumMismatchException>(
-			() => validator.ValidateAsync(DeployParameters.Default)
+			() => validator.ValidateAsync(project, DeployParameters.Default)
 		);
 
 		Assert.Contains("version 1", ex.Message);
@@ -53,13 +55,16 @@ public class MigrationChecksumValidatorTests
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied, "/001.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(project, DeployParameters.Default);
 	}
 
 	[Theory]
@@ -76,13 +81,16 @@ public class MigrationChecksumValidatorTests
 			// applied by a DbLive version that hashed the raw text.
 			NewDbItem(1, MigrationItemType.Migration, LegacyContentHash.Of(appliedContent), MigrationItemStatus.Applied, "/001.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(project, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.DidNotReceive().RepairMigrationChecksumAsync(Arg.Any<MigrationChecksumRepairDto>());
 	}
@@ -98,13 +106,16 @@ public class MigrationChecksumValidatorTests
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(2, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.None, "/002.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(2, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(2, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(project, DeployParameters.Default);
 	}
 
 	[Fact]
@@ -121,13 +132,16 @@ public class MigrationChecksumValidatorTests
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(project, DeployParameters.Default);
 
 		mockSet.Logger.Received(1).Warning(
 			"Applied migration item '{ItemType}' version {Version} ({RelativePath}) has changed since it was applied.",
@@ -148,13 +162,16 @@ public class MigrationChecksumValidatorTests
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default with { RepairMigrationChecksums = true });
+		await validator.ValidateAsync(project, DeployParameters.Default with { RepairMigrationChecksums = true });
 
 		await mockSet.DbLiveDA.Received(1).RepairMigrationChecksumAsync(Arg.Is<MigrationChecksumRepairDto>(dto =>
 			dto.Version == 1 &&
@@ -177,13 +194,16 @@ public class MigrationChecksumValidatorTests
 			// 001.breaking.sql was applied and deleted from the project afterwards.
 			NewDbItem(1, MigrationItemType.Breaking, 123, MigrationItemStatus.Applied, "/001.breaking.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, fileData))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
-		await validator.ValidateAsync(DeployParameters.Default);
+		await validator.ValidateAsync(project, DeployParameters.Default);
 
 		await mockSet.DbLiveDA.DidNotReceive().RepairMigrationChecksumAsync(Arg.Any<MigrationChecksumRepairDto>());
 	}
@@ -201,15 +221,18 @@ public class MigrationChecksumValidatorTests
 			NewDbItem(1, MigrationItemType.Migration, migration1.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql"),
 			NewDbItem(2, MigrationItemType.Migration, migration2.ContentHash + 1, MigrationItemStatus.Applied, "/002.migration.sql")
 		]);
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([
-			NewMigration(1, NewMigrationItem(MigrationItemType.Migration, migration1)),
-			NewMigration(2, NewMigrationItem(MigrationItemType.Migration, migration2))
-		]);
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
+				NewMigration(1, NewMigrationItem(MigrationItemType.Migration, migration1)),
+				NewMigration(2, NewMigrationItem(MigrationItemType.Migration, migration2))
+			]
+		};
 
 		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
 
 		MigrationChecksumMismatchException ex = await Assert.ThrowsAsync<MigrationChecksumMismatchException>(
-			() => validator.ValidateAsync(DeployParameters.Default)
+			() => validator.ValidateAsync(project, DeployParameters.Default)
 		);
 
 		Assert.Contains("version 1", ex.Message);

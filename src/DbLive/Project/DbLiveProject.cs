@@ -26,8 +26,9 @@ public class DbLiveProject(
 
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
 
-	// a builder deploys one build: the project is read once per builder, like settings.json. The phases of a deployment ask
-	// for the same migrations and code several times; the files are listed and checked once, and each file is read and hashed once.
+	// a builder deploys one build: the project is read once per builder, like settings.json. Its deployments (an xUnit fixture deploys
+	// more than once) and its tester ask for the same migrations and code; the files are listed and checked once, and each file is
+	// read and hashed once.
 	// A failed listing or read is not kept: the next call tries again.
 	private readonly object _filesLock = new();
 	private IReadOnlyList<string>? _files;
@@ -299,9 +300,9 @@ public class DbLiveProject(
 	}
 
 	/// <summary>
-	/// All files of the project. Every read checks all of them, so the deployment stops at its first read (migrations),
-	/// before anything is deployed, whatever folder the files are in. The files pass the checks once; files that fail them
-	/// are checked again on the next read, and fail again.
+	/// All files of the project. Every read checks all of them, whatever folder the files are in, so a deployment stops at the load
+	/// of the project (<see cref="ProjectLoader"/>), before anything touches the server. The files pass the checks once; files that
+	/// fail them are checked again on the next read, and fail again.
 	/// </summary>
 	/// <exception cref="ScriptPathsDifferOnlyByCaseException">
 	/// Two paths differ only by case (possible on Linux): DbLive finds files and identifies them in the database

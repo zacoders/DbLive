@@ -4,9 +4,8 @@ namespace DbLive.Deployers.Code;
 /// Breaking scripts of the Code folder have no state: each one runs on every breaking deployment, like AfterDeploy runs on every
 /// deployment. A hash-based "applied once" would skip the script after a later release (git revert) brought the old object back.
 /// </summary>
-public class CodeBreakingDeployer(
+internal class CodeBreakingDeployer(
 		ILogger _logger,
-		IDbLiveProject _project,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
@@ -15,9 +14,9 @@ public class CodeBreakingDeployer(
 	private readonly ILogger _logger = _logger.ForContext(typeof(CodeBreakingDeployer));
 
 	/// <inheritdoc/>
-	public async Task DeployAsync()
+	public async Task DeployAsync(ProjectSnapshot project)
 	{
-		IReadOnlyList<GenericItem> items = await _project.GetCodeBreakingItemsAsync().ConfigureAwait(false);
+		IReadOnlyList<GenericItem> items = project.CodeBreakingItems;
 
 		if (items.Count == 0)
 		{

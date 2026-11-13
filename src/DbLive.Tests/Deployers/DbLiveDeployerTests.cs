@@ -9,6 +9,8 @@ public class DbLiveDeployerTests
 		MockSet mockSet = new();
 
 		DeployParameters parameters = DeployParameters.Default;
+		// not equal to ProjectSnapshots.Empty (a record compares the lists by reference): each phase must get this project.
+		ProjectSnapshot project = ProjectSnapshots.Empty with { Migrations = [] };
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
@@ -20,44 +22,43 @@ public class DbLiveDeployerTests
 		List<string> calls = [];
 
 		mockSet.AppliedMigrationsValidator
-			.When(x => x.ValidateAsync())
+			.When(x => x.ValidateAsync(project))
 			.Do(_ => calls.Add("applied-versions"));
 
 		mockSet.MigrationChecksumValidator
-			.When(x => x.ValidateAsync(parameters))
+			.When(x => x.ValidateAsync(project, parameters))
 			.Do(_ => calls.Add("checksum"));
 
 		mockSet.MigrationsSaver
-			.When(x => x.SaveAsync())
+			.When(x => x.SaveAsync(project))
 			.Do(_ => calls.Add("save"));
 
 		mockSet.FolderDeployer
-			.When(x => x.DeployAsync(ProjectFolder.BeforeDeploy, parameters))
+			.When(x => x.DeployAsync(project, ProjectFolder.BeforeDeploy, parameters))
 			.Do(_ => calls.Add("folder-before"));
 
 		mockSet.MigrationsDeployer
-			.When(x => x.DeployAsync(parameters))
+			.When(x => x.DeployAsync(project, parameters))
 			.Do(_ => calls.Add("migrations"));
 
 		mockSet.CodeDeployer
-			.When(x => x.DeployAsync(parameters))
+			.When(x => x.DeployAsync(project, parameters))
 			.Do(_ => calls.Add("code"));
 
 		mockSet.BreakingChangesDeployer
-			.When(x => x.DeployAsync(parameters))
+			.When(x => x.DeployAsync(project, parameters))
 			.Do(_ => calls.Add("breaking"));
 
 		mockSet.FolderDeployer
-			.When(x => x.DeployAsync(ProjectFolder.AfterDeploy, parameters))
+			.When(x => x.DeployAsync(project, ProjectFolder.AfterDeploy, parameters))
 			.Do(_ => calls.Add("folder-after"));
 
 		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
-		await deployer.DeployAsync(parameters);
+		await deployer.DeployAsync(project, parameters);
 
-		// assert – exact order
-		await mockSet.TransactionSettingsValidator.Received(1).ValidateAsync(Arg.Any<DbLiveSettings>());
+		// assert – exact order, every phase with the loaded project
 		Assert.Equal(
 			[
 				"applied-versions",
@@ -74,6 +75,10 @@ public class DbLiveDeployerTests
 
 		// the SQL tests are not a step of the deployment: IDbLiveTester.RunAllTestsAsync runs them.
 		await mockSet.UnitTestsRunner.DidNotReceive().RunAllTestsAsync();
+
+		// the project is read before the self-deployment, by the loader.
+		await mockSet.TransactionSettingsValidator.DidNotReceiveWithAnyArgs().ValidateAsync(default!);
+		Assert.Empty(mockSet.DbLiveProject.ReceivedCalls());
 	}
 
 
@@ -90,7 +95,7 @@ public class DbLiveDeployerTests
 		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
-		await deployer.DeployAsync(parameters);
+		await deployer.DeployAsync(ProjectSnapshots.Empty, parameters);
 
 		// assert
 		mockSet.Logger.Received(1).Information("Starting project deploy from {Location}.", "memory");
@@ -105,22 +110,22 @@ public class DbLiveDeployerTests
 		MockSet mockSet = new();
 
 		mockSet.AppliedMigrationsValidator
-			.ValidateAsync()
+			.ValidateAsync(Arg.Any<ProjectSnapshot>())
 			.Returns(Task.FromException(new DatabaseAheadOfProjectException([7, 8])));
 
 		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
 
 		// act
-		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(() => deployer.DeployAsync(parameters));
+		DatabaseAheadOfProjectException ex = await Assert.ThrowsAsync<DatabaseAheadOfProjectException>(() => deployer.DeployAsync(ProjectSnapshots.Empty, parameters));
 
 		// assert
 		Assert.Equal([7, 8], ex.Versions);
-		await mockSet.MigrationChecksumValidator.DidNotReceiveWithAnyArgs().ValidateAsync(default!);
-		await mockSet.MigrationsSaver.DidNotReceive().SaveAsync();
-		await mockSet.FolderDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default, default!);
-		await mockSet.MigrationsDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!);
-		await mockSet.CodeDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!);
-		await mockSet.BreakingChangesDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!);
+		await mockSet.MigrationChecksumValidator.DidNotReceiveWithAnyArgs().ValidateAsync(default!, default!);
+		await mockSet.MigrationsSaver.DidNotReceiveWithAnyArgs().SaveAsync(default!);
+		await mockSet.FolderDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default, default!);
+		await mockSet.MigrationsDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);
+		await mockSet.CodeDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);
+		await mockSet.BreakingChangesDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);
 	}
 
 	public static TheoryData<DeployParameters> AllDeployParameters() =>

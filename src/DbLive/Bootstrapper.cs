@@ -28,6 +28,7 @@ public static class Bootstrapper
 			.AddSingleton<IMigrationsDeployer, MigrationsDeployer>()
 			.AddSingleton<IMigrationsSaver, MigrationsSaver>()
 			.AddSingleton<IMigrationVersionDeployer, MigrationVersionDeployer>()
+			.AddSingleton<IProjectLoader, ProjectLoader>()
 			.AddSingleton<ISettingsAccessor, SettingsAccessor>()
 			.AddSingleton<ITimeProvider, Common.TimeProvider>()
 			.AddSingleton<ITransactionRunner, TransactionRunner>()
