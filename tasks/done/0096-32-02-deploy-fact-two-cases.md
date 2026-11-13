@@ -8,7 +8,7 @@ breaking: true
 # Deployment test: one case that follows the production order instead of six
 
 ## Release note
-**One deployment test instead of six cases.** `[SqlDeployFact]` is a plain fact without parameters, `DeployFixture` is renamed to `DeploymentTestFixture`, and `UndoTestMode` is no longer public. The test deploys as production does: the release with the SQL tests, where every migration with an undo script also goes through its undo, then the breaking phase with the SQL tests, then the breaking phase once more. To upgrade, change the deployment test as below.
+**One deployment test instead of six cases.** `[SqlDeployFact]` is a plain fact without parameters, and `DeployFixture` is renamed to `DeploymentTestFixture`. The test deploys as production does: the release with the SQL tests, then the breaking phase with the SQL tests, then the breaking phase once more. To upgrade, change the deployment test as below.
 
 ```csharp
 private readonly DeploymentTestFixture _fixture = new(
@@ -17,7 +17,7 @@ private readonly DeploymentTestFixture _fixture = new(
 );
 
 [SqlDeployFact]
-public Task ReleaseDeploysAndRollsBack() => _fixture.DeployAsync(_output);
+public Task ReleaseDeploys() => _fixture.DeployAsync(_output);
 ```
 
 ## Problem

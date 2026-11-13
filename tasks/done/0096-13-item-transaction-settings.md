@@ -8,7 +8,7 @@ breaking: true
 # Transaction settings per migration item: migration, breaking, undo
 
 ## Release note
-**Per-script settings files and transactions.** `<version>.settings.json` is replaced by one file per script: `<version>.migration.settings.json`, `<version>.breaking.settings.json`, `<version>.undo.settings.json`; rename existing files and the key `MigrationTimeout` to `Timeout` (an old name fails with a hint). `Timeout` now also sets the command timeout. Breaking scripts and undo scripts no longer share one transaction: each runs in its own transaction by its own settings file, so a downgrade or a breaking deployment can stop between versions. `DowngradeTimeout` is removed from `settings.json`. Use `"TransactionWrapLevel": "Deployment"` for all-or-nothing. Existing `settings` rows in `dblive.migration` are renamed to `migration.settings` automatically.
+**Per-script settings files and transactions.** `<version>.settings.json` is replaced by one file per script: `<version>.migration.settings.json` and `<version>.breaking.settings.json`; rename existing files to `<version>.migration.settings.json` and the key `MigrationTimeout` to `Timeout` (an old name fails with a hint). `Timeout` now also sets the command timeout. Breaking scripts no longer share one transaction: each runs in its own transaction by its own settings file, so a breaking deployment can stop between versions. Use `"TransactionWrapLevel": "Deployment"` for all-or-nothing. Existing `settings` rows in `dblive.migration` are renamed to `migration.settings` automatically.
 
 ## Problem
 Breaking and undo scripts don't follow the transaction rules of migrations, and one settings file per version can't describe items that need different settings.

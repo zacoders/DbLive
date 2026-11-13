@@ -15,7 +15,7 @@ What can break:
 - Files in `Code` named `breaking.sql`, `b.sql`, `*.breaking.sql` or `*.b.sql` are no longer deployed as code. Rename such code files before upgrading. A file whose name is also a test name (`test.breaking.sql`, `t.b.sql`) fails the deployment with `BreakingScriptMatchesTestPatternException`.
 - The deployment test (`[SqlDeployFact]`) runs the breaking phase a second time. A breaking script of the `Code` folder that fails on its second run (for example `drop proc` without `if exists`) fails the test.
 
-Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that comes back with a rollback is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
+Other changes: when code is deployed, the rows of code files deleted from the project get the status `removed` in `dblive.code`, so a file that a later release brings back (`git revert`) is executed again. `dblive.code` has a new column `item_type` (`code` / `breaking`), added automatically.
 
 ## Problem
 When the contract of an interface procedure changes, its file is changed in place and the object is renamed (`MyStoredProc_v1` → `MyStoredProc_v2`). The old version stays in the database for old applications and must be dropped in the breaking phase, after they are gone. Often such a release changes only code: no tables change, so there is no migration and no natural place for `drop proc dbo.MyStoredProc_v1`.

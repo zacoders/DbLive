@@ -8,7 +8,7 @@ breaking: true
 # Small fixes from the code review of 2026-11-05
 
 ## Release note
-`DeploymentTestFixture.Deployer` is removed. The deployer it held belonged to a service provider that `DeployAsync` disposes, and its logs never reached the xUnit output. To upgrade, call `DeployAsync`, or create a deployer from a `DbLiveBuilder` of your own (`.LogToXUnitOutput(output)` sends its logs to the test output).
+`DeployFixture.Deployer` is removed (the fixture is now `DeploymentTestFixture`). The deployer it held belonged to a service provider that `DeployAsync` disposes, and its logs never reached the xUnit output. To upgrade, call `DeployAsync`, or create a deployer from a `DbLiveBuilder` of your own (`.LogToXUnitOutput(output)` sends its logs to the test output).
 
 ## Problem
 Small findings of the code review of #96, each a few lines. Larger ones have their own tasks: 0096-40 to 0096-44.

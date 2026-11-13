@@ -12,11 +12,11 @@ breaking: true
 
 To upgrade:
 
-- Delete the undo scripts (`<version>.undo.sql`, `<version>.u.sql`) and their settings files (`<version>.undo.settings.json`, `<version>.u.s.json`). A deployment fails with `UndoNotSupportedException` while one of them is in the project.
-- Remove `AllowDatabaseDowngrade` from `DeployParameters`. Deploying a build that does not have every migration version applied to the database fails before it changes anything, with `DatabaseAheadOfProjectException` (was `DowngradeNotAllowedException`; `DowngradeImpossibleException` is gone).
-- `[SqlDeployFact]` no longer runs undo scripts, and `SchemaCheck.Undo` is gone. The deployment test of the template is renamed `ReleaseDeploysAndRollsBack` → `ReleaseDeploys`.
+- Delete the undo scripts (`<version>.undo.sql`, `<version>.u.sql`). A deployment fails with `UndoNotSupportedException` while one of them is in the project.
+- Remove `AllowDatabaseDowngrade` from `DeployParameters`, and `DowngradeTimeout` from `settings.json` (a `settings.json` that still has it fails with `JsonException`). Deploying a build that does not have every migration version applied to the database fails before it changes anything, with `DatabaseAheadOfProjectException` (was `DowngradeNotAllowedException`; `DowngradeImpossibleException` is gone).
+- `[SqlDeployFact]` no longer runs undo scripts, and `UndoTestMode` is removed.
 - The first deployment deletes the undo rows from `dblive.migration` and drops its `content` column. A version that a downgrade rolled back is deployed again if the project has it.
-- API: `MigrationItemType.Undo` and `UndoSettings`, `MigrationItemStatus.Reverted`, `IDbLiveDA.MigrationItemExistsAsync` and `GetMigrationContentAsync`, and the `Content` of `MigrationItemSaveDto` and `MigrationChecksumRepairDto` are removed; `IMigrationVersionDeployer.DeployAsync` takes only the migration.
+- API: `MigrationItemType.Undo`, `MigrationItemStatus.Reverted`, `IDbLiveDA.MigrationItemExistsAsync` and `GetMigrationContentAsync`, and the `Content` of `MigrationItemSaveDto` and `MigrationChecksumRepairDto` are removed; `IMigrationVersionDeployer.DeployAsync` takes only the migration.
 
 ## Problem
 Undo scripts and the downgrade (`AllowDatabaseDowngrade`) cost more than they give:
