@@ -66,10 +66,13 @@ public class PathsDifferingOnlyByCaseTests
 	}
 
 	[Theory]
-	[InlineData(ProjectFolder.BeforeDeploy, "BeforeDeploy")]
-	[InlineData(ProjectFolder.AfterDeploy, "AfterDeploy")]
-	public async Task GetFolderItems_throws_when_files_differ_only_by_case(ProjectFolder projectFolder, string folder)
+	[InlineData(nameof(ProjectFolder.BeforeDeploy), "BeforeDeploy")]
+	[InlineData(nameof(ProjectFolder.AfterDeploy), "AfterDeploy")]
+	public async Task GetFolderItems_throws_when_files_differ_only_by_case(string projectFolderName, string folder)
 	{
+		// ProjectFolder is internal: a public test method takes the name of the value.
+		ProjectFolder projectFolder = Enum.Parse<ProjectFolder>(projectFolderName);
+
 		// arrange
 		MockSet mockSet = new();
 

@@ -1,16 +1,22 @@
-namespace DbLive.Adapter;
+namespace DbLive;
 
 /// <summary>
 /// The database of the connection string does not exist.
 /// </summary>
 [ExcludeFromCodeCoverage]
-public class DatabaseNotFoundException(string databaseName, string server, Exception innerException)
-	: Exception(
-		$"Database '{databaseName}' does not exist on server '{server}'. Check the database name in the connection string. A deployment creates the database only with DeployParameters.CreateDbIfNotExists = true.",
-		innerException
-	)
+public sealed class DatabaseNotFoundException : Exception
 {
-	public string DatabaseName { get; } = databaseName;
+	internal DatabaseNotFoundException(string databaseName, string server, Exception innerException)
+		: base(
+			$"Database '{databaseName}' does not exist on server '{server}'. Check the database name in the connection string. A deployment creates the database only with DeployParameters.CreateDbIfNotExists = true.",
+			innerException
+		)
+	{
+		DatabaseName = databaseName;
+		Server = server;
+	}
 
-	public string Server { get; } = server;
+	public string DatabaseName { get; }
+
+	public string Server { get; }
 }

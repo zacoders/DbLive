@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public class FileData
+internal class FileData
 {
 	private string _content = "";
 

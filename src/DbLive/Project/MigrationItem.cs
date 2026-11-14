@@ -1,7 +1,7 @@
 namespace DbLive.Project;
 
 [ExcludeFromCodeCoverage]
-public record MigrationItem
+internal record MigrationItem
 {
 	public required MigrationItemType MigrationItemType { get; set; }
 	public required FileData FileData { get; set; }

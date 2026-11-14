@@ -12,7 +12,7 @@ breaking: true
 
 To upgrade:
 
-- If you called `GetProject()`, create the project yourself and dispose the builder: `using DbLiveBuilder builder = new DbLiveBuilder().SetProject(assembly);`, then `builder.CreateProject()`.
+- `GetProject()` has no replacement: reading the project is not part of the public API.
 - `DbLiveTestFixture` and `DeploymentTestFixture` dispose the `DbLiveBuilder` from `IDbLiveFixtureBuilder.GetBuilderAsync()` at the end, after the database is dropped. A custom fixture builder must return a new builder from every call: one that returns a shared builder fails the next fixture with `ObjectDisposedException`. The ready-made fixture builders already return a new one.
 
 ## Problem
@@ -45,6 +45,7 @@ Proposal: replace the public `GetProject()` with an internal method that creates
 - Keeping `GetProject()` public and disposing the builder in the discoverer is not possible without changing the method: the builder is created inside it and never returned.
 - The dispose inside `GetTestsAsync()` has no test of its own: the builder is created inside the method and cannot be observed. Discovery itself is covered by `SqlFactDiscovererTests`.
 
+- 2026-11-14: `DbLiveBuilder.CreateProject()`, which the release note named as the replacement of `GetProject()`, is internal now (0096-73), in the same release. The release note says that there is no replacement.
 ## Result
 - `DbLiveTestFixture.GetProject()` (public) is replaced by `internal Task<IReadOnlyCollection<TestItem>> GetTestsAsync()`, which creates the builder in `using`; `SqlFactDiscoverer` calls it.
 - `DbLiveTestFixture.DisposeAsync` and `DeploymentTestFixture.DisposeAsync` dispose the builder in `finally`, after the drop of the database, also when the drop fails.

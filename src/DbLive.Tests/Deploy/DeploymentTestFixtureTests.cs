@@ -1,5 +1,5 @@
 using DbLive.Testing;
-using DbLive.xunit.Deploy;
+using DbLive.xunit;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using Xunit.Abstractions;

@@ -1,9 +1,9 @@
 ﻿
-namespace DbLive.Adapter;
+namespace DbLive;
 
-public class SqlRow : List<object>
+public sealed class SqlRow : List<object>
 {
-	public SqlRow(params object[] columnValues)
+	internal SqlRow(params object[] columnValues)
 		: base(columnValues)
 	{
 	}

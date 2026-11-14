@@ -111,4 +111,44 @@ public class DbLiveBuilderExtensionsTests
 
 		_ = Assert.Throws<DirectoryNotFoundException>(() => builder.SetScriptsFolder(project.Path));
 	}
+
+	[Fact]
+	public async Task SetScriptSource_ReadsScriptsFromTheSource()
+	{
+		IScriptSource scriptSource = new InMemoryScriptSource()
+			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
+
+		using DbLiveBuilder builder = new DbLiveBuilder()
+			.SetScriptSource(scriptSource);
+
+		Migration migration = Assert.Single(await builder.CreateProject().GetMigrationsAsync());
+		Assert.Equal("create table dbo.t1 ( id int not null );", migration.Items[MigrationItemType.Migration].FileData.Content);
+	}
+
+	[Fact]
+	public void SetScriptSource_Null_Throws()
+	{
+		using DbLiveBuilder builder = new();
+
+		_ = Assert.Throws<ArgumentNullException>(() => builder.SetScriptSource(null!));
+	}
+
+	[Fact]
+	public void LogTo_LogsToTheLogger()
+	{
+		Serilog.ILogger logger = Substitute.For<Serilog.ILogger>();
+
+		using DbLiveBuilder builder = new DbLiveBuilder()
+			.LogTo(logger);
+
+		Assert.Same(logger, builder.GetRequiredService<Serilog.ILogger>());
+	}
+
+	[Fact]
+	public void LogTo_Null_Throws()
+	{
+		using DbLiveBuilder builder = new();
+
+		_ = Assert.Throws<ArgumentNullException>(() => builder.LogTo(null!));
+	}
 }

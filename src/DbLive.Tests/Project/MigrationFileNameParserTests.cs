@@ -31,12 +31,15 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.sql", MigrationItemType.Migration)]
-	[InlineData("001.m.sql", MigrationItemType.Migration)]
-	[InlineData("001.breaking.sql", MigrationItemType.Breaking)]
-	[InlineData("001.b.sql", MigrationItemType.Breaking)]
-	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
+	[InlineData("001.migration.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.m.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.breaking.sql", nameof(MigrationItemType.Breaking))]
+	[InlineData("001.b.sql", nameof(MigrationItemType.Breaking))]
+	public void Parses_Explicit_Sql_Types_Correctly(string file, string expectedTypeName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
@@ -45,15 +48,18 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.settings.json", MigrationItemType.MigrationSettings)]
-	[InlineData("001.m.s.json", MigrationItemType.MigrationSettings)]
-	[InlineData("001.m.settings.json", MigrationItemType.MigrationSettings)]
-	[InlineData("001.migration.s.json", MigrationItemType.MigrationSettings)]
-	[InlineData("001.breaking.settings.json", MigrationItemType.BreakingSettings)]
-	[InlineData("001.b.s.json", MigrationItemType.BreakingSettings)]
-	[InlineData("001.Breaking.Settings.json", MigrationItemType.BreakingSettings)]
-	public void Parses_Item_Settings_Json_Correctly(string file, MigrationItemType expectedType)
+	[InlineData("001.migration.settings.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.m.s.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.m.settings.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.migration.s.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.breaking.settings.json", nameof(MigrationItemType.BreakingSettings))]
+	[InlineData("001.b.s.json", nameof(MigrationItemType.BreakingSettings))]
+	[InlineData("001.Breaking.Settings.json", nameof(MigrationItemType.BreakingSettings))]
+	public void Parses_Item_Settings_Json_Correctly(string file, string expectedTypeName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(expectedType, result.MigrationItemType);
@@ -85,11 +91,14 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.undo.sql", MigrationItemType.Migration, "undo")]
-	[InlineData("001.m.u.sql", MigrationItemType.Migration, "u")]
-	[InlineData("001.undo-orders.sql", MigrationItemType.Migration, "undo-orders")]
-	public void Undo_In_A_Name_Is_A_Name(string file, MigrationItemType expectedType, string expectedName)
+	[InlineData("001.migration.undo.sql", nameof(MigrationItemType.Migration), "undo")]
+	[InlineData("001.m.u.sql", nameof(MigrationItemType.Migration), "u")]
+	[InlineData("001.undo-orders.sql", nameof(MigrationItemType.Migration), "undo-orders")]
+	public void Undo_In_A_Name_Is_A_Name(string file, string expectedTypeName, string expectedName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(expectedType, result.MigrationItemType);
@@ -184,13 +193,16 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.SQL", MigrationItemType.Migration, "")]
-	[InlineData("001.B.Sql", MigrationItemType.Breaking, "")]
-	[InlineData("001.name.Sql", MigrationItemType.Migration, "name")]
-	[InlineData("001.m.s.JSON", MigrationItemType.MigrationSettings, "")]
-	[InlineData("001.B.Settings.Json", MigrationItemType.BreakingSettings, "")]
-	public void Parses_Extension_Ignoring_Case(string file, MigrationItemType expectedType, string expectedName)
+	[InlineData("001.migration.SQL", nameof(MigrationItemType.Migration), "")]
+	[InlineData("001.B.Sql", nameof(MigrationItemType.Breaking), "")]
+	[InlineData("001.name.Sql", nameof(MigrationItemType.Migration), "name")]
+	[InlineData("001.m.s.JSON", nameof(MigrationItemType.MigrationSettings), "")]
+	[InlineData("001.B.Settings.Json", nameof(MigrationItemType.BreakingSettings), "")]
+	public void Parses_Extension_Ignoring_Case(string file, string expectedTypeName, string expectedName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
@@ -200,12 +212,15 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.MIGRATION.sql", MigrationItemType.Migration)]
-	[InlineData("001.BREAKING.sql", MigrationItemType.Breaking)]
-	[InlineData("001.MIGRATION.SETTINGS.json", MigrationItemType.MigrationSettings)]
-	[InlineData("001.BREAKING.SETTINGS.json", MigrationItemType.BreakingSettings)]
-	public void Parses_Upper_Case_Parts_In_Turkish_Culture(string file, MigrationItemType expectedType)
+	[InlineData("001.MIGRATION.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.BREAKING.sql", nameof(MigrationItemType.Breaking))]
+	[InlineData("001.MIGRATION.SETTINGS.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.BREAKING.SETTINGS.json", nameof(MigrationItemType.BreakingSettings))]
+	public void Parses_Upper_Case_Parts_In_Turkish_Culture(string file, string expectedTypeName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		CultureInfo culture = CultureInfo.CurrentCulture;
 		try
 		{

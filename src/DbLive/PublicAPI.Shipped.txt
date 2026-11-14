@@ -1,105 +1,11 @@
 #nullable enable
-DbLive.Adapter.DatabaseNotFoundException
-DbLive.Adapter.DatabaseNotFoundException.DatabaseName.get -> string!
-DbLive.Adapter.DatabaseNotFoundException.DatabaseNotFoundException(string! databaseName, string! server, System.Exception! innerException) -> void
-DbLive.Adapter.DatabaseNotFoundException.Server.get -> string!
-DbLive.Adapter.DbLiveSqlException
-DbLive.Adapter.DbLiveSqlException.DbLiveSqlException(string! errorMessage) -> void
-DbLive.Adapter.DbLiveSqlException.DbLiveSqlException(string! errorMessage, string! sqlError, System.Exception! innerException) -> void
-DbLive.Adapter.DbLiveSqlException.DbLiveSqlException(string! errorMessage, System.Exception! innerException) -> void
-DbLive.Adapter.DbLiveSqlException.SqlError.get -> string!
-DbLive.Adapter.DbLiveSqlException.SqlError.set -> void
-DbLive.Adapter.IDbLiveDA
-DbLive.Adapter.IDbLiveDA.CheckDatabaseExistsAsync() -> System.Threading.Tasks.Task!
-DbLive.Adapter.IDbLiveDA.CreateDBAsync(bool skipIfExists = true) -> System.Threading.Tasks.Task!
-DbLive.Adapter.IDbLiveDA.DropDbAsync(bool skipIfNotExists = true) -> System.Threading.Tasks.Task!
-DbLive.Adapter.IDbLiveDA.ExecuteNonQueryAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
-DbLive.Adapter.IDbLiveDA.ExecuteQueryMultipleAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<System.Collections.Generic.List<DbLive.Adapter.SqlResult!>!>!
-DbLive.Adapter.IDbLiveDA.GetSchemaSnapshotAsync() -> System.Threading.Tasks.Task<DbLive.Schema.SchemaSnapshot!>!
-DbLive.Adapter.IDbLiveDA.Provider.get -> DbLive.Common.DbProvider
-DbLive.Adapter.NotSupportedTransactionIsolationLevelException
-DbLive.Adapter.NotSupportedTransactionIsolationLevelException.NotSupportedTransactionIsolationLevelException(DbLive.Common.TranIsolationLevel isolationLevel) -> void
-DbLive.Adapter.SqlColumn
-DbLive.Adapter.SqlColumn.ColumnName.get -> string!
-DbLive.Adapter.SqlColumn.ColumnName.init -> void
-DbLive.Adapter.SqlColumn.DataType.get -> string!
-DbLive.Adapter.SqlColumn.DataType.init -> void
-DbLive.Adapter.SqlColumn.Deconstruct(out string! ColumnName, out string! DataType) -> void
-DbLive.Adapter.SqlColumn.SqlColumn(DbLive.Adapter.SqlColumn! original) -> void
-DbLive.Adapter.SqlColumn.SqlColumn(string! ColumnName, string! DataType) -> void
-DbLive.Adapter.SqlResult
-DbLive.Adapter.SqlResult.Columns.get -> System.Collections.Generic.List<DbLive.Adapter.SqlColumn!>!
-DbLive.Adapter.SqlResult.GetValue<T>(string! columnName, int rowNumber) -> T?
-DbLive.Adapter.SqlResult.Rows.get -> System.Collections.Generic.List<DbLive.Adapter.SqlRow!>!
-DbLive.Adapter.SqlResult.SqlResult(System.Collections.Generic.List<DbLive.Adapter.SqlColumn!>! sqlColumns, System.Collections.Generic.List<DbLive.Adapter.SqlRow!>! resultRows) -> void
-DbLive.Adapter.SqlRow
-DbLive.Adapter.SqlRow.SqlRow(params object![]! columnValues) -> void
-DbLive.Common.DbProvider
-DbLive.Common.DbProvider.MsSql = 0 -> DbLive.Common.DbProvider
-DbLive.Common.DbProvider.PostgreSql = 1 -> DbLive.Common.DbProvider
-DbLive.Common.FileData
-DbLive.Common.FileData.Content.get -> string!
-DbLive.Common.FileData.Content.init -> void
-DbLive.Common.FileData.ContentHash.get -> long
-DbLive.Common.FileData.FileData() -> void
-DbLive.Common.FileData.FileName.get -> string!
-DbLive.Common.FileData.MatchesHash(long storedHash) -> bool
-DbLive.Common.FileData.RelativePath.get -> string!
-DbLive.Common.FileData.RelativePath.init -> void
-DbLive.Common.TranIsolationLevel
-DbLive.Common.TranIsolationLevel.ReadCommitted = 0 -> DbLive.Common.TranIsolationLevel
-DbLive.Common.TranIsolationLevel.RepeatableRead = 1 -> DbLive.Common.TranIsolationLevel
-DbLive.Common.TranIsolationLevel.Serializable = 2 -> DbLive.Common.TranIsolationLevel
-DbLive.Common.TranIsolationLevel.Snapshot = 3 -> DbLive.Common.TranIsolationLevel
 DbLive.DbLiveBuilder
-DbLive.DbLiveBuilder.ConfigureServices(System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!>! configure) -> DbLive.DbLiveBuilder!
-DbLive.DbLiveBuilder.CreateDbLiveDA() -> DbLive.Adapter.IDbLiveDA!
 DbLive.DbLiveBuilder.CreateDeployer() -> DbLive.IDbLive!
-DbLive.DbLiveBuilder.CreateProject() -> DbLive.Project.IDbLiveProject!
 DbLive.DbLiveBuilder.CreateTester() -> DbLive.Testing.IDbLiveTester!
 DbLive.DbLiveBuilder.DbLiveBuilder() -> void
 DbLive.DbLiveBuilder.Dispose() -> void
 DbLive.DbLiveBuilder.DisposeAsync() -> System.Threading.Tasks.ValueTask
 DbLive.DbLiveBuilderExtensions
-DbLive.Deployers.Code.CodeDeploymentAggregateException
-DbLive.Deployers.Code.CodeDeploymentAggregateException.CodeDeploymentAggregateException(string! errorMessage, System.Collections.Generic.IEnumerable<System.Exception!>! innerExceptions) -> void
-DbLive.Deployers.Code.CodeDeploymentException
-DbLive.Deployers.Code.CodeDeploymentException.CodeDeploymentException(string! errorMessage, System.Exception! innerException) -> void
-DbLive.Deployers.Folder.FolderDeploymentException
-DbLive.Deployers.Folder.FolderDeploymentException.FolderDeploymentException(string! relativePath, string! error, System.Exception! innerException) -> void
-DbLive.Deployers.Folder.FolderDeploymentException.RelativePath.get -> string!
-DbLive.Deployers.Migrations.CodeNotDeployedException
-DbLive.Deployers.Migrations.CodeNotDeployedException.CodeNotDeployedException(int count, System.Collections.Generic.IReadOnlyList<string!>! relativePaths) -> void
-DbLive.Deployers.Migrations.CodeNotDeployedException.Count.get -> int
-DbLive.Deployers.Migrations.CodeNotDeployedException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.Deployers.Migrations.DatabaseAheadOfProjectException
-DbLive.Deployers.Migrations.DatabaseAheadOfProjectException.DatabaseAheadOfProjectException(System.Collections.Generic.IReadOnlyList<long>! versions) -> void
-DbLive.Deployers.Migrations.DatabaseAheadOfProjectException.Versions.get -> System.Collections.Generic.IReadOnlyList<long>!
-DbLive.Deployers.Migrations.MigrationChecksumMismatchException
-DbLive.Deployers.Migrations.MigrationChecksumMismatchException.MigrationChecksumMismatchException(string! errorMessage) -> void
-DbLive.Deployers.Migrations.MigrationDeploymentException
-DbLive.Deployers.Migrations.MigrationDeploymentException.MigrationDeploymentException(string! errorMessage, System.Exception! innerException) -> void
-DbLive.Deployers.Migrations.MigrationDeploymentException.MigrationDeploymentException(string! message) -> void
-DbLive.Deployers.Testing.TestRunResult
-DbLive.Deployers.Testing.TestRunResult.CompletedUtc.get -> System.DateTime
-DbLive.Deployers.Testing.TestRunResult.CompletedUtc.set -> void
-DbLive.Deployers.Testing.TestRunResult.ErrorMessage.get -> string?
-DbLive.Deployers.Testing.TestRunResult.ErrorMessage.set -> void
-DbLive.Deployers.Testing.TestRunResult.Exception.get -> System.Exception?
-DbLive.Deployers.Testing.TestRunResult.Exception.set -> void
-DbLive.Deployers.Testing.TestRunResult.ExecutionTimeMs.get -> long
-DbLive.Deployers.Testing.TestRunResult.ExecutionTimeMs.set -> void
-DbLive.Deployers.Testing.TestRunResult.IsSuccess.get -> bool
-DbLive.Deployers.Testing.TestRunResult.IsSuccess.set -> void
-DbLive.Deployers.Testing.TestRunResult.Output.get -> string!
-DbLive.Deployers.Testing.TestRunResult.StartedUtc.get -> System.DateTime
-DbLive.Deployers.Testing.TestRunResult.StartedUtc.set -> void
-DbLive.Deployers.Testing.TestRunResult.TestRunResult() -> void
-DbLive.Deployers.Testing.UnitTestsFailedException
-DbLive.Deployers.Testing.UnitTestsFailedException.FailedCount.get -> int
-DbLive.Deployers.Testing.UnitTestsFailedException.FailedTests.get -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.Deployers.Testing.UnitTestsFailedException.TotalCount.get -> int
-DbLive.Deployers.Testing.UnitTestsFailedException.UnitTestsFailedException(int failedCount, int totalCount, System.Collections.Generic.IReadOnlyList<string!>! failedTests) -> void
 DbLive.DeployParameters
 DbLive.DeployParameters.CreateDbIfNotExists.get -> bool
 DbLive.DeployParameters.CreateDbIfNotExists.set -> void
@@ -110,7 +16,6 @@ DbLive.DeployParameters.DeployCode.set -> void
 DbLive.DeployParameters.DeployMigrations.get -> bool
 DbLive.DeployParameters.DeployMigrations.set -> void
 DbLive.DeployParameters.DeployParameters() -> void
-DbLive.DeployParameters.DeployParameters(DbLive.DeployParameters! original) -> void
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.set -> void
 DbLive.IDbLive
@@ -118,108 +23,8 @@ DbLive.IDbLive.DeployAsync(DbLive.DeployParameters! parameters) -> System.Thread
 DbLive.IDbLiveFixtureBuilder
 DbLive.IDbLiveFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
 DbLive.IDbLiveFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
-DbLive.Project.CodeGroup
-DbLive.Project.CodeGroup.CodeGroup() -> void
-DbLive.Project.CodeGroup.CodeItems.get -> System.Collections.Generic.IReadOnlyCollection<DbLive.Project.CodeItem!>!
-DbLive.Project.CodeGroup.CodeItems.set -> void
-DbLive.Project.CodeGroup.Path.get -> string!
-DbLive.Project.CodeGroup.Path.set -> void
-DbLive.Project.CodeItem
-DbLive.Project.CodeItem.CodeItem() -> void
-DbLive.Project.CodeItem.FileData.get -> DbLive.Common.FileData!
-DbLive.Project.CodeItem.FileData.set -> void
-DbLive.Project.CodeItem.Name.get -> string!
-DbLive.Project.CodeItem.Name.set -> void
-DbLive.Project.Exceptions.BreakingScriptMatchesTestPatternException
-DbLive.Project.Exceptions.BreakingScriptMatchesTestPatternException.BreakingScriptMatchesTestPatternException(string! relativePath) -> void
-DbLive.Project.Exceptions.BreakingScriptMatchesTestPatternException.RelativePath.get -> string!
-DbLive.Project.Exceptions.DuplicateMigrationItemException
-DbLive.Project.Exceptions.DuplicateMigrationItemException.DuplicateMigrationItemException(long migrationVersion, DbLive.Project.MigrationItemType migrationItemType) -> void
-DbLive.Project.Exceptions.FilesOutsideProjectFoldersException
-DbLive.Project.Exceptions.FilesOutsideProjectFoldersException.Count.get -> int
-DbLive.Project.Exceptions.FilesOutsideProjectFoldersException.FilesOutsideProjectFoldersException(int count, System.Collections.Generic.IReadOnlyList<string!>! relativePaths, System.Collections.Generic.IReadOnlyList<string!>! projectFolders) -> void
-DbLive.Project.Exceptions.FilesOutsideProjectFoldersException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.Project.Exceptions.InvalidMigrationItemSettingsException
-DbLive.Project.Exceptions.InvalidMigrationItemSettingsException.InvalidMigrationItemSettingsException(string! relativePath, string! error) -> void
-DbLive.Project.Exceptions.InvalidMigrationItemSettingsException.InvalidMigrationItemSettingsException(string! relativePath, string! error, System.Exception! innerException) -> void
-DbLive.Project.Exceptions.InvalidMigrationItemSettingsException.RelativePath.get -> string!
-DbLive.Project.Exceptions.InvalidMigrationVersionException
-DbLive.Project.Exceptions.InvalidMigrationVersionException.FileName.get -> string!
-DbLive.Project.Exceptions.InvalidMigrationVersionException.InvalidMigrationVersionException(string! fileName, string! reason) -> void
-DbLive.Project.Exceptions.InvalidMigrationVersionException.MigrationVersionStr.get -> string!
-DbLive.Project.Exceptions.MigrationItemMustExistsException
-DbLive.Project.Exceptions.MigrationItemMustExistsException.MigrationItemMustExistsException(long migrationVersion) -> void
-DbLive.Project.Exceptions.MigrationSettingsWithoutScriptException
-DbLive.Project.Exceptions.MigrationSettingsWithoutScriptException.MigrationSettingsWithoutScriptException(string! relativePath, long migrationVersion, DbLive.Project.MigrationItemType scriptType) -> void
-DbLive.Project.Exceptions.MigrationSettingsWithoutScriptException.RelativePath.get -> string!
-DbLive.Project.Exceptions.ObsoleteMigrationSettingsFileException
-DbLive.Project.Exceptions.ObsoleteMigrationSettingsFileException.FileName.get -> string!
-DbLive.Project.Exceptions.ObsoleteMigrationSettingsFileException.ObsoleteMigrationSettingsFileException(string! fileName, string! version) -> void
-DbLive.Project.Exceptions.ProjectIdMismatchException
-DbLive.Project.Exceptions.ProjectIdMismatchException.ProjectIdMismatchException(string! message) -> void
-DbLive.Project.Exceptions.ScriptPathsDifferOnlyByCaseException
-DbLive.Project.Exceptions.ScriptPathsDifferOnlyByCaseException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.Project.Exceptions.ScriptPathsDifferOnlyByCaseException.ScriptPathsDifferOnlyByCaseException(string! relativePath, string! otherRelativePath) -> void
-DbLive.Project.Exceptions.ScriptsNotEmbeddedException
-DbLive.Project.Exceptions.ScriptsNotEmbeddedException.AssemblyName.get -> string!
-DbLive.Project.Exceptions.ScriptsNotEmbeddedException.ScriptsNotEmbeddedException(string! assemblyName) -> void
-DbLive.Project.Exceptions.UndoNotSupportedException
-DbLive.Project.Exceptions.UndoNotSupportedException.RelativePath.get -> string!
-DbLive.Project.Exceptions.UndoNotSupportedException.UndoNotSupportedException(string! relativePath) -> void
-DbLive.Project.Exceptions.UnknownMigrationSettingsException
-DbLive.Project.Exceptions.UnknownMigrationSettingsException.UnknownMigrationSettingsException(string! fileName) -> void
-DbLive.Project.GenericItem
-DbLive.Project.GenericItem.FileData.get -> DbLive.Common.FileData!
-DbLive.Project.GenericItem.FileData.set -> void
-DbLive.Project.GenericItem.GenericItem() -> void
-DbLive.Project.GenericItem.GenericItem(DbLive.Project.GenericItem! original) -> void
-DbLive.Project.GenericItem.Name.get -> string!
-DbLive.Project.GenericItem.Name.set -> void
-DbLive.Project.IDbLiveProject
-DbLive.Project.IDbLiveProject.GetCodeBreakingItemsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DbLive.Project.GenericItem!>!>!
-DbLive.Project.IDbLiveProject.GetCodeGroupsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DbLive.Project.CodeGroup!>!>!
-DbLive.Project.IDbLiveProject.GetFolderItemsAsync(DbLive.Project.ProjectFolder projectFolder) -> System.Threading.Tasks.Task<System.Collections.ObjectModel.ReadOnlyCollection<DbLive.Project.GenericItem!>!>!
-DbLive.Project.IDbLiveProject.GetMigrationsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DbLive.Project.Migration!>!>!
-DbLive.Project.IDbLiveProject.GetTestsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<DbLive.Project.TestItem!>!>!
-DbLive.Project.IScriptSource
-DbLive.Project.IScriptSource.GetFiles() -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.Project.IScriptSource.Location.get -> string!
-DbLive.Project.IScriptSource.ReadAsync(string! relativePath) -> System.Threading.Tasks.Task<string!>!
-DbLive.Project.Migration
-DbLive.Project.Migration.Items.get -> System.Collections.Generic.Dictionary<DbLive.Project.MigrationItemType, DbLive.Project.MigrationItem!>!
-DbLive.Project.Migration.Items.set -> void
-DbLive.Project.Migration.Migration() -> void
-DbLive.Project.Migration.Migration(DbLive.Project.Migration! original) -> void
-DbLive.Project.Migration.Version.get -> long
-DbLive.Project.Migration.Version.set -> void
-DbLive.Project.MigrationItem
-DbLive.Project.MigrationItem.FileData.get -> DbLive.Common.FileData!
-DbLive.Project.MigrationItem.FileData.set -> void
-DbLive.Project.MigrationItem.MigrationItem() -> void
-DbLive.Project.MigrationItem.MigrationItem(DbLive.Project.MigrationItem! original) -> void
-DbLive.Project.MigrationItem.MigrationItemType.get -> DbLive.Project.MigrationItemType
-DbLive.Project.MigrationItem.MigrationItemType.set -> void
-DbLive.Project.MigrationItem.Name.get -> string!
-DbLive.Project.MigrationItem.Name.set -> void
-DbLive.Project.MigrationItemType
-DbLive.Project.MigrationItemType.Breaking = 1 -> DbLive.Project.MigrationItemType
-DbLive.Project.MigrationItemType.BreakingSettings = 3 -> DbLive.Project.MigrationItemType
-DbLive.Project.MigrationItemType.Migration = 0 -> DbLive.Project.MigrationItemType
-DbLive.Project.MigrationItemType.MigrationSettings = 2 -> DbLive.Project.MigrationItemType
-DbLive.Project.ProjectFolder
-DbLive.Project.ProjectFolder.AfterDeploy = 1 -> DbLive.Project.ProjectFolder
-DbLive.Project.ProjectFolder.BeforeDeploy = 0 -> DbLive.Project.ProjectFolder
-DbLive.Project.TestItem
-DbLive.Project.TestItem.FileData.get -> DbLive.Common.FileData!
-DbLive.Project.TestItem.FileData.set -> void
-DbLive.Project.TestItem.Name.get -> string!
-DbLive.Project.TestItem.Name.set -> void
-DbLive.Project.TestItem.SetupFileData.get -> DbLive.Common.FileData?
-DbLive.Project.TestItem.SetupFileData.set -> void
-DbLive.Project.TestItem.TestItem() -> void
 DbLive.Schema.SchemaChangedException
 DbLive.Schema.SchemaChangedException.Diff.get -> DbLive.Schema.SchemaDiff!
-DbLive.Schema.SchemaChangedException.SchemaChangedException(string! message, DbLive.Schema.SchemaDiff! diff) -> void
 DbLive.Schema.SchemaDiff
 DbLive.Schema.SchemaDiff.Changed.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObjectChange!>!
 DbLive.Schema.SchemaDiff.Extra.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObject!>!
@@ -227,26 +32,16 @@ DbLive.Schema.SchemaDiff.IsEmpty.get -> bool
 DbLive.Schema.SchemaDiff.Missing.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObject!>!
 DbLive.Schema.SchemaObject
 DbLive.Schema.SchemaObject.<Clone>$() -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObject.Deconstruct(out DbLive.Schema.SchemaObjectType Type, out string! Name, out string! Definition, out string? Parent) -> void
 DbLive.Schema.SchemaObject.Definition.get -> string!
-DbLive.Schema.SchemaObject.Definition.init -> void
 DbLive.Schema.SchemaObject.Equals(DbLive.Schema.SchemaObject? other) -> bool
 DbLive.Schema.SchemaObject.Name.get -> string!
-DbLive.Schema.SchemaObject.Name.init -> void
 DbLive.Schema.SchemaObject.Parent.get -> string?
-DbLive.Schema.SchemaObject.Parent.init -> void
-DbLive.Schema.SchemaObject.SchemaObject(DbLive.Schema.SchemaObjectType Type, string! Name, string! Definition, string? Parent = null) -> void
 DbLive.Schema.SchemaObject.Type.get -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObject.Type.init -> void
 DbLive.Schema.SchemaObjectChange
 DbLive.Schema.SchemaObjectChange.<Clone>$() -> DbLive.Schema.SchemaObjectChange!
 DbLive.Schema.SchemaObjectChange.After.get -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObjectChange.After.init -> void
 DbLive.Schema.SchemaObjectChange.Before.get -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObjectChange.Before.init -> void
-DbLive.Schema.SchemaObjectChange.Deconstruct(out DbLive.Schema.SchemaObject! Before, out DbLive.Schema.SchemaObject! After) -> void
 DbLive.Schema.SchemaObjectChange.Equals(DbLive.Schema.SchemaObjectChange? other) -> bool
-DbLive.Schema.SchemaObjectChange.SchemaObjectChange(DbLive.Schema.SchemaObject! Before, DbLive.Schema.SchemaObject! After) -> void
 DbLive.Schema.SchemaObjectType
 DbLive.Schema.SchemaObjectType.CheckConstraint = 6 -> DbLive.Schema.SchemaObjectType
 DbLive.Schema.SchemaObjectType.Column = 2 -> DbLive.Schema.SchemaObjectType
@@ -269,31 +64,12 @@ DbLive.Schema.SchemaObjectType.View = 9 -> DbLive.Schema.SchemaObjectType
 DbLive.Schema.SchemaSnapshot
 DbLive.Schema.SchemaSnapshot.Find(DbLive.Schema.SchemaObjectType type, string! name) -> DbLive.Schema.SchemaObject?
 DbLive.Schema.SchemaSnapshot.Objects.get -> System.Collections.Generic.IReadOnlyCollection<DbLive.Schema.SchemaObject!>!
-DbLive.Schema.SchemaSnapshot.SchemaSnapshot(System.Collections.Generic.IEnumerable<DbLive.Schema.SchemaObject!>! objects) -> void
-DbLive.SelfDeployer.DatabaseRequiresNewerDbLiveException
-DbLive.SelfDeployer.DatabaseRequiresNewerDbLiveException.DatabaseRequiresNewerDbLiveException(System.Version! requiredVersion, System.Version! minCompatibleVersion, string! dbLiveVersion) -> void
-DbLive.SelfDeployer.DatabaseRequiresNewerDbLiveException.MinCompatibleVersion.get -> System.Version!
-DbLive.SelfDeployer.DatabaseRequiresNewerDbLiveException.RequiredVersion.get -> System.Version!
 DbLive.Testing.DatabaseNotDeployedException
-DbLive.Testing.DatabaseNotDeployedException.DatabaseNotDeployedException() -> void
 DbLive.Testing.IDbLiveTester
 DbLive.Testing.IDbLiveTester.RunAllTestsAsync() -> System.Threading.Tasks.Task!
-DbLive.Testing.IDbLiveTester.RunTestAsync(System.Action<string!>! writeLine, string! relativePath) -> System.Threading.Tasks.Task<DbLive.Deployers.Testing.TestRunResult!>!
-override DbLive.Adapter.SqlColumn.Equals(object? obj) -> bool
-override DbLive.Adapter.SqlColumn.GetHashCode() -> int
-override DbLive.Adapter.SqlColumn.ToString() -> string!
 override DbLive.DeployParameters.Equals(object? obj) -> bool
 override DbLive.DeployParameters.GetHashCode() -> int
 override DbLive.DeployParameters.ToString() -> string!
-override DbLive.Project.GenericItem.Equals(object? obj) -> bool
-override DbLive.Project.GenericItem.GetHashCode() -> int
-override DbLive.Project.GenericItem.ToString() -> string!
-override DbLive.Project.Migration.Equals(object? obj) -> bool
-override DbLive.Project.Migration.GetHashCode() -> int
-override DbLive.Project.Migration.ToString() -> string!
-override DbLive.Project.MigrationItem.Equals(object? obj) -> bool
-override DbLive.Project.MigrationItem.GetHashCode() -> int
-override DbLive.Project.MigrationItem.ToString() -> string!
 override DbLive.Schema.SchemaDiff.ToString() -> string!
 override DbLive.Schema.SchemaObject.Equals(object? obj) -> bool
 override DbLive.Schema.SchemaObject.GetHashCode() -> int
@@ -301,8 +77,6 @@ override DbLive.Schema.SchemaObject.ToString() -> string!
 override DbLive.Schema.SchemaObjectChange.Equals(object? obj) -> bool
 override DbLive.Schema.SchemaObjectChange.GetHashCode() -> int
 override DbLive.Schema.SchemaObjectChange.ToString() -> string!
-static DbLive.Adapter.SqlColumn.operator !=(DbLive.Adapter.SqlColumn? left, DbLive.Adapter.SqlColumn? right) -> bool
-static DbLive.Adapter.SqlColumn.operator ==(DbLive.Adapter.SqlColumn? left, DbLive.Adapter.SqlColumn? right) -> bool
 static DbLive.DbLiveBuilderExtensions.LogToConsole(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.SetDbConnection(this DbLive.DbLiveBuilder! builder, string! sqlDbConnectionString) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.SetProject(this DbLive.DbLiveBuilder! builder, System.Reflection.Assembly! projectAssembly) -> DbLive.DbLiveBuilder!
@@ -311,34 +85,8 @@ static DbLive.DeployParameters.Breaking.get -> DbLive.DeployParameters!
 static DbLive.DeployParameters.Default.get -> DbLive.DeployParameters!
 static DbLive.DeployParameters.operator !=(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool
 static DbLive.DeployParameters.operator ==(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool
-static DbLive.Project.GenericItem.operator !=(DbLive.Project.GenericItem? left, DbLive.Project.GenericItem? right) -> bool
-static DbLive.Project.GenericItem.operator ==(DbLive.Project.GenericItem? left, DbLive.Project.GenericItem? right) -> bool
-static DbLive.Project.Migration.operator !=(DbLive.Project.Migration? left, DbLive.Project.Migration? right) -> bool
-static DbLive.Project.Migration.operator ==(DbLive.Project.Migration? left, DbLive.Project.Migration? right) -> bool
-static DbLive.Project.MigrationItem.operator !=(DbLive.Project.MigrationItem? left, DbLive.Project.MigrationItem? right) -> bool
-static DbLive.Project.MigrationItem.operator ==(DbLive.Project.MigrationItem? left, DbLive.Project.MigrationItem? right) -> bool
 static DbLive.Schema.SchemaDiff.Compare(DbLive.Schema.SchemaSnapshot! before, DbLive.Schema.SchemaSnapshot! after) -> DbLive.Schema.SchemaDiff!
 static DbLive.Schema.SchemaObject.operator !=(DbLive.Schema.SchemaObject? left, DbLive.Schema.SchemaObject? right) -> bool
 static DbLive.Schema.SchemaObject.operator ==(DbLive.Schema.SchemaObject? left, DbLive.Schema.SchemaObject? right) -> bool
 static DbLive.Schema.SchemaObjectChange.operator !=(DbLive.Schema.SchemaObjectChange? left, DbLive.Schema.SchemaObjectChange? right) -> bool
 static DbLive.Schema.SchemaObjectChange.operator ==(DbLive.Schema.SchemaObjectChange? left, DbLive.Schema.SchemaObjectChange? right) -> bool
-virtual DbLive.Adapter.SqlColumn.<Clone>$() -> DbLive.Adapter.SqlColumn!
-virtual DbLive.Adapter.SqlColumn.EqualityContract.get -> System.Type!
-virtual DbLive.Adapter.SqlColumn.Equals(DbLive.Adapter.SqlColumn? other) -> bool
-virtual DbLive.Adapter.SqlColumn.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual DbLive.DeployParameters.<Clone>$() -> DbLive.DeployParameters!
-virtual DbLive.DeployParameters.EqualityContract.get -> System.Type!
-virtual DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
-virtual DbLive.DeployParameters.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual DbLive.Project.GenericItem.<Clone>$() -> DbLive.Project.GenericItem!
-virtual DbLive.Project.GenericItem.EqualityContract.get -> System.Type!
-virtual DbLive.Project.GenericItem.Equals(DbLive.Project.GenericItem? other) -> bool
-virtual DbLive.Project.GenericItem.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual DbLive.Project.Migration.<Clone>$() -> DbLive.Project.Migration!
-virtual DbLive.Project.Migration.EqualityContract.get -> System.Type!
-virtual DbLive.Project.Migration.Equals(DbLive.Project.Migration? other) -> bool
-virtual DbLive.Project.Migration.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual DbLive.Project.MigrationItem.<Clone>$() -> DbLive.Project.MigrationItem!
-virtual DbLive.Project.MigrationItem.EqualityContract.get -> System.Type!
-virtual DbLive.Project.MigrationItem.Equals(DbLive.Project.MigrationItem? other) -> bool
-virtual DbLive.Project.MigrationItem.PrintMembers(System.Text.StringBuilder! builder) -> bool

@@ -158,12 +158,15 @@ public class MigrationsSaverTests
 	}
 
 	[Theory]
-	[InlineData(MigrationItemType.Migration)]
-	[InlineData(MigrationItemType.Breaking)]
-	[InlineData(MigrationItemType.MigrationSettings)]
-	[InlineData(MigrationItemType.BreakingSettings)]
-	public async Task Save_saves_new_item_with_its_hash(MigrationItemType itemType)
+	[InlineData(nameof(MigrationItemType.Migration))]
+	[InlineData(nameof(MigrationItemType.Breaking))]
+	[InlineData(nameof(MigrationItemType.MigrationSettings))]
+	[InlineData(nameof(MigrationItemType.BreakingSettings))]
+	public async Task Save_saves_new_item_with_its_hash(string itemTypeName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType itemType = Enum.Parse<MigrationItemType>(itemTypeName);
+
 		// Arrange
 		MockSet mockSet = new();
 		MigrationsSaver saver = mockSet.CreateUsingMocks<MigrationsSaver>();

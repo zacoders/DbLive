@@ -91,7 +91,7 @@ DbLive logs through Serilog. Without configuration nothing is logged.
 ```csharp
 builder.LogToConsole();                                   // console
 builder.LogToXUnitOutput(testOutputHelper);               // xUnit test output (DbLive.xunit)
-builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger));   // any Serilog logger
+builder.LogTo(myLogger);                                  // any Serilog logger
 ```
 
 ## A typical pipeline

@@ -3,7 +3,18 @@ using System.Text.RegularExpressions;
 
 namespace DbLive.Schema;
 
-public sealed record SchemaObjectChange(SchemaObject Before, SchemaObject After);
+public sealed record SchemaObjectChange
+{
+	internal SchemaObjectChange(SchemaObject before, SchemaObject after)
+	{
+		Before = before;
+		After = after;
+	}
+
+	public SchemaObject Before { get; }
+
+	public SchemaObject After { get; }
+}
 
 /// <summary>
 /// The difference between two snapshots of one database: objects missing (in the earlier snapshot only),

@@ -3,12 +3,15 @@ namespace DbLive.Tests.Project;
 public class MigrationItemTypeMapperTests
 {
 	[Theory]
-	[InlineData(MigrationItemType.Migration, "migration")]
-	[InlineData(MigrationItemType.Breaking, "breaking")]
-	[InlineData(MigrationItemType.MigrationSettings, "migration.settings")]
-	[InlineData(MigrationItemType.BreakingSettings, "breaking.settings")]
-	public void Maps_item_type_to_db_value_and_back(MigrationItemType itemType, string dbValue)
+	[InlineData(nameof(MigrationItemType.Migration), "migration")]
+	[InlineData(nameof(MigrationItemType.Breaking), "breaking")]
+	[InlineData(nameof(MigrationItemType.MigrationSettings), "migration.settings")]
+	[InlineData(nameof(MigrationItemType.BreakingSettings), "breaking.settings")]
+	public void Maps_item_type_to_db_value_and_back(string itemTypeName, string dbValue)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType itemType = Enum.Parse<MigrationItemType>(itemTypeName);
+
 		Assert.Equal(dbValue, MigrationItemTypeMapper.ToDbValue(itemType));
 		Assert.Equal(itemType, MigrationItemTypeMapper.FromDbValue(dbValue));
 	}
@@ -40,10 +43,14 @@ public class MigrationItemTypeMapperTests
 	}
 
 	[Theory]
-	[InlineData(MigrationItemType.Migration, MigrationItemType.MigrationSettings)]
-	[InlineData(MigrationItemType.Breaking, MigrationItemType.BreakingSettings)]
-	public void Pairs_script_and_settings_types(MigrationItemType scriptType, MigrationItemType settingsType)
+	[InlineData(nameof(MigrationItemType.Migration), nameof(MigrationItemType.MigrationSettings))]
+	[InlineData(nameof(MigrationItemType.Breaking), nameof(MigrationItemType.BreakingSettings))]
+	public void Pairs_script_and_settings_types(string scriptTypeName, string settingsTypeName)
 	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType scriptType = Enum.Parse<MigrationItemType>(scriptTypeName);
+		MigrationItemType settingsType = Enum.Parse<MigrationItemType>(settingsTypeName);
+
 		Assert.Equal(settingsType, MigrationItemTypeMapper.GetSettingsType(scriptType));
 		Assert.Equal(scriptType, MigrationItemTypeMapper.GetScriptType(settingsType));
 		Assert.True(MigrationItemTypeMapper.IsSettings(settingsType));

@@ -1,6 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Code;
-using DbLive.Deployers.Testing;
+using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 

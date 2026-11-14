@@ -85,7 +85,7 @@ workspace.Project("Fixtures", packages: ["DbLive.xunit", "DbLive.Testcontainers.
 	.Write("Fixtures.cs", """
 		using DbLive.MSSQL;
 		using DbLive.PostgreSQL;
-		using DbLive.xunit.SqlTest;
+		using DbLive.xunit;
 		using System.Reflection;
 
 		public class MsSqlContainerFixture() : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);

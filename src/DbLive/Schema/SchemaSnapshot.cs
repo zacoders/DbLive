@@ -9,7 +9,7 @@ public sealed class SchemaSnapshot
 {
 	private readonly Dictionary<(SchemaObjectType Type, string Name), SchemaObject> _objects = [];
 
-	public SchemaSnapshot(IEnumerable<SchemaObject> objects)
+	internal SchemaSnapshot(IEnumerable<SchemaObject> objects)
 	{
 		foreach (SchemaObject obj in objects)
 		{

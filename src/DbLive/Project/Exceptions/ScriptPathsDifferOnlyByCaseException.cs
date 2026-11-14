@@ -1,9 +1,14 @@
-namespace DbLive.Project.Exceptions;
+namespace DbLive;
 
 
 [ExcludeFromCodeCoverage]
-public class ScriptPathsDifferOnlyByCaseException(string relativePath, string otherRelativePath)
-	: Exception($"Files '{relativePath}' and '{otherRelativePath}' differ only by case. DbLive finds files and identifies them in the database ignoring case, so rename or delete one of them.")
+public sealed class ScriptPathsDifferOnlyByCaseException : Exception
 {
-	public IReadOnlyList<string> RelativePaths { get; private set; } = [relativePath, otherRelativePath];
+	internal ScriptPathsDifferOnlyByCaseException(string relativePath, string otherRelativePath)
+		: base($"Files '{relativePath}' and '{otherRelativePath}' differ only by case. DbLive finds files and identifies them in the database ignoring case, so rename or delete one of them.")
+	{
+		RelativePaths = [relativePath, otherRelativePath];
+	}
+
+	public IReadOnlyList<string> RelativePaths { get; private set; }
 }

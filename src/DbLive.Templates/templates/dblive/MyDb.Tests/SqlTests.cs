@@ -1,10 +1,10 @@
-using DbLive.Deployers.Testing;
 #if (mssql)
 using DbLive.MSSQL;
 #else
 using DbLive.PostgreSQL;
 #endif
-using DbLive.xunit.SqlTest;
+using DbLive.Testing;
+using DbLive.xunit;
 using System.Reflection;
 using Xunit.Abstractions;
 

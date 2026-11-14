@@ -1,11 +1,11 @@
-﻿namespace DbLive.Adapter;
+﻿namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public class NotSupportedTransactionIsolationLevelException : Exception
+public sealed class NotSupportedTransactionIsolationLevelException : Exception
 {
 	private TranIsolationLevel isolationLevel;
 
-	public NotSupportedTransactionIsolationLevelException(TranIsolationLevel isolationLevel)
+	internal NotSupportedTransactionIsolationLevelException(TranIsolationLevel isolationLevel)
 		: base($"Unsupported transaction isolation level '{isolationLevel}'.")
 	{
 		this.isolationLevel = isolationLevel;

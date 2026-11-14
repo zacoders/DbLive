@@ -4,7 +4,7 @@ using DbLive.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace DbLive.xunit.Deploy;
+namespace DbLive.xunit;
 
 
 public class DeploymentTestFixture(

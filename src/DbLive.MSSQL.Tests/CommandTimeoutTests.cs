@@ -1,6 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Deployers.Migrations;
-using DbLive.Deployers.Testing;
+using DbLive.Testing;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;

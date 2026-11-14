@@ -4,7 +4,7 @@
 
 ```csharp
 using DbLive.MSSQL;
-using DbLive.xunit.Deploy;
+using DbLive.xunit;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;

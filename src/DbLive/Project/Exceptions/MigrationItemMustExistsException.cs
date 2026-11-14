@@ -1,9 +1,14 @@
-﻿namespace DbLive.Project.Exceptions;
+﻿namespace DbLive;
 
 
 [ExcludeFromCodeCoverage]
-public class MigrationItemMustExistsException(long migrationVersion)
-	: Exception($"Migration item must exists. MigrationVersion='{migrationVersion}'.")
+public sealed class MigrationItemMustExistsException : Exception
 {
-	internal long MigrationVersion { get; private set; } = migrationVersion;
+	internal MigrationItemMustExistsException(long migrationVersion)
+		: base($"Migration item must exists. MigrationVersion='{migrationVersion}'.")
+	{
+		MigrationVersion = migrationVersion;
+	}
+
+	internal long MigrationVersion { get; private set; }
 }

@@ -1,5 +1,5 @@
 using DbLive.Schema;
-using DbLive.xunit.Deploy;
+using DbLive.xunit;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Xunit.Extensions.AssemblyFixture;

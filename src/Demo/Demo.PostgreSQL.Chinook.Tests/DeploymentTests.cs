@@ -1,5 +1,5 @@
 using DbLive.PostgreSQL;
-using DbLive.xunit.Deploy;
+using DbLive.xunit;
 using Xunit.Abstractions;
 
 

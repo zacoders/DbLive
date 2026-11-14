@@ -1,9 +1,14 @@
-namespace DbLive.Project.Exceptions;
+namespace DbLive;
 
 
 [ExcludeFromCodeCoverage]
-public class ObsoleteMigrationSettingsFileException(string fileName, string version)
-	: Exception($"Migration settings file {fileName} has the old name. Each script has its own settings file now: rename it to {version}.migration.settings.json (or {version}.m.s.json) for the migration script; the breaking script takes {version}.breaking.settings.json. The key MigrationTimeout is renamed to Timeout.")
+public sealed class ObsoleteMigrationSettingsFileException : Exception
 {
-	public string FileName { get; private set; } = fileName;
+	internal ObsoleteMigrationSettingsFileException(string fileName, string version)
+		: base($"Migration settings file {fileName} has the old name. Each script has its own settings file now: rename it to {version}.migration.settings.json (or {version}.m.s.json) for the migration script; the breaking script takes {version}.breaking.settings.json. The key MigrationTimeout is renamed to Timeout.")
+	{
+		FileName = fileName;
+	}
+
+	public string FileName { get; private set; }
 }

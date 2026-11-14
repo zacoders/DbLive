@@ -4,7 +4,7 @@ Runs the SQL tests of a [DbLive](https://github.com/zacoders/DbLive) project aga
 
 ```csharp
 using DbLive.PostgreSQL;
-using DbLive.xunit.SqlTest;
+using DbLive.xunit;
 using System.Reflection;
 
 public class MyDbTestFixture()

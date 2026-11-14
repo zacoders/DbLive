@@ -1,6 +1,6 @@
-using DbLive.Deployers.Testing;
 using DbLive.MSSQL;
-using DbLive.xunit.SqlTest;
+using DbLive.Testing;
+using DbLive.xunit;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;

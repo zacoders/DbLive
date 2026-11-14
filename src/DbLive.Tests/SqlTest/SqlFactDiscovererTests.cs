@@ -1,3 +1,4 @@
+using DbLive.xunit;
 using DbLive.xunit.SqlTest;
 using System.Reflection;
 using Xunit.Abstractions;

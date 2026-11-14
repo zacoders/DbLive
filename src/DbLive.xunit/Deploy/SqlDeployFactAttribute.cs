@@ -1,6 +1,6 @@
 ﻿using Xunit;
 
-namespace DbLive.xunit.Deploy;
+namespace DbLive.xunit;
 
 /// <summary>
 /// Marks the deployment test of a project: a test without parameters that calls <see cref="DeploymentTestFixture.DeployAsync"/>.

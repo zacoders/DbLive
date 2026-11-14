@@ -16,7 +16,7 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 
 ## What the policy covers
 
-- **The C# API described in the documentation**, listed in Section 11 of the [reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): `DbLiveBuilder` and its extension methods, the connection string helpers, `IDbLive`, `DeployParameters`, `IDbLiveTester`, `IDbLiveProject`, `IScriptSource`, `IDbLiveDA`, the types their members take and return (`TestRunResult`, `SchemaSnapshot`, the models of the project such as `Migration` and `CodeGroup`), and the exceptions DbLive throws to the caller (Section 17).
+- **The C# API described in the documentation**, listed in Section 11 of the [reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): `DbLiveBuilder` and its extension methods, the connection string helpers, `IDbLive`, `DeployParameters`, `IDbLiveTester`, `IScriptSource`, `IDbLiveDA`, the types their members return (`TestRunResult`, `SqlResult`, `SchemaSnapshot` and `SchemaDiff`), and the exceptions DbLive throws to the caller (Section 17): their types and properties, not their constructors.
 - **Testing**: `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` (`DbLive.xunit`) and what the tests check; `IDbLiveFixtureBuilder` and the fixture builders `MsSqlFixtureBuilder`, `PostgreSqlFixtureBuilder`, `MsSqlContainerFixtureBuilder`, `PostgreSqlContainerFixtureBuilder` (Section 11.6 of the reference).
 - **The project layout**: the folders, the file naming rules, the `settings.json` keys and the item settings files ([Project structure](project/structure.md), [Configuration](project/configuration.md)).
 - **SQL test semantics**: the `assert` result set and its values, `setup.test.sql`, the transaction a test runs in ([SQL unit testing](unit-testing/index.md)).
@@ -25,4 +25,4 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 
 The template `DbLive.Templates` (`dotnet new dblive`) creates new projects and does not change existing ones, so a change in what it creates (file names, example scripts) is not a breaking change. A removed or renamed option of the template is.
 
-Every public type of the packages is in this list; the rest is internal. A database provider written outside the DbLive repository is not supported: what DbLive reads and writes in its own tables goes through internal types.
+Every public type of the packages is in this list; the rest is internal. A user does not create the types DbLive returns or throws: their constructors are internal. A database provider written outside the DbLive repository is not supported: what DbLive reads and writes in its own tables goes through internal types.

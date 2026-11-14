@@ -19,7 +19,11 @@ public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 	}
 
 
-	public DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
+	/// <summary>
+	/// Adds a registration to the container. Internal: the container is not part of the API; a user sets the logger
+	/// and the script source with <see cref="DbLiveBuilderExtensions.LogTo"/> and <see cref="DbLiveBuilderExtensions.SetScriptSource"/>.
+	/// </summary>
+	internal DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -67,7 +71,7 @@ public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 	public IDbLiveTester CreateTester()
 		=> GetRequiredService<IDbLiveTester>();
 
-	public IDbLiveProject CreateProject()
+	internal IDbLiveProject CreateProject()
 		=> GetRequiredService<IDbLiveProject>();
 
 	internal T GetRequiredService<T>() where T : notnull

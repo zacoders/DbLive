@@ -4,7 +4,7 @@ using DbLive.Testing;
 using System.Reflection;
 using Xunit;
 
-namespace DbLive.xunit.SqlTest;
+namespace DbLive.xunit;
 
 public class DbLiveTestFixture(
 		IDbLiveFixtureBuilder fixtureBuilder,

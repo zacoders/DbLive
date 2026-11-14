@@ -1,6 +1,6 @@
-using DbLive.Deployers.Testing;
 using DbLive.PostgreSQL;
-using DbLive.xunit.SqlTest;
+using DbLive.Testing;
+using DbLive.xunit;
 using Xunit.Abstractions;
 
 namespace Demo.PostgreSQL.Chinook.Tests;

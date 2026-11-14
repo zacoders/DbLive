@@ -1,7 +1,7 @@
 ﻿namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public record DeployParameters
+public sealed record DeployParameters
 {
 	public static DeployParameters Default => new()
 	{

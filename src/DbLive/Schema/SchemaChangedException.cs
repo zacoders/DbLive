@@ -5,8 +5,13 @@ namespace DbLive.Schema;
 /// The message lists the differences.
 /// </summary>
 [ExcludeFromCodeCoverage]
-public class SchemaChangedException(string message, SchemaDiff diff)
-	: Exception($"{message}{Environment.NewLine}{diff}")
+public sealed class SchemaChangedException : Exception
 {
-	public SchemaDiff Diff { get; } = diff;
+	internal SchemaChangedException(string message, SchemaDiff diff)
+		: base($"{message}{Environment.NewLine}{diff}")
+	{
+		Diff = diff;
+	}
+
+	public SchemaDiff Diff { get; }
 }

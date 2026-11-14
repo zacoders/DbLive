@@ -1,4 +1,4 @@
-using DbLive.xunit.SqlTest;
+using DbLive.xunit;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute.ExceptionExtensions;
 using System.Reflection;

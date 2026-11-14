@@ -3,7 +3,7 @@ using DbLive.MSSQL;
 #else
 using DbLive.PostgreSQL;
 #endif
-using DbLive.xunit.Deploy;
+using DbLive.xunit;
 using System.Reflection;
 using Xunit.Abstractions;
 

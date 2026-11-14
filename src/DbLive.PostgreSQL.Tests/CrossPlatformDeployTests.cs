@@ -1,5 +1,5 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Testing;
+using DbLive.Testing;
 using DbLive.Project;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;

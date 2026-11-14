@@ -1,5 +1,5 @@
 ﻿
-namespace DbLive.Adapter;
+namespace DbLive;
 
 /// <summary>
 /// Access to the database of the connection string: create and drop it, run SQL, read its schema.

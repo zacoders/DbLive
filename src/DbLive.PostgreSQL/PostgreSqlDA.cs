@@ -294,8 +294,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveInternalDA
 		foreach (DbColumn col in columnSchema)
 		{
 			sqlColumns.Add(new SqlColumn(
-				ColumnName: col.ColumnName,
-				DataType: GetPostgresTypeName(col)
+				columnName: col.ColumnName,
+				dataType: GetPostgresTypeName(col)
 			));
 		}
 

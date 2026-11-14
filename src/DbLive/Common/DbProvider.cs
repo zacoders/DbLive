@@ -1,4 +1,4 @@
-namespace DbLive.Common;
+namespace DbLive;
 
 public enum DbProvider
 {

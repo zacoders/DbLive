@@ -285,8 +285,8 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveInternalDA
 	private static SqlColumn GetSqlColumn(DataRow row)
 	{
 		return new SqlColumn(
-			ColumnName: GetValue<string>(row["ColumnName"]),
-			DataType: GetSqlTypeName(
+			columnName: GetValue<string>(row["ColumnName"]),
+			dataType: GetSqlTypeName(
 				providerType: GetValue<int>(row["ProviderType"]),
 				numericPrecision: GetValueN<short?>(row["NumericPrecision"]),
 				numericScale: GetValue<short?>(row["NumericScale"]),

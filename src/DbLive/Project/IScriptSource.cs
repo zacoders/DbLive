@@ -1,4 +1,4 @@
-namespace DbLive.Project;
+namespace DbLive;
 
 /// <summary>
 /// The files of a DbLive project.
