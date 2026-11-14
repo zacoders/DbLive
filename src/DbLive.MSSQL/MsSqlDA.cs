@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
 using System.Data;
+using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
@@ -507,31 +508,46 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	/// <summary>
-	/// The paths as one table-valued parameter (self-migration 13), whatever their number: a command takes at most 2100 parameters.
-	/// The paths of the project are unique, also in lower case: two paths that differ only by case stop the deployment.
+	/// The paths as one xml parameter <c>@paths</c>, whatever their number: a command takes at most 2100 parameters.
+	/// <see cref="PathsTableSql"/> reads them into the temporary table <c>#paths</c>.
 	/// </summary>
-	private static SqlMapper.ICustomQueryParameter ToPathList(IEnumerable<string> relativePaths)
-	{
-		DataTable table = new();
-		_ = table.Columns.Add("value", typeof(string));
+	private static XElement ToPathList(IEnumerable<string> relativePaths) =>
+		new("paths", relativePaths.Select(p => new XElement("p", p.ToStoredPath())));
 
-		foreach (string relativePath in relativePaths)
-		{
-			_ = table.Rows.Add(relativePath.ToStoredPath());
-		}
+	/// <summary>
+	/// <c>#paths</c> from the xml of <see cref="ToPathList"/>, with an index and its statistics: the plan of the query that follows
+	/// does not depend on a guess of the number of xml nodes. The table is dropped when the command ends (sp_executesql).
+	/// <list type="bullet">
+	/// <item>No user-defined table type: a login needs EXECUTE on the type, which db_ddladmin, db_datareader and db_datawriter
+	/// do not give when the schema dblive belongs to dbo. A temporary table and xml need no permission and work with any
+	/// compatibility level (openjson needs 130).</item>
+	/// <item><c>collate database_default</c>: a temporary table takes the collation of tempdb, and the comparison with
+	/// <c>dblive.code.relative_path</c> would fail with a collation conflict.</item>
+	/// <item>The index is not unique: paths that differ only by accent or width are different files for DbLive and equal
+	/// for an accent- or width-insensitive collation.</item>
+	/// <item><c>nvarchar(450)</c>: a clustered key holds at most 900 bytes, so <c>dblive.code</c> never stores a longer path.</item>
+	/// </list>
+	/// </summary>
+	private const string PathsTableSql = """
+		create table #paths ( value nvarchar(450) collate database_default not null );
 
-		return table.AsTableValuedParameter("dblive.tvp_unique_string_list");
-	}
+		insert into #paths ( value )
+		select x.p.value('text()[1]', 'nvarchar(450)')
+		from @paths.nodes('/paths/p') as x(p);
+
+		create clustered index ix_paths on #paths ( value );
+
+		""";
 
 	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
-			"""
+			PathsTableSql + """
 			update c
 			set verified_utc = @verified_utc
 			from dblive.code as c
-			join @paths as p on p.value = c.relative_path;
+			join #paths as p on p.value = c.relative_path;
 			""",
 			new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc }
 		).ConfigureAwait(false);
@@ -541,14 +557,14 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	{
 		using var cnn = GetConnection();
 		return (await cnn.QueryAsync<string>(
-			"""
+			PathsTableSql + """
 			update c
 			set status = 'removed'
 			  , verified_utc = @verified_utc
 			output inserted.relative_path
 			from dblive.code as c
 			where c.status <> 'removed'
-			  and not exists ( select 1 from @paths as p where p.value = c.relative_path );
+			  and not exists ( select 1 from #paths as p where p.value = c.relative_path );
 			""",
 			new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc }
 		).ConfigureAwait(false)).ToList();

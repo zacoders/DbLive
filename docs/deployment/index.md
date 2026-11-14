@@ -118,6 +118,7 @@ The settings of a deployment to a production database, in one place. The default
 | `TransactionWrapLevel` | `Migration` (default); `None` in the [item settings](../project/configuration.md#item-settings) of a script that cannot run in a transaction | `Deployment` holds locks for the whole deployment and deploys code single-threaded: it is for small databases and test environments. See [Choosing a transaction level](../project/configuration.md#choosing-a-transaction-level). |
 | `MigrationTimeout`, `CodeItemTimeout` | What your release window allows; `Timeout` in the item settings of a longer migration script | A script that runs longer fails, and the deployment with it. Defaults: 12 hours per migration script, 30 seconds per code file. See [Timeouts](../project/configuration.md#timeouts). |
 | SQL tests | Not in the deployer | They run in CI against a disposable database. See [SQL tests](#sql-tests). |
+| The deployer's login (SQL Server) | `db_ddladmin`, `db_datareader` and `db_datawriter` in the database, and what your scripts need; `db_owner` is not needed | Enough for everything DbLive does itself, also when the `dblive` schema belongs to `dbo` because an administrator deployed the database first. Your scripts need the permissions of their statements: a `grant` needs a permission that `db_ddladmin` does not give. |
 
 ## Bookkeeping tables
 
@@ -130,8 +131,6 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 | `dblive.code` | One row per code file: status, checksum, last error |
 | `dblive.unit_test_run` | Last result of each SQL test |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
-
-On SQL Server the schema also has the table type `dblive.tvp_unique_string_list`: DbLive passes lists of file paths to its queries in it.
 
 Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`).
 
