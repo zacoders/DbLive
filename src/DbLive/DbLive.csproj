@@ -29,6 +29,11 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Serilog.Sinks.Console" />
         <PackageReference Include="System.IO.Hashing" />
     </ItemGroup>

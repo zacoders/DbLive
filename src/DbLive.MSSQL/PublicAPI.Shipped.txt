@@ -1,0 +1,41 @@
+#nullable enable
+DbLive.MSSQL.Bootstrapper
+DbLive.MSSQL.DbLiveBuilderExtensions
+DbLive.MSSQL.MSSQLConnectionStringExtensions
+DbLive.MSSQL.MsSqlDA
+DbLive.MSSQL.MsSqlDA.CheckDatabaseExistsAsync() -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.CreateDBAsync(bool skipIfExists = true) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.DbLiveInstalledAsync() -> System.Threading.Tasks.Task<bool>!
+DbLive.MSSQL.MsSqlDA.DropDbAsync(bool skipIfNotExists = true) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.ExecuteCodeItemAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.ExecuteNonQueryAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.ExecuteQueryMultipleAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<System.Collections.Generic.List<DbLive.Adapter.SqlResult!>!>!
+DbLive.MSSQL.MsSqlDA.GetAppliedMigrationVersionsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<long>!>!
+DbLive.MSSQL.MsSqlDA.GetCodeItemsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<DbLive.Adapter.CodeItemDto!>!>!
+DbLive.MSSQL.MsSqlDA.GetMigrationsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<DbLive.Adapter.MigrationItemDto!>!>!
+DbLive.MSSQL.MsSqlDA.GetMinDbLiveLibVersionAsync() -> System.Threading.Tasks.Task<System.Version?>!
+DbLive.MSSQL.MsSqlDA.GetProjectIdAsync() -> System.Threading.Tasks.Task<string?>!
+DbLive.MSSQL.MsSqlDA.GetSchemaSnapshotAsync() -> System.Threading.Tasks.Task<DbLive.Schema.SchemaSnapshot!>!
+DbLive.MSSQL.MsSqlDA.GetSelfMigrationVersionAsync() -> System.Threading.Tasks.Task<long>!
+DbLive.MSSQL.MsSqlDA.IsTransactionUsableAsync() -> System.Threading.Tasks.Task<bool>!
+DbLive.MSSQL.MsSqlDA.MarkCodeAsVerifiedAsync(System.Collections.Generic.IReadOnlyCollection<string!>! relativePaths, System.DateTime verifiedUtc) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.MarkItemAsAppliedAsync(DbLive.Project.ProjectFolder projectFolder, string! relativePath, System.DateTime startedUtc, System.DateTime completedUtc, long executionTimeMs, long contentHash) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.MarkMissingCodeAsRemovedAsync(System.Collections.Generic.IReadOnlyCollection<string!>! projectRelativePaths, System.DateTime verifiedUtc) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<string!>!>!
+DbLive.MSSQL.MsSqlDA.MsSqlDA(DbLive.Common.IDbLiveDbConnection! _cnn) -> void
+DbLive.MSSQL.MsSqlDA.Provider.get -> DbLive.Common.DbProvider
+DbLive.MSSQL.MsSqlDA.RepairMigrationChecksumAsync(DbLive.Adapter.MigrationChecksumRepairDto! item) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SaveCodeItemAsync(DbLive.Adapter.CodeItemDto! item) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SaveMigrationItemAsync(DbLive.Adapter.MigrationItemSaveDto! item) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SaveUnitTestResultAsync(DbLive.Adapter.UnitTestItemDto! item) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SetMinDbLiveLibVersionAsync(System.Version! version) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SetProjectIdAsync(string! projectId) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.SetSelfMigrationVersionAsync(long version, System.DateTime migrationDateTime) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlDA.UpdateMigrationStateAsync(DbLive.Adapter.MigrationItemStateDto! item) -> System.Threading.Tasks.Task!
+DbLive.MSSQL.MsSqlFixtureBuilder
+DbLive.MSSQL.MsSqlFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.MSSQL.MsSqlFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.MSSQL.MsSqlFixtureBuilder.MsSqlFixtureBuilder(System.Reflection.Assembly! project, string! connectionString) -> void
+static DbLive.MSSQL.Bootstrapper.InitializeMSSQL(this Microsoft.Extensions.DependencyInjection.IServiceCollection! container) -> void
+static DbLive.MSSQL.DbLiveBuilderExtensions.SqlServer(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
+static DbLive.MSSQL.MSSQLConnectionStringExtensions.SetMsSqlDatabaseName(this string! mssqlConnectionString, string! dbName) -> string!
+static DbLive.MSSQL.MSSQLConnectionStringExtensions.SetRandomMsSqlDatabaseName(this string! mssqlConnectionString) -> string!

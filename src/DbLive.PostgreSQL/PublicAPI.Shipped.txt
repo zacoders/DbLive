@@ -1,0 +1,41 @@
+#nullable enable
+DbLive.PostgreSQL.Bootstrapper
+DbLive.PostgreSQL.DbLiveBuilderExtensions
+DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions
+DbLive.PostgreSQL.PostgreSqlDA
+DbLive.PostgreSQL.PostgreSqlDA.CheckDatabaseExistsAsync() -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.CreateDBAsync(bool skipIfExists = true) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.DbLiveInstalledAsync() -> System.Threading.Tasks.Task<bool>!
+DbLive.PostgreSQL.PostgreSqlDA.DropDbAsync(bool skipIfNotExists = true) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.ExecuteCodeItemAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.ExecuteNonQueryAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.ExecuteQueryMultipleAsync(string! sqlStatement, DbLive.Common.TranIsolationLevel isolationLevel = DbLive.Common.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<System.Collections.Generic.List<DbLive.Adapter.SqlResult!>!>!
+DbLive.PostgreSQL.PostgreSqlDA.GetAppliedMigrationVersionsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<long>!>!
+DbLive.PostgreSQL.PostgreSqlDA.GetCodeItemsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<DbLive.Adapter.CodeItemDto!>!>!
+DbLive.PostgreSQL.PostgreSqlDA.GetMigrationsAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<DbLive.Adapter.MigrationItemDto!>!>!
+DbLive.PostgreSQL.PostgreSqlDA.GetMinDbLiveLibVersionAsync() -> System.Threading.Tasks.Task<System.Version?>!
+DbLive.PostgreSQL.PostgreSqlDA.GetProjectIdAsync() -> System.Threading.Tasks.Task<string?>!
+DbLive.PostgreSQL.PostgreSqlDA.GetSchemaSnapshotAsync() -> System.Threading.Tasks.Task<DbLive.Schema.SchemaSnapshot!>!
+DbLive.PostgreSQL.PostgreSqlDA.GetSelfMigrationVersionAsync() -> System.Threading.Tasks.Task<long>!
+DbLive.PostgreSQL.PostgreSqlDA.IsTransactionUsableAsync() -> System.Threading.Tasks.Task<bool>!
+DbLive.PostgreSQL.PostgreSqlDA.MarkCodeAsVerifiedAsync(System.Collections.Generic.IReadOnlyCollection<string!>! relativePaths, System.DateTime verifiedUtc) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.MarkItemAsAppliedAsync(DbLive.Project.ProjectFolder projectFolder, string! relativePath, System.DateTime startedUtc, System.DateTime completedUtc, long executionTimeMs, long contentHash) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.MarkMissingCodeAsRemovedAsync(System.Collections.Generic.IReadOnlyCollection<string!>! projectRelativePaths, System.DateTime verifiedUtc) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyCollection<string!>!>!
+DbLive.PostgreSQL.PostgreSqlDA.PostgreSqlDA(DbLive.Common.IDbLiveDbConnection! _cnn) -> void
+DbLive.PostgreSQL.PostgreSqlDA.Provider.get -> DbLive.Common.DbProvider
+DbLive.PostgreSQL.PostgreSqlDA.RepairMigrationChecksumAsync(DbLive.Adapter.MigrationChecksumRepairDto! item) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SaveCodeItemAsync(DbLive.Adapter.CodeItemDto! item) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SaveMigrationItemAsync(DbLive.Adapter.MigrationItemSaveDto! item) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SaveUnitTestResultAsync(DbLive.Adapter.UnitTestItemDto! item) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SetMinDbLiveLibVersionAsync(System.Version! version) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SetProjectIdAsync(string! projectId) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.SetSelfMigrationVersionAsync(long version, System.DateTime migrationDateTime) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlDA.UpdateMigrationStateAsync(DbLive.Adapter.MigrationItemStateDto! item) -> System.Threading.Tasks.Task!
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.PostgreSqlFixtureBuilder(System.Reflection.Assembly! project, string! connectionString) -> void
+static DbLive.PostgreSQL.Bootstrapper.InitializePostgreSQL(this Microsoft.Extensions.DependencyInjection.IServiceCollection! container) -> void
+static DbLive.PostgreSQL.DbLiveBuilderExtensions.PostgreSQL(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
+static DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions.SetPostgreSqlDatabaseName(this string! pgConnectionString, string! dbName) -> string!
+static DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions.SetRandomPostgreSqlDatabaseName(this string! pgConnectionString) -> string!

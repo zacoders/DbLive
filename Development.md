@@ -19,6 +19,17 @@ The workflow builds with `--strict`, also on pull requests that change the docs,
 ## Scripts
 `.github/scripts/` holds the scripts of CI, .NET file-based apps run with `dotnet run <script>.cs` (.NET 10 SDK). A script file is the outline: it reads the arguments and calls the steps in order. The steps are in the folder of the same name, one file each, included with `#:include`: `release-notes.cs` and `release-notes/`, `package-tests.cs` and `package-tests/`. The comment at the top of a script lists its arguments and its files.
 
+## The public API
+The six packages with a C# API (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`) list their public API in `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` next to the `.csproj`: one line per public symbol, with its nullable annotations. `Microsoft.CodeAnalysis.PublicApiAnalyzers` compares the files with the code, and `TreatWarningsAsErrors` makes a difference a build error. So a change of the public API does not build until the files say it, and the files show it in the pull request.
+
+- `PublicAPI.Shipped.txt` is the public API of the last major version, `PublicAPI.Unshipped.txt` what changed since.
+- **RS0016**, a public symbol that is not in the files: add its line to `PublicAPI.Unshipped.txt` with the code fix of RS0016 in the IDE, or for the whole project with `dotnet format analyzers <project> --diagnostics RS0016 --severity info`.
+- **RS0017**, a symbol of the files that is gone: delete its line from `PublicAPI.Unshipped.txt`; a line of `PublicAPI.Shipped.txt` gets a `*REMOVED*` copy in `PublicAPI.Unshipped.txt` instead. Either is a breaking change once the symbol has reached `main` (every merge is a release): the title of the pull request starts with `BREAKING CHANGE:`. A changed signature is a removed symbol and an added one.
+- Until 2.0.0 is released, a line of `PublicAPI.Shipped.txt` is deleted instead of marked `*REMOVED*`.
+- Nothing moves in a minor or patch release. The pull request of a major release moves the lines of `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt` and deletes the lines marked `*REMOVED*` from both.
+
+One pair of files serves all target frameworks: no code of `src` depends on the target framework.
+
 ## Releases
 Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and tests the solution, publishes the seven packages (`DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`, and the `dotnet new` template `DbLive.Templates`) to nuget.org, tags the merge commit with the version and creates a GitHub Release with the release notes. Work happens in branches and reaches `main` through a pull request, merged with a merge commit. Small fix releases are fine; the versioning policy for users is [docs/versioning.md](docs/versioning.md).
 
@@ -31,7 +42,7 @@ Every merge to `main` is a release. CI (`.github/workflows/cicd.yml`) builds and
 | `feat:` | minor |
 | neither | patch |
 
-GitHub writes the PR title into the merge commit, so **the PR title decides the version**: start it with `BREAKING CHANGE:` when a closed task has `breaking: true`, with `feat:` when a `feature` task has a release note, and with neither otherwise. Commit messages must not contain these words, or they raise the version too (verified with GitVersion 5.12: a `feat:` commit in a branch merged under a plain title gives a minor version). A rebase merge would put every commit on `main` as a release of its own, which is why the ruleset allows merge commits only.
+GitHub writes the PR title into the merge commit, so **the PR title decides the version**: start it with `BREAKING CHANGE:` when a closed task has `breaking: true`, with `feat:` when a `feature` task has a release note, and with neither otherwise. A `BREAKING CHANGE:` pull request also moves `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt` (see [The public API](#the-public-api)). Commit messages must not contain these words, or they raise the version too (verified with GitVersion 5.12: a `feat:` commit in a branch merged under a plain title gives a minor version). A rebase merge would put every commit on `main` as a release of its own, which is why the ruleset allows merge commits only.
 
 ### Release notes
 GitHub Releases are the changelog. `.github/scripts/release-notes.cs` builds the notes from the `## Release note` sections of the task files added to `tasks/done/` since the previous tag, grouped into Breaking changes (`breaking: true`), Features (`type: feature`), Fixes (`type: bug`) and Other. A note that starts with `None.` leaves its task out. A release with no such note (a small fix without a task) gets the PR title as its note.
