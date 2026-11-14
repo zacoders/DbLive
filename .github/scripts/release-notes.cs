@@ -11,19 +11,24 @@
 //
 // Fails (exit code 1) when a closed task has no "## Release note", and with --check when the bump differs.
 // With --check or --version, also when MinCompatibleVersion changed since the previous release and is not the version
-// of this release ("Compatibility of the dblive tables" in Development.md).
+// of this release ("Compatibility of the dblive tables" in Development.md), when a PublicAPI.Unshipped.txt has lines,
+// and when a symbol left a PublicAPI.Shipped.txt and the version is not major ("The public API" in Development.md).
 // The notes are written in any case, so the PR check can show them next to the errors.
 //
 // This file is the outline. Each step is a file in release-notes/:
 //   ClosedTask.cs      the tasks moved to tasks/done/, their front matter and release note
 //   VersionBump.cs     the bump the tasks need, and the bump GitVersion gives for the PR title and the commits
 //   Compatibility.cs   MinCompatibleVersion must be the version of the release that changed it
+//   PublicApi.cs       the public API files: Unshipped moved to Shipped, a removed symbol only in a major version
 //   ReleaseNotes.cs    the Markdown
 //   Git.cs, Options.cs
+// and public-api/ApiFile.cs of public-api.cs, which reads the public API files.
 
 #:include release-notes/ClosedTask.cs
 #:include release-notes/VersionBump.cs
 #:include release-notes/Compatibility.cs
+#:include release-notes/PublicApi.cs
+#:include public-api/ApiFile.cs
 #:include release-notes/ReleaseNotes.cs
 #:include release-notes/Git.cs
 #:include release-notes/Options.cs
@@ -48,7 +53,10 @@ string version = options.Version ?? given.Next(previous);
 var errors = new List<string>();
 errors.AddRange(ClosedTask.Check(tasks));
 if (versionKnown)
+{
 	errors.AddRange(Compatibility.Check(previous, version));
+	errors.AddRange(PublicApi.Check(previous, version));
+}
 if (options.Check)
 	errors.AddRange(VersionBump.Check(needed, given));
 

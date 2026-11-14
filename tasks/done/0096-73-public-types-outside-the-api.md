@@ -55,13 +55,14 @@ It stays public: `DbLiveBuilder.CreateDbLiveDA()` returns it, and Section 11.4 l
 
 `TreatWarningsAsErrors` (`src/Directory.Build.props`) makes the diagnostics build errors: RS0016, a public symbol not in the files; RS0017, a symbol of the files that is gone. A change of the public API does not build until the files say it, and the files are in the pull request.
 
-The rules for the two files:
+The rules for the two files (changed 2026-11-14, see "The files and the check" below; the first ones were: `Shipped` is the API of the last major version, `Unshipped` what changed since, moved to `Shipped` by hand in a major release):
 
-- `Shipped`: the public API of the last major version. `Unshipped`: what changed since.
-- An added symbol goes to `Unshipped` (the code fix of RS0016 in the IDE). Nothing moves in a minor or patch release: every merge to `main` is a release.
-- A removed or changed symbol of `Shipped` gets a `*REMOVED*` line in `Unshipped`. It is a breaking change: a major version only, the title of the pull request starts with `BREAKING CHANGE:`.
-- A major release moves `Unshipped` to `Shipped`, and the removed lines leave `Shipped`.
-- 2.0.0 is not released yet, so until it is, a line of `Shipped` is deleted instead of marked `*REMOVED*`.
+- `Shipped`: the public API on `main`, the API of the latest release, because every merge to `main` is a release. `Unshipped`: the draft of a branch, where the code fix of RS0016 writes; empty on `main`.
+- A pull request moves its `Unshipped` to `Shipped` before the merge, with `dotnet run .github/scripts/public-api.cs`.
+- A symbol removed from `Shipped`, or changed, is a breaking change: a major version only, the title of the pull request starts with `BREAKING CHANGE:`.
+
+### The files and the check
+Decided 2026-11-14: the first rules needed a move by hand once per major version, which is easy to forget, and missed a break: a symbol added in a minor version stayed in `Unshipped`, and deleting its line was not marked as a removal. So `Shipped` is the API on `main`, a script does the move, and `release-notes.cs` checks both in the PR check and on `main` before the release: a `PublicAPI.Unshipped.txt` with lines fails it, and so does a line of a `PublicAPI.Shipped.txt` of the previous release that is gone when the version is not major.
 
 The analyzer comes first, with the public API as it is now in `Shipped`: the commit that makes the types internal then shows in `Shipped` what left the API.
 
@@ -86,8 +87,8 @@ These remove and move documented API: the task is `breaking: true`.
 - `docs/versioning.md` (the last paragraph: which public types the policy does not cover; a provider outside this repository is not supported)
 - `docs/llms-full.txt` §8.2 and §17 (namespaces), §11 (the namespaces; 11.1 without `ConfigureServices` and `CreateProject`, with `LogTo` and `SetScriptSource`; 11.4: `IDbLiveDA` has all its members, not "selected members"), §13 (usings)
 - `docs/deployment/index.md` (logging: `LogTo`), `docs/unit-testing/index.md` and `docs/unit-testing/deployment-tests.md` (usings), the READMEs of the Testcontainers packages (usings)
-- `Development.md` (the public API files: what to do on RS0016 and RS0017; "Releases": a major release moves `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`; what is public and in which namespaces)
-- The template `DbLive.Templates`, the demo test projects and `.github/scripts/package-tests.cs` (usings)
+- `Development.md` ("Scripts": `public-api.cs`; "The public API": the files, what to do on RS0016 and RS0017, the move before the merge, the check, what is public and in which namespaces; "Version" and "Release notes": the checks of the public API files)
+- The template `DbLive.Templates`, the demo test projects and `.github/scripts/package-tests.cs` (usings); the comment of `.github/workflows/release-notes.yml`
 
 ## Done when
 - [x] `PublicApiAnalyzers` in the six packages, committed with the API as it was before this task in `PublicAPI.Shipped.txt`
@@ -95,6 +96,7 @@ These remove and move documented API: the task is `breaking: true`.
 - [x] `IDbLiveDA` has only the members of Section 11.4; the members for the `dblive` tables and their DTOs are internal
 - [x] Public types have public only what a user calls or reads; `CreateProject()`, the project models and `ConfigureServices` are internal, with `LogTo` and `SetScriptSource` instead
 - [x] The public types are in `DbLive`, `DbLive.Testing`, `DbLive.Schema`, `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`
+- [x] `PublicAPI.Shipped.txt` is the API on `main`: `public-api.cs` moves `Unshipped` there, and the "Release notes" check fails on a non-empty `Unshipped` and on a removed symbol without a major version
 - [x] Docs updated
 
 ## Notes
@@ -117,12 +119,17 @@ These remove and move documented API: the task is `breaking: true`.
 - `docs/versioning.md` names the types that the listed ones return (`TestRunResult`, `SqlResult`, `SchemaSnapshot`, `SchemaDiff`) and says that the constructors of what DbLive returns or throws are not part of the API.
 - Two release notes of tasks closed for the same release (2.0.0) said the opposite of this one; they are updated, with a line in their Notes: 0096-06 ("`InvalidMigrationItemTypeException` is now public too" left it) and 0096-19 (the types the documentation does not describe are internal, no longer "may change in any version").
 - `FileData.MatchesHash(long)`, which knows the legacy hashes, is internal with `FileData`.
+- 2026-11-14, maintainer: moving `Unshipped` to `Shipped` by hand once per major version is a bad mechanism, it is easy to forget. See The files and the check.
+- `public-api.cs` keeps the order of the code fix of RS0016, by `OrdinalIgnoreCase` (all twelve files were in that order), and the line endings of each `Shipped`: the move of this branch added 95 lines to the `Shipped` of `DbLive` and 16 to that of `DbLive.xunit`, and changed no other line. Its step `public-api/ApiFile.cs` reads the files for `release-notes.cs` too.
+- The check of removed symbols compares with `PublicAPI.Shipped.txt` of the previous release tag; a package without the file at that tag is skipped, so 2.0.0 (1.5.0 has no files) is not checked. Verified with a local tag on the commit before the move: a plain title fails on the 252 symbols of `DbLive` and 16 of `DbLive.xunit` that moved to other namespaces, `BREAKING CHANGE:` passes. The check of `Unshipped` failed before the move with 95 and 16 lines, and passes after it.
+- Not seen by the check: a member added to an interface that users implement (`IScriptSource`, `IDbLiveFixtureBuilder`) is an added line, but breaks their implementations. `Development.md` says so.
 
 ## Result
-- `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 in the six packages with a C# API; `PublicAPI.Shipped.txt` got the API as it was (first commit), and the second commit deletes from it what left the API: 393 lines of `DbLive`, 31 of each provider, 8 of `DbLive.xunit`. `Development.md` has the rules ("The public API") and a line in "Version" on the move of `Unshipped` to `Shipped`.
+- `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 in the six packages with a C# API; `PublicAPI.Shipped.txt` got the API as it was (first commit), and the second commit deletes from it what left the API: 393 lines of `DbLive`, 31 of each provider, 8 of `DbLive.xunit`. `Development.md` has the rules ("The public API").
 - Every public type is described in the docs or in the signature of a described one (list under Notes). 60 types of `DbLive`, the provider DA classes and `Bootstrapper`s, and the xUnit plumbing of `DbLive.xunit` are internal; 4 unused types are deleted.
 - `IDbLiveDA` has the 7 members of Section 11.4; the others are in the internal `IDbLiveInternalDA : IDbLiveDA`, with their DTOs internal. One provider instance serves both interfaces.
 - `InMemoryScriptSource` moved from `DbLive.Tests.Common` to `DbLive.Tests` and is internal.
 - Third commit (decided 2026-11-14): the constructors and setters of what DbLive returns or throws are internal, and the classes the user does not derive from are sealed. `CreateProject()`, `IDbLiveProject` and its models are internal. `ConfigureServices` is internal; `LogTo(ILogger)` and `SetScriptSource(IScriptSource)` replace its two documented uses. The public types are in `DbLive`, `DbLive.Testing`, `DbLive.Schema` and `DbLive.xunit` (and the provider namespaces). `DbLive` has 46 public types and 186 lines of public API, from 120 types and 736 lines.
+- Fourth commit (decided 2026-11-14): `PublicAPI.Shipped.txt` is the API on `main`. `.github/scripts/public-api.cs` moves `Unshipped` to `Shipped`, and `release-notes.cs` fails a release whose `Unshipped` has lines or that removes a public symbol without a major version. The `Unshipped` of this branch is moved: `Shipped` is the API of 2.0.0.
 - Docs: `docs/versioning.md` (what the policy covers; every public type is in that list; constructors are not; a provider outside the repository is not supported), `docs/llms-full.txt` §8.2, §11, §13 and §17, `docs/deployment/index.md`, `docs/unit-testing/`, the READMEs of the Testcontainers packages; usings of the template, the demos and the package tests.
 - Tests: new `Discovered_test_case_survives_serialization` and four tests of `LogTo` and `SetScriptSource`. `DbLive.Tests` 477, `DbLive.MSSQL.Tests` 77, `DbLive.PostgreSQL.Tests` 55, `DemoMSSQL.Tests` 13, `Demo.PostgreSQL.Chinook.Tests` 6, `AdventureWorks.Tests` 5 pass.

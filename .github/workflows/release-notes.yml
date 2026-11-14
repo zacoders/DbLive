@@ -1,7 +1,8 @@
 name: Release notes
 
 # Previews the release notes of a pull request in the job summary and checks them ("Releases" in Development.md):
-# every task closed by the PR has "## Release note", and the PR title gives the version bump the tasks need.
+# every task closed by the PR has "## Release note", and the PR title gives the version bump the tasks need; every
+# PublicAPI.Unshipped.txt is empty, and a public symbol removed since the previous release needs a major version.
 # "edited" re-runs the check when the title changes, without rebuilding the solution.
 on:
   pull_request:
