@@ -19,7 +19,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -79,7 +79,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			insert into dblive.code (relative_path, status, execution_time_ms, applied_utc, created_utc, verified_utc, content_hash)
 			values ('Code\public\v1.sql', 'applied', 1, '2026-01-01', '2026-01-01', '2026-01-03', 1) -- verified last
@@ -127,7 +127,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// what DbLive stored before relative paths were lower-cased.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			insert into dblive.code (relative_path, status, execution_time_ms, applied_utc, created_utc, verified_utc, content_hash)
 			values ('Code/public/V1.sql', 'applied', 1, '2026-01-01', '2026-01-01', '2026-01-03', 1) -- verified last
@@ -185,7 +185,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateTester().RunAllTestsAsync();
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal(["migrations/001.migration.sql:migration"], await RowsAsync(da, "select relative_path, item_type from dblive.migration"));
 		Assert.Equal(["code/public/v1.sql:applied"], await RowsAsync(da, "select relative_path, status from dblive.code"));
 		Assert.Equal(["tests/t1.sql:True"], await RowsAsync(da, "select relative_path, pass from dblive.unit_test_run"));
@@ -267,7 +267,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
 		Assert.Equal(
 			["tests/orders/select-order.sql:False"],
-			await RowsAsync(builder.CreateDbLiveDA(), "select relative_path, pass from dblive.unit_test_run")
+			await RowsAsync(builder.GetRequiredService<IDbLiveInternalDA>(), "select relative_path, pass from dblive.unit_test_run")
 		);
 	}
 
@@ -287,13 +287,13 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveInternalDA da, string storedPath) =>
 		(await da.GetCodeItemsAsync()).SingleOrDefault(row => row.RelativePath == storedPath);
 
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
+	private static async Task<long> ScalarAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 
-	private static async Task<List<string>> RowsAsync(IDbLiveDA da, string query)
+	private static async Task<List<string>> RowsAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return results.Single().Rows.Select(r => $"{r[0]}:{r[1]}").ToList();

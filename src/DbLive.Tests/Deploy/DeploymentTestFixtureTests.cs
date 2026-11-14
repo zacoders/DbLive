@@ -12,7 +12,7 @@ public class DeploymentTestFixtureTests
 	public async Task Deploys_as_production_release_then_breaking_twice()
 	{
 		IDbLive dbLive = Substitute.For<IDbLive>();
-		IDbLiveDA da = Substitute.For<IDbLiveDA>();
+		IDbLiveInternalDA da = Substitute.For<IDbLiveInternalDA>();
 		IDbLiveTester tester = Substitute.For<IDbLiveTester>();
 		da.GetSchemaSnapshotAsync().Returns(_ => new SchemaSnapshot([]));
 		DeploymentTestFixture fixture = new(new FixtureBuilder(dbLive, da, tester), dropDatabaseOnComplete: false);
@@ -44,7 +44,7 @@ public class DeploymentTestFixtureTests
 	public async Task Second_breaking_deployment_that_changes_the_schema_fails()
 	{
 		IDbLive dbLive = Substitute.For<IDbLive>();
-		IDbLiveDA da = Substitute.For<IDbLiveDA>();
+		IDbLiveInternalDA da = Substitute.For<IDbLiveInternalDA>();
 		SchemaObject phone = new(SchemaObjectType.Column, "dbo.Person.Phone", "varchar(20) null", "dbo.Person");
 		da.GetSchemaSnapshotAsync().Returns(new SchemaSnapshot([phone]), new SchemaSnapshot([]));
 		DeploymentTestFixture fixture = new(new FixtureBuilder(dbLive, da, Substitute.For<IDbLiveTester>()), dropDatabaseOnComplete: false);
@@ -61,7 +61,7 @@ public class DeploymentTestFixtureTests
 	[Fact]
 	public async Task DisposeAsync_DropsTheDatabase_AndDisposesTheBuilder()
 	{
-		IDbLiveDA da = Substitute.For<IDbLiveDA>();
+		IDbLiveInternalDA da = Substitute.For<IDbLiveInternalDA>();
 		FixtureBuilder fixtureBuilder = new(Substitute.For<IDbLive>(), da, Substitute.For<IDbLiveTester>());
 		DeploymentTestFixture fixture = new(fixtureBuilder, dropDatabaseOnComplete: true);
 		await fixture.InitializeAsync();
@@ -72,13 +72,13 @@ public class DeploymentTestFixtureTests
 		Assert.Throws<ObjectDisposedException>(() => fixtureBuilder.Builder!.CreateDeployer());
 	}
 
-	private sealed class FixtureBuilder(IDbLive dbLive, IDbLiveDA da, IDbLiveTester tester) : IDbLiveFixtureBuilder
+	private sealed class FixtureBuilder(IDbLive dbLive, IDbLiveInternalDA da, IDbLiveTester tester) : IDbLiveFixtureBuilder
 	{
 		public DbLiveBuilder? Builder { get; private set; }
 
 		public Task<DbLiveBuilder> GetBuilderAsync()
 		{
-			Builder = new DbLiveBuilder().ConfigureServices(services => services.AddSingleton(dbLive).AddSingleton(da).AddSingleton(tester));
+			Builder = new DbLiveBuilder().ConfigureServices(services => services.AddSingleton(dbLive).AddSingleton(da).AddSingleton<IDbLiveDA>(da).AddSingleton(tester));
 			return Task.FromResult(Builder);
 		}
 

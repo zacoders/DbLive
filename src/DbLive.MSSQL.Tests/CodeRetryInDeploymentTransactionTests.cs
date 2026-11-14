@@ -17,7 +17,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -30,7 +30,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal(["M"], await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
 		Assert.Equal(["A", "C"], await ListAsync(da, "select name from sys.views"));
 		Assert.Equal(["code/a.sql:applied", "code/c.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
@@ -57,7 +57,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 		Assert.Equal(error, Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
 		// nothing is committed: neither the migration before the error nor the file after it.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
 		Assert.Empty(await ListAsync(da, "select name from sys.views"));
 		Assert.Empty(await ListAsync(da, "select version from dblive.migration"));
@@ -81,7 +81,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 		// the message goes on with "Process ID <n> has raised user error 50000, severity 20. SQL Server is terminating this process."
 		Assert.StartsWith("boom", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
 		Assert.Empty(await ListAsync(da, "select name from sys.views"));
 		Assert.Empty(await ListAsync(da, "select version from dblive.migration"));
@@ -104,7 +104,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 		System.Transactions.TransactionException transactionEx = Assert.IsType<System.Transactions.TransactionException>(codeEx.InnerException);
 		_ = Assert.IsType<TimeoutException>(transactionEx.InnerException);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
 		Assert.Empty(await ListAsync(da, "select version from dblive.migration"));
 	}
@@ -128,7 +128,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 			.SetScriptsFolder(project.Path);
 	}
 
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
+	private static async Task<List<string>> ListAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];

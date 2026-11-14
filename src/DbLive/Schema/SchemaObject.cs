@@ -4,7 +4,7 @@ namespace DbLive.Schema;
 /// One object of a <see cref="SchemaSnapshot"/>. <see cref="Name"/> identifies the object within its type,
 /// <see cref="Definition"/> describes it in the engine's own terms: two snapshots of one database compare by text.
 /// </summary>
-public sealed record SchemaObject
+internal sealed record SchemaObject
 {
 	internal SchemaObject(SchemaObjectType type, string name, string definition, string? parent = null)
 	{

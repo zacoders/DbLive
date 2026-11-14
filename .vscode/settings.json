@@ -6,6 +6,7 @@
     },
     "dotnet.unitTests.runSettingsPath": "src/.runsettings",
     "cSpell.words": [
-        "Deployers"
+        "Deployers",
+        "Serilog"
     ]
 }

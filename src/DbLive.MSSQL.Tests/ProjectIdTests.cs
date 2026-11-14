@@ -78,7 +78,7 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 			.SetScriptsFolder(project.Path);
 	}
 
-	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveDA da)
+	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveInternalDA da)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("""
 			select * from dblive.version;
@@ -93,7 +93,7 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 		);
 	}
 
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
+	private static async Task<long> ScalarAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

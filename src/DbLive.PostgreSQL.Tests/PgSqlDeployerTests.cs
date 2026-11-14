@@ -10,7 +10,7 @@ namespace DbLive.PostgreSQL.Tests;
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
-	private readonly IDbLiveDA _da;
+	private readonly IDbLiveInternalDA _da;
 
 	public PgSqlDeployerTests(PostgreSqlFixture _fixture, ITestOutputHelper output) : base(output)
 	{
@@ -20,7 +20,7 @@ public class PgSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<Postgre
 		var cnn = new DbLiveDbConnection(_fixture.PostgresDBConnectionString);
 		_ = Container.AddSingleton<IDbLiveDbConnection>(cnn);
 
-		_da = GetService<IDbLiveDA>();
+		_da = GetService<IDbLiveInternalDA>();
 	}
 
 	public async Task InitializeAsync()

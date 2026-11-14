@@ -1,6 +1,6 @@
 ﻿namespace DbLive;
 
-public sealed class SqlResult
+internal sealed class SqlResult
 {
 	public List<SqlColumn> Columns { get; } = [];
 	public List<SqlRow> Rows { get; } = [];

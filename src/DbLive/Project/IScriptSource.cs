@@ -1,9 +1,10 @@
 namespace DbLive;
 
 /// <summary>
-/// The files of a DbLive project.
+/// The files of a DbLive project: embedded in an assembly (<see cref="DbLiveBuilderExtensions.SetProject"/>)
+/// or in a folder (<see cref="DbLiveBuilderExtensions.SetScriptsFolder"/>).
 /// </summary>
-public interface IScriptSource
+internal interface IScriptSource
 {
 	/// <summary>
 	/// Where the scripts come from, for logs and exception messages: "DemoMSSQL.dll" or the folder path.

@@ -1,7 +1,7 @@
 ﻿namespace DbLive;
 
 
-public sealed record SqlColumn
+internal sealed record SqlColumn
 {
 	internal SqlColumn(string columnName, string dataType)
 	{

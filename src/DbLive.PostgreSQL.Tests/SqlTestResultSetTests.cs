@@ -25,14 +25,14 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Result_set_of_a_select_without_the_key_column_has_no_hidden_columns()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA();
+		IDbLiveInternalDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
 
 		await da.ExecuteNonQueryAsync(UsersTable);
 		await da.ExecuteNonQueryAsync(Arrange);
@@ -69,7 +69,7 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateTester().RunAllTestsAsync();
 
-		List<SqlResult> testRuns = await builder.CreateDbLiveDA().ExecuteQueryMultipleAsync(
+		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveInternalDA>().ExecuteQueryMultipleAsync(
 			"select relative_path, pass from dblive.unit_test_run");
 
 		Assert.Equal(

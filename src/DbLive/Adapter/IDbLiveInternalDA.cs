@@ -1,11 +1,40 @@
 namespace DbLive.Adapter;
 
 /// <summary>
-/// The data access that the deployment and the tests use: DbLive's own tables (<c>dblive</c>) and the code files.
+/// The data access that the deployment and the tests use: the database, DbLive's own tables (<c>dblive</c>) and the code files.
 /// Internal: a provider outside this repository is not supported. <see cref="IDbLiveDA"/> is the public part.
 /// </summary>
 internal interface IDbLiveInternalDA : IDbLiveDA
 {
+	DbProvider Provider { get; }
+
+	Task CreateDBAsync(bool skipIfExists = true);
+
+	/// <summary>
+	/// Checks that the database of the connection string exists. Returns when it exists, and when the server
+	/// does not tell: the next connection to the database then fails with the error of the provider.
+	/// </summary>
+	/// <exception cref="DatabaseNotFoundException">The server confirms that the database does not exist.</exception>
+	Task CheckDatabaseExistsAsync();
+
+	/// <exception cref="DbLiveSqlException"/>
+	Task ExecuteNonQueryAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	);
+
+	Task<List<SqlResult>> ExecuteQueryMultipleAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	);
+
+	/// <summary>
+	/// Reads the schema of the database from its catalog, for the schema check of the deployment test (<see cref="SchemaChangedException"/>).
+	/// </summary>
+	Task<SchemaSnapshot> GetSchemaSnapshotAsync();
+
 	/// <summary>
 	/// Called inside the ambient transaction: true when later statements still run in that transaction. Has no side effects.
 	/// On PostgreSQL an error aborts the transaction until the end of the transaction (<see cref="ExecuteCodeItemAsync"/> undoes
@@ -19,7 +48,7 @@ internal interface IDbLiveInternalDA : IDbLiveDA
 	/// Executes a code file. Inside the ambient transaction, an error of the file leaves the transaction usable when the provider can,
 	/// so that the file can be retried in it after the files it depends on; <see cref="IsTransactionUsableAsync"/> tells whether it did.
 	/// On PostgreSQL the error also undoes the statements of the file that ran before it. On SQL Server they stay in the transaction,
-	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction: <see cref="IDbLiveDA.ExecuteNonQueryAsync"/>.
+	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction: <see cref="ExecuteNonQueryAsync"/>.
 	/// </summary>
 	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
 	Task ExecuteCodeItemAsync(

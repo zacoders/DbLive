@@ -12,8 +12,8 @@ public sealed class TestRunResult
 	internal DateTime StartedUtc { get; set; }
 	internal DateTime CompletedUtc { get; set; }
 
-	public long ExecutionTimeMs { get; internal set; }
+	internal long ExecutionTimeMs { get; set; }
 
 	public Exception? Exception { get; internal set; }
-	public string Output { get; internal set; } = "";
+	internal string Output { get; set; } = "";
 }

@@ -1,11 +1,11 @@
 namespace DbLive.Schema;
 
 /// <summary>
-/// The schema of a database read from its catalog by <see cref="IDbLiveDA.GetSchemaSnapshotAsync"/>, without DbLive's own
+/// The schema of a database read from its catalog by <see cref="IDbLiveInternalDA.GetSchemaSnapshotAsync"/>, without DbLive's own
 /// <c>dblive</c> schema, object ids, current identity and sequence values and statistics.
 /// Two snapshots are compared by <see cref="SchemaDiff.Compare"/>.
 /// </summary>
-public sealed class SchemaSnapshot
+internal sealed class SchemaSnapshot
 {
 	private readonly Dictionary<(SchemaObjectType Type, string Name), SchemaObject> _objects = [];
 

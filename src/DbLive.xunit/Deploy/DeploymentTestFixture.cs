@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace DbLive.xunit;
 
 
-public class DeploymentTestFixture(
+public sealed class DeploymentTestFixture(
 		IDbLiveFixtureBuilder builderProvider,
 		bool dropDatabaseOnComplete
 	)
@@ -71,7 +71,7 @@ public class DeploymentTestFixture(
 		await deployer.DeployAsync(DeployParameters.Breaking).ConfigureAwait(false);
 		await tester.RunAllTestsAsync().ConfigureAwait(false);
 
-		IDbLiveDA da = _builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = _builder.GetRequiredService<IDbLiveInternalDA>();
 		SchemaSnapshot beforeSecondRun = await da.GetSchemaSnapshotAsync().ConfigureAwait(false);
 
 		// the second breaking run: code breaking scripts run again (they must be idempotent),

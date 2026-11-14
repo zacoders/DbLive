@@ -21,7 +21,8 @@ public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 
 	/// <summary>
 	/// Adds a registration to the container. Internal: the container is not part of the API; a user sets the logger
-	/// and the script source with <see cref="DbLiveBuilderExtensions.LogTo"/> and <see cref="DbLiveBuilderExtensions.SetScriptSource"/>.
+	/// with <see cref="DbLiveBuilderExtensions.LogTo"/>, the scripts with <see cref="DbLiveBuilderExtensions.SetProject"/>
+	/// or <see cref="DbLiveBuilderExtensions.SetScriptsFolder"/>.
 	/// </summary>
 	internal DbLiveBuilder ConfigureServices(Action<IServiceCollection> configure)
 	{

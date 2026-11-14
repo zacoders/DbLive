@@ -648,7 +648,7 @@ Command timeouts (the `*Timeout` settings except `DeploymentTimeout`, which is a
 
 ## 11. C# API
 
-Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `IDbLive`, `DeployParameters`, `IDbLiveDA` with its types, `IScriptSource`, `IDbLiveFixtureBuilder`, and the exceptions of Section 17 but three. The SQL tests are in `DbLive.Testing` (`IDbLiveTester`, `TestRunResult`, `UnitTestsFailedException`, `DatabaseNotDeployedException`), the schema check in `DbLive.Schema` (`SchemaSnapshot`, `SchemaDiff`, `SchemaChangedException`), the providers in `DbLive.MSSQL` and `DbLive.PostgreSQL`, the xUnit integration in `DbLive.xunit`. Every other type is internal (see [Versioning](https://zacoders.github.io/DbLive/versioning/)).
+Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `IDbLive`, `DeployParameters`, `IDbLiveDA`, `IDbLiveFixtureBuilder`, and the exceptions of Section 17 but three. The tests are in `DbLive.Testing` (`IDbLiveTester`, `TestRunResult`, `UnitTestsFailedException`, `DatabaseNotDeployedException`, and `SchemaChangedException` of the deployment test), the providers in `DbLive.MSSQL` and `DbLive.PostgreSQL`, the xUnit integration in `DbLive.xunit`. Every other type is internal (see [Versioning](https://zacoders.github.io/DbLive/versioning/)).
 
 ### 11.1 `DbLiveBuilder` (namespace `DbLive`)
 
@@ -656,7 +656,7 @@ Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `
 public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 {
     public IDbLive CreateDeployer();
-    public IDbLiveDA CreateDbLiveDA();      // raw database access, create/drop database
+    public IDbLiveDA CreateDbLiveDA();      // drop the database: tests without xUnit (Section 8.2)
     public IDbLiveTester CreateTester();    // DbLive.Testing: run all SQL tests, or one by relative path
 }
 ```
@@ -670,12 +670,11 @@ Extension methods:
 | `.SetDbConnection(string sqlDbConnectionString)` | `DbLive` | Target database. The database name in it is created when `CreateDbIfNotExists` is true. |
 | `.SetProject(Assembly)` | `DbLive` | Read the scripts embedded in the SQL project assembly (Sections 3.1, 3.4). |
 | `.SetScriptsFolder(string scriptsPath)` | `DbLive` | Read the scripts from a folder instead (Section 3.4). |
-| `.SetScriptSource(IScriptSource)` | `DbLive` | Read the scripts from your own source instead (below). |
 | `.LogToConsole()` | `DbLive` | Serilog console logger. |
 | `.LogTo(Serilog.ILogger)` | `DbLive` | Any Serilog logger. The builder does not dispose it. |
 | `.LogToXUnitOutput(ITestOutputHelper)` | `DbLive.xunit` | Log to xUnit test output. |
 
-Exactly one provider, one connection and one project (`SetProject`, `SetScriptsFolder` or `SetScriptSource`) are required; when one of them is set twice, the last call wins. Scripts from another place: implement `IScriptSource` (`Location` for logs, `GetFiles()` with relative paths using `/`, `ReadAsync(relativePath)`; a builder calls `ReadAsync` once per file) and pass it to `SetScriptSource`. Calling a configuration method after `Create*` creates the objects anew on the next `Create*` call. The builder has no other configuration: the dependency injection inside it is internal.
+Exactly one provider, one connection and one project (`SetProject` or `SetScriptsFolder`) are required; when one of them is set twice, the last call wins. DbLive reads the scripts only from the SQL project assembly or a folder. Calling a configuration method after `Create*` creates the objects anew on the next `Create*` call. The builder has no other configuration: the dependency injection inside it is internal.
 
 Connection string helpers (handy for tests):
 
@@ -713,28 +712,20 @@ Even with all flags off, a deployment still performs: ProjectId validation, self
 
 ### 11.4 `IDbLiveDA` (namespace `DbLive`)
 
-All its members. What DbLive reads and writes in its own tables (Section 15) is internal: a provider written outside the DbLive repository is not supported.
-
 ```csharp
-DbProvider Provider { get; }
-Task CreateDBAsync(bool skipIfExists = true);
-Task CheckDatabaseExistsAsync();   // DatabaseNotFoundException when the server confirms that the database does not exist
 Task DropDbAsync(bool skipIfNotExists = true);   // SQL Server: single_user + rollback immediate; PostgreSQL: terminates sessions
-Task ExecuteNonQueryAsync(string sqlStatement, TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, TimeSpan? timeout = null);
-Task<List<SqlResult>> ExecuteQueryMultipleAsync(string sqlStatement, TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted, TimeSpan? timeout = null);
-Task<SchemaSnapshot> GetSchemaSnapshotAsync();   // the schema read from the catalog, for the schema check of [SqlDeployFact] (Section 13.3)
 ```
 
-`SchemaSnapshot` (namespace `DbLive.Schema`): `Objects` (`SchemaObject(Type, Name, Definition, Parent)`), `Find(type, name)`. `SchemaDiff.Compare(before, after)`: `Missing`, `Extra`, `Changed`, `IsEmpty`; `ToString()` gives the lines of the failure message.
+Its only member: a test that creates its own database drops it at the end (Section 8.2); the fixtures of `DbLive.xunit` drop theirs. The rest of DbLive's database access is internal: `DeployAsync` creates and checks the database, and other SQL runs on a connection of your own (ADO.NET, Dapper). A provider written outside the DbLive repository is not supported.
 
-SQL errors surface as `DbLiveSqlException` (`SqlError` holds provider details: number, severity, line). `SqlError` is empty when the error does not come from the server: a command timeout, a lost connection. The message has the cause then: on PostgreSQL the distinct messages of the provider's exception chain, one per line, because Npgsql wraps the cause in `NpgsqlException` "Exception while reading from stream" (a command timeout: `Timeout during reading attempt`). The provider's exception is the inner exception.
+A SQL error of a script is a `DbLiveSqlException` (`SqlError` holds provider details: number, severity, line), the inner exception of the deployment errors of Section 17. `SqlError` is empty when the error does not come from the server: a command timeout, a lost connection. The message has the cause then: on PostgreSQL the distinct messages of the provider's exception chain, one per line, because Npgsql wraps the cause in `NpgsqlException` "Exception while reading from stream" (a command timeout: `Timeout during reading attempt`). The provider's exception is the inner exception.
 
 ### 11.5 `IDbLiveTester` (namespace `DbLive.Testing`)
 
 ```csharp
 Task RunAllTestsAsync();   // all SQL tests in parallel, results in dblive.unit_test_run; throws UnitTestsFailedException (Section 8.2)
 Task<TestRunResult> RunTestAsync(Action<string> writeLine, string relativePath);   // one test, used by [SqlFact]
-// TestRunResult (DbLive.Testing): IsSuccess, ErrorMessage, Output, Exception, ExecutionTimeMs
+// TestRunResult (DbLive.Testing): IsSuccess, ErrorMessage, Exception; the output of the test goes to writeLine
 ```
 
 `RunAllTestsAsync` checks the database first (DbLive tables, the minimum DbLive version, ProjectId, isolation levels; Section 8.2). `RunTestAsync` does not check and does not store the result: the `[SqlFact]` fixture has just deployed the database.
@@ -879,7 +870,7 @@ public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
 
 A deployment where every migration runs once, in one run with the breaking phase, followed by every SQL test on that data, is what the `[SqlFact]` fixture does (Section 13.2): keep both. Limit: on a fresh database an old version such as `_v1` never existed, so dropping an `_v1` that really exists is not tested (it needs the build of the previous release). Keep this test in CI.
 
-Schema check. A script that runs without an error is not enough: the deployment test reads the schema from the catalog (`sys.*` views, `pg_catalog`) before and after the last deployment, `DeployParameters.Breaking` once more, in which the breaking scripts of the Code folder, BeforeDeploy and AfterDeploy run again. A difference fails the case with `SchemaChangedException` (namespace `DbLive.Schema`; `Diff` holds the differences).
+Schema check. A script that runs without an error is not enough: the deployment test reads the schema from the catalog (`sys.*` views, `pg_catalog`) before and after the last deployment, `DeployParameters.Breaking` once more, in which the breaking scripts of the Code folder, BeforeDeploy and AfterDeploy run again. A difference fails the case with `SchemaChangedException` (namespace `DbLive.Testing`); its message lists the differences.
 
 - Compared: schemas; tables (partitioning, unlogged, system versioning); columns (type with length/precision/scale, nullability, default, identity seed and increment, computed or generated expression, collation); primary keys, unique, foreign key (columns, referenced table, actions, disabled/not trusted) and check constraints, PostgreSQL exclusion constraints; indexes (key columns and their order, included columns, filter, unique, index type, disabled); views (also PostgreSQL materialized views), functions, procedures and triggers (definition text, disabled); user types (SQL Server alias and table types; PostgreSQL enums, domains, composite and range types); sequences (options); SQL Server synonyms and database DDL triggers; PostgreSQL extensions (version, schema) and event triggers.
 - Not compared: DbLive's own schema `dblive`; data (a breaking script whose second run deletes more rows passes); object ids; column order; names that SQL Server generates for unnamed constraints (`DF__Person__Phone__3A81B327`): such a default belongs to its column, a primary key to its table, an unnamed unique, foreign key or check constraint is identified by its table and definition; current identity and sequence values; statistics; permissions; extended properties and comments; objects that belong to a PostgreSQL extension; physical options (fill factor, compression, filegroup, partition scheme).
@@ -891,7 +882,7 @@ Failure message (one line per object; `missing`: in the earlier schema only, `ex
 A breaking script of the Code folder whose second run drops more than the first one, typically because it checks a condition on an object it drops itself:
 
 ```
-DbLive.Schema.SchemaChangedException : Deployment test: a second breaking deployment changed the schema. The breaking scripts of the Code folder and the BeforeDeploy/AfterDeploy scripts run again on it and must not change the schema:
+DbLive.Testing.SchemaChangedException : Deployment test: a second breaking deployment changed the schema. The breaking scripts of the Code folder and the BeforeDeploy/AfterDeploy scripts run again on it and must not change the schema:
   missing check constraint dbo.Person.CK_Person_Name: check ([Name]<>'')
   missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
   missing table dbo.PersonPhones (with 3 columns, 1 primary key)

@@ -32,7 +32,7 @@ public class FixtureBuilderTests
 		Assert.Matches("^DbLive--[0-9a-f-]{36}$", secondCnn.InitialCatalog);
 		Assert.NotEqual(firstCnn.InitialCatalog, secondCnn.InitialCatalog);
 
-		Assert.Equal(DbProvider.MsSql, first.CreateDbLiveDA().Provider);
+		AssertProvider(DbProvider.MsSql, first);
 		await AssertProjectAsync(fixtureBuilder, first);
 	}
 
@@ -55,12 +55,20 @@ public class FixtureBuilderTests
 		Assert.Matches("^dblive--[0-9a-f-]{36}$", secondCnn.Database);
 		Assert.NotEqual(firstCnn.Database, secondCnn.Database);
 
-		Assert.Equal(DbProvider.PostgreSql, first.CreateDbLiveDA().Provider);
+		AssertProvider(DbProvider.PostgreSql, first);
 		await AssertProjectAsync(fixtureBuilder, first);
 	}
 
 	private static string GetConnectionString(DbLiveBuilder builder) =>
 		builder.GetRequiredService<IDbLiveDbConnection>().ConnectionString;
+
+	private static void AssertProvider(DbProvider expected, DbLiveBuilder builder)
+	{
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		Assert.Equal(expected, da.Provider);
+		// the public part, CreateDbLiveDA(), is the same instance.
+		Assert.Same(da, builder.CreateDbLiveDA());
+	}
 
 	private static async Task AssertProjectAsync(IDbLiveFixtureBuilder fixtureBuilder, DbLiveBuilder builder)
 	{

@@ -1,4 +1,4 @@
-namespace DbLive.Schema;
+namespace DbLive.Testing;
 
 /// <summary>
 /// The schema check of the deployment test (<c>[SqlDeployFact]</c>) failed: a second breaking deployment changed the schema.
@@ -13,5 +13,5 @@ public sealed class SchemaChangedException : Exception
 		Diff = diff;
 	}
 
-	public SchemaDiff Diff { get; }
+	internal SchemaDiff Diff { get; }
 }

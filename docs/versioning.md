@@ -16,7 +16,7 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 
 ## What the policy covers
 
-- **The C# API described in the documentation**, listed in Section 11 of the [reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): `DbLiveBuilder` and its extension methods, the connection string helpers, `IDbLive`, `DeployParameters`, `IDbLiveTester`, `IScriptSource`, `IDbLiveDA`, the types their members return (`TestRunResult`, `SqlResult`, `SchemaSnapshot` and `SchemaDiff`), and the exceptions DbLive throws to the caller (Section 17): their types and properties, not their constructors.
+- **The C# API described in the documentation**, listed in Section 11 of the [reference for AI agents](https://zacoders.github.io/DbLive/llms-full.txt): `DbLiveBuilder` and its extension methods, the connection string helpers, `IDbLive`, `DeployParameters`, `IDbLiveTester`, `IDbLiveDA`, the type their members return (`TestRunResult`), and the exceptions DbLive throws to the caller (Section 17): their types and properties, not their constructors.
 - **Testing**: `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` (`DbLive.xunit`) and what the tests check; `IDbLiveFixtureBuilder` and the fixture builders `MsSqlFixtureBuilder`, `PostgreSqlFixtureBuilder`, `MsSqlContainerFixtureBuilder`, `PostgreSqlContainerFixtureBuilder` (Section 11.6 of the reference).
 - **The project layout**: the folders, the file naming rules, the `settings.json` keys and the item settings files ([Project structure](project/structure.md), [Configuration](project/configuration.md)).
 - **SQL test semantics**: the `assert` result set and its values, `setup.test.sql`, the transaction a test runs in ([SQL unit testing](unit-testing/index.md)).

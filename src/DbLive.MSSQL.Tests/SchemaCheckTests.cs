@@ -1,4 +1,4 @@
-using DbLive.Schema;
+using DbLive.Testing;
 using DbLive.xunit;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;

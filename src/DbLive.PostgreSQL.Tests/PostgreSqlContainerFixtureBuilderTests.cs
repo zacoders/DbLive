@@ -27,7 +27,7 @@ public class PostgreSqlContainerFixtureBuilderTests
 
 		foreach (DbLiveBuilder builder in builders)
 		{
-			IDbLiveDA da = builder.CreateDbLiveDA();
+			IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 			await da.CreateDBAsync(skipIfExists: false);
 			await da.DropDbAsync(skipIfNotExists: false);
 			await builder.DisposeAsync();

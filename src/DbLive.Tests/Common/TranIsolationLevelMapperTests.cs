@@ -3,33 +3,36 @@ namespace DbLive.Tests.Common;
 public class TranIsolationLevelMapperTests
 {
 	[Theory]
-	[InlineData(TranIsolationLevel.ReadCommitted, IsolationLevel.ReadCommitted)]
-	[InlineData(TranIsolationLevel.RepeatableRead, IsolationLevel.RepeatableRead)]
-	[InlineData(TranIsolationLevel.Serializable, IsolationLevel.Serializable)]
-	[InlineData(TranIsolationLevel.Snapshot, IsolationLevel.Snapshot)]
-	public void ToSystemTransaction_MapsSupportedLevels(TranIsolationLevel level, IsolationLevel expected)
+	[InlineData(nameof(TranIsolationLevel.ReadCommitted), IsolationLevel.ReadCommitted)]
+	[InlineData(nameof(TranIsolationLevel.RepeatableRead), IsolationLevel.RepeatableRead)]
+	[InlineData(nameof(TranIsolationLevel.Serializable), IsolationLevel.Serializable)]
+	[InlineData(nameof(TranIsolationLevel.Snapshot), IsolationLevel.Snapshot)]
+	public void ToSystemTransaction_MapsSupportedLevels(string levelName, IsolationLevel expected)
 	{
+		TranIsolationLevel level = Enum.Parse<TranIsolationLevel>(levelName);
 		IsolationLevel actual = TranIsolationLevelMapper.ToSystemTransaction(level);
 		Assert.Equal(expected, actual);
 	}
 
 	[Theory]
-	[InlineData(TranIsolationLevel.ReadCommitted, "read committed")]
-	[InlineData(TranIsolationLevel.RepeatableRead, "repeatable read")]
-	[InlineData(TranIsolationLevel.Serializable, "serializable")]
-	[InlineData(TranIsolationLevel.Snapshot, "snapshot")]
-	public void ToSql_MsSql_MapsSupportedLevels(TranIsolationLevel level, string expected)
+	[InlineData(nameof(TranIsolationLevel.ReadCommitted), "read committed")]
+	[InlineData(nameof(TranIsolationLevel.RepeatableRead), "repeatable read")]
+	[InlineData(nameof(TranIsolationLevel.Serializable), "serializable")]
+	[InlineData(nameof(TranIsolationLevel.Snapshot), "snapshot")]
+	public void ToSql_MsSql_MapsSupportedLevels(string levelName, string expected)
 	{
+		TranIsolationLevel level = Enum.Parse<TranIsolationLevel>(levelName);
 		string actual = TranIsolationLevelMapper.ToSql(level, DbProvider.MsSql);
 		Assert.Equal(expected, actual);
 	}
 
 	[Theory]
-	[InlineData(TranIsolationLevel.ReadCommitted, "read committed")]
-	[InlineData(TranIsolationLevel.RepeatableRead, "repeatable read")]
-	[InlineData(TranIsolationLevel.Serializable, "serializable")]
-	public void ToSql_PostgreSql_MapsSupportedLevels(TranIsolationLevel level, string expected)
+	[InlineData(nameof(TranIsolationLevel.ReadCommitted), "read committed")]
+	[InlineData(nameof(TranIsolationLevel.RepeatableRead), "repeatable read")]
+	[InlineData(nameof(TranIsolationLevel.Serializable), "serializable")]
+	public void ToSql_PostgreSql_MapsSupportedLevels(string levelName, string expected)
 	{
+		TranIsolationLevel level = Enum.Parse<TranIsolationLevel>(levelName);
 		string actual = TranIsolationLevelMapper.ToSql(level, DbProvider.PostgreSql);
 		Assert.Equal(expected, actual);
 	}

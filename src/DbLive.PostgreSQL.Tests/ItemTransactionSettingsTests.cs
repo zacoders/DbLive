@@ -18,7 +18,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -62,7 +62,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		string migrationRowsQuery = "select count(*) from dblive.migration";
 		long migrationRows = await CountAsync(da, migrationRowsQuery);
 
@@ -116,7 +116,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		List<SqlResult> results = await builder.CreateDbLiveDA().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
+		List<SqlResult> results = await builder.GetRequiredService<IDbLiveInternalDA>().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
 		Assert.Equal(
 			["after deploy: repeatable read", "code: repeatable read", "migration: serializable"],
 			results.Single().Rows.Select(r => (string)r[0])
@@ -128,7 +128,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	{
 		// one connection in the pool: the next open gets the same session.
 		string cnnString = new NpgsqlConnectionStringBuilder(_dbCnnString) { MaxPoolSize = 1 }.ConnectionString;
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).CreateDbLiveDA();
+		IDbLiveInternalDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).GetRequiredService<IDbLiveInternalDA>();
 
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable);
 		int pid = (int)results.Single().Rows.Single()[0];
@@ -225,7 +225,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
 		=> items.Single(i => i.Version == version && i.ItemType == itemType);
 
-	private static async Task<long> CountAsync(IDbLiveDA da, string query)
+	private static async Task<long> CountAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

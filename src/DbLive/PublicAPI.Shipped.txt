@@ -24,9 +24,6 @@ DbLive.DbLiveBuilder.DisposeAsync() -> System.Threading.Tasks.ValueTask
 DbLive.DbLiveBuilderExtensions
 DbLive.DbLiveSqlException
 DbLive.DbLiveSqlException.SqlError.get -> string!
-DbLive.DbProvider
-DbLive.DbProvider.MsSql = 0 -> DbLive.DbProvider
-DbLive.DbProvider.PostgreSql = 1 -> DbLive.DbProvider
 DbLive.DeployParameters
 DbLive.DeployParameters.<Clone>$() -> DbLive.DeployParameters!
 DbLive.DeployParameters.CreateDbIfNotExists.get -> bool
@@ -50,13 +47,7 @@ DbLive.FolderDeploymentException.RelativePath.get -> string!
 DbLive.IDbLive
 DbLive.IDbLive.DeployAsync(DbLive.DeployParameters! parameters) -> System.Threading.Tasks.Task!
 DbLive.IDbLiveDA
-DbLive.IDbLiveDA.CheckDatabaseExistsAsync() -> System.Threading.Tasks.Task!
-DbLive.IDbLiveDA.CreateDBAsync(bool skipIfExists = true) -> System.Threading.Tasks.Task!
 DbLive.IDbLiveDA.DropDbAsync(bool skipIfNotExists = true) -> System.Threading.Tasks.Task!
-DbLive.IDbLiveDA.ExecuteNonQueryAsync(string! sqlStatement, DbLive.TranIsolationLevel isolationLevel = DbLive.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
-DbLive.IDbLiveDA.ExecuteQueryMultipleAsync(string! sqlStatement, DbLive.TranIsolationLevel isolationLevel = DbLive.TranIsolationLevel.ReadCommitted, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<System.Collections.Generic.List<DbLive.SqlResult!>!>!
-DbLive.IDbLiveDA.GetSchemaSnapshotAsync() -> System.Threading.Tasks.Task<DbLive.Schema.SchemaSnapshot!>!
-DbLive.IDbLiveDA.Provider.get -> DbLive.DbProvider
 DbLive.IDbLiveFixtureBuilder
 DbLive.IDbLiveFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
 DbLive.IDbLiveFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
@@ -64,11 +55,6 @@ DbLive.InvalidMigrationItemSettingsException
 DbLive.InvalidMigrationItemSettingsException.RelativePath.get -> string!
 DbLive.InvalidMigrationVersionException
 DbLive.InvalidMigrationVersionException.FileName.get -> string!
-DbLive.InvalidMigrationVersionException.MigrationVersionStr.get -> string!
-DbLive.IScriptSource
-DbLive.IScriptSource.GetFiles() -> System.Collections.Generic.IReadOnlyList<string!>!
-DbLive.IScriptSource.Location.get -> string!
-DbLive.IScriptSource.ReadAsync(string! relativePath) -> System.Threading.Tasks.Task<string!>!
 DbLive.MigrationChecksumMismatchException
 DbLive.MigrationDeploymentException
 DbLive.MigrationItemMustExistsException
@@ -78,110 +64,35 @@ DbLive.NotSupportedTransactionIsolationLevelException
 DbLive.ObsoleteMigrationSettingsFileException
 DbLive.ObsoleteMigrationSettingsFileException.FileName.get -> string!
 DbLive.ProjectIdMismatchException
-DbLive.Schema.SchemaChangedException
-DbLive.Schema.SchemaChangedException.Diff.get -> DbLive.Schema.SchemaDiff!
-DbLive.Schema.SchemaDiff
-DbLive.Schema.SchemaDiff.Changed.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObjectChange!>!
-DbLive.Schema.SchemaDiff.Extra.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObject!>!
-DbLive.Schema.SchemaDiff.IsEmpty.get -> bool
-DbLive.Schema.SchemaDiff.Missing.get -> System.Collections.Generic.IReadOnlyList<DbLive.Schema.SchemaObject!>!
-DbLive.Schema.SchemaObject
-DbLive.Schema.SchemaObject.<Clone>$() -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObject.Definition.get -> string!
-DbLive.Schema.SchemaObject.Equals(DbLive.Schema.SchemaObject? other) -> bool
-DbLive.Schema.SchemaObject.Name.get -> string!
-DbLive.Schema.SchemaObject.Parent.get -> string?
-DbLive.Schema.SchemaObject.Type.get -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectChange
-DbLive.Schema.SchemaObjectChange.<Clone>$() -> DbLive.Schema.SchemaObjectChange!
-DbLive.Schema.SchemaObjectChange.After.get -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObjectChange.Before.get -> DbLive.Schema.SchemaObject!
-DbLive.Schema.SchemaObjectChange.Equals(DbLive.Schema.SchemaObjectChange? other) -> bool
-DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.CheckConstraint = 6 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Column = 2 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.ExclusionConstraint = 7 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Extension = 17 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.ForeignKey = 5 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Function = 11 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Index = 8 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.MaterializedView = 10 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.PrimaryKey = 3 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Procedure = 12 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Schema = 0 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Sequence = 15 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Synonym = 16 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Table = 1 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Trigger = 13 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.Type = 14 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.UniqueConstraint = 4 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaObjectType.View = 9 -> DbLive.Schema.SchemaObjectType
-DbLive.Schema.SchemaSnapshot
-DbLive.Schema.SchemaSnapshot.Find(DbLive.Schema.SchemaObjectType type, string! name) -> DbLive.Schema.SchemaObject?
-DbLive.Schema.SchemaSnapshot.Objects.get -> System.Collections.Generic.IReadOnlyCollection<DbLive.Schema.SchemaObject!>!
 DbLive.ScriptPathsDifferOnlyByCaseException
 DbLive.ScriptPathsDifferOnlyByCaseException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DbLive.ScriptsNotEmbeddedException
 DbLive.ScriptsNotEmbeddedException.AssemblyName.get -> string!
-DbLive.SqlColumn
-DbLive.SqlColumn.<Clone>$() -> DbLive.SqlColumn!
-DbLive.SqlColumn.ColumnName.get -> string!
-DbLive.SqlColumn.DataType.get -> string!
-DbLive.SqlColumn.Equals(DbLive.SqlColumn? other) -> bool
-DbLive.SqlResult
-DbLive.SqlResult.Columns.get -> System.Collections.Generic.List<DbLive.SqlColumn!>!
-DbLive.SqlResult.GetValue<T>(string! columnName, int rowNumber) -> T?
-DbLive.SqlResult.Rows.get -> System.Collections.Generic.List<DbLive.SqlRow!>!
-DbLive.SqlRow
 DbLive.Testing.DatabaseNotDeployedException
 DbLive.Testing.IDbLiveTester
 DbLive.Testing.IDbLiveTester.RunAllTestsAsync() -> System.Threading.Tasks.Task!
 DbLive.Testing.IDbLiveTester.RunTestAsync(System.Action<string!>! writeLine, string! relativePath) -> System.Threading.Tasks.Task<DbLive.Testing.TestRunResult!>!
+DbLive.Testing.SchemaChangedException
 DbLive.Testing.TestRunResult
 DbLive.Testing.TestRunResult.ErrorMessage.get -> string?
 DbLive.Testing.TestRunResult.Exception.get -> System.Exception?
-DbLive.Testing.TestRunResult.ExecutionTimeMs.get -> long
 DbLive.Testing.TestRunResult.IsSuccess.get -> bool
-DbLive.Testing.TestRunResult.Output.get -> string!
 DbLive.Testing.UnitTestsFailedException
 DbLive.Testing.UnitTestsFailedException.FailedCount.get -> int
 DbLive.Testing.UnitTestsFailedException.FailedTests.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DbLive.Testing.UnitTestsFailedException.TotalCount.get -> int
-DbLive.TranIsolationLevel
-DbLive.TranIsolationLevel.ReadCommitted = 0 -> DbLive.TranIsolationLevel
-DbLive.TranIsolationLevel.RepeatableRead = 1 -> DbLive.TranIsolationLevel
-DbLive.TranIsolationLevel.Serializable = 2 -> DbLive.TranIsolationLevel
-DbLive.TranIsolationLevel.Snapshot = 3 -> DbLive.TranIsolationLevel
 DbLive.UndoNotSupportedException
 DbLive.UndoNotSupportedException.RelativePath.get -> string!
 DbLive.UnknownMigrationSettingsException
 override DbLive.DeployParameters.Equals(object? obj) -> bool
 override DbLive.DeployParameters.GetHashCode() -> int
 override DbLive.DeployParameters.ToString() -> string!
-override DbLive.Schema.SchemaDiff.ToString() -> string!
-override DbLive.Schema.SchemaObject.Equals(object? obj) -> bool
-override DbLive.Schema.SchemaObject.GetHashCode() -> int
-override DbLive.Schema.SchemaObject.ToString() -> string!
-override DbLive.Schema.SchemaObjectChange.Equals(object? obj) -> bool
-override DbLive.Schema.SchemaObjectChange.GetHashCode() -> int
-override DbLive.Schema.SchemaObjectChange.ToString() -> string!
-override DbLive.SqlColumn.Equals(object? obj) -> bool
-override DbLive.SqlColumn.GetHashCode() -> int
-override DbLive.SqlColumn.ToString() -> string!
 static DbLive.DbLiveBuilderExtensions.LogTo(this DbLive.DbLiveBuilder! builder, Serilog.ILogger! logger) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.LogToConsole(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.SetDbConnection(this DbLive.DbLiveBuilder! builder, string! sqlDbConnectionString) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.SetProject(this DbLive.DbLiveBuilder! builder, System.Reflection.Assembly! projectAssembly) -> DbLive.DbLiveBuilder!
 static DbLive.DbLiveBuilderExtensions.SetScriptsFolder(this DbLive.DbLiveBuilder! builder, string! scriptsPath) -> DbLive.DbLiveBuilder!
-static DbLive.DbLiveBuilderExtensions.SetScriptSource(this DbLive.DbLiveBuilder! builder, DbLive.IScriptSource! scriptSource) -> DbLive.DbLiveBuilder!
 static DbLive.DeployParameters.Breaking.get -> DbLive.DeployParameters!
 static DbLive.DeployParameters.Default.get -> DbLive.DeployParameters!
 static DbLive.DeployParameters.operator !=(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool
 static DbLive.DeployParameters.operator ==(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool
-static DbLive.Schema.SchemaDiff.Compare(DbLive.Schema.SchemaSnapshot! before, DbLive.Schema.SchemaSnapshot! after) -> DbLive.Schema.SchemaDiff!
-static DbLive.Schema.SchemaObject.operator !=(DbLive.Schema.SchemaObject? left, DbLive.Schema.SchemaObject? right) -> bool
-static DbLive.Schema.SchemaObject.operator ==(DbLive.Schema.SchemaObject? left, DbLive.Schema.SchemaObject? right) -> bool
-static DbLive.Schema.SchemaObjectChange.operator !=(DbLive.Schema.SchemaObjectChange? left, DbLive.Schema.SchemaObjectChange? right) -> bool
-static DbLive.Schema.SchemaObjectChange.operator ==(DbLive.Schema.SchemaObjectChange? left, DbLive.Schema.SchemaObjectChange? right) -> bool
-static DbLive.SqlColumn.operator !=(DbLive.SqlColumn? left, DbLive.SqlColumn? right) -> bool
-static DbLive.SqlColumn.operator ==(DbLive.SqlColumn? left, DbLive.SqlColumn? right) -> bool

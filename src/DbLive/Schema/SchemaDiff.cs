@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace DbLive.Schema;
 
-public sealed record SchemaObjectChange
+internal sealed record SchemaObjectChange
 {
 	internal SchemaObjectChange(SchemaObject before, SchemaObject after)
 	{
@@ -20,7 +20,7 @@ public sealed record SchemaObjectChange
 /// The difference between two snapshots of one database: objects missing (in the earlier snapshot only),
 /// extra (in the later one only) and changed (in both, with different definitions).
 /// </summary>
-public sealed partial class SchemaDiff
+internal sealed partial class SchemaDiff
 {
 	// longer definitions are cut in the text; a changed one is shown around its first difference.
 	private const int MaxDefinitionLength = 160;

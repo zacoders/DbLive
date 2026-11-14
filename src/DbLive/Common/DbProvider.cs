@@ -1,6 +1,6 @@
 namespace DbLive;
 
-public enum DbProvider
+internal enum DbProvider
 {
 	MsSql,
 	PostgreSql

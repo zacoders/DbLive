@@ -88,21 +88,5 @@ public static class DbLiveBuilderExtensions
 			_ = services.AddSingleton<IScriptSource>(scriptSource);
 		});
 	}
-
-	/// <summary>
-	/// Reads the scripts from <paramref name="scriptSource"/>, instead of <see cref="SetProject"/> or <see cref="SetScriptsFolder"/>.
-	/// </summary>
-	/// <param name="builder">The builder instance to configure.</param>
-	/// <param name="scriptSource">The scripts. A builder calls <see cref="IScriptSource.ReadAsync"/> once per file.</param>
-	/// <returns>The same builder instance for chaining.</returns>
-	public static DbLiveBuilder SetScriptSource(this DbLiveBuilder builder, IScriptSource scriptSource)
-	{
-		ArgumentNullException.ThrowIfNull(scriptSource);
-
-		return builder.ConfigureServices(services =>
-		{
-			_ = services.AddSingleton(scriptSource);
-		});
-	}
 }
 

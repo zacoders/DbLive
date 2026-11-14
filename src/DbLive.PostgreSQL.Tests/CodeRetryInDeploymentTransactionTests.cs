@@ -18,7 +18,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -34,7 +34,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal(["a", "c", "m"], await ObjectsAsync(da));
 		Assert.Equal(["code/a.sql:applied", "code/c.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
 		Assert.Equal(["1:applied"], await ListAsync(da, "select concat(version, ':', status) from dblive.migration where item_type = 'migration'"));
@@ -53,7 +53,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal(["a", "a_log", "c", "m"], await ObjectsAsync(da));
 	}
 
@@ -76,7 +76,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 		Assert.Contains("syntax error at or near \"selec\"", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
 		// neither the migration before it nor the file after it, and no error row.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Empty(await ObjectsAsync(da));
 		Assert.Empty(await ListAsync(da, "select version::text from dblive.migration"));
 		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
@@ -98,7 +98,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
 		Assert.Equal("57P01: terminating connection due to administrator command", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Empty(await ObjectsAsync(da));
 		Assert.Empty(await ListAsync(da, "select version::text from dblive.migration"));
 	}
@@ -153,7 +153,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 			.SetScriptsFolder(project.Path);
 	}
 
-	private static Task<List<string>> ObjectsAsync(IDbLiveDA da)
+	private static Task<List<string>> ObjectsAsync(IDbLiveInternalDA da)
 	{
 		return ListAsync(da, """
 			select relname::text from pg_class where relnamespace = 'public'::regnamespace and relkind in ('r', 'v')
@@ -162,7 +162,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 			""");
 	}
 
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
+	private static async Task<List<string>> ListAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];

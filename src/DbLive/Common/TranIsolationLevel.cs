@@ -1,6 +1,6 @@
 ﻿namespace DbLive;
 
-public enum TranIsolationLevel
+internal enum TranIsolationLevel
 {
 	ReadCommitted,
 	RepeatableRead,

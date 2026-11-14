@@ -25,7 +25,7 @@ public class InvalidProjectTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		// a new database, not deployed by this DbLive: a database it deployed has no pending self-migration.
 		using TempProject project = CreateProjectWithUndoScript();
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.CreateDBAsync();
 
 		UndoNotSupportedException ex = await Assert.ThrowsAsync<UndoNotSupportedException>(
@@ -64,7 +64,7 @@ public class InvalidProjectTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		return (int)(await cmd.ExecuteScalarAsync())! == 1;
 	}
 
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
+	private static async Task<long> ScalarAsync(IDbLiveInternalDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

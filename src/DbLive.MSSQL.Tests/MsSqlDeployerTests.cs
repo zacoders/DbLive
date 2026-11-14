@@ -11,7 +11,7 @@ namespace DbLive.MSSQL.Tests;
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
 {
-	private readonly IDbLiveDA _da;
+	private readonly IDbLiveInternalDA _da;
 
 	private readonly string _connectionString;
 
@@ -25,7 +25,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		Container.InitializeDbLive();
 
-		_da = GetService<IDbLiveDA>();
+		_da = GetService<IDbLiveInternalDA>();
 	}
 
 	public async Task InitializeAsync()

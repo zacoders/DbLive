@@ -3,7 +3,7 @@ namespace DbLive.Schema;
 /// <summary>
 /// The kinds of objects a <see cref="SchemaSnapshot"/> holds. Some exist on one engine only.
 /// </summary>
-public enum SchemaObjectType
+internal enum SchemaObjectType
 {
 	Schema,
 	Table,
