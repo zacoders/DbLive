@@ -6,12 +6,26 @@ public interface IDbLiveDA
 	DbProvider Provider { get; }
 
 	/// <summary>
-	/// Called inside the ambient transaction after a statement failed: true when later statements still run in that transaction.
-	/// On PostgreSQL an error aborts the transaction, so this is false. On SQL Server most errors leave it open, but some roll it back:
-	/// any run-time error with <c>XACT_ABORT ON</c>, a failed conversion, a deadlock. The next statements then do not fail, they run
-	/// in autocommit mode and are committed at once, even when the deployment fails and is rolled back.
+	/// Called inside the ambient transaction: true when later statements still run in that transaction. Has no side effects.
+	/// On PostgreSQL an error aborts the transaction until the end of the transaction (<see cref="ExecuteCodeItemAsync"/> undoes
+	/// that for its own error). On SQL Server most errors leave it open, but some roll it back: any run-time error with
+	/// <c>XACT_ABORT ON</c>, a failed conversion, a deadlock. The next statements then do not fail, they run in autocommit mode
+	/// and are committed at once, even when the deployment fails and is rolled back.
 	/// </summary>
-	Task<bool> IsTransactionUsableAfterErrorAsync();
+	Task<bool> IsTransactionUsableAsync();
+
+	/// <summary>
+	/// Executes a code file. Inside the ambient transaction, an error of the file leaves the transaction usable when the provider can,
+	/// so that the file can be retried in it after the files it depends on; <see cref="IsTransactionUsableAsync"/> tells whether it did.
+	/// On PostgreSQL the error also undoes the statements of the file that ran before it. On SQL Server they stay in the transaction,
+	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction: <see cref="ExecuteNonQueryAsync"/>.
+	/// </summary>
+	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
+	Task ExecuteCodeItemAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	);
 
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 

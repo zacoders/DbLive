@@ -48,7 +48,7 @@ Found by the code review of 2026-11-12 (finding 3).
 
 ## Where
 - `src/DbLive/Deployers/Testing/UnitTestItemRunner.cs:26-60` (the transaction of the test; nothing checks it after the script)
-- `src/DbLive.MSSQL/MsSqlDA.cs:13-19` (`IsTransactionUsableAfterErrorAsync`: `@@trancount` on a connection of the scope)
+- `src/DbLive.MSSQL/MsSqlDA.cs:13-19` (`IsTransactionUsableAsync`, named `IsTransactionUsableAfterErrorAsync` before 0096-68: `@@trancount` on a connection of the scope)
 
 ## Fix
 After the test script (and after `setup.test.sql`), still inside the scope, ask the provider whether the transaction is open, with the check that 0096-61 added for code files. When it is not, the test fails with a message that says what happened: the test or the code it calls rolled back the test transaction, the statements after the rollback were committed, and how to test such a procedure (0099-03).
@@ -57,7 +57,7 @@ Verified the same way: after the test above `IsTransactionUsableAfterErrorAsync(
 
 The statements that were already committed cannot be undone; the failed test tells the author to change the test.
 
-- [ ] Rename `IsTransactionUsableAfterErrorAsync`? It would also be called after a test that ran without an error.
+- [x] Rename `IsTransactionUsableAfterErrorAsync`? It would also be called after a test that ran without an error. Decided by the maintainer on 2026-11-14: yes, renamed to `IsTransactionUsableAsync` in 0096-68. It has no side effects. On PostgreSQL it is a query now, `false` in an aborted transaction (`25P02`), so a test on PostgreSQL costs one more query too.
 - [ ] One more query per test on SQL Server. Acceptable?
 
 ## Docs to update

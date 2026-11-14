@@ -7,7 +7,7 @@ public class CodeItemDeployResult
 	public Exception? Exception { get; init; }
 
 	/// <summary>
-	/// False when the file failed in a transaction that its error ended (<see cref="IDbLiveDA.IsTransactionUsableAfterErrorAsync"/>):
+	/// False when the file failed in a transaction that its error ended (<see cref="IDbLiveDA.IsTransactionUsableAsync"/>):
 	/// no later statement may run. The deployment then fails with this error at once, not with the error of a retry.
 	/// </summary>
 	public bool CanRetry { get; init; } = true;

@@ -13,8 +13,74 @@ public class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.PostgreSql;
 
-	// an error aborts the transaction: every later statement fails until the rollback.
-	public Task<bool> IsTransactionUsableAfterErrorAsync() => Task.FromResult(false);
+	// an error aborts the transaction: every later statement fails with 25P02 until the rollback to a savepoint or of the transaction.
+	public async Task<bool> IsTransactionUsableAsync()
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		try
+		{
+			_ = await cnn.ExecuteScalarAsync<int>("select 1").ConfigureAwait(false);
+			return true;
+		}
+		catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.InFailedSqlTransaction)
+		{
+			return false;
+		}
+	}
+
+	// not a name a user script would take: a script that sets a savepoint of the same name would hide this one.
+	// One name for all files: code in the deployment transaction runs on one thread, and each file releases or rolls back its savepoint.
+	private const string CodeItemSavepoint = "dblive_code_item";
+
+	// in the deployment transaction the file runs under a savepoint: the rollback to it ends the aborted state and undoes the statements
+	// of the file. Each savepoint is a subtransaction.
+	public async Task ExecuteCodeItemAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	)
+	{
+		if (System.Transactions.Transaction.Current is null)
+		{
+			await ExecuteNonQueryAsync(sqlStatement, isolationLevel, timeout).ConfigureAwait(false);
+			return;
+		}
+
+		await ExecuteInTransactionAsync($"savepoint {CodeItemSavepoint};").ConfigureAwait(false);
+		
+		try
+		{
+			await ExecuteNonQueryAsync(sqlStatement, isolationLevel, timeout).ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackToSavepointAsync().ConfigureAwait(false);
+			throw;
+		}
+
+		await ExecuteInTransactionAsync($"release savepoint {CodeItemSavepoint};").ConfigureAwait(false);
+	}
+
+	// fails when the error of the file broke the connection or the transaction timed out. The error of the file is the one to throw,
+	// and IsTransactionUsableAsync tells the caller that the transaction is gone.
+	private async Task TryRollbackToSavepointAsync()
+	{
+		try
+		{
+			await ExecuteInTransactionAsync($"rollback to savepoint {CodeItemSavepoint};").ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	// separate commands, not text added to the script: a script that ends with a '--' comment would swallow an added statement.
+	// Every connection opened in the scope gets the session of the transaction.
+	private async Task ExecuteInTransactionAsync(string sql)
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		_ = await cnn.ExecuteAsync(sql).ConfigureAwait(false);
+	}
 
 	static PostgreSqlDA()
 	{

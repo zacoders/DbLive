@@ -229,25 +229,6 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 		);
 	}
 
-	[Fact]
-	public async Task Failed_code_file_in_a_deployment_transaction_fails_with_its_own_error()
-	{
-		// the error aborts the deployment transaction: the file is not retried, and no error row is written.
-		using TempProject project = new TempProject()
-			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
-			.AddFile("Code/public/get_user.sql", "create or replace function get_user_v2() returns int language sql as $$ selec 1 $$;");
-
-		DbLiveBuilder builder = CreateBuilder(project);
-
-		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
-			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
-		);
-
-		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/public/get_user.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
-		Assert.Contains("syntax error at or near \"selec\"", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
-	}
-
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>

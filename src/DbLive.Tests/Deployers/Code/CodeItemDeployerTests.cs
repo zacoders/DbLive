@@ -17,7 +17,7 @@ public class CodeItemDeployerTests
 
 		// Assert
 		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received().ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Applied));
 	}
 
@@ -32,7 +32,7 @@ public class CodeItemDeployerTests
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
 		mockSet.DbLiveDA
-			.When(x => x.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
+			.When(x => x.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
 			.Do(x => throw new Exception("some exception"));
 
 		// Act
@@ -41,7 +41,7 @@ public class CodeItemDeployerTests
 		// Assert
 		Assert.False(res.IsSuccess);
 		Assert.True(res.CanRetry);
-		await mockSet.DbLiveDA.Received().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.Received().ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error && i.ErrorMessage == "some exception"));
 	}
 
@@ -58,7 +58,7 @@ public class CodeItemDeployerTests
 			new InvalidOperationException("inner")
 		);
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -79,13 +79,13 @@ public class CodeItemDeployerTests
 	public async Task Failed_code_item_in_a_transaction_saves_no_error_row(bool transactionUsable, string message)
 	{
 		MockSet mockSet = new();
-		mockSet.DbLiveDA.IsTransactionUsableAfterErrorAsync().Returns(transactionUsable);
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(transactionUsable);
 
 		CodeItem codeItem = GetCodeItem(relativePath: "Code/dbo/GetUser.sql");
 
 		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -105,26 +105,99 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
-	public async Task Failed_code_item_fails_with_the_error_of_its_error_row_when_the_row_cannot_be_saved()
+	public async Task Failed_code_item_keeps_its_error_when_the_transaction_check_throws()
 	{
+		// the error broke the connection or the transaction timed out: the connection opened for the check cannot enlist.
+		MockSet mockSet = new();
+		TransactionException transactionError = new("The operation is not valid for the state of the transaction.");
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(Task.FromException<bool>(transactionError));
+
+		DbLiveSqlException scriptError = new("A severe error occurred on the current command.");
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+		}
+
+		Assert.False(res.IsSuccess);
+		Assert.False(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The error ended the deployment transaction, so the file is not retried.", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		mockSet.Logger.Received().Warning(transactionError, "The deployment transaction cannot be used after the error of {FilePath}.", "Code/dbo/GetUser.sql");
+	}
+
+	[Fact]
+	public async Task Failed_code_item_without_a_transaction_does_not_check_the_transaction()
+	{
+		// on SQL Server the check is '@@trancount > 0': without a transaction it would tell that no file can be retried.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(new DbLiveSqlException("Invalid object name 'dbo.C'.")));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res = await deployer.DeployAsync(GetCodeItem());
+
+		Assert.False(res.IsSuccess);
+		Assert.True(res.CanRetry);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+	}
+
+	[Fact]
+	public async Task Code_item_is_executed_as_a_code_file()
+	{
+		// not as a plain statement: in the deployment transaction the provider keeps the transaction usable after an error of the file.
+		MockSet mockSet = new();
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(GetCodeItem(content: "create view a as select 1 as x;"));
+		}
+
+		Assert.True(res.IsSuccess);
+		await mockSet.DbLiveDA.Received(1).ExecuteCodeItemAsync("create view a as select 1 as x;", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!);
+	}
+
+	[Fact]
+	public async Task Failed_code_item_keeps_its_error_when_the_error_row_cannot_be_saved()
+	{
+		// the server is unreachable, for one: the result is the error of the file, with its path.
 		MockSet mockSet = new();
 
 		CodeItem codeItem = GetCodeItem();
 
+		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
-			.Returns(Task.FromException(new DbLiveSqlException("Incorrect syntax near 'selec'.")));
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(scriptError));
 
-		DbLiveSqlException saveError = new("Invalid column name 'error'.");
+		DbLiveSqlException saveError = new("A network-related or instance-specific error occurred while establishing a connection to SQL Server.");
 		mockSet.DbLiveDA
 			.SaveCodeItemAsync(Arg.Any<CodeItemDto>())
 			.Returns(Task.FromException(saveError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
-		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => deployer.DeployAsync(codeItem));
+		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
 
-		Assert.Same(saveError, ex);
+		Assert.False(res.IsSuccess);
+		Assert.True(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal("Deploy code file error. File path: /path-to/some-code-item.sql", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		mockSet.Logger.Received().Warning(saveError, "The error row of {FilePath} is not saved.", "/path-to/some-code-item.sql");
 	}
 
 	[Fact]

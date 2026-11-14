@@ -393,6 +393,46 @@ public class CodeDeployerTests
 		await mockSet.CodeItemDeployer.DidNotReceive().DeployAsync(otherItem);
 	}
 
+	[Fact]
+	public async Task DeployCode_Fails_With_The_Error_Of_The_File_When_The_Transaction_Check_Throws()
+	{
+		// on SQL Server the check opens a connection, and it cannot enlist when the error broke the connection of the transaction.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.IsTransactionUsableAsync()
+			.Returns(Task.FromException<bool>(new TransactionException("The operation is not valid for the state of the transaction.")));
+
+		DbLiveSqlException scriptError = new("A severe error occurred on the current command.");
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.Returns(Task.FromException(scriptError));
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [new CodeGroup { Path = "Code", CodeItems = [GetCodeItem("GetUser.sql")] }]
+		};
+
+		// the deployer of a file is the real one, not the mock.
+		CodeDeployer deployer = new(
+			mockSet.Logger,
+			mockSet.CreateUsingMocks<CodeItemDeployer>(),
+			mockSet.SettingsAccessor,
+			mockSet.DbLiveDA,
+			mockSet.TimeProvider
+		);
+
+		CodeDeploymentAggregateException ex;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+				() => deployer.DeployAsync(project, DeployParameters.Default)
+			);
+		}
+
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: /some_path/GetUser.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.Same(scriptError, codeEx.InnerException);
+	}
+
 	private static CodeItem GetCodeItem(string name, string? content = null)
 	{
 		string relativePath = $"/some_path/{name}";

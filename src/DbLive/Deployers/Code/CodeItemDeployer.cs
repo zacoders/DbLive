@@ -18,7 +18,7 @@ public class CodeItemDeployer(
 		{
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
-			await _da.ExecuteNonQueryAsync(
+			await _da.ExecuteCodeItemAsync(
 				codeItem.FileData.Content,
 				_projectSettings.TransactionIsolationLevel,
 				_projectSettings.CodeItemTimeout
@@ -50,7 +50,7 @@ public class CodeItemDeployer(
 			// in autocommit mode and be committed with the files after it, while the deployment is rolled back.
 			if (Transaction.Current is not null)
 			{
-				bool canRetry = await _da.IsTransactionUsableAfterErrorAsync().ConfigureAwait(false);
+				bool canRetry = await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
 				return new CodeItemDeployResult
 				{
@@ -63,10 +63,36 @@ public class CodeItemDeployer(
 				};
 			}
 
-			CodeDeploymentException error = new(errorMessage, ex);
+			await SaveErrorRowAsync(codeItem, migrationStartedUtc, ex).ConfigureAwait(false);
 
+			return CodeItemDeployResult.Failed(new CodeDeploymentException(errorMessage, ex));
+		}
+	}
+
+	/// <summary>
+	/// After a file failed in the deployment transaction: true when the transaction is still usable, so the file can be retried in it.
+	/// An exception here means it is not: the error broke the connection, or the transaction timed out, and the connection opened for
+	/// the check cannot enlist in it. That exception must not replace the error of the file, which is the result.
+	/// </summary>
+	private async Task<bool> CanRetryInTransactionAsync(string relativePath)
+	{
+		try
+		{
+			return await _da.IsTransactionUsableAsync().ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			_logger.Warning(ex, "The deployment transaction cannot be used after the error of {FilePath}.", relativePath);
+			return false;
+		}
+	}
+
+	private async Task SaveErrorRowAsync(CodeItem codeItem, DateTime startedUtc, Exception error)
+	{
+		try
+		{
 			DateTime appliedUtc = _timeProvider.UtcNow();
-			int executionTimeMs = (int)(appliedUtc - migrationStartedUtc).TotalMilliseconds;
+			int executionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds;
 			await _da.SaveCodeItemAsync(new CodeItemDto()
 			{
 				RelativePath = codeItem.FileData.RelativePath,
@@ -77,10 +103,13 @@ public class CodeItemDeployer(
 				ExecutionTimeMs = executionTimeMs,
 				CreatedUtc = _timeProvider.UtcNow(),
 				// the full exception with its stack traces is in the result: CodeDeployer logs it.
-				ErrorMessage = ex.GetSqlErrorOrMessage()
+				ErrorMessage = error.GetSqlErrorOrMessage()
 			}).ConfigureAwait(false);
-
-			return CodeItemDeployResult.Failed(error);
+		}
+		catch (Exception ex)
+		{
+			// the server is unreachable, for one: the error of the file stays the result, with its path.
+			_logger.Warning(ex, "The error row of {FilePath} is not saved.", codeItem.FileData.RelativePath);
 		}
 	}
 }

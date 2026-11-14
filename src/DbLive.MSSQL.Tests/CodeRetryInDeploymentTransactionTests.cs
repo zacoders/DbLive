@@ -64,10 +64,55 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
 	}
 
-	private static TempProject CreateProject(string fileA)
+	[Fact]
+	public async Task Code_file_that_breaks_its_connection_fails_the_deployment_with_its_own_error()
+	{
+		// the check of the transaction opens a connection, which cannot enlist in the transaction of the broken one.
+		using TempProject project = CreateProject("raiserror('boom', 20, 1) with log;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		// the message goes on with "Process ID <n> has raised user error 50000, severity 20. SQL Server is terminating this process."
+		Assert.StartsWith("boom", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
+
+		IDbLiveDA da = builder.CreateDbLiveDA();
+		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
+		Assert.Empty(await ListAsync(da, "select name from sys.views"));
+		Assert.Empty(await ListAsync(da, "select version from dblive.migration"));
+	}
+
+	[Fact]
+	public async Task Code_file_that_outlives_the_deployment_timeout_fails_the_deployment_with_its_path()
+	{
+		using TempProject project = CreateProject("waitfor delay '00:00:04';", """{ "TransactionWrapLevel": "Deployment", "DeploymentTimeout": "00:00:02" }""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		// the script is not interrupted: the write of its row after it cannot enlist in the transaction that timed out.
+		System.Transactions.TransactionException transactionEx = Assert.IsType<System.Transactions.TransactionException>(codeEx.InnerException);
+		_ = Assert.IsType<TimeoutException>(transactionEx.InnerException);
+
+		IDbLiveDA da = builder.CreateDbLiveDA();
+		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
+		Assert.Empty(await ListAsync(da, "select version from dblive.migration"));
+	}
+
+	private static TempProject CreateProject(string fileA, string settings = """{ "TransactionWrapLevel": "Deployment" }""")
 	{
 		return new TempProject()
-			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment" }""")
+			.AddFile("settings.json", settings)
 			.AddFile("Migrations/001.migration.sql", "create table dbo.M ( x int );")
 			.AddFile("Code/a.sql", fileA)
 			// not b.sql: that is the name of a breaking script.

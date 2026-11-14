@@ -10,13 +10,21 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 
-	public async Task<bool> IsTransactionUsableAfterErrorAsync()
+	public async Task<bool> IsTransactionUsableAsync()
 	{
 		// a transaction rolled back by the server does not fail the next commands of the scope: they run in autocommit mode.
 		// Transaction.Current stays Active then, only the server knows.
 		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<int>("select @@trancount").ConfigureAwait(false) > 0;
 	}
+
+	// no savepoint: an error that does not roll back the whole transaction leaves it usable, and after one that does
+	// (XACT_ABORT ON, a failed conversion, a deadlock) there is no savepoint to return to.
+	public Task ExecuteCodeItemAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
+		TimeSpan? timeout = null
+	) => ExecuteNonQueryAsync(sqlStatement, isolationLevel, timeout);
 
 	internal const int ErrorColumnLength = 4000;
 	internal const string TruncatedMark = "... [truncated]";
