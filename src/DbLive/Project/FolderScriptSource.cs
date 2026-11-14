@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace DbLive.Project;
 
 /// <summary>
@@ -14,5 +16,19 @@ internal sealed class FolderScriptSource(string path) : IScriptSource
 	public IReadOnlyList<string> GetFiles() =>
 		[.. Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Select(filePath => filePath.GetRelativePath(path))];
 
-	public Task<string> ReadAsync(string relativePath) => File.ReadAllTextAsync(Path.Combine(path, relativePath));
+	/// <summary>
+	/// Decodes as <see cref="ScriptEncoding"/> says (File.ReadAllTextAsync detects a byte order mark).
+	/// </summary>
+	/// <exception cref="FileNotUtf8Exception">The file has bytes that are not UTF-8.</exception>
+	public async Task<string> ReadAsync(string relativePath)
+	{
+		try
+		{
+			return await File.ReadAllTextAsync(Path.Combine(path, relativePath), ScriptEncoding.StrictUtf8).ConfigureAwait(false);
+		}
+		catch (DecoderFallbackException ex)
+		{
+			throw new FileNotUtf8Exception(relativePath, Location, ex);
+		}
+	}
 }

@@ -2,8 +2,19 @@
 type: bug
 priority: medium
 created: 2026-11-12
+closed: 2026-11-15
+breaking: true
 ---
 # A script that is not UTF-8 is deployed with its non-ASCII characters replaced
+
+## Release note
+**A file of the project that is not UTF-8 now stops the deployment with `FileNotUtf8Exception`**, which names the file, before any script runs. Before, DbLive read such a file (a script saved in Windows-1252 or Windows-1251 without a BOM, often by an old editor) as UTF-8 and deployed each of its non-ASCII characters as `�`, in comments and in string literals alike: `N'Résumé'` was stored as `N'R�sum�'`. A test file fails when the tests are read. UTF-8 with or without a BOM, and UTF-16 or UTF-32 with a BOM, are read as before, with the same checksums.
+
+To upgrade, when a deployment fails with `FileNotUtf8Exception`:
+- A code file, a BeforeDeploy or AfterDeploy script, a test, a settings file, or a migration not applied yet: save it as UTF-8. A code file then has a new checksum and is deployed again, with the right text.
+- A migration or breaking script that is already applied: converting it changes its text (`�` becomes `é`), so the next deployment fails with `MigrationChecksumMismatchException`. Either save it as UTF-8 with the text DbLive read, which keeps the checksum (`pwsh -c '$p = "Scripts/Migrations/001.status.sql"; [IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p))'`), or convert it properly and deploy once with `RepairMigrationChecksums = true`. Either way, fix the rows the migration wrote with a new migration.
+
+See "File encoding" in the docs (Project structure).
 
 ## Problem
 DbLive reads every script as UTF-8 (UTF-16 and UTF-32 only with a BOM). A file in another encoding, such as Windows-1252 or Windows-1251 without a BOM, is not rejected: every byte that is not valid UTF-8 becomes `U+FFFD`, and the script is deployed like that. The deployment succeeds, and nothing is logged.
@@ -53,9 +64,9 @@ When closing: `breaking: true`. A project with such a file deploys today and fai
 - `docs/project/structure.md`
 
 ## Done when
-- [ ] A script or settings file with bytes that are not valid UTF-8 fails with the new exception, with the file name in the message: the deployment stops before any script runs (a test file: when the tests are read); unit tests for the folder and for the embedded scripts
-- [ ] UTF-8 with and without a BOM and UTF-16 with a BOM read as before, with the same hashes
-- [ ] Docs updated
+- [x] A script or settings file with bytes that are not valid UTF-8 fails with the new exception, with the file name in the message: the deployment stops before any script runs (a test file: when the tests are read); unit tests for the folder and for the embedded scripts
+- [x] UTF-8 with and without a BOM and UTF-16 with a BOM read as before, with the same hashes
+- [x] Docs updated
 
 ## Notes
 - 2026-11-15, verified with a scratch .NET 10 app (not kept): `File.ReadAllText` turns Windows-1252 `N'Résumé reçu'` into `N'R�sum� re�u'` and Windows-1251 `-- Привет, мир` into `-- ������, ���`, without an exception. `StreamReader` with `StrictUtf8` and BOM detection throws `DecoderFallbackException` on both.
@@ -72,3 +83,12 @@ When closing: `breaking: true`. A project with such a file deploys today and fai
   - A warning only: deployments go on writing wrong text.
   - A setting for the encoding (what DbUp, Flyway and Liquibase do): without it set, text is still replaced silently. It can be added later without a breaking change if users ask.
   - Detecting the encoding, or using the ANSI code page of the machine: the same file gives other text and another hash on another machine (the issues of Flyway and Liquibase above; the C# compiler shows the same). A compiler can guess because a fix is a rebuild; a migration runs once and its data stays.
+- 2026-11-15, the exception is `FileNotUtf8Exception` with `RelativePath`, not `FileName` as the Fix says: the value is the relative path, and most exceptions of the project files name it so (`UndoNotSupportedException`, `BreakingScriptMatchesTestPatternException`, `MigrationSettingsWithoutScriptException`). "File", not "Script": `settings.json` and the item settings files fail with it too.
+- Verified 2026-11-15 with PowerShell 7.7: a Windows-1252 file saved again with `[IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p))` holds `EF BF BD` in place of each byte that is not UTF-8, and the strict reader reads the same text that `File.ReadAllText` with `Encoding.UTF8` (DbLive 1.x) read from the original, so the hash of an applied migration stays. The docs give this command for the upgrade path.
+
+## Result
+- `FolderScriptSource.ReadAsync` and `AssemblyScriptSource.ReadAsync` decode with `ScriptEncoding.StrictUtf8` (new: UTF-8 that throws on invalid bytes), keeping the BOM detection of `StreamReader`. A `DecoderFallbackException` becomes `FileNotUtf8Exception` (new, public, `RelativePath`): the message names the file and where it was read from (the folder or the dll), says to save the file as UTF-8, and points to "File encoding" in the docs for an applied migration. `SettingsAccessor`, `DbLiveProject` and the self-deployment (`InternalScriptSource`) read through these two sources, so `settings.json`, every project file and DbLive's own scripts are checked; nothing else changed.
+- Decisions: fail, not warn (maintainer, 2026-11-15); `StreamReader` with strict UTF-8, no own BOM detection (maintainer, 2026-11-15); the two known limitations under Notes stay.
+- Public API: `DbLive.FileNotUtf8Exception` and its `RelativePath` in `PublicAPI.Unshipped.txt`.
+- Tests: `ScriptSourceTests.NotUtf8File_Throws` (Windows-1252, Windows-1251, and invalid bytes after 20 000 ASCII characters; the folder and the embedded scripts; the message and the inner `DecoderFallbackException`); `AssemblyScriptSource_ReadsTheSameContentAsFolderScriptSource` now also covers UTF-16 BE and UTF-32 with a BOM, and its text of about 20 KB has characters of 2, 3 and 4 bytes split between the buffers of `StreamReader`: the same text and hash as before. `ProjectLoaderTests` on a real folder: a Windows-1252 `settings.json`, migration, migration settings file, code file, breaking script of the Code folder, BeforeDeploy or AfterDeploy script fails the load with `FileNotUtf8Exception` (the same files in UTF-8 load); a test file (`Tests/t1.sql`, `Tests/setup.test.sql`, `Code/GetUser.test.sql`) does not fail the load and fails `GetTestsAsync`. The new tests fail with the old readers (verified). `DbLive.Tests` 498 pass; the MSSQL, PostgreSQL and demo test projects pass; the solution builds without warnings; every `.sql` and `.json` file of the repository is UTF-8.
+- Docs: `docs/llms-full.txt` §4 (encoding), §12 step 1, §17, §18.2 (convert the scripts to UTF-8; the upgrade path); `docs/project/structure.md` ("File encoding").

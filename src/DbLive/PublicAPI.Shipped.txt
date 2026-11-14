@@ -38,6 +38,8 @@ DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.init -> void
 DbLive.DuplicateMigrationItemException
+DbLive.FileNotUtf8Exception
+DbLive.FileNotUtf8Exception.RelativePath.get -> string!
 DbLive.FilesOutsideProjectFoldersException
 DbLive.FilesOutsideProjectFoldersException.Count.get -> int
 DbLive.FilesOutsideProjectFoldersException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!

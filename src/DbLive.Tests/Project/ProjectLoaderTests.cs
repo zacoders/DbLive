@@ -141,6 +141,92 @@ public class ProjectLoaderTests
 		Assert.Equal(0, mockSet.ScriptSource.ReadCount("Tests/t1.sql"));
 	}
 
+	[Theory]
+	[InlineData("settings.json")]
+	[InlineData("Migrations/001.migration.sql")]
+	[InlineData("Migrations/001.migration.settings.json")]
+	[InlineData("Code/GetUser.sql")]
+	[InlineData("Code/GetUser.breaking.sql")]
+	[InlineData("BeforeDeploy/before.sql")]
+	[InlineData("AfterDeploy/after.sql")]
+	public async Task File_that_is_not_utf8_fails_the_load(string relativePath)
+	{
+		using TempProject project = CreateProjectWithNonAsciiText();
+
+		// the same files in UTF-8 load.
+		_ = await CreateLoaderOfFolder(new MockSet(), project.Path).LoadAsync();
+
+		SaveAsWindows1252(project, relativePath);
+
+		FileNotUtf8Exception ex = await Assert.ThrowsAsync<FileNotUtf8Exception>(CreateLoaderOfFolder(new MockSet(), project.Path).LoadAsync);
+
+		Assert.Equal(relativePath, ex.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("Tests/t1.sql")]
+	[InlineData("Tests/setup.test.sql")]
+	[InlineData("Code/GetUser.test.sql")]
+	public async Task Test_file_that_is_not_utf8_fails_when_the_tests_are_read(string relativePath)
+	{
+		using TempProject project = CreateProjectWithNonAsciiText();
+		SaveAsWindows1252(project, relativePath);
+
+		FolderScriptSource scriptSource = new(project.Path);
+		SettingsAccessor settingsAccessor = new(scriptSource);
+		MockSet mockSet = new();
+		DbLiveProject dbLiveProject = new(scriptSource, settingsAccessor, mockSet.MigrationVersionValidator, mockSet.Logger);
+
+		// the deployment does not read the tests.
+		_ = await new ProjectLoader(dbLiveProject, settingsAccessor, mockSet.TransactionSettingsValidator).LoadAsync();
+
+		FileNotUtf8Exception ex = await Assert.ThrowsAsync<FileNotUtf8Exception>(dbLiveProject.GetTestsAsync);
+
+		Assert.Equal(relativePath, ex.RelativePath);
+	}
+
+	private const string NonAsciiText = "Résumé reçu";
+
+	/// <summary>
+	/// A project in UTF-8 with <see cref="NonAsciiText"/> in every file.
+	/// </summary>
+	private static TempProject CreateProjectWithNonAsciiText() => new TempProject()
+		.AddFile("settings.json", $$"""{ "ProjectId": "{{NonAsciiText}}" }""")
+		.AddFile("Migrations/001.migration.sql", $"insert into dbo.Status (Id, Name) values (1, N'{NonAsciiText}');")
+		.AddFile("Migrations/001.migration.settings.json", $"// {NonAsciiText}\n{{ }}")
+		.AddFile("Code/GetUser.sql", $"-- {NonAsciiText}")
+		.AddFile("Code/GetUser.breaking.sql", $"-- {NonAsciiText}")
+		.AddFile("Code/GetUser.test.sql", $"-- {NonAsciiText}")
+		.AddFile("BeforeDeploy/before.sql", $"-- {NonAsciiText}")
+		.AddFile("AfterDeploy/after.sql", $"-- {NonAsciiText}")
+		.AddFile("Tests/setup.test.sql", $"-- {NonAsciiText}")
+		.AddFile("Tests/t1.sql", $"-- {NonAsciiText}");
+
+	/// <summary>
+	/// Saves the file again in Windows-1252 without a BOM, as an old editor does.
+	/// </summary>
+	private static void SaveAsWindows1252(TempProject project, string relativePath)
+	{
+		string filePath = Path.Combine(project.Path, relativePath);
+		File.WriteAllBytes(filePath, System.Text.CodePagesEncodingProvider.Instance.GetEncoding(1252)!.GetBytes(File.ReadAllText(filePath)));
+	}
+
+	/// <summary>
+	/// The loader of the files of a folder, through the real <see cref="FolderScriptSource"/>, <see cref="SettingsAccessor"/>
+	/// and <see cref="DbLiveProject"/>.
+	/// </summary>
+	private static ProjectLoader CreateLoaderOfFolder(MockSet mockSet, string path)
+	{
+		FolderScriptSource scriptSource = new(path);
+		SettingsAccessor settingsAccessor = new(scriptSource);
+
+		return new(
+			new DbLiveProject(scriptSource, settingsAccessor, mockSet.MigrationVersionValidator, mockSet.Logger),
+			settingsAccessor,
+			mockSet.TransactionSettingsValidator
+		);
+	}
+
 	/// <summary>
 	/// The loader of the files of <see cref="MockSet.ScriptSource"/>, through the real <see cref="DbLiveProject"/>.
 	/// </summary>

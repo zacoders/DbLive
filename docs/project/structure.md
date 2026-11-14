@@ -103,6 +103,23 @@ These scripts run on every deployment, also when only breaking changes are deplo
 
 A failed script stops the deployment with `FolderDeploymentException`: the message names the file and contains the SQL error, and the inner exception is the `DbLiveSqlException`. The scripts after it do not run.
 
+## File encoding
+
+Save every file of the project as UTF-8, with or without a BOM. UTF-16 and UTF-32 work only with a BOM; SSMS saves UTF-16 with a BOM, so its files work. There is no setting for another encoding.
+
+A file with bytes that are not UTF-8, such as a script saved in Windows-1252 or Windows-1251 by an old editor, stops the deployment with `FileNotUtf8Exception`, which names the file, before any of your scripts runs. Read as UTF-8, each of its non-ASCII characters would become `�` and be deployed so: `N'Résumé'` would be stored as `N'R�sum�'`. A test file fails when the tests are read. Convert the file from the encoding it was written in, for example with "Reopen with Encoding" and then "Save with Encoding" in VS Code, and check its non-ASCII characters.
+
+DbLive 1.x deployed such files without an error. After the upgrade:
+
+- A code file, a BeforeDeploy or AfterDeploy script, a test, a settings file, or a migration that is not applied yet: convert it to UTF-8. A code file then has a new checksum and is deployed again, with the right text.
+- A migration or breaking script that is already applied: converting it changes its text (`�` becomes `é`), so the next deployment fails with `MigrationChecksumMismatchException`. Either save it as UTF-8 with the text DbLive 1.x read, which keeps the checksum:
+
+    ```powershell
+    pwsh -c '$p = "Scripts/Migrations/001.status.sql"; [IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p))'
+    ```
+
+    or convert it properly and deploy once with `RepairMigrationChecksums = true` (see [Checksums](../deployment/migrations.md#checksums)). Either way, the rows the migration wrote hold `�`: fix them with a new migration.
+
 ## Line endings
 
 Line endings do not matter. A Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same [checksum](../deployment/migrations.md#checksums), so developers on Windows and CI on Linux can deploy to the same database without `.gitattributes`. Scripts run with the line endings they have in the file.

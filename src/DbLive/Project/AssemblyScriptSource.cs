@@ -42,8 +42,10 @@ internal class AssemblyScriptSource : IScriptSource
 	public IReadOnlyList<string> GetFiles() => [.. _resourceNames.Keys];
 
 	/// <summary>
-	/// Decodes like File.ReadAllTextAsync, so content hashes do not depend on where the scripts are read from.
+	/// Decodes as <see cref="ScriptEncoding"/> says, like <see cref="FolderScriptSource"/>, so content hashes do not depend on
+	/// where the scripts are read from.
 	/// </summary>
+	/// <exception cref="FileNotUtf8Exception">The file has bytes that are not UTF-8.</exception>
 	public async Task<string> ReadAsync(string relativePath)
 	{
 		if (!_resourceNames.TryGetValue(relativePath, out string? resourceName))
@@ -54,7 +56,14 @@ internal class AssemblyScriptSource : IScriptSource
 		Stream stream = _openResource(resourceName)
 			?? throw new FileNotFoundException($"Resource '{resourceName}' cannot be read from {Location}.", relativePath);
 
-		using StreamReader reader = new(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-		return await reader.ReadToEndAsync().ConfigureAwait(false);
+		using StreamReader reader = new(stream, ScriptEncoding.StrictUtf8, detectEncodingFromByteOrderMarks: true);
+		try
+		{
+			return await reader.ReadToEndAsync().ConfigureAwait(false);
+		}
+		catch (DecoderFallbackException ex)
+		{
+			throw new FileNotUtf8Exception(relativePath, Location, ex);
+		}
 	}
 }
