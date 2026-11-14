@@ -31,6 +31,31 @@ public class ProjectLoaderTests
 
 		// the tests are not deployed: DbLiveTester reads them.
 		await mockSet.DbLiveProject.DidNotReceive().GetTestsAsync();
+
+		mockSet.TransactionSettingsValidator.Received(1).ValidateMigrations(migrations);
+	}
+
+	[Fact]
+	public async Task Isolation_level_of_a_settings_file_not_supported_by_the_provider_fails_the_load()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.Provider.Returns(DbProvider.PostgreSql);
+		mockSet.ScriptSource.AddFiles(
+			"Migrations/001.migration.sql",
+			"Migrations/002.migration.sql",
+			"Migrations/002.breaking.sql"
+		);
+		mockSet.ScriptSource.AddFile("Migrations/002.breaking.settings.json", """{ "TransactionIsolationLevel": "Snapshot" }""");
+
+		ProjectLoader loader = new(
+			mockSet.CreateUsingMocks<DbLiveProject>(),
+			mockSet.SettingsAccessor,
+			new TransactionSettingsValidator(mockSet.DbLiveDA, mockSet.Logger)
+		);
+
+		NotSupportedTransactionIsolationLevelException ex = await Assert.ThrowsAsync<NotSupportedTransactionIsolationLevelException>(loader.LoadAsync);
+
+		Assert.Contains("Migrations/002.breaking.settings.json", ex.Message);
 	}
 
 	[Fact]

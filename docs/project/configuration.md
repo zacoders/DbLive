@@ -107,7 +107,7 @@ A settings file applies to its own script only. It follows the same format rules
 | Key | Values | Effect |
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
-| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. |
+| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. `Snapshot` is SQL Server only: on PostgreSQL the deployment fails before anything runs. |
 | `Timeout` | time span | Timeout of the script's command and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.

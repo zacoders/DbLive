@@ -17,6 +17,9 @@ internal class ProjectLoader(
 		// the first read checks all files of the project (IDbLiveProject keeps them, the other reads take them from there).
 		IReadOnlyList<Migration> migrations = await _project.GetMigrationsAsync().ConfigureAwait(false);
 
+		// the project does not know the provider: the isolation levels of the settings files of the migrations are checked here.
+		_transactionSettingsValidator.ValidateMigrations(migrations);
+
 		return new ProjectSnapshot
 		{
 			Migrations = migrations,
