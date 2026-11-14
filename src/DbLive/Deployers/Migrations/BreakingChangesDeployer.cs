@@ -35,10 +35,12 @@ internal class BreakingChangesDeployer(
 	}
 
 	/// <summary>
-	/// The breaking phase runs only after the normal deployment of this build completed: every code file has an applied row with its
-	/// current hash. Otherwise a breaking run started too early (the Default run failed, Breaking before Default) drops what the running
-	/// application still uses. A failure, not a skip: a skipped phase leaves the pipeline green. Not a check that the release is still the
-	/// current one: a stale Breaking job of a release that a later one replaced can pass (0096-41, rejected).
+	/// The breaking phase runs only when every code file has an applied row with its current hash: the code phase of this build completed.
+	/// Otherwise a breaking run started too early (the Default run failed in the code phase) drops what the running application still uses.
+	/// A failure, not a skip: a skipped phase leaves the pipeline green. Only code files are checked: a Default run that failed before the
+	/// code phase, or did not run, passes when the build added or changed no code file; starting the breaking phase then is an operator
+	/// mistake DbLive does not guard against (0096-67). Not a check that the release is still the current one: a stale Breaking job of a
+	/// release that a later one replaced can pass (0096-41, rejected).
 	/// </summary>
 	/// <exception cref="CodeNotDeployedException"/>
 	private async Task ValidateCodeDeployedAsync(ProjectSnapshot project)
