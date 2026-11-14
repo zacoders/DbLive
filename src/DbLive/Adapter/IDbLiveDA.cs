@@ -47,7 +47,8 @@ internal interface IDbLiveDA
 	/// On PostgreSQL an error aborts the transaction until the end of the transaction (<see cref="ExecuteCodeItemAsync"/> undoes
 	/// that for its own error). On SQL Server most errors leave it open, but some roll it back: any run-time error with
 	/// <c>XACT_ABORT ON</c>, a failed conversion, a deadlock. The next statements then do not fail, they run in autocommit mode
-	/// and are committed at once, even when the deployment fails and is rolled back.
+	/// and are committed at once, even when the deployment fails and is rolled back. On SQL Server a script can also end the transaction
+	/// without an error: a SQL test whose code under test runs ROLLBACK in its CATCH block (<c>UnitTestItemRunner</c> checks after every test).
 	/// </summary>
 	Task<bool> IsTransactionUsableAsync();
 

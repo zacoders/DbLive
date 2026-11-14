@@ -29,3 +29,15 @@ Not verified yet:
 
 ## Notes
 - 2026-11-03: moved from #96 (0096-24) to #99.
+- 2026-11-15, from 0096-76: a test whose transaction ended before the test did fails ("The transaction of the test ended before the test did ..."). On SQL Server the usual handler of a procedure, `begin catch if @@trancount > 0 rollback; throw; end catch`, ends the transaction of the test when the test catches the error, so the patterns here must not roll back the test transaction: the procedure rolls back to a savepoint of its own inside a transaction of its caller (`docs/llms-full.txt` §8.2, "Code that rolls back the transaction" in `docs/unit-testing/index.md`). Verified on SQL Server 2025 with this test of such a procedure, a `rows` assertion on the error message and on the arrange data (`SqlTestTransactionTests` in `DbLive.MSSQL.Tests`):
+  ```sql
+  begin try
+      exec dbo.AddOrder @Id = -1;
+      throw 50001, 'Expected an error.', 1;
+  end try
+  begin catch
+      if error_number() = 50001 throw;
+      select error_message() as Error;
+  end catch
+  ```
+  Still open here: an error that dooms the transaction, PostgreSQL, the docs of the test side.

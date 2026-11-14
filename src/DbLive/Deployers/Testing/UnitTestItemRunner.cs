@@ -7,6 +7,10 @@ internal class UnitTestItemRunner(
 		ISettingsAccessor _projectSettingsAccessor
 	) : IUnitTestItemRunner
 {
+	internal const string TransactionEndedMessage =
+		"The transaction of the test ended before the test did: the test, its setup.test.sql or the code they call ran ROLLBACK or COMMIT, "
+		+ "for example a CATCH block with 'if @@trancount > 0 rollback'. The statements after it ran in autocommit mode and stay in the database. "
+		+ "Code called inside a transaction must not end it: on an error it rolls back to a savepoint of its own (save transaction).";
 
 	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
@@ -43,6 +47,17 @@ internal class UnitTestItemRunner(
 				testsIsolationLevel,
 				projectSettings.UnitTestItemTimeout
 			).ConfigureAwait(false);
+
+			// on SQL Server the code under test can end the transaction of the test, and the statements after it are committed at once.
+			// Transaction.Current stays Active then, only the server knows. One check after the test covers setup.test.sql too: whatever
+			// runs after the end of the transaction runs in autocommit mode, the test script included. An exception here (a broken
+			// connection, a transaction that timed out) fails the test as well.
+			if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
+			{
+				result.Output = TransactionEndedMessage;
+				result.ErrorMessage = TransactionEndedMessage;
+				return result;
+			}
 
 			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
 			if (!compareResult.IsValid)

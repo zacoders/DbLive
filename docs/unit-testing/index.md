@@ -120,7 +120,57 @@ Code/
 ## Isolation and parallelism
 
 - Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result. A test that runs longer fails with the timeout error of the provider: `Execution Timeout Expired` on SQL Server, `Timeout during reading attempt` on PostgreSQL.
+- A test must not end its transaction, and neither may the code it calls: see [Code that rolls back the transaction](#code-that-rolls-back-the-transaction).
 - The [deployment test](deployment-tests.md) and `RunAllTestsAsync()` run all tests in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
+
+### Code that rolls back the transaction
+
+On SQL Server `ROLLBACK` without a savepoint name ends the transaction of the test, also inside a procedure the test calls. The usual error handler does it when the test catches the error:
+
+```sql
+begin catch
+    if @@trancount > 0 rollback;
+    throw;
+end catch
+```
+
+`COMMIT` in a test or in `setup.test.sql` ends the transaction too. The statements after it run in autocommit mode and are committed at once, so the rest of the test runs against other data than it prepared. DbLive checks the transaction after the test, and the test fails:
+
+```text
+The transaction of the test ended before the test did: the test, its setup.test.sql or the code they call ran ROLLBACK or COMMIT, ...
+```
+
+What was committed stays in the database: in the test database of `[SqlFact]` the other tests see it, and a database you test with `RunAllTestsAsync()` keeps it.
+
+A procedure whose error path you test must not end a transaction it did not open. Inside a transaction of its caller it rolls back to a savepoint of its own:
+
+```sql
+create or alter proc dbo.AddOrder
+    @Id int
+as
+begin
+    declare @trancount int = @@trancount;
+    begin try
+        if @trancount = 0 begin transaction;
+        else save transaction AddOrder;
+
+        insert into dbo.Orders (Id) values (@Id);
+        if @Id < 0 throw 50000, 'Id must be positive.', 1;
+
+        if @trancount = 0 commit;
+    end try
+    begin catch
+        -- a doomed transaction (xact_state() = -1) can only be rolled back as a whole
+        if xact_state() = -1 or (xact_state() = 1 and @trancount = 0) rollback;
+        else if xact_state() = 1 rollback transaction AddOrder;
+        throw;
+    end catch
+end
+```
+
+An error that dooms the transaction (any run-time error with `XACT_ABORT ON`, a failed conversion) cannot be rolled back to a savepoint, so a test that catches such an error still fails.
+
+On PostgreSQL a procedure cannot end the transaction of its caller: `ROLLBACK` or `COMMIT` in it fails with `invalid transaction termination`, and so does the test.
 
 ## Running tests in Visual Studio and CI (xUnit)
 

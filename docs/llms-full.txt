@@ -28,6 +28,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 16. **Put nothing into the scripts root except the project folders and `settings.json`.** Every file must be inside `Migrations`, `Code`, `Tests`, `BeforeDeploy` or `AfterDeploy` (or the folders named in `settings.json`); hidden files and folders (the name starts with a dot: `.DS_Store`, `.gitkeep`) do not count. Breaking this (a `PostDeployment/` folder, a `README.md` or a misspelled `setting.json` in the root) → `FilesOutsideProjectFoldersException` before any script of the project runs (Section 4). Keep other scripts and documents outside the scripts root; notes (`.md`, `.txt`) may sit inside the project folders.
 17. **Give every project a `ProjectId`** in `Scripts/settings.json` (Section 14): a name unique to the project, the same in every environment (`"ProjectId": "billing-api-db"`). Breaking this → nothing stops the deployer from deploying into another project's database, and every deployment logs the warning "ProjectId is not set in settings.json ...".
 18. **Do not turn on `CreateDbIfNotExists` in a production deployer** (Section 18.10). It is off by default; turn it on only for local and test databases. Breaking this → a typo in the database name of the connection string creates an empty database and deploys the whole schema into it.
+19. **A SQL test must not end its transaction, and neither may the code it calls.** On SQL Server `ROLLBACK` without a savepoint name ends the transaction of the test also inside a procedure (the usual `begin catch if @@trancount > 0 rollback; throw; end catch`), and so does `COMMIT` in a test or in `setup.test.sql`. A procedure whose error path a test covers rolls back to a savepoint of its own when it runs inside a transaction of its caller (Section 8.2). Breaking this → the test fails with "The transaction of the test ended before the test did ...", and what ran after the end of the transaction is committed and stays in the database.
 
 ---
 
@@ -414,8 +415,37 @@ For each test:
 1. Open a transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and timeout `UnitTestItemTimeout` (1 minute).
 2. Execute `setup.test.sql` of the folder, if any (SQL Server: `GO` allowed).
 3. Execute the test script and collect all result sets (SQL Server: **no `GO`**, the whole file is one batch).
-4. Evaluate the assertion (8.3).
-5. **Always roll back.** Tests leave no data behind and can be re-run.
+4. Check that the transaction is still open (one query: `@@trancount` on SQL Server, `select 1` on PostgreSQL). If it is not, the test fails without evaluating the assertion (below).
+5. Evaluate the assertion (8.3).
+6. **Always roll back.** Tests leave no data behind and can be re-run, unless the test ended its transaction itself (below).
+
+**A test must not end its transaction.** On SQL Server `ROLLBACK` without a savepoint name ends the transaction of the test, also inside a procedure the test calls: the usual error handler `begin catch if @@trancount > 0 rollback; throw; end catch` does it when the test catches the error. `COMMIT` in the test or in `setup.test.sql` ends it too. The statements after it run in autocommit mode and are committed at once, and the test goes on against other data than it prepared. DbLive notices it only after the test: the test fails with `The transaction of the test ended before the test did: ...`, and what was committed stays in the database (in the test database of `[SqlFact]` the other tests see it; a database tested with `RunAllTestsAsync` keeps it). A test whose script fails with an error is not checked: it fails with its error. A procedure whose error path a test covers must not end a transaction it did not open. Inside a transaction of its caller it rolls back to a savepoint of its own (verified on SQL Server 2025):
+
+```sql
+create or alter proc dbo.AddOrder
+    @Id int
+as
+begin
+    declare @trancount int = @@trancount;
+    begin try
+        if @trancount = 0 begin transaction;
+        else save transaction AddOrder;
+
+        insert into dbo.Orders (Id) values (@Id);
+        if @Id < 0 throw 50000, 'Id must be positive.', 1;
+
+        if @trancount = 0 commit;
+    end try
+    begin catch
+        -- a doomed transaction (xact_state() = -1) can only be rolled back as a whole
+        if xact_state() = -1 or (xact_state() = 1 and @trancount = 0) rollback;
+        else if xact_state() = 1 rollback transaction AddOrder;
+        throw;
+    end catch
+end
+```
+
+An error that dooms the transaction (any run-time error with `XACT_ABORT ON`, a failed conversion) cannot be rolled back to a savepoint: the procedure rolls back the whole transaction, and a test that catches such an error fails. On PostgreSQL a procedure called inside a transaction cannot end it: `ROLLBACK` or `COMMIT` in it fails with `2D000: invalid transaction termination`, and the test fails with that error (verified).
 
 `setup.test.sql` and the test run on separate connections inside the same transaction. Data changes made by `setup.test.sql` are visible to the test; session state is not (temporary tables, variables, `SET` options). Use permanent tables in `setup.test.sql`. If the setup file fails, the test fails with `ERROR: Setup file error. ...`. A test or setup file that runs longer than `UnitTestItemTimeout` fails with the provider's timeout error in `ErrorMessage` (`Execution Timeout Expired` on SQL Server, `Timeout during reading attempt` on PostgreSQL).
 
@@ -975,6 +1005,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | Re-runnable code | `create or alter` | `create or replace`; `drop function if exists f(args)` before `create` when the signature or return type changes |
 | Assert column | `select assert = 'rows'` or `select 'rows' as assert` | `select 'rows' as assert` |
 | Error details | Msg number, level, state, line in batch, procedure | SqlState, severity, position, where |
+| Code that ends the transaction of a SQL test | `ROLLBACK` in a procedure ends the transaction of its caller too, and the next statements are committed at once: the test fails with "The transaction of the test ended before the test did ..." (Section 8.2) | A procedure cannot end the transaction of its caller: `2D000: invalid transaction termination` fails the test |
 | An error in the deployment transaction (`TransactionWrapLevel: Deployment`) | Most errors leave the transaction open, and a failed code file is retried. A run-time error with `XACT_ABORT ON`, a failed conversion and a deadlock roll it back: the file is not retried | Aborts the transaction. A code file runs under a savepoint, and the rollback to it lets the file be retried |
 
 ---
@@ -1017,6 +1048,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL, in `settings.json` as `TransactionIsolationLevel` or `TestsTransactionIsolationLevel` (at the start of the deployment and of `RunAllTestsAsync`) or in an item settings file (at the start of the deployment; the message names the file) | Choose another level |
 | `TransactionAbortedException` | A transaction ran longer than its timeout setting (`MigrationTimeout` or the item's `Timeout`, `DeploymentTimeout`, `UnitTestItemTimeout`; Section 10). The same value is the command timeout of each statement, so one long statement usually fails first with the provider's timeout error, as `MigrationDeploymentException` (`Execution Timeout Expired` on SQL Server, `Timeout during reading attempt` on PostgreSQL) | Raise that timeout (for one script: `Timeout` in its item settings file). `TransactionWrapLevel: None` removes only the transaction timeout, not the command timeout |
 | `JsonException: The JSON property 'DowngradeTimeout' could not be mapped` reading `settings.json` | `DowngradeTimeout` was removed | Delete the key |
+| Test: `The transaction of the test ended before the test did: ...` | SQL Server: the test, its `setup.test.sql` or the code they call ran `ROLLBACK` or `COMMIT`, usually a `CATCH` block with `if @@trancount > 0 rollback` in a procedure whose error the test catches. The statements after it were committed and stay in the database | Make the procedure roll back to a savepoint of its own inside a transaction of its caller (Section 8.2); remove `commit` and `rollback` from tests. Delete the committed rows from a database that is kept between runs |
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `setup.test.sql` |
 | Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |

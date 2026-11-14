@@ -16,3 +16,6 @@ Wait until the sessions of the login are gone before `drop login`: a loop with `
 
 ## Done when
 - [ ] `DropLoginAsync` waits for the killed sessions; repeated full runs of `DbLive.MSSQL.Tests` pass
+
+## Notes
+- 2026-11-15, while working on 0096-76 (verified): both tests of the class failed in a run of the whole solution, one of them in the next run of `DbLive.MSSQL.Tests`; the class alone passed. These tests run no SQL test, so 0096-76 does not touch them.
