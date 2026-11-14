@@ -8,16 +8,14 @@ breaking: true
 # Deployment test: one case that follows the production order instead of six
 
 ## Release note
-**One deployment test instead of six cases.** `[SqlDeployFact]` is a plain fact without parameters, and `DeployFixture` is renamed to `DeploymentTestFixture`. The test deploys as production does: the release with the SQL tests, then the breaking phase with the SQL tests, then the breaking phase once more. To upgrade, change the deployment test as below.
+**One deployment test instead of six cases.** `[SqlDeployFact]` is a plain fact without parameters, and `DeployFixture` is renamed to `DeploymentTest`. The test deploys as production does: the release with the SQL tests, then the breaking phase with the SQL tests, then the breaking phase once more. To upgrade, change the deployment test as below.
 
 ```csharp
-private readonly DeploymentTestFixture _fixture = new(
-    builderProvider: new MyFixtureBuilder(),
-    dropDatabaseOnComplete: true
-);
-
 [SqlDeployFact]
-public Task ReleaseDeploys() => _fixture.DeployAsync(_output);
+public Task ReleaseDeploys() => new DeploymentTest(
+    fixtureBuilder: new MyFixtureBuilder(),
+    dropDatabaseOnComplete: true
+).DeployAsync(_output);
 ```
 
 ## Problem

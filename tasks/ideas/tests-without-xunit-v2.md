@@ -7,7 +7,7 @@ created: 2026-11-14
 `DbLive.xunit` supports xUnit v2 only. With another test framework (xUnit v3, NUnit, MSTest) the docs offer one recipe: a fixture builder and `RunAllTestsAsync` in one test of that framework (Section 8.2 of `docs/llms-full.txt`, `docs/unit-testing/index.md` "Running all tests without xUnit"). Compared with xUnit v2, such a user does not get:
 
 - every SQL test as its own test case, as `[SqlFact]` gives: one test runs them all, and a failure is one `UnitTestsFailedException` with the list of failed files;
-- the deployment test with the schema check: `DeploymentTestFixture.DeployAsync` takes xUnit's `ITestOutputHelper`, and the schema snapshot and its comparison are internal (0096-80);
+- the deployment test with the schema check: `DeploymentTest.DeployAsync` takes xUnit's `ITestOutputHelper`, and the schema snapshot and its comparison are internal (0096-80);
 - a test database that DbLive drops: with 0096-81 `DropDbAsync` is internal. With a container builder there is nothing to drop; on their own server the user drops a database with a fixed name with their own SQL before the deployment (0096-81);
 - the log in the test output: `LogToXUnitOutput` is for xUnit v2 (`LogTo(Serilog.ILogger)` works with any framework).
 

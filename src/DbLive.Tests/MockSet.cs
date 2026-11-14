@@ -18,7 +18,7 @@ internal class MockSet
 	public readonly InMemoryScriptSource InternalScriptSource = new();
 	public readonly IDbLiveProject DbLiveProject = Substitute.For<IDbLiveProject>();
 	public readonly IInternalDbLiveProject IInternalDbLiveProject = Substitute.For<IInternalDbLiveProject>();
-	public readonly IDbLiveInternalDA DbLiveDA = Substitute.For<IDbLiveInternalDA>();
+	public readonly IDbLiveDA DbLiveDA = Substitute.For<IDbLiveDA>();
 	public readonly ITimeProvider TimeProvider = Substitute.For<ITimeProvider>();
 	public readonly IDbLiveDbConnection DbConnection = Substitute.For<IDbLiveDbConnection>();
 	public readonly ISettingsAccessor SettingsAccessor = Substitute.For<ISettingsAccessor>();

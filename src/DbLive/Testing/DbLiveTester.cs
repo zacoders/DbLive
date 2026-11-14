@@ -11,7 +11,7 @@ internal class DbLiveTester(
 		IDbLiveProject _project,
 		IUnitTestItemRunner _unitTestItemRunner,
 		IUnitTestsRunner _unitTestsRunner,
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		ISettingsAccessor _projectSettings,
 		IProjectIdValidator _projectIdValidator,
 		ITransactionSettingsValidator _transactionSettingsValidator

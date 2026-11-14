@@ -9,13 +9,23 @@ namespace DbLive.PostgreSQL;
 /// container. Testcontainers removes the container when the test run ends.
 /// </summary>
 /// <param name="project">The SQL project assembly.</param>
-/// <param name="image">The PostgreSQL image, <see cref="DefaultImage"/> by default.</param>
-public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string image = PostgreSqlContainerFixtureBuilder.DefaultImage)
+/// <param name="image">The PostgreSQL image.</param>
+public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string image)
 	: IDbLiveFixtureBuilder
 {
-	// a major version, not latest: a new release of PostgreSQL does not change the image of the tests; a DbLive release
-	// raises it.
-	public const string DefaultImage = "postgres:18";
+	// a major version, not latest: a new major version of PostgreSQL does not change the image of the tests. Raising it is
+	// a breaking change, which only a major DbLive release makes (docs/versioning.md); internal, so that the image is not in
+	// the public API files.
+	internal const string DefaultImage = "postgres:18";
+
+	/// <summary>
+	/// With the default image, PostgreSQL 18 (<c>postgres:18</c>).
+	/// </summary>
+	/// <param name="project">The SQL project assembly.</param>
+	public PostgreSqlContainerFixtureBuilder(Assembly project)
+		: this(project, DefaultImage)
+	{
+	}
 
 	// the start of each image: its connection string, or the error every fixture gets when the start failed.
 	private static readonly Dictionary<string, Task<string>> _servers = [];

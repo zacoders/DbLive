@@ -52,11 +52,11 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
-	private IDbLiveInternalDA _da = null!;
+	private IDbLiveDA _da = null!;
 
 	public async Task InitializeAsync()
 	{
-		_da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
+		_da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
 		await _da.CreateDBAsync();
 	}
 

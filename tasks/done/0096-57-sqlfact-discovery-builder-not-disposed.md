@@ -13,7 +13,7 @@ breaking: true
 To upgrade:
 
 - `GetProject()` has no replacement: reading the project is not part of the public API.
-- `DbLiveTestFixture` and `DeploymentTestFixture` dispose the `DbLiveBuilder` from `IDbLiveFixtureBuilder.GetBuilderAsync()` at the end, after the database is dropped. A custom fixture builder must return a new builder from every call: one that returns a shared builder fails the next fixture with `ObjectDisposedException`. The ready-made fixture builders already return a new one.
+- `DbLiveTestFixture` (in `DisposeAsync`) and `DeploymentTest` (at the end of `DeployAsync`) dispose the `DbLiveBuilder` from `IDbLiveFixtureBuilder.GetBuilderAsync()`, after the database is dropped. A custom fixture builder must return a new builder from every call: one that returns a shared builder fails the next fixture with `ObjectDisposedException`. The ready-made fixture builders already return a new one.
 
 ## Problem
 `DbLiveTestFixture.GetProject()` creates a `DbLiveBuilder` (`IDisposable`, it owns a `ServiceProvider`), returns the project from it and never disposes it. `SqlFactDiscoverer` calls it once for every method with `[SqlFact]` during discovery, reads the tests and drops the project.

@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
-internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveInternalDA
+internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 

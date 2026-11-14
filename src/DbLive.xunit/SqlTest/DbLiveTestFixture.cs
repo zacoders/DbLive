@@ -14,8 +14,14 @@ public class DbLiveTestFixture(
 {
 	private IDbLive? _deployer;
 	private DbLiveBuilder? _builder;
+	private IDbLiveTester? _tester;
 
-	public IDbLiveTester? Tester { get; private set; }
+	/// <summary>
+	/// The tester of the database that <see cref="InitializeAsync"/> deployed. xUnit initializes the fixture before the tests of the class.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">Read before <see cref="InitializeAsync"/>.</exception>
+	public IDbLiveTester Tester => _tester
+		?? throw new InvalidOperationException("The fixture is not initialized: xUnit calls InitializeAsync before the tests of the class that has it as IClassFixture.");
 
 	/// <summary>
 	/// The SQL tests of the project, for discovery. The builder lives only for this read.
@@ -39,7 +45,7 @@ public class DbLiveTestFixture(
 
 		_deployer = _builder.CreateDeployer();
 
-		Tester = _builder.CreateTester();
+		_tester = _builder.CreateTester();
 
 		await _deployer!.DeployAsync(new DeployParameters
 		{
@@ -61,7 +67,7 @@ public class DbLiveTestFixture(
 		{
 			if (dropDatabaseOnComplete)
 			{
-				IDbLiveDA da = _builder.CreateDbLiveDA();
+				IDbLiveDA da = _builder.GetRequiredService<IDbLiveDA>();
 				await da.DropDbAsync().ConfigureAwait(false);
 			}
 		}

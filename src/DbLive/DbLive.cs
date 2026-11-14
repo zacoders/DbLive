@@ -4,7 +4,7 @@ using DbLive.SelfDeployer;
 namespace DbLive;
 
 internal class DbLive(
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		ILogger _logger,
 		IProjectLoader _projectLoader,
 		IDbLiveDeployer _deployer,

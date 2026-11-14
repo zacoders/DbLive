@@ -3,7 +3,7 @@ namespace DbLive.Deployers.Migrations;
 internal class MigrationChecksumValidator(
 	ILogger logger,
 	ISettingsAccessor settingsAccessor,
-	IDbLiveInternalDA da
+	IDbLiveDA da
 ) : IMigrationChecksumValidator
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(MigrationChecksumValidator));

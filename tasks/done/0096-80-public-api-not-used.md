@@ -8,14 +8,14 @@ breaking: true
 # Public API that a user does not use
 
 ## Release note
-**`IDbLiveDA` only drops the database; the rest of DbLive's database access is internal.**
+**DbLive's database access is internal.**
 
 To upgrade:
 
-- `IDbLiveDA` keeps `DropDbAsync`. `Provider`, `CreateDBAsync`, `ExecuteNonQueryAsync` and `ExecuteQueryMultipleAsync` are internal, and so are `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider` and `TranIsolationLevel`. To create the database, deploy with `CreateDbIfNotExists = true`. To run other SQL, also to query the `dblive` tables, use a connection of your own (ADO.NET, Dapper) with the same connection string.
+- `IDbLiveDA.Provider`, `CreateDBAsync`, `ExecuteNonQueryAsync` and `ExecuteQueryMultipleAsync` are internal, and so are `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider` and `TranIsolationLevel`. To create the database, deploy with `CreateDbIfNotExists = true`. To run other SQL, also to query the `dblive` tables, use a connection of your own (ADO.NET, Dapper) with the same connection string.
 - `TestRunResult.Output` and `ExecutionTimeMs` are internal: `RunTestAsync` writes the output of the test to its `writeLine`, and the test framework measures the time.
 - `InvalidMigrationVersionException.MigrationVersionStr` is removed: the message has the reason.
-- `DeploymentTestFixture` is sealed: create it with `new`, as the template does.
+- `DeploymentTest` is sealed: create it with `new`, as the template does.
 
 ## Problem
 After 0096-73, `DbLive` has 46 public types and 186 lines of public API. A second pass over every line of the `PublicAPI.Shipped.txt` files (2026-11-14) compared them with what a user calls or reads: the template, the demos, the docs, the READMEs of the packages (verified with grep). Some public API is used only by DbLive's own packages and tests, and they see the internals:

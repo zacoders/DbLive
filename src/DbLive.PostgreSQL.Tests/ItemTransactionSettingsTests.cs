@@ -18,7 +18,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -38,7 +38,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(new DeployParameters { DeployBreaking = true });
 
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		Assert.Equal(1, await CountAsync(da, "select count(*) from pg_indexes where indexname = 'ix_t1_name'"));
 		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
@@ -62,7 +62,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		string migrationRowsQuery = "select count(*) from dblive.migration";
 		long migrationRows = await CountAsync(da, migrationRowsQuery);
 
@@ -116,7 +116,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveInternalDA>().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
+		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
 		Assert.Equal(
 			["after deploy: repeatable read", "code: repeatable read", "migration: serializable"],
 			results.Single().Rows.Select(r => (string)r[0])
@@ -128,7 +128,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	{
 		// one connection in the pool: the next open gets the same session.
 		string cnnString = new NpgsqlConnectionStringBuilder(_dbCnnString) { MaxPoolSize = 1 }.ConnectionString;
-		IDbLiveInternalDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).GetRequiredService<IDbLiveDA>();
 
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable);
 		int pid = (int)results.Single().Rows.Single()[0];
@@ -156,7 +156,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		await da.ExecuteNonQueryAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 3;
@@ -186,7 +186,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		await da.ExecuteNonQueryAsync("""
 			alter table dblive.migration add column content text null;
 			insert into dblive.migration (version, item_type, name, relative_path, status, content_hash, content, created_utc, applied_utc)
@@ -225,7 +225,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
 		=> items.Single(i => i.Version == version && i.ItemType == itemType);
 
-	private static async Task<long> CountAsync(IDbLiveInternalDA da, string query)
+	private static async Task<long> CountAsync(IDbLiveDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

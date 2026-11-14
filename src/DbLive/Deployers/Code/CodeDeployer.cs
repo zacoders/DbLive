@@ -5,7 +5,7 @@ internal class CodeDeployer(
 	ILogger logger,
 	ICodeItemDeployer _codeItemDeployer,
 	ISettingsAccessor settingsAccessor,
-	IDbLiveInternalDA _da,
+	IDbLiveDA _da,
 	ITimeProvider _timeProvider
 ) : ICodeDeployer
 {

@@ -17,7 +17,7 @@ public class ErrorColumnTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -101,7 +101,7 @@ public class ErrorColumnTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 
 	private static async Task<string> ErrorAsync(DbLiveBuilder builder, string query)
 	{
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveInternalDA>().ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync(query);
 		return (string)results.Single().Rows.Single()[0]!;
 	}
 }

@@ -22,6 +22,21 @@ public class DbLiveTestFixtureTests
 	}
 
 	[Fact]
+	public async Task Tester_is_the_tester_of_the_builder_after_InitializeAsync_and_throws_before()
+	{
+		IDbLiveTester tester = Substitute.For<IDbLiveTester>();
+		DbLiveTestFixture fixture = new(new FixtureBuilder(Substitute.For<IDbLiveDA>(), tester), dropDatabaseOnComplete: false);
+
+		InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => fixture.Tester);
+		Assert.StartsWith("The fixture is not initialized", ex.Message);
+
+		await fixture.InitializeAsync();
+
+		Assert.Same(tester, fixture.Tester);
+		await fixture.DisposeAsync();
+	}
+
+	[Fact]
 	public async Task DisposeAsync_DropFails_TheBuilderIsDisposed()
 	{
 		IDbLiveDA da = Substitute.For<IDbLiveDA>();
@@ -35,7 +50,7 @@ public class DbLiveTestFixtureTests
 		Assert.Throws<ObjectDisposedException>(() => fixtureBuilder.Builder!.CreateTester());
 	}
 
-	private sealed class FixtureBuilder(IDbLiveDA da) : IDbLiveFixtureBuilder
+	private sealed class FixtureBuilder(IDbLiveDA da, IDbLiveTester? tester = null) : IDbLiveFixtureBuilder
 	{
 		public DbLiveBuilder? Builder { get; private set; }
 
@@ -44,7 +59,7 @@ public class DbLiveTestFixtureTests
 			Builder = new DbLiveBuilder().ConfigureServices(services => services
 				.AddSingleton(Substitute.For<IDbLive>())
 				.AddSingleton(da)
-				.AddSingleton(Substitute.For<IDbLiveTester>()));
+				.AddSingleton(tester ?? Substitute.For<IDbLiveTester>()));
 			return Task.FromResult(Builder);
 		}
 

@@ -62,7 +62,7 @@ SQL tests, checksums and ProjectId are available in every way.
 | `DbLive` | Core engine. Pulled in automatically by the other packages. Embeds the scripts folder that the `.csproj` names in `DbLiveScriptsFolder` in the assembly (Section 3.1). | `DbLiveBuilder`, `DeployParameters`, `IDbLive`, `IDbLiveFixtureBuilder` |
 | `DbLive.MSSQL` | SQL Server / Azure SQL provider (Microsoft.Data.SqlClient + SMO). | `.SqlServer()`, `MsSqlFixtureBuilder` |
 | `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()`, `PostgreSqlFixtureBuilder` |
-| `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTestFixture` |
+| `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTest` |
 | `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker (Testcontainers). Brings `DbLive.MSSQL` and `Testcontainers.MsSql`; no xUnit dependency. | `MsSqlContainerFixtureBuilder` |
 | `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker (Testcontainers). Brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; no xUnit dependency. | `PostgreSqlContainerFixtureBuilder` |
 | `DbLive.Templates` | `dotnet new` template; installed with `dotnet new install`, never referenced by a project. Creates a new solution (Section 18.1). | `dotnet new dblive` |
@@ -429,7 +429,41 @@ await builder.CreateDeployer().DeployAsync(DeployParameters.Default);   // leave
 await builder.CreateTester().RunAllTestsAsync();   // never in a production deployer
 ```
 
-The fixture builders (Section 11.6) do not depend on xUnit; with another framework they give a new database too: `DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();`, then `DeployAsync(new DeployParameters { CreateDbIfNotExists = true })` (the database does not exist yet), `RunAllTestsAsync()`, and `builder.CreateDbLiveDA().DropDbAsync()`.
+A test database without xUnit. DbLive does not drop it: only the xUnit fixtures do (Section 13).
+- In Docker: a container fixture builder (Section 11.5) gives a new database, `DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();`, then `DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true })` (the database does not exist yet) and `RunAllTestsAsync()`. Nothing to drop: the container goes away when the test process ends.
+- On a server of your own: a database with a fixed name (`MyDb_Tests`), dropped with your own SQL **before** the deployment, so that every run deploys the whole project to an empty database. A database kept between runs gets an incremental deployment, and the deployment is not tested in full. Before and not after: a run that fails before its end leaves the database, and the next run drops it anyway. `MsSqlFixtureBuilder` and `PostgreSqlFixtureBuilder` do not fit here: every call names a new database, which nothing drops without xUnit.
+
+```csharp
+using DbLive;
+using DbLive.MSSQL;
+using Microsoft.Data.SqlClient;   // comes with DbLive.MSSQL
+
+const string connectionString = "Server=localhost;Database=MyDb_Tests;Trusted_Connection=True;TrustServerCertificate=True;";
+
+await using (SqlConnection master = new(connectionString.SetMsSqlDatabaseName("master")))
+{
+    await master.OpenAsync();
+    await using SqlCommand drop = new("""
+        if db_id('MyDb_Tests') is not null
+        begin
+            alter database [MyDb_Tests] set single_user with rollback immediate;
+            drop database [MyDb_Tests];
+        end
+        """, master);
+    await drop.ExecuteNonQueryAsync();
+}
+SqlConnection.ClearPool(new SqlConnection(connectionString));
+
+await using DbLiveBuilder builder = new DbLiveBuilder()
+    .SqlServer()
+    .SetDbConnection(connectionString)
+    .SetProject(typeof(MyDbMarker).Assembly);
+
+await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
+await builder.CreateTester().RunAllTestsAsync();
+```
+
+PostgreSQL 13 or later: `NpgsqlConnection` (namespace `Npgsql`, comes with `DbLive.PostgreSQL`) on `connectionString.SetPostgreSqlDatabaseName("postgres")`, the SQL `drop database if exists mydb_tests with (force);`, then `NpgsqlConnection.ClearPool(new NpgsqlConnection(connectionString))`. A plain `drop database` fails while the database is in use, and the connections of DbLive stay in the connection pool: `single_user with rollback immediate` and `with (force)` close them. `ClearPool` removes the closed connections from the pool of the test database: without it a second run in the same process fails on PostgreSQL with `57P01: terminating connection due to administrator command`. Not `ClearAllPools`: it also clears the pools of other tests in the process, and their next connection in a `TransactionScope` on SQL Server fails with "Implicit distributed transactions have not been enabled". Verified on both providers with a second run after a deployment and a test run in the same process.
 
 Before the first test it checks the database, and runs no test if a check fails:
 - the database exists, otherwise `DatabaseNotFoundException` (Section 17);
@@ -648,7 +682,7 @@ Command timeouts (the `*Timeout` settings except `DeploymentTimeout`, which is a
 
 ## 11. C# API
 
-Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `IDbLive`, `DeployParameters`, `IDbLiveDA`, `IDbLiveFixtureBuilder`, and the exceptions of Section 17 but three. The tests are in `DbLive.Testing` (`IDbLiveTester`, `TestRunResult`, `UnitTestsFailedException`, `DatabaseNotDeployedException`, and `SchemaChangedException` of the deployment test), the providers in `DbLive.MSSQL` and `DbLive.PostgreSQL`, the xUnit integration in `DbLive.xunit`. Every other type is internal (see [Versioning](https://zacoders.github.io/DbLive/versioning/)).
+Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `IDbLive`, `DeployParameters`, `IDbLiveFixtureBuilder`, and the exceptions of Section 17 but three. The tests are in `DbLive.Testing` (`IDbLiveTester`, `TestRunResult`, `UnitTestsFailedException`, `DatabaseNotDeployedException`, and `SchemaChangedException` of the deployment test), the providers in `DbLive.MSSQL` and `DbLive.PostgreSQL`, the xUnit integration in `DbLive.xunit`. Every other type is internal (see [Versioning](https://zacoders.github.io/DbLive/versioning/)).
 
 ### 11.1 `DbLiveBuilder` (namespace `DbLive`)
 
@@ -656,7 +690,6 @@ Namespaces: what a deployer calls is in `DbLive`: the builder and its methods, `
 public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 {
     public IDbLive CreateDeployer();
-    public IDbLiveDA CreateDbLiveDA();      // drop the database: tests without xUnit (Section 8.2)
     public IDbLiveTester CreateTester();    // DbLive.Testing: run all SQL tests, or one by relative path
 }
 ```
@@ -691,6 +724,10 @@ Task DeployAsync(DeployParameters parameters);
 
 Deploys only. The SQL tests are not part of it (Section 8.2).
 
+A SQL error of a script is a `DbLiveSqlException` (`SqlError` holds provider details: number, severity, line), the inner exception of the deployment errors of Section 17. `SqlError` is empty when the error does not come from the server: a command timeout, a lost connection. The message has the cause then: on PostgreSQL the distinct messages of the provider's exception chain, one per line, because Npgsql wraps the cause in `NpgsqlException` "Exception while reading from stream" (a command timeout: `Timeout during reading attempt`). The provider's exception is the inner exception.
+
+DbLive's database access is internal: `DeployAsync` creates the database (`CreateDbIfNotExists`) and checks it, the xUnit fixtures drop theirs. Other SQL, also the drop of a test database without xUnit (Section 8.2), runs on a connection of your own (ADO.NET, Dapper) with the same connection string. A provider written outside the DbLive repository is not supported.
+
 ### 11.3 `DeployParameters` (record, namespace `DbLive`)
 
 | Property | `new()` default | Meaning |
@@ -710,17 +747,7 @@ Presets (each access returns a new instance; adjust with `with { ... }`):
 
 Even with all flags off, a deployment still performs: ProjectId validation, self-deployment, settings validation, the applied versions check (Section 5.2), checksum validation, saving migration items, BeforeDeploy and AfterDeploy. There is no flag for the SQL tests: a deployment never runs them (Section 8.2).
 
-### 11.4 `IDbLiveDA` (namespace `DbLive`)
-
-```csharp
-Task DropDbAsync(bool skipIfNotExists = true);   // SQL Server: single_user + rollback immediate; PostgreSQL: terminates sessions
-```
-
-Its only member: a test that creates its own database drops it at the end (Section 8.2); the fixtures of `DbLive.xunit` drop theirs. The rest of DbLive's database access is internal: `DeployAsync` creates and checks the database, and other SQL runs on a connection of your own (ADO.NET, Dapper). A provider written outside the DbLive repository is not supported.
-
-A SQL error of a script is a `DbLiveSqlException` (`SqlError` holds provider details: number, severity, line), the inner exception of the deployment errors of Section 17. `SqlError` is empty when the error does not come from the server: a command timeout, a lost connection. The message has the cause then: on PostgreSQL the distinct messages of the provider's exception chain, one per line, because Npgsql wraps the cause in `NpgsqlException` "Exception while reading from stream" (a command timeout: `Timeout during reading attempt`). The provider's exception is the inner exception.
-
-### 11.5 `IDbLiveTester` (namespace `DbLive.Testing`)
+### 11.4 `IDbLiveTester` (namespace `DbLive.Testing`)
 
 ```csharp
 Task RunAllTestsAsync();   // all SQL tests in parallel, results in dblive.unit_test_run; throws UnitTestsFailedException (Section 8.2)
@@ -730,7 +757,7 @@ Task<TestRunResult> RunTestAsync(Action<string> writeLine, string relativePath);
 
 `RunAllTestsAsync` checks the database first (DbLive tables, the minimum DbLive version, ProjectId, isolation levels; Section 8.2). `RunTestAsync` does not check and does not store the result: the `[SqlFact]` fixture has just deployed the database.
 
-### 11.6 `IDbLiveFixtureBuilder` (namespace `DbLive`) and the fixture builders
+### 11.5 `IDbLiveFixtureBuilder` (namespace `DbLive`) and the fixture builders
 
 ```csharp
 public interface IDbLiveFixtureBuilder
@@ -740,7 +767,7 @@ public interface IDbLiveFixtureBuilder
 }
 ```
 
-The fixture (`DbLiveTestFixture`, `DeploymentTestFixture`) owns the builder it gets and disposes it at the end, after the drop of the database. `GetBuilderAsync` returns a new builder on every call, never a shared one.
+The caller owns the builder it gets and disposes it at the end, after the drop of the database: `DbLiveTestFixture` in its `DisposeAsync`, `DeploymentTest` at the end of `DeployAsync`. `GetBuilderAsync` returns a new builder on every call, never a shared one.
 
 Ready-made implementations; each takes the SQL project assembly and gives every `GetBuilderAsync` call a new random database name (`DbLive--<guid>` on SQL Server, `dblive--<guid>` on PostgreSQL). They do not create the database: the fixture's deployment does (`CreateDbIfNotExists = true`).
 
@@ -748,8 +775,10 @@ Ready-made implementations; each takes the SQL project assembly and gives every 
 |---|---|---|
 | `MsSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.MSSQL` / `DbLive.MSSQL` | On the server of `connectionString`; its database name is replaced. |
 | `PostgreSqlFixtureBuilder(Assembly project, string connectionString)` | `DbLive.PostgreSQL` / `DbLive.PostgreSQL` | Same, PostgreSQL. |
-| `MsSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.MSSQL` / `DbLive.MSSQL` | SQL Server in Docker; `DefaultImage` = `mcr.microsoft.com/mssql/server:2025-latest`. |
-| `PostgreSqlContainerFixtureBuilder(Assembly project, string image = DefaultImage)` | `DbLive.Testcontainers.PostgreSQL` / `DbLive.PostgreSQL` | PostgreSQL in Docker; `DefaultImage` = `postgres:18`, a major version that a DbLive release raises. |
+| `MsSqlContainerFixtureBuilder(Assembly project)`, `MsSqlContainerFixtureBuilder(Assembly project, string image)` | `DbLive.Testcontainers.MSSQL` / `DbLive.MSSQL` | SQL Server in Docker; without `image`: `mcr.microsoft.com/mssql/server:2025-latest`, SQL Server 2025 with its updates. |
+| `PostgreSqlContainerFixtureBuilder(Assembly project)`, `PostgreSqlContainerFixtureBuilder(Assembly project, string image)` | `DbLive.Testcontainers.PostgreSQL` / `DbLive.PostgreSQL` | PostgreSQL in Docker; without `image`: `postgres:18`, a major version, with its minor releases. |
+
+The default image is not a public constant. A new major version of the database engine in it is a breaking change and comes only in a major DbLive release; an update within the same major version is not ([Versioning](https://zacoders.github.io/DbLive/versioning/)). Pass the image to stay on one version.
 
 Container builders: one container per image per test process, started by the first `GetBuilderAsync` call; concurrent calls wait for that start and share the container. A failed start is not retried: every fixture of the run fails with its exception (Docker not running, image not found). The container is not stopped by DbLive; the Testcontainers resource reaper removes it when the test process ends.
 
@@ -785,7 +814,7 @@ Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.x), `xunit.runner.vi
 
 ### 13.1 Fixture builder
 
-The fixture gets its database from an `IDbLiveFixtureBuilder` (Section 11.6). Use a ready-made one; do not write a builder class unless the database needs a setup they do not cover:
+The fixture gets its database from an `IDbLiveFixtureBuilder` (Section 11.5). Use a ready-made one; do not write a builder class unless the database needs a setup they do not cover:
 
 ```csharp
 using DbLive.MSSQL;
@@ -800,7 +829,7 @@ new PostgreSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly)            //
 new PostgreSqlFixtureBuilder(typeof(MyDbMarker).Assembly, "Host=localhost;Username=postgres;Password=...")
 ```
 
-Every fixture gets a new database with a random name on that server, so test classes that xUnit runs in parallel never share one. A custom builder implements both members of `IDbLiveFixtureBuilder` (namespace `DbLive`): `GetBuilderAsync()` returns `new DbLiveBuilder().SqlServer().SetDbConnection(<connection string with a new database name>).SetProject(<assembly>)`, a new builder on every call (the fixture disposes it, Section 11.6), `GetProjectAssembly()` returns the same assembly.
+Every fixture gets a new database with a random name on that server, so test classes that xUnit runs in parallel never share one. A custom builder implements both members of `IDbLiveFixtureBuilder` (namespace `DbLive`): `GetBuilderAsync()` returns `new DbLiveBuilder().SqlServer().SetDbConnection(<connection string with a new database name>).SetProject(<assembly>)`, a new builder on every call (its caller disposes it, Section 11.5), `GetProjectAssembly()` returns the same assembly.
 
 ### 13.2 Every SQL test as its own xUnit test: `[SqlFact]`
 
@@ -821,7 +850,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
     [SqlFact(TestFixture = typeof(MyDbTestFixture))]
     public async Task Sql(string testFileRelativePath)
     {
-        TestRunResult result = await fixture.Tester!.RunTestAsync(output.WriteLine, testFileRelativePath);
+        TestRunResult result = await fixture.Tester.RunTestAsync(output.WriteLine, testFileRelativePath);
         Assert.True(result.IsSuccess, result.ErrorMessage);
     }
 }
@@ -838,31 +867,25 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 ```csharp
 using DbLive.MSSQL;
 using DbLive.xunit;
-using Xunit;
 using Xunit.Abstractions;
 
-public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
+public class DeploymentTests(ITestOutputHelper output)
 {
-    private readonly DeploymentTestFixture _fixture = new(
-        builderProvider: new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly),
-        dropDatabaseOnComplete: true);
-
-    public Task InitializeAsync() => _fixture.InitializeAsync();
-    public Task DisposeAsync() => _fixture.DisposeAsync();
-
     /// <summary>
     /// Deploys the project to an empty database as production does, in three deployments:
     /// 1. migrations and code, then the SQL tests;
     /// 2. the breaking phase, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
+    /// Then drops the database.
     /// </summary>
     [SqlDeployFact]
-    public async Task ReleaseDeploys()
-        => await _fixture.DeployAsync(output);
+    public Task ReleaseDeploys() => new DeploymentTest(
+        fixtureBuilder: new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly),
+        dropDatabaseOnComplete: true).DeployAsync(output);
 }
 ```
 
-`[SqlDeployFact]` is a plain xUnit fact (a `FactAttribute` without parameters); the test is one case. `DeploymentTestFixture.DeployAsync` deploys to a fresh database as production does, in three deployments:
+`[SqlDeployFact]` is a plain xUnit fact (a `FactAttribute` without parameters); the test is one case. `DeploymentTest` (namespace `DbLive.xunit`) is not an xUnit fixture: the test creates it with `new`, and the test class implements no `IAsyncLifetime`. `DeploymentTest.DeployAsync(output)` gets a new database from the fixture builder, deploys it, drops it when `dropDatabaseOnComplete` is true (also when the deployment fails; an error of the drop goes to the test output and does not replace the error of the deployment), and disposes the builder. It deploys to the fresh database as production does, in three deployments:
 
 1. Migrations and code (the flags of `DeployParameters.Default`, with `CreateDbIfNotExists`: the database is new), then all SQL tests (`RunAllTestsAsync`). The release is deployed, its breaking changes are not: old application instances still run.
 2. `DeployParameters.Breaking`: the breaking phase, then all SQL tests again. The breaking phase guard must pass after a normal deployment. The breaking script of every migration runs once, with its own settings file.

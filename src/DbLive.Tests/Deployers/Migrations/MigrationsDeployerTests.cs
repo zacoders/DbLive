@@ -116,8 +116,7 @@ public class MigrationsDeployerTests
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
 
-		DeployParameters deployParams = DeployParameters.Default;
-		deployParams.DeployMigrations = false;
+		DeployParameters deployParams = DeployParameters.Default with { DeployMigrations = false };
 
 		// Act
 		await deploy.DeployAsync(project, deployParams);

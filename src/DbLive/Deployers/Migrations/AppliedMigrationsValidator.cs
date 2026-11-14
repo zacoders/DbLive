@@ -5,7 +5,7 @@ namespace DbLive.Deployers.Migrations;
 /// (DbLive does not roll back a database), or migration files deleted from the project.
 /// </summary>
 internal class AppliedMigrationsValidator(
-	IDbLiveInternalDA da
+	IDbLiveDA da
 ) : IAppliedMigrationsValidator
 {
 	public async Task ValidateAsync(ProjectSnapshot project)

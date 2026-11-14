@@ -9,7 +9,7 @@ using System.Data.Common;
 
 namespace DbLive.PostgreSQL;
 
-internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveInternalDA
+internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.PostgreSql;
 

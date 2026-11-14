@@ -17,7 +17,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture) : IClas
     [SqlFact(TestFixture = typeof(MyDbTestFixture))]
     public async Task Sql(string testFileRelativePath)
     {
-        TestRunResult result = await fixture.Tester!.RunTestAsync(output.WriteLine, testFileRelativePath);
+        TestRunResult result = await fixture.Tester.RunTestAsync(output.WriteLine, testFileRelativePath);
         Assert.True(result.IsSuccess, result.ErrorMessage);
     }
 }

@@ -15,7 +15,6 @@ DbLive.DatabaseRequiresNewerDbLiveException
 DbLive.DatabaseRequiresNewerDbLiveException.MinCompatibleVersion.get -> System.Version!
 DbLive.DatabaseRequiresNewerDbLiveException.RequiredVersion.get -> System.Version!
 DbLive.DbLiveBuilder
-DbLive.DbLiveBuilder.CreateDbLiveDA() -> DbLive.IDbLiveDA!
 DbLive.DbLiveBuilder.CreateDeployer() -> DbLive.IDbLive!
 DbLive.DbLiveBuilder.CreateTester() -> DbLive.Testing.IDbLiveTester!
 DbLive.DbLiveBuilder.DbLiveBuilder() -> void
@@ -27,17 +26,17 @@ DbLive.DbLiveSqlException.SqlError.get -> string!
 DbLive.DeployParameters
 DbLive.DeployParameters.<Clone>$() -> DbLive.DeployParameters!
 DbLive.DeployParameters.CreateDbIfNotExists.get -> bool
-DbLive.DeployParameters.CreateDbIfNotExists.set -> void
+DbLive.DeployParameters.CreateDbIfNotExists.init -> void
 DbLive.DeployParameters.DeployBreaking.get -> bool
-DbLive.DeployParameters.DeployBreaking.set -> void
+DbLive.DeployParameters.DeployBreaking.init -> void
 DbLive.DeployParameters.DeployCode.get -> bool
-DbLive.DeployParameters.DeployCode.set -> void
+DbLive.DeployParameters.DeployCode.init -> void
 DbLive.DeployParameters.DeployMigrations.get -> bool
-DbLive.DeployParameters.DeployMigrations.set -> void
+DbLive.DeployParameters.DeployMigrations.init -> void
 DbLive.DeployParameters.DeployParameters() -> void
 DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
-DbLive.DeployParameters.RepairMigrationChecksums.set -> void
+DbLive.DeployParameters.RepairMigrationChecksums.init -> void
 DbLive.DuplicateMigrationItemException
 DbLive.FilesOutsideProjectFoldersException
 DbLive.FilesOutsideProjectFoldersException.Count.get -> int
@@ -46,8 +45,6 @@ DbLive.FolderDeploymentException
 DbLive.FolderDeploymentException.RelativePath.get -> string!
 DbLive.IDbLive
 DbLive.IDbLive.DeployAsync(DbLive.DeployParameters! parameters) -> System.Threading.Tasks.Task!
-DbLive.IDbLiveDA
-DbLive.IDbLiveDA.DropDbAsync(bool skipIfNotExists = true) -> System.Threading.Tasks.Task!
 DbLive.IDbLiveFixtureBuilder
 DbLive.IDbLiveFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
 DbLive.IDbLiveFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!

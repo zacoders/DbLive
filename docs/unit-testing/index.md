@@ -157,8 +157,8 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
 - The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends. Docker must be running.
-- The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`; a DbLive release raises the PostgreSQL major version. Pass another one as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
-- For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
+- The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`. A new major version of the database engine in them comes only in a major DbLive release (see [Versioning](../versioning.md)). Pass another image as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
+- For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture or the deployment test disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 
 ### 2. SQL tests: `[SqlFact]`
 
@@ -179,7 +179,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
     [SqlFact(TestFixture = typeof(MyDbTestFixture))]
     public async Task Sql(string testFileRelativePath)
     {
-        TestRunResult result = await fixture.Tester!.RunTestAsync(output.WriteLine, testFileRelativePath);
+        TestRunResult result = await fixture.Tester.RunTestAsync(output.WriteLine, testFileRelativePath);
         Assert.True(result.IsSuccess, result.ErrorMessage);
     }
 }
@@ -213,15 +213,80 @@ await builder.CreateTester().RunAllTestsAsync();
 
 `RunAllTestsAsync` does not deploy; against a database that is already deployed, leave out the `DeployAsync` line. Do not call it in a production deployer (see [Isolation and parallelism](#isolation-and-parallelism)).
 
-The [fixture builders](#1-a-fixture-builder) do not depend on xUnit. They give such a test a new database too, in Docker or on your server; the database does not exist yet, so the deployment creates it:
+### A test database without xUnit
+
+DbLive does not drop a test database without xUnit: only the xUnit fixtures do.
+
+**In Docker.** A container [fixture builder](#1-a-fixture-builder) gives the test a new database; it does not exist yet, so the deployment creates it. There is nothing to drop: Testcontainers removes the container when the test run ends.
 
 ```csharp
-DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();
+await using DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();
 
-await builder.CreateDeployer().DeployAsync(new DeployParameters { CreateDbIfNotExists = true });
+await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 await builder.CreateTester().RunAllTestsAsync();
-await builder.CreateDbLiveDA().DropDbAsync();
 ```
+
+**On your own server.** Use a database with a fixed name, such as `MyDb_Tests`, and drop it with your own SQL **before** the deployment, so that every run deploys the whole project to an empty database. A database kept between runs gets only the new migrations and the changed code, and the deployment is not tested in full. Drop it before and not after: a run that fails halfway leaves the database behind, and the next run drops it anyway. `MsSqlFixtureBuilder` and `PostgreSqlFixtureBuilder` do not fit here: every call names a new database, which nothing drops without xUnit.
+
+=== "SQL Server"
+
+    ```csharp
+    using DbLive;
+    using DbLive.MSSQL;
+    using Microsoft.Data.SqlClient;   // comes with DbLive.MSSQL
+
+    const string connectionString = "Server=localhost;Database=MyDb_Tests;Trusted_Connection=True;TrustServerCertificate=True;";
+
+    await using (SqlConnection master = new(connectionString.SetMsSqlDatabaseName("master")))
+    {
+        await master.OpenAsync();
+        await using SqlCommand drop = new("""
+            if db_id('MyDb_Tests') is not null
+            begin
+                alter database [MyDb_Tests] set single_user with rollback immediate;
+                drop database [MyDb_Tests];
+            end
+            """, master);
+        await drop.ExecuteNonQueryAsync();
+    }
+    SqlConnection.ClearPool(new SqlConnection(connectionString));
+
+    await using DbLiveBuilder builder = new DbLiveBuilder()
+        .SqlServer()
+        .SetDbConnection(connectionString)
+        .SetProject(typeof(MyDbMarker).Assembly);
+
+    await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
+    await builder.CreateTester().RunAllTestsAsync();
+    ```
+
+=== "PostgreSQL"
+
+    ```csharp
+    using DbLive;
+    using DbLive.PostgreSQL;
+    using Npgsql;   // comes with DbLive.PostgreSQL
+
+    const string connectionString = "Host=localhost;Database=mydb_tests;Username=postgres;Password=...";
+
+    await using (NpgsqlConnection postgres = new(connectionString.SetPostgreSqlDatabaseName("postgres")))
+    {
+        await postgres.OpenAsync();
+        await using NpgsqlCommand drop = new("drop database if exists mydb_tests with (force);", postgres);
+        await drop.ExecuteNonQueryAsync();
+    }
+    NpgsqlConnection.ClearPool(new NpgsqlConnection(connectionString));
+
+    await using DbLiveBuilder builder = new DbLiveBuilder()
+        .PostgreSQL()
+        .SetDbConnection(connectionString)
+        .SetProject(typeof(MyDbMarker).Assembly);
+
+    await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
+    await builder.CreateTester().RunAllTestsAsync();
+    ```
+
+A plain `drop database` fails while the database is in use, also by the connections that DbLive leaves in the connection pool: `set single_user with rollback immediate` on SQL Server and `with (force)` on PostgreSQL (13 or later) close them. `ClearPool` then removes the closed connections from the pool of the test database; without it, a second run in the same process fails on PostgreSQL with `57P01: terminating connection due to administrator command`. Do not call `ClearAllPools`: it clears the pools of the other tests in the process too.
 
 Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
 

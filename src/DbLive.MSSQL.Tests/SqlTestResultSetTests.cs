@@ -37,14 +37,14 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Result_set_of_a_select_without_the_key_column_has_no_hidden_columns()
 	{
-		IDbLiveInternalDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
 
 		await da.ExecuteNonQueryAsync(UsersTable);
 		await da.ExecuteNonQueryAsync(GetUserName);
@@ -89,7 +89,7 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateTester().RunAllTestsAsync();
 
-		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveInternalDA>().ExecuteQueryMultipleAsync(
+		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync(
 			"select relative_path, pass from dblive.unit_test_run");
 
 		Assert.Equal(

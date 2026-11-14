@@ -1,6 +1,6 @@
 #nullable enable
-const DbLive.MSSQL.MsSqlContainerFixtureBuilder.DefaultImage = "mcr.microsoft.com/mssql/server:2025-latest" -> string!
 DbLive.MSSQL.MsSqlContainerFixtureBuilder
 DbLive.MSSQL.MsSqlContainerFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
 DbLive.MSSQL.MsSqlContainerFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
-DbLive.MSSQL.MsSqlContainerFixtureBuilder.MsSqlContainerFixtureBuilder(System.Reflection.Assembly! project, string! image = "mcr.microsoft.com/mssql/server:2025-latest") -> void
+DbLive.MSSQL.MsSqlContainerFixtureBuilder.MsSqlContainerFixtureBuilder(System.Reflection.Assembly! project) -> void
+DbLive.MSSQL.MsSqlContainerFixtureBuilder.MsSqlContainerFixtureBuilder(System.Reflection.Assembly! project, string! image) -> void

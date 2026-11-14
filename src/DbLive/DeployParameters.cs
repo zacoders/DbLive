@@ -19,23 +19,23 @@ public sealed record DeployParameters
 		DeployMigrations = false
 	};
 
-	internal bool RecreateDatabase { get; set; } = false;
+	internal bool RecreateDatabase { get; init; } = false;
 
-	public bool DeployCode { get; set; } = true;
+	public bool DeployCode { get; init; } = true;
 
-	public bool DeployMigrations { get; set; } = true;
+	public bool DeployMigrations { get; init; } = true;
 
-	public bool DeployBreaking { get; set; } = false;
+	public bool DeployBreaking { get; init; } = false;
 
 	/// <summary>
 	/// Creates the database of the connection string if it does not exist.
 	/// Off by default: a typo in the database name of a production connection string must fail, not create an empty database.
 	/// </summary>
-	public bool CreateDbIfNotExists { get; set; } = false;
+	public bool CreateDbIfNotExists { get; init; } = false;
 
 	/// <summary>
 	/// Updates stored checksums for applied migrations whose files no longer match.
 	/// Use only after confirming the database schema already matches the project files.
 	/// </summary>
-	public bool RepairMigrationChecksums { get; set; } = false;
+	public bool RepairMigrationChecksums { get; init; } = false;
 }

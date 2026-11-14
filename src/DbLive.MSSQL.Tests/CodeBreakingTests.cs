@@ -22,7 +22,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -34,7 +34,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/GetUser.sql", ProcV1);
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -95,7 +95,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/GetUser_v1.sql", ProcV1);
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -139,7 +139,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/R&D Отчёт.sql", ProcV1);
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
@@ -154,7 +154,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/GetUser.sql", ProcV1);
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -184,7 +184,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser_v2 as selec 1;");
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		// the migration is applied and committed, then the code fails.
 		_ = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
@@ -211,7 +211,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/dbo/GetUser.breaking.sql", "set xact_abort on; drop proc dbo.GetUser_v1;");
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -239,7 +239,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.AddFile("Code/b_function.sql", "create or alter function dbo.GetOne() returns int as begin return 1; end;");
 
 		DbLiveBuilder builder = CreateBuilder(project);
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
@@ -259,19 +259,19 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			.SetScriptsFolder(project.Path);
 	}
 
-	private static async Task<List<string>> ProceduresAsync(IDbLiveInternalDA da)
+	private static async Task<List<string>> ProceduresAsync(IDbLiveDA da)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select name from sys.procedures where name like 'GetUser%'");
 		return [.. results.Single().Rows.Select(r => (string)r[0]!).Order(StringComparer.Ordinal)];
 	}
 
-	private static async Task<List<string>> CodeRowsAsync(IDbLiveInternalDA da)
+	private static async Task<List<string>> CodeRowsAsync(IDbLiveDA da)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select relative_path, item_type, status from dblive.code");
 		return [.. results.Single().Rows.Select(r => $"{r[0]}:{r[1]}:{r[2]}").Order(StringComparer.Ordinal)];
 	}
 
-	private static async Task<long> ScalarAsync(IDbLiveInternalDA da, string query)
+	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

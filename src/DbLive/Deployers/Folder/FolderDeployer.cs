@@ -3,7 +3,7 @@ namespace DbLive.Deployers.Folder;
 
 internal class FolderDeployer(
 		ILogger _logger,
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
 	) : IFolderDeployer

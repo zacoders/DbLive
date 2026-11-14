@@ -66,9 +66,6 @@ public sealed class DbLiveBuilder : IDisposable, IAsyncDisposable
 	public IDbLive CreateDeployer()
 		=> GetRequiredService<IDbLive>();
 
-	public IDbLiveDA CreateDbLiveDA()
-		=> GetRequiredService<IDbLiveDA>();
-
 	public IDbLiveTester CreateTester()
 		=> GetRequiredService<IDbLiveTester>();
 

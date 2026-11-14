@@ -2,7 +2,7 @@ namespace DbLive.Deployers.Migrations;
 
 internal class MigrationsDeployer(
 		ILogger _logger,
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		IMigrationVersionDeployer _migrationVersionDeployer
 	) : IMigrationsDeployer
 {

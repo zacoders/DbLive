@@ -44,7 +44,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Migrations/002.migration.sql", Migration)
 			.AddFile("Migrations/002.breaking.sql", Breaking);
 
-		await DeployWithFixtureAsync(project);
+		await DeploymentTestAsync(project);
 	}
 
 	[Fact]
@@ -61,7 +61,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 				""");
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployWithFixtureAsync(project)
+			() => DeploymentTestAsync(project)
 		);
 
 		Assert.EndsWith("  missing column dbo.Person.Phone: varchar(20) collate SQL_Latin1_General_CP1_CI_AS null", ex.Message);
@@ -76,23 +76,11 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 			.AddFile("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser_v2 @UserId int as select @UserId as user_id;")
 			.AddFile("Code/dbo/GetUser.breaking.sql", "drop proc if exists dbo.GetUser_v1;");
 
-		await DeployWithFixtureAsync(project);
+		await DeploymentTestAsync(project);
 	}
 
-	private async Task DeployWithFixtureAsync(TempProject project)
-	{
-		DeploymentTestFixture fixture = new(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true);
-		await fixture.InitializeAsync();
-
-		try
-		{
-			await fixture.DeployAsync(_output);
-		}
-		finally
-		{
-			await fixture.DisposeAsync();
-		}
-	}
+	private Task DeploymentTestAsync(TempProject project) =>
+		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(_output);
 
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{

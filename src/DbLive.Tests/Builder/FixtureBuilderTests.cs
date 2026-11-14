@@ -64,10 +64,7 @@ public class FixtureBuilderTests
 
 	private static void AssertProvider(DbProvider expected, DbLiveBuilder builder)
 	{
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
-		Assert.Equal(expected, da.Provider);
-		// the public part, CreateDbLiveDA(), is the same instance.
-		Assert.Same(da, builder.CreateDbLiveDA());
+		Assert.Equal(expected, builder.GetRequiredService<IDbLiveDA>().Provider);
 	}
 
 	private static async Task AssertProjectAsync(IDbLiveFixtureBuilder fixtureBuilder, DbLiveBuilder builder)

@@ -19,7 +19,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>().CreateDBAsync();
+	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
@@ -39,7 +39,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		await builder.CreateDeployer().DeployAsync(new DeployParameters { DeployBreaking = true });
 
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		Assert.Equal(1, await ScalarAsync(da, SnapshotIsolationStateQuery));
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
@@ -61,7 +61,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		string migrationRowsQuery = "select count(*) from dblive.migration";
 		long migrationRows = await ScalarAsync(da, migrationRowsQuery);
 
@@ -109,7 +109,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		await da.ExecuteNonQueryAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 6;
@@ -139,7 +139,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
-		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		await da.ExecuteNonQueryAsync("""
 			alter table dblive.migration add content nvarchar(max) null;
 			go
@@ -179,7 +179,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
 		=> items.Single(i => i.Version == version && i.ItemType == itemType);
 
-	private static async Task<long> ScalarAsync(IDbLiveInternalDA da, string query)
+	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);

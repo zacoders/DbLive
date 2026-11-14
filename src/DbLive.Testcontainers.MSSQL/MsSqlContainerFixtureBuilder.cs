@@ -9,11 +9,22 @@ namespace DbLive.MSSQL;
 /// container. Testcontainers removes the container when the test run ends.
 /// </summary>
 /// <param name="project">The SQL project assembly.</param>
-/// <param name="image">The SQL Server image, <see cref="DefaultImage"/> by default.</param>
-public sealed class MsSqlContainerFixtureBuilder(Assembly project, string image = MsSqlContainerFixtureBuilder.DefaultImage)
+/// <param name="image">The SQL Server image.</param>
+public sealed class MsSqlContainerFixtureBuilder(Assembly project, string image)
 	: IDbLiveFixtureBuilder
 {
-	public const string DefaultImage = "mcr.microsoft.com/mssql/server:2025-latest";
+	// the updates of SQL Server 2025. Internal, so that the image is not in the public API files: a new major version of
+	// SQL Server here is a breaking change, which only a major DbLive release makes (docs/versioning.md).
+	internal const string DefaultImage = "mcr.microsoft.com/mssql/server:2025-latest";
+
+	/// <summary>
+	/// With the default image, SQL Server 2025 (<c>mcr.microsoft.com/mssql/server:2025-latest</c>).
+	/// </summary>
+	/// <param name="project">The SQL project assembly.</param>
+	public MsSqlContainerFixtureBuilder(Assembly project)
+		: this(project, DefaultImage)
+	{
+	}
 
 	// the start of each image: its connection string, or the error every fixture gets when the start failed.
 	private static readonly Dictionary<string, Task<string>> _servers = [];

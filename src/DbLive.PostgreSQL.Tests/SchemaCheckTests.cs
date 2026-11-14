@@ -44,7 +44,7 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 			.AddFile("Migrations/002.migration.sql", Migration)
 			.AddFile("Migrations/002.breaking.sql", Breaking);
 
-		await DeployWithFixtureAsync(project);
+		await DeploymentTestAsync(project);
 	}
 
 	[Fact]
@@ -64,7 +64,7 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 				""");
 
 		SchemaChangedException ex = await Assert.ThrowsAsync<SchemaChangedException>(
-			() => DeployWithFixtureAsync(project)
+			() => DeploymentTestAsync(project)
 		);
 
 		Assert.EndsWith("  missing column public.person.phone: character varying(20) null", ex.Message);
@@ -79,23 +79,11 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 			.AddFile("Code/public/get_user.sql", "create or replace function get_user_v2(p_user_id int) returns int language sql as $$ select p_user_id $$;")
 			.AddFile("Code/public/get_user.breaking.sql", "drop function if exists get_user_v1();");
 
-		await DeployWithFixtureAsync(project);
+		await DeploymentTestAsync(project);
 	}
 
-	private async Task DeployWithFixtureAsync(TempProject project)
-	{
-		DeploymentTestFixture fixture = new(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true);
-		await fixture.InitializeAsync();
-
-		try
-		{
-			await fixture.DeployAsync(_output);
-		}
-		finally
-		{
-			await fixture.DisposeAsync();
-		}
-	}
+	private Task DeploymentTestAsync(TempProject project) =>
+		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(_output);
 
 	private DbLiveBuilder CreateBuilder(TempProject project)
 	{

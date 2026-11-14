@@ -2,7 +2,7 @@ namespace DbLive.Deployers.Code;
 
 internal class CodeItemDeployer(
 		ILogger _logger,
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeItemDeployer

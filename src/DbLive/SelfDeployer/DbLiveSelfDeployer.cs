@@ -4,7 +4,7 @@ internal class DbLiveSelfDeployer(
 		ILogger _logger,
 		ISettingsAccessor _projectSettings,
 		IInternalDbLiveProject _internalProject,
-		IDbLiveInternalDA _da,
+		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner
 	) : IDbLiveSelfDeployer

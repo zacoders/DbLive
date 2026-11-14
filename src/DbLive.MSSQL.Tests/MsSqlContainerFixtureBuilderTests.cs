@@ -26,7 +26,7 @@ public class MsSqlContainerFixtureBuilderTests
 
 		foreach (DbLiveBuilder builder in builders)
 		{
-			IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
+			IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 			await da.CreateDBAsync(skipIfExists: false);
 			await da.DropDbAsync(skipIfNotExists: false);
 			await builder.DisposeAsync();

@@ -6,29 +6,25 @@
 using DbLive.MSSQL;
 using DbLive.xunit;
 using System.Reflection;
-using Xunit;
 using Xunit.Abstractions;
 
-public class DeploymentTests(ITestOutputHelper output) : IAsyncLifetime
+public class DeploymentTests(ITestOutputHelper output)
 {
-    private readonly DeploymentTestFixture _fixture = new(
-        builderProvider: new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")),
-        dropDatabaseOnComplete: true);
-
-    public Task InitializeAsync() => _fixture.InitializeAsync();
-    public Task DisposeAsync() => _fixture.DisposeAsync();
-
     /// <summary>
     /// Deploys the project to an empty database as production does, in three deployments:
     /// 1. migrations and code, then the SQL tests;
     /// 2. the breaking phase, then the SQL tests again;
     /// 3. the breaking phase once more, which must not change the schema.
+    /// Then drops the database.
     /// </summary>
     [SqlDeployFact]
-    public async Task ReleaseDeploys()
-        => await _fixture.DeployAsync(output);
+    public Task ReleaseDeploys() => new DeploymentTest(
+        fixtureBuilder: new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")),
+        dropDatabaseOnComplete: true).DeployAsync(output);
 }
 ```
+
+`DeploymentTest` is not an xUnit fixture, so the test class needs no `IAsyncLifetime`: `DeployAsync` gets a new database from the fixture builder, deploys it, drops it when `dropDatabaseOnComplete` is true, also after a failed deployment, and disposes the builder. When the drop fails after a failed deployment, the test fails with the error of the deployment, and the error of the drop goes to the test output.
 
 ## What the test deploys
 

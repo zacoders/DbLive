@@ -5,7 +5,7 @@ namespace DbLive.Deployers;
 internal class ProjectIdValidator(
 	ILogger logger,
 	ISettingsAccessor settingsAccessor,
-	IDbLiveInternalDA da
+	IDbLiveDA da
 ) : IProjectIdValidator
 {
 	public const int MaxProjectIdLength = 128;

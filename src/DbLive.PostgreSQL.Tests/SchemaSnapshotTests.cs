@@ -51,11 +51,11 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
-	private IDbLiveInternalDA _da = null!;
+	private IDbLiveDA _da = null!;
 
 	public async Task InitializeAsync()
 	{
-		_da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
+		_da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
 		await _da.CreateDBAsync();
 	}
 
