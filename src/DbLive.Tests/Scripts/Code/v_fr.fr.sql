@@ -1,0 +1,1 @@
+create or alter view dbo.v_fr as select 1 as x;

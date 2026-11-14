@@ -1,10 +1,14 @@
-﻿namespace DbLive.Project.Exceptions;
+﻿namespace DbLive;
 
 
 [ExcludeFromCodeCoverage]
-public class InvalidMigrationVersionException(string fileName, string migrationVersionStr)
-	: Exception($"Cannot parse file '{fileName}', and version part '{migrationVersionStr}'.")
+public sealed class InvalidMigrationVersionException : Exception
 {
-	public string FileName { get; private set; } = fileName;
-	public string MigrationVersionStr { get; private set; } = migrationVersionStr;
+	internal InvalidMigrationVersionException(string fileName, string reason)
+		: base($"Invalid migration version in file '{fileName}'. {reason}")
+	{
+		FileName = fileName;
+	}
+
+	public string FileName { get; private set; }
 }

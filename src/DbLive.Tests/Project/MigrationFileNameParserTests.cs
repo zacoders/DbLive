@@ -1,3 +1,4 @@
+using System.Globalization;
 
 namespace DbLive.Tests.Project;
 
@@ -11,52 +12,142 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.sql", MigrationItemType.Migration)]
-	[InlineData("001.m.sql", MigrationItemType.Migration)]
-	[InlineData("001.undo.sql", MigrationItemType.Undo)]
-	[InlineData("001.u.sql", MigrationItemType.Undo)]
-	[InlineData("001.breaking.sql", MigrationItemType.Breaking)]
-	[InlineData("001.b.sql", MigrationItemType.Breaking)]
-	public void Parses_Explicit_Sql_Types_Correctly(string file, MigrationItemType expectedType)
+	[InlineData("+001.migration.sql")] // would be version 1 next to 001.migration.sql
+	[InlineData("-5.migration.sql")]
+	[InlineData(" 001.migration.sql")]
+	[InlineData("001 .migration.sql")]
+	public void Throws_When_Version_Is_Not_Only_Digits(string file)
 	{
+		Assert.Throws<InvalidMigrationVersionException>(() => MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Fact]
+	public void Invalid_Version_Message_Names_The_File_And_The_Version_Part()
+	{
+		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(
+			() => MigrationFileNameParser.GetMigrationInfo("Migrations/+001.migration.sql"));
+
+		Assert.Equal("Invalid migration version in file '+001.migration.sql'. The version part '+001' must be digits only.", ex.Message);
+	}
+
+	[Theory]
+	[InlineData("001.migration.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.m.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.breaking.sql", nameof(MigrationItemType.Breaking))]
+	[InlineData("001.b.sql", nameof(MigrationItemType.Breaking))]
+	public void Parses_Explicit_Sql_Types_Correctly(string file, string expectedTypeName)
+	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
 
 		Assert.Equal(1, result.Version);
 		Assert.Equal(expectedType, result.MigrationItemType);
-		Assert.Equal(file, result.FilePath);
+		Assert.Equal(file, result.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("001.migration.settings.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.m.s.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.m.settings.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.migration.s.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.breaking.settings.json", nameof(MigrationItemType.BreakingSettings))]
+	[InlineData("001.b.s.json", nameof(MigrationItemType.BreakingSettings))]
+	[InlineData("001.Breaking.Settings.json", nameof(MigrationItemType.BreakingSettings))]
+	public void Parses_Item_Settings_Json_Correctly(string file, string expectedTypeName)
+	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(expectedType, result.MigrationItemType);
+		Assert.Equal(1, result.Version);
+		Assert.Equal(file, result.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("001.undo.sql")]
+	[InlineData("001.u.sql")]
+	[InlineData("001.U.Sql")]
+	[InlineData("001.undo.drop-orders.sql")]
+	[InlineData("001.undo.settings.json")]
+	[InlineData("001.u.s.json")]
+	[InlineData("001.Undo.Settings.json")]
+	[InlineData("001.undo.json")]
+	[InlineData("001.undo.txt")]
+	[InlineData("Old/001.undo.sql")]
+	public void Throws_When_File_Is_Undo_Script(string file)
+	{
+		// run as a migration named "undo", the file would undo its own version.
+		UndoNotSupportedException ex = Assert.Throws<UndoNotSupportedException>(() =>
+			MigrationFileNameParser.GetMigrationInfo(file));
+
+		Assert.Equal(file, ex.RelativePath);
+		Assert.StartsWith($"{file} is an undo script.", ex.Message);
+		Assert.Contains("delete the file", ex.Message);
+		Assert.Contains("Roll back a release", ex.Message);
+	}
+
+	[Theory]
+	[InlineData("001.migration.undo.sql", nameof(MigrationItemType.Migration), "undo")]
+	[InlineData("001.m.u.sql", nameof(MigrationItemType.Migration), "u")]
+	[InlineData("001.undo-orders.sql", nameof(MigrationItemType.Migration), "undo-orders")]
+	public void Undo_In_A_Name_Is_A_Name(string file, string expectedTypeName, string expectedName)
+	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(expectedType, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
 	}
 
 	[Theory]
 	[InlineData("001.settings.json")]
 	[InlineData("001.s.json")]
-	public void Parses_Settings_Json_Correctly(string file)
+	[InlineData("001.settings.online-index.json")]
+	public void Throws_When_Old_Version_Settings_File_Name(string file)
 	{
-		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
-
-		Assert.Equal(MigrationItemType.Settings, result.MigrationItemType);
-		Assert.Equal(1, result.Version);
-	}
-
-	[Theory]
-	[InlineData("001.settings.sql")]
-	[InlineData("001.s.sql")]
-	public void Throws_When_Settings_Is_Not_Json(string file)
-	{
-		Assert.Throws<InvalidMigrationItemTypeException>(() =>
+		ObsoleteMigrationSettingsFileException ex = Assert.Throws<ObsoleteMigrationSettingsFileException>(() =>
 			MigrationFileNameParser.GetMigrationInfo(file));
+
+		Assert.Contains("001.migration.settings.json", ex.Message);
 	}
 
 	[Theory]
 	[InlineData("001.migration.json")]
-	[InlineData("001.undo.json")]
 	[InlineData("001.breaking.json")]
 	[InlineData("001.m.json")]
-	[InlineData("001.u.json")]
 	[InlineData("001.b.json")]
+	[InlineData("001.m.config.json")]
+	public void Throws_When_Json_Is_Not_Item_Settings(string file)
+	{
+		Assert.Throws<UnknownMigrationSettingsException>(() =>
+			MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Theory]
+	[InlineData("001.migration.txt")]
+	[InlineData("001.breaking.txt")]
+	[InlineData("001.b.txt")]
 	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
 	{
 		Assert.Throws<InvalidMigrationItemTypeException>(() =>
 			MigrationFileNameParser.GetMigrationInfo(file));
+	}
+
+	[Theory]
+	[InlineData("005.settings.sql", "settings")]
+	[InlineData("005.m.settings.sql", "settings")]
+	public void Settings_Word_In_Sql_File_Is_A_Name(string file, string expectedName)
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
 	}
 
 	[Fact]
@@ -77,6 +168,15 @@ public class MigrationFileNameParserTests
 	}
 
 	[Fact]
+	public void Item_Settings_Name_Is_The_Fourth_Part()
+	{
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("004.b.s.drop-column.json");
+
+		Assert.Equal(MigrationItemType.BreakingSettings, result.MigrationItemType);
+		Assert.Equal("drop-column", result.Name);
+	}
+
+	[Fact]
 	public void Parses_Timestamp_Version()
 	{
 		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo("20250621143000.migration.sql");
@@ -90,6 +190,53 @@ public class MigrationFileNameParserTests
 	{
 		Assert.Throws<UnknownMigrationItemTypeException>(() =>
 			MigrationFileNameParser.GetMigrationInfo("001.whatever.txt"));
+	}
+
+	[Theory]
+	[InlineData("001.migration.SQL", nameof(MigrationItemType.Migration), "")]
+	[InlineData("001.B.Sql", nameof(MigrationItemType.Breaking), "")]
+	[InlineData("001.name.Sql", nameof(MigrationItemType.Migration), "name")]
+	[InlineData("001.m.s.JSON", nameof(MigrationItemType.MigrationSettings), "")]
+	[InlineData("001.B.Settings.Json", nameof(MigrationItemType.BreakingSettings), "")]
+	public void Parses_Extension_Ignoring_Case(string file, string expectedTypeName, string expectedName)
+	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
+		MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+		Assert.Equal(1, result.Version);
+		Assert.Equal(expectedType, result.MigrationItemType);
+		Assert.Equal(expectedName, result.Name);
+		Assert.Equal(file, result.RelativePath);
+	}
+
+	[Theory]
+	[InlineData("001.MIGRATION.sql", nameof(MigrationItemType.Migration))]
+	[InlineData("001.BREAKING.sql", nameof(MigrationItemType.Breaking))]
+	[InlineData("001.MIGRATION.SETTINGS.json", nameof(MigrationItemType.MigrationSettings))]
+	[InlineData("001.BREAKING.SETTINGS.json", nameof(MigrationItemType.BreakingSettings))]
+	public void Parses_Upper_Case_Parts_In_Turkish_Culture(string file, string expectedTypeName)
+	{
+		// MigrationItemType is internal: a public test method takes the name of the value.
+		MigrationItemType expectedType = Enum.Parse<MigrationItemType>(expectedTypeName);
+
+		CultureInfo culture = CultureInfo.CurrentCulture;
+		try
+		{
+			// in tr-TR "I".ToLower() is the dotless "ı": "BREAKING" would become "breakıng", a migration named "BREAKING".
+			CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+			Assert.Equal("ı", "I".ToLower(CultureInfo.CurrentCulture));
+
+			MigrationItemInfo result = MigrationFileNameParser.GetMigrationInfo(file);
+
+			Assert.Equal(expectedType, result.MigrationItemType);
+			Assert.Equal("", result.Name);
+		}
+		finally
+		{
+			CultureInfo.CurrentCulture = culture;
+		}
 	}
 
 	[Fact]

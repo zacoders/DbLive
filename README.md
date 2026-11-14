@@ -1,8 +1,34 @@
 # DbLive
 
-**Database lifecycle management for .NET** — versioned migrations, code deployment, SQL unit tests, and safe rollback in one workflow.
+[![NuGet](https://img.shields.io/nuget/v/DbLive.svg)](https://www.nuget.org/packages/DbLive)
+[![CI](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/zacoders/DbLive/actions/workflows/cicd.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, run as part of CI/CD, and roll back like any other release.
+**Database Lifecycle Management for .NET** — versioned migrations, code deployment, SQL unit tests, and zero-downtime releases in one workflow.
+
+DbLive treats the database as **versioned, testable, deployable code**. Use it when you want schema and SQL logic in source control, tested and deployed as part of CI/CD like any other code.
+
+DbLive is built around one idea: the database is a **separate service** with its own interface, release cycle and tests, so it can be deployed without stopping the applications that use it. The model is optional: you can use DbLive as an ordinary migration tool and adopt the rest later.
+
+> **The idea:** [Database as a Service](docs/database-as-service.md) explains the model, zero-downtime releases and the ways to use DbLive.
+>
+> **Using an AI coding assistant?** Give it [llms-full.txt](https://zacoders.github.io/DbLive/llms-full.txt): the complete reference in one file, written for agents (index: [llms.txt](https://zacoders.github.io/DbLive/llms.txt)).
+
+---
+
+## Safe by default
+
+A deployment stops before any of your scripts runs when:
+
+- **an older build is deployed**: the database has migrations the build lacks → `DatabaseAheadOfProjectException`, nothing changes. DbLive does not roll back a database: before the breaking phase a release is rolled back by rolling back the application ([Roll back a release](docs/deployment/migrations.md#roll-back-a-release)).
+- **an applied migration was edited** → `MigrationChecksumMismatchException` (`MigrationChecksumMode` is `Strict` by default).
+- **the database belongs to another project** → `ProjectIdMismatchException`, once the project sets `ProjectId` in `settings.json`.
+
+Destructive changes run only in a separate breaking deployment (`DeployBreaking = true`). A deployment never runs SQL tests: they run in `dotnet test` against a disposable database.
+
+## Status
+
+Actively developed. Every merge to `main` is published to NuGet (the current version is on the badge above). Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](docs/versioning.md). Targets .NET 8, 9 and 10; supports SQL Server, Azure SQL and PostgreSQL. License: [MIT](LICENSE).
 
 ---
 
@@ -10,26 +36,62 @@ DbLive treats the database as **versioned, testable, deployable code**. Use it w
 
 | Area | Description |
 |------|-------------|
-| **Migrations** | Versioned schema changes with optional undo scripts; ordered, repeatable deployments. |
+| **Migrations** | Versioned schema changes; ordered, repeatable deployments. |
 | **Code** | Deploy stored procedures, views, functions, and other code objects separately from migrations. |
-| **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI. |
+| **SQL tests** | Write tests in SQL; run them as normal C#/xUnit tests in Visual Studio or CI, against a temporary database built from your scripts (Docker or a local server). |
 | **Breaking changes** | Deploy breaking changes in a dedicated phase (e.g. after app rollout). |
-| **Rollback** | Downgrade to a target version using undo scripts; rollback is part of the system, not a manual fix. |
+| **Rollback** | Roll back the application, not the database: before the breaking phase the database serves both versions. A wrong migration is fixed by a new one; an older build deployed by mistake fails and changes nothing. |
 | **CI/CD** | Works with GitHub Actions, Azure DevOps, TeamCity, Jenkins, or any build system that runs `dotnet`. |
 
 ---
 
 ## Quick start
 
-### 1. Install packages
+### With the template
 
 ```bash
-dotnet add package DbLive
-dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL
-dotnet add package DbLive.xunit      # for SQL unit tests
+dotnet new install DbLive.Templates
+dotnet new dblive -n MyDb               # SQL Server; --provider postgresql for PostgreSQL
+cd MyDb
+dotnet test                             # runs the SQL tests against a database in Docker
+dotnet run --project MyDb               # deploys to the local database named in MyDb/Program.cs
 ```
 
-### 2. Add SQL scripts to your project
+The template creates a solution with two projects:
+
+- `MyDb`: the SQL in `Scripts/` (a migration, a procedure with its test, a data rule test, `settings.json` with the `ProjectId`) and the deployer `Program.cs`.
+- `MyDb.Tests`: every SQL test file as an xUnit test case, and the deployment test, which deploys the project as production does: the release, then the breaking phase twice. The database runs in Docker (Testcontainers), so Docker must be running.
+
+The projects reference the DbLive packages of the template's version; `dotnet new install DbLive.Templates` updates it.
+
+### By hand
+
+The steps below set up the SQL project and the deployer without the template; the test project is in [SQL testing](#sql-testing).
+
+#### 1. Install packages
+
+```bash
+dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
+```
+
+In the test project, for SQL unit tests:
+
+```bash
+dotnet add package DbLive.xunit
+dotnet add package DbLive.Testcontainers.MSSQL   # or DbLive.Testcontainers.PostgreSQL: the test database runs in Docker
+```
+
+Name the scripts folder in the `.csproj` of the project:
+
+```xml
+<PropertyGroup>
+  <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
+</PropertyGroup>
+```
+
+The DbLive package embeds all files of that folder in the project assembly when the project builds, so the dll you build is the dll you deploy.
+
+#### 2. Add SQL scripts to your project
 
 Organize scripts in folders (names and layout are configurable):
 
@@ -47,30 +109,17 @@ Scripts/
   Tests/
     admin_must_exist.test.sql
     unique_user_name.test.sql
-```
-### 3. Configure .csproj
-
-Add the following code; it will prepare the project and make sure all files in the `Scripts` folder will be copied to the output directory.
-
-```xml
-<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-  <RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
-</Target>
-
-<ItemGroup>
-  <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-    <_Parameter1>ProjectDir</_Parameter1>
-    <_Parameter2>$(ProjectDir)</_Parameter2>
-  </AssemblyAttribute>
-
-  <None Include="Scripts\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-  </None>
-</ItemGroup>
+  settings.json
 ```
 
-### 4. Configure and run deployment
+`settings.json` names the project, so the deployer of another project cannot deploy into its database ([ProjectId](docs/features/project-id.md)):
+
+```json
+{
+  "ProjectId": "my-app-db"
+}
+```
+#### 3. Configure and run deployment
 Microsoft SQL Server example:
 ```csharp
 // Program.cs
@@ -79,21 +128,19 @@ using DbLive;
 using DbLive.MSSQL;
 using System.Reflection;
 
-string dbCnnString = "Server=localhost;Database=DbLive_DemoMSSQL;Trusted_Connection=True;";
+string dbCnnString = "Server=localhost;Database=MyDb;Trusted_Connection=True;";
 
-var deployer = new DbLiveBuilder()
+var builder = new DbLiveBuilder()
 	.LogToConsole()
 	.SqlServer()
 	.SetDbConnection(dbCnnString)
-	.SetProject(Assembly.GetExecutingAssembly())
-	.CreateDeployer();
+	.SetProject(Assembly.GetExecutingAssembly());
 
-await deployer.DeployAsync(new DeployParameters
+await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
-	CreateDbIfNotExists = true,
+	CreateDbIfNotExists = true, // a local database; off by default, keep it off in production
 	DeployCode = true,
-	DeployMigrations = true,
-	RunTests = true // tests are not recommended to run on prod databases.
+	DeployMigrations = true
 });
 ```
 
@@ -107,16 +154,16 @@ DbLive expects a clear separation of **migrations**, **code**, and **tests**. Yo
 
 | Folder | Purpose |
 |--------|--------|
-| **Migrations** | Schema and data changes in version order. Optional `*.undo.sql` per version for rollback, `*.breaking.sql` for breaking changes. |
-| **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests. |
+| **Migrations** | Schema and data changes in version order. Optional `*.breaking.sql` per version for breaking changes. |
+| **Code** | Stored procedures, views, functions, etc. Paired `*.test.sql` files run as unit tests, paired `*.breaking.sql` files drop old object versions in the breaking phase. |
 | **Tests** | Standalone SQL tests (e.g. cross-object checks, data rules). |
-| **BeforeDeploy** / **AfterDeploy** | Scripts run once before or after the main deployment (optional). |
+| **BeforeDeploy** / **AfterDeploy** | Scripts run on every deployment, before migrations or after breaking changes (optional; must be idempotent). |
 
 Naming examples:
 
-- Migrations: `001.migration.sql`, `002.migration.sql`, `002.undo.sql`
+- Migrations: `001.migration.sql`, `002.migration.sql`, `002.breaking.sql`
 - Code: `GetUser.sql`, `GetUser.test.sql`
-- Tests: `*.test.sql` or `t.*.sql` (patterns configurable)
+- Tests: every `.sql` file in `Tests`; in `Code`, files matching `*.test.sql` or `t.*.sql` (patterns configurable)
 
 ---
 
@@ -127,6 +174,7 @@ DbLive lets you **write tests in SQL** and run them as normal C# tests:
 - In **Visual Studio** Test Explorer
 - In **CI** (e.g. `dotnet test`)
 - With the same tooling as the rest of your solution
+- Against a **temporary database** built from your scripts, in Docker (Testcontainers) or on a local server, and dropped after the run: no shared test database to maintain
 
 Use SQL tests to:
 
@@ -134,7 +182,12 @@ Use SQL tests to:
 - Check data rules and constraints
 - Validate migration outcomes
 
-Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each `.test.sql` file becomes a test case.
+Tests are plain SQL. DbLive.xunit provides the `[SqlFact]` attribute and fixture so each SQL test file becomes a test case. The fixture is one line; `DbLive.Testcontainers.MSSQL` starts SQL Server in Docker for it ([Unit Testing](docs/unit-testing/index.md#running-tests-in-visual-studio-and-ci-xunit)):
+
+```csharp
+public class MyDbTestFixture()
+    : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(Assembly.Load("MyDb")), dropDatabaseOnComplete: true);
+```
 
 ### Test structure
 
@@ -148,7 +201,7 @@ insert into dbo.Users ( UserId, Name )
 values ( 10, 'TestUser10' )
 
 -- Act
-exec dbo.GetUser2 @UserId = 10
+exec dbo.GetUser @UserId = 10
 
 -- Assert
 select assert = 'rows'
@@ -162,7 +215,7 @@ Assertions are defined by returning a result set with a column named `assert`.
 
 | Assert | Description |
 |--------|-------------|
-| `rows` | Compare columns and row values with expected result sets. |
+| `rows` | Compare columns and row values with expected result sets; the number of result sets and rows must match too. |
 | `rows-with-schema` | Compare columns, row values, and SQL types. |
 | `has-rows` | Pass if at least one row is returned. |
 | `row-count=N` | Pass if exactly N rows are returned. |
@@ -203,27 +256,27 @@ declare @cnt int = (
 if @cnt != 1 throw 50000, 'Expected one admin user.', 0
 ```
 
-### Shared test data with `init.sql`
+### Shared test data with `setup.test.sql`
 
-You can place `init.sql` inside a test folder. It is executed before each test in that folder, so one setup script can be reused by many tests.
+You can place `setup.test.sql` in any folder with tests, in `Tests` or next to code tests in `Code`. It is executed before each test in that folder, so one setup script can be reused by many tests. It is never a test itself and never deployed as code.
 
 ```text
 Scripts/
   Tests/
     Orders/
-      init.sql
+      setup.test.sql
       select-order.test.sql
       update-order.test.sql
 ```
 
-Example test that relies on folder-level initialization:
+Example test that relies on the folder setup:
 
 ```sql
 -- Arrange
--- Note: Test data was prepared in init.sql file.
+-- Note: Test data was prepared in setup.test.sql file.
 
 -- Act
-select count(*) from dbo.Orders
+select OrderId from dbo.Orders
 
 -- Assert
 select assert = 'row-count=3'
@@ -233,7 +286,7 @@ select assert = 'row-count=3'
 
 Each SQL test runs inside a transaction. The transaction is always rolled back after test execution.
 
-- `init.sql` and the test script run in the same transaction.
+- `setup.test.sql` and the test script run in the same transaction.
 - Test data is isolated between tests.
 - No manual cleanup is needed.
 - Tests are safe to re-run repeatedly.
@@ -246,29 +299,35 @@ Each SQL test runs inside a transaction. The transaction is always rolled back a
 
 ## Deployment flow
 
+See [Database as a Service](docs/database-as-service.md) for why breaking changes run in a separate phase and how migrations, code, and applications fit together.
+
 A single `DeployAsync` run typically does (in order):
 
-1. **Downgrade** (if requested) — apply undo scripts down to the target version
-2. **BeforeDeploy** — run once-before scripts
+1. **Checks** — `ProjectId`, settings, every migration version applied to the database is in the build (otherwise `DatabaseAheadOfProjectException`), checksums of applied migrations
+2. **BeforeDeploy** — scripts that run before migrations, on every deployment
 3. **Migrations** — apply pending migrations in version order
 4. **Code** — deploy or update code objects (procedures, views, etc.)
-5. **Breaking changes** — apply breaking migration steps (if enabled)
-6. **AfterDeploy** — run once-after scripts
-7. **Unit tests** — run all SQL tests (unless disabled)
+5. **Breaking changes** — breaking scripts of the code folder and of migrations (if enabled, and only after the code of this build is deployed)
+6. **AfterDeploy** — scripts that run at the end, on every deployment
 
-You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `RunTests`, `DeployBreaking`, `AllowDatabaseDowngrade`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
+You control what runs via `DeployParameters` (e.g. `DeployMigrations`, `DeployCode`, `DeployBreaking`). Presets like `DeployParameters.Default` and `DeployParameters.Breaking` are available.
+
+SQL tests are not part of a deployment: they run as xUnit tests (`dotnet test`) against a disposable database, so a production deployer does not run them.
 
 ### Typical CI/CD pipeline
 
 DbLive fits into a release pipeline like this:
 
 1. **Build** — compile the solution
-2. **Deploy database to Docker** — in a Docker database container (e.g. Testcontainers)
-3. **Run tests** — `dotnet test`. It will run both C# and SQL tests.
-4. **Deploy database** — migrations and code (DbLive)
-5. **Deploy application** — new app version
-6. **Drop old application** — remove previous app (if needed)
-7. **Deploy breaking changes** — run DbLive with `DeployParameters.Breaking` when the old app is gone
+2. **Run tests** — `dotnet test` runs the C# and the SQL tests; the test fixtures deploy the database into a Docker container (Testcontainers) and drop it afterwards
+3. **Deploy database** — migrations and code (`DeployParameters.Default`)
+4. **Deploy application** — new app version; old and new versions run side by side
+5. **Drop old application** — remove the previous app version
+6. **Deploy breaking changes** — run the deployer with `DeployParameters.Breaking` when the old app is gone and the release is confirmed
+
+Until step 6 a release is rolled back by rolling back the application; the database stays. After it, fix forward ([Roll back a release](docs/deployment/migrations.md#roll-back-a-release)).
+
+The settings of a production deployment (`ProjectId`, database creation, transactions, timeouts) are collected in [Production](docs/deployment/index.md#production).
 
 ---
 
@@ -285,11 +344,13 @@ DbLive fits into a release pipeline like this:
 
 ## Design goals
 
+DbLive design follows [zero-downtime, backward-compatible delivery](docs/database-as-service.md).
+
 - **Database is not a special snowflake** — it is code: versioned in repo, reviewed, and deployed like application code.
 - **SQL is testable** — procedures, views, and migrations can have automated tests.
 - **Deployments are predictable** — same order, same scripts, same outcome in dev and prod.
-- **Deployments are reversible** — rollback is built-in via undo scripts, not a manual emergency fix.
-- **Rollback is part of the system** — downgrade to a target version is a normal operation, not an exception.
+- **Releases roll forward** — until the breaking phase a release is rolled back by rolling back the application, because the database serves both versions; a wrong migration is fixed by a new one.
+- **Mistakes are refused** — an older build, an edited applied migration or the wrong database stops the deployment before anything changes.
 
 ---
 
@@ -309,6 +370,7 @@ Use them as templates for structure, `settings.json`, and test setup.
 
 ## License and links
 
-- **License:** [MIT](https://opensource.org/licenses/MIT)
+- **License:** [MIT](LICENSE)
 - **Repository:** [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive)
-- **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit
+- **NuGet:** DbLive, DbLive.MSSQL, DbLive.PostgreSQL, DbLive.xunit, DbLive.Testcontainers.MSSQL, DbLive.Testcontainers.PostgreSQL, DbLive.Templates
+- **Releases:** [release notes](https://github.com/zacoders/DbLive/releases) with the upgrade steps for breaking changes; [versioning policy](docs/versioning.md)

@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public interface IMigrationVersionValidator
+internal interface IMigrationVersionValidator
 {
 	void Validate(long versionPrefix, string fileName);
 }

@@ -1,11 +1,12 @@
-﻿
+﻿using System.Globalization;
+
 namespace DbLive.Project;
 
 internal static class MigrationFileNameParser
 {
-	public static MigrationItemInfo GetMigrationInfo(string filePath)
+	public static MigrationItemInfo GetMigrationInfo(string relativePath)
 	{
-		string fileName = Path.GetFileName(filePath);
+		string fileName = Path.GetFileName(relativePath);
 		string fileExtension = Path.GetExtension(fileName);
 		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 		string[] fileParts = fileNameWithoutExtension.Split('.');
@@ -13,35 +14,56 @@ internal static class MigrationFileNameParser
 		string migrationVersionStr = fileParts[0];
 		string migrationFilePart2 = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
+		string migrationFilePart4 = fileParts.Length > 3 ? fileParts[3] : "";
 
-		MigrationItemType? migrationType = migrationFilePart2.ToLower() switch
+		// DbLive has no undo scripts: an undo file left in the project would run as a migration named "undo"
+		// and undo its own version, an undo settings file would be an unknown settings file.
+		if (migrationFilePart2.ToLowerInvariant() is "undo" or "u")
+		{
+			throw new UndoNotSupportedException(relativePath);
+		}
+
+		MigrationItemType? migrationType = migrationFilePart2.ToLowerInvariant() switch
 		{
 			"migration" => MigrationItemType.Migration,
 			"m" => MigrationItemType.Migration,
-			"undo" => MigrationItemType.Undo,
-			"u" => MigrationItemType.Undo,
 			"breaking" => MigrationItemType.Breaking,
 			"b" => MigrationItemType.Breaking,
-			"settings" => MigrationItemType.Settings,
-			"s" => MigrationItemType.Settings,
 			_ => null
 		};
 
-		if (!long.TryParse(migrationVersionStr, out long version))
+		// digits only, in any culture: no sign, no spaces, no culture's minus sign.
+		if (!long.TryParse(migrationVersionStr, NumberStyles.None, CultureInfo.InvariantCulture, out long version))
 		{
-			string errorMessage = "Version prefix failed to parse into a long integer.";
+			string errorMessage = $"The version part '{migrationVersionStr}' must be digits only.";
 			throw new InvalidMigrationVersionException(fileName, errorMessage);
+		}
+
+		if (IsExtension(fileExtension, ".json"))
+		{
+			// <version>.settings.json was one settings file for the whole version.
+			if (IsSettingsPart(migrationFilePart2))
+			{
+				throw new ObsoleteMigrationSettingsFileException(fileName, migrationVersionStr);
+			}
+
+			if (!migrationType.HasValue || !IsSettingsPart(migrationFilePart3))
+			{
+				throw new UnknownMigrationSettingsException(fileName);
+			}
+
+			return new MigrationItemInfo()
+			{
+				Version = version,
+				MigrationItemType = MigrationItemTypeMapper.GetSettingsType(migrationType.Value),
+				Name = migrationFilePart4,
+				RelativePath = relativePath
+			};
 		}
 
 		if (migrationType.HasValue)
 		{
-			if (fileExtension != ".json" && migrationType == MigrationItemType.Settings)
-			{
-				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".json");
-			}
-
-			if (fileExtension != ".sql"
-				&& migrationType.Value is MigrationItemType.Migration or MigrationItemType.Undo or MigrationItemType.Breaking)
+			if (!IsExtension(fileExtension, ".sql"))
 			{
 				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
 			}
@@ -51,26 +73,30 @@ internal static class MigrationFileNameParser
 				Version = version,
 				MigrationItemType = migrationType.Value,
 				Name = migrationFilePart3,
-				FilePath = filePath
+				RelativePath = relativePath
 			};
 		}
 
-		if (fileExtension == ".json")
-		{
-			throw new UnknownMigrationSettingsException(fileName);
-		}
-
-		if (fileExtension == ".sql")
+		if (IsExtension(fileExtension, ".sql"))
 		{
 			return new MigrationItemInfo()
 			{
 				Version = version,
 				MigrationItemType = MigrationItemType.Migration,
 				Name = migrationFilePart2,
-				FilePath = filePath
+				RelativePath = relativePath
 			};
 		}
 
 		throw new UnknownMigrationItemTypeException(migrationFilePart2, fileName);
 	}
+
+	private static bool IsSettingsPart(string filePart)
+		=> filePart.ToLowerInvariant() is "settings" or "s";
+
+	/// <summary>
+	/// Ignoring case, like the file patterns that found the file: "001.migration.SQL" is a migration.
+	/// </summary>
+	private static bool IsExtension(string fileExtension, string expectedExtension)
+		=> fileExtension.Equals(expectedExtension, StringComparison.OrdinalIgnoreCase);
 }

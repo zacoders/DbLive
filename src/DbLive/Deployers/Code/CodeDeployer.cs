@@ -1,16 +1,17 @@
 namespace DbLive.Deployers.Code;
 
 
-public class CodeDeployer(
+internal class CodeDeployer(
 	ILogger logger,
-	IDbLiveProject _project,
 	ICodeItemDeployer _codeItemDeployer,
-	ISettingsAccessor settingsAccessor
+	ISettingsAccessor settingsAccessor,
+	IDbLiveDA _da,
+	ITimeProvider _timeProvider
 ) : ICodeDeployer
 {
 	private readonly ILogger _logger = logger.ForContext(typeof(CodeDeployer));
 
-	public async Task DeployAsync(DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, DeployParameters parameters)
 	{
 		if (!parameters.DeployCode)
 		{
@@ -19,12 +20,79 @@ public class CodeDeployer(
 
 		_logger.Information("Deploying code.");
 
-		foreach (CodeGroup group in await _project.GetCodeGroupsAsync().ConfigureAwait(false))
+		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = await SkipDeployedAsync(project.CodeGroups).ConfigureAwait(false);
+
+		foreach (IReadOnlyCollection<CodeItem> codeItems in groupsToDeploy.Where(items => items.Count > 0))
 		{
-			await DeployGroupAsync(group.CodeItems).ConfigureAwait(false);
+			await DeployGroupAsync(codeItems).ConfigureAwait(false);
 		}
 
+		await MarkRemovedFilesAsync(project).ConfigureAwait(false);
+
 		_logger.Information("Code deploy successfully completed.");
+	}
+
+	/// <summary>
+	/// The code items left to execute, by group. A deployment where nothing changed reads <c>dblive.code</c> with one query and sets
+	/// <c>verified_utc</c> of the files it skips with one command, instead of two round trips per file.
+	/// </summary>
+	private async Task<List<IReadOnlyCollection<CodeItem>>> SkipDeployedAsync(IReadOnlyList<CodeGroup> codeGroups)
+	{
+		CodeRows rows = new(await _da.GetCodeItemsAsync().ConfigureAwait(false));
+
+		List<string> deployedFiles = [];
+		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = [];
+
+		foreach (CodeGroup group in codeGroups)
+		{
+			List<CodeItem> codeItems = [];
+
+			foreach (CodeItem codeItem in group.CodeItems)
+			{
+				if (rows.IsDeployed(codeItem.FileData))
+				{
+					_logger.Information("Deploying code file: {filePath} [hash match]", codeItem.FileData.RelativePath);
+					deployedFiles.Add(codeItem.FileData.RelativePath);
+				}
+				else
+				{
+					codeItems.Add(codeItem);
+				}
+			}
+
+			groupsToDeploy.Add(codeItems);
+		}
+
+		if (deployedFiles.Count > 0)
+		{
+			await _da.MarkCodeAsVerifiedAsync(deployedFiles, _timeProvider.UtcNow()).ConfigureAwait(false);
+		}
+
+		return groupsToDeploy;
+	}
+
+	/// <summary>
+	/// A file deleted from the project keeps its applied row, so the same file brought back by a later release (git revert)
+	/// would be skipped by its hash, and the object it creates would not be restored. Its row is marked removed instead,
+	/// and a removed file is executed again. Breaking scripts of the Code folder are files of the project too.
+	/// </summary>
+	private async Task MarkRemovedFilesAsync(ProjectSnapshot project)
+	{
+		List<string> projectFiles =
+		[
+			.. project.CodeGroups.SelectMany(g => g.CodeItems).Select(i => i.FileData.RelativePath),
+			.. project.CodeBreakingItems.Select(i => i.FileData.RelativePath)
+		];
+
+		IReadOnlyCollection<string> removedFiles = await _da.MarkMissingCodeAsRemovedAsync(projectFiles, _timeProvider.UtcNow()).ConfigureAwait(false);
+
+		if (removedFiles.Count > 0)
+		{
+			_logger.Information(
+				"Code files removed from the project, marked as removed in dblive.code: {RelativePaths}",
+				string.Join(", ", removedFiles.Order(StringComparer.Ordinal))
+			);
+		}
 	}
 
 	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
@@ -71,7 +139,8 @@ public class CodeDeployer(
 		if (exceptions.Count > 0)
 		{
 			throw new CodeDeploymentAggregateException(
-				$"Code deployment failed after {maxRetries} attempts.",
+				// not "after N attempts": a file whose error left the transaction unusable is not retried.
+				"Code deployment failed.",
 				exceptions
 			);
 		}
@@ -108,6 +177,15 @@ public class CodeDeployer(
 				1,
 				static (_, current) => current + 1
 			);
+
+			if (!result.CanRetry)
+			{
+				_logger.Error(result.Exception, "Deployment failed for {FilePath}, not retried", relativePath);
+
+				await cts.CancelAsync().ConfigureAwait(false);
+
+				return result.Exception;
+			}
 
 			if (retry >= maxRetries)
 			{

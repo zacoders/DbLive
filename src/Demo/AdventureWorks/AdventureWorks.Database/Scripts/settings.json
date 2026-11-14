@@ -1,14 +1,14 @@
 {
-  // can be used to configure project
-  // can be overwritten in separate migration folder
+  // Project settings. A migration or breaking script can override the transaction
+  // settings in its own <version>.<item>.settings.json.
 
   // Optional. Binds this project to a database; max 128 characters.
   "ProjectId": "adventureworks",
 
   /* Options:
-      Deployment - full deployment will be wrapped withing transaction
-      Migration - each migration wrapped by transaction
-      None - no transactions introduced */
+      Deployment - the whole deployment in one transaction
+      Migration - each migration and breaking script in its own transaction
+      None - no transactions */
   "TransactionWrapLevel": "Migration",
 
   /* Options:
@@ -20,8 +20,8 @@
 
   /* Parallel code deploy is forced to serial when TransactionWrapLevel is Deployment. */
 
-  /* Search pattern for the test files. 
-     Test files can be executed in the end of deployment. */
+  /* Files in Code that match these patterns are SQL tests, not code objects.
+     A deployment never runs the tests; AdventureWorks.Tests runs them. */
   "TestFilePatterns": [ "test.*.sql", "t.*.sql", "*.test.sql", "*.t.sql" ],
 
   "CodeSubFoldersDeploymentOrder": [

@@ -1,6 +1,6 @@
-﻿namespace DbLive.Deployers.Migrations;
+namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationsDeployer
+internal interface IMigrationsDeployer
 {
-	Task DeployAsync(DeployParameters parameters);
+	Task DeployAsync(ProjectSnapshot project, DeployParameters parameters);
 }

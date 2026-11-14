@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Testing;
 
-public interface IUnitTestsRunner
+internal interface IUnitTestsRunner
 {
-	Task RunAllTestsAsync(DeployParameters parameters);
+	Task RunAllTestsAsync();
 }

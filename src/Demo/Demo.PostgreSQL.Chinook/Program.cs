@@ -4,19 +4,17 @@ using System.Reflection;
 
 string dbCnnString = "Host=localhost;Port=5433;Database=dblive_chinook555;Username=postgres;Password=123123;";
 
-var deployer = new DbLiveBuilder()
+DbLiveBuilder builder = new DbLiveBuilder()
 	.LogToConsole()
 	.PostgreSQL()
 	.SetDbConnection(dbCnnString)
-	.SetProject(Assembly.GetExecutingAssembly())
-	.CreateDeployer();
+	.SetProject(Assembly.GetExecutingAssembly());
 
-await deployer.DeployAsync(new DeployParameters
+await builder.CreateDeployer().DeployAsync(new DeployParameters
 {
 	CreateDbIfNotExists = true,
 	DeployCode = true,
-	DeployMigrations = true,
-	RunTests = true
+	DeployMigrations = true
 }).ConfigureAwait(false);
 
 public class DemoPostgreSQLChinookLink { }

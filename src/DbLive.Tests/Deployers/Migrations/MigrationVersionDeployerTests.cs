@@ -16,7 +16,32 @@ public class MigrationVersionDeployerTests
 		};
 
 		await Assert.ThrowsAsync<InvalidOperationException>(
-			() => deploy.DeployAsync(migration, DeployParameters.Default)
+			() => deploy.DeployAsync(migration)
+		);
+	}
+
+	[Fact]
+	public async Task DeployMigration_WithoutMigrationItem()
+	{
+		var mockSet = new MockSet();
+
+		MigrationVersionDeployer deploy = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
+
+		Migration migration = new()
+		{
+			Version = 1,
+			Items = new Dictionary<MigrationItemType, MigrationItem>
+			{
+				[MigrationItemType.Breaking] = new()
+				{
+					MigrationItemType = MigrationItemType.Breaking,
+					FileData = GetFileData("001.breaking.sql")
+				}
+			}
+		};
+
+		await Assert.ThrowsAsync<InternalException>(
+			() => deploy.DeployAsync(migration)
 		);
 	}
 
@@ -40,14 +65,14 @@ public class MigrationVersionDeployerTests
 			}
 		};
 
-		await deploy.DeployAsync(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration);
 
 		await mockSet.MigrationItemDeployer.Received(1)
-			.DeployAsync(1, Arg.Any<MigrationItem>());
+			.DeployAsync(1, Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
 	}
 
 	[Fact]
-	public async Task DeployMigration_SkipMigrationTypes()
+	public async Task DeployMigration_DeploysOnlyTheMigrationScript()
 	{
 		MockSet mockSet = new();
 
@@ -63,11 +88,6 @@ public class MigrationVersionDeployerTests
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				[MigrationItemType.Undo] = new()
-				{
-					MigrationItemType = MigrationItemType.Undo,
-					FileData = GetFileData("undo.sql")
-				},
 				[MigrationItemType.Breaking] = new()
 				{
 					MigrationItemType = MigrationItemType.Breaking,
@@ -76,10 +96,16 @@ public class MigrationVersionDeployerTests
 			}
 		};
 
-		await deploy.DeployAsync(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration);
 
-		await mockSet.MigrationItemDeployer.Received()
-			.DeployAsync(1, Arg.Any<MigrationItem>());
+		// the breaking script runs in the breaking phase.
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(Arg.Any<long>(), Arg.Any<MigrationItem>(), Arg.Any<MigrationItemSettings>());
+		await mockSet.MigrationItemDeployer.Received(1)
+			.DeployAsync(1, migration.Items[MigrationItemType.Migration], Arg.Any<MigrationItemSettings>());
+
+		// the schema checks belong to the breaking phase of the deployment tests.
+		await mockSet.DbLiveDA.DidNotReceive().GetSchemaSnapshotAsync();
 	}
 
 	private static FileData GetFileData(string relativePath, string content = "-- default item content")
@@ -87,8 +113,7 @@ public class MigrationVersionDeployerTests
 		return new FileData
 		{
 			Content = content,
-			RelativePath = relativePath,
-			FilePath = "c:/data" + relativePath
+			RelativePath = relativePath
 		};
 	}
 
@@ -104,8 +129,8 @@ public class MigrationVersionDeployerTests
 		{
 		  "TransactionWrapLevel": "none",
 		  "TransactionIsolationLevel": "ReadCommitted",
-		  "MigrationTimeout": "02:30:00"
-		}		
+		  "Timeout": "02:30:00"
+		}
 		""";
 
 		Migration migration = new()
@@ -118,25 +143,30 @@ public class MigrationVersionDeployerTests
 					MigrationItemType = MigrationItemType.Migration,
 					FileData = GetFileData("item1.sql")
 				},
-				[MigrationItemType.Settings] = new()
+				[MigrationItemType.MigrationSettings] = new()
 				{
-					MigrationItemType = MigrationItemType.Settings,
+					MigrationItemType = MigrationItemType.MigrationSettings,
 					FileData = GetFileData("custom-settings.json", settingsJson)
 				}
 			}
 		};
 
-		await deploy.DeployAsync(migration, DeployParameters.Default);
+		await deploy.DeployAsync(migration);
 
 		await mockSet.MigrationItemDeployer.Received(1)
-			.DeployAsync(1, Arg.Any<MigrationItem>());
-
-		await mockSet.TransactionRunner.Received(1)
-			.ExecuteWithinTransactionAsync(
-				false,
-				TranIsolationLevel.ReadCommitted,
-				TimeSpan.FromHours(2.5),
-				Arg.Any<Func<Task>>()
+			.DeployAsync(
+				1,
+				migration.Items[MigrationItemType.Migration],
+				new MigrationItemSettings
+				{
+					TransactionWrapLevel = TransactionWrapLevel.None,
+					TransactionIsolationLevel = TranIsolationLevel.ReadCommitted,
+					Timeout = TimeSpan.FromHours(2.5)
+				}
 			);
+
+		// the transaction is opened by the item deployer, per item.
+		await mockSet.TransactionRunner.DidNotReceiveWithAnyArgs()
+			.ExecuteWithinTransactionAsync(default, default, default, default!);
 	}
 }

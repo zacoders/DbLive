@@ -5,22 +5,22 @@ using DbLive.SelfDeployer;
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public static class Bootstrapper
+internal static class Bootstrapper
 {
 	public static void InitializeDbLive(this IServiceCollection container)
 	{
 		// ordered alphabetically
 		_ = container
+			.AddSingleton<IAppliedMigrationsValidator, AppliedMigrationsValidator>()
 			.AddSingleton<IBreakingChangesDeployer, BreakingChangesDeployer>()
+			.AddSingleton<ICodeBreakingDeployer, CodeBreakingDeployer>()
 			.AddSingleton<ICodeDeployer, CodeDeployer>()
 			.AddSingleton<ICodeItemDeployer, CodeItemDeployer>()
 			.AddSingleton<IDbLive, DbLive>()
 			.AddSingleton<IDbLiveDeployer, DbLiveDeployer>()
 			.AddSingleton<IDbLiveProject, DbLiveProject>()
 			.AddSingleton<IDbLiveSelfDeployer, DbLiveSelfDeployer>()
-			.AddSingleton<IDbLiveTester, DbLiveVisualStudioTester>()
-			.AddSingleton<IDowngradeDeployer, DowngradeDeployer>()
-			.AddSingleton<IFileSystem, FileSystem>()
+			.AddSingleton<IDbLiveTester, DbLiveTester>()
 			.AddSingleton<IFolderDeployer, FolderDeployer>()
 			.AddSingleton<IInternalDbLiveProject, InternalDbLiveProject>()
 			.AddSingleton<IMigrationChecksumValidator, MigrationChecksumValidator>()
@@ -28,6 +28,7 @@ public static class Bootstrapper
 			.AddSingleton<IMigrationsDeployer, MigrationsDeployer>()
 			.AddSingleton<IMigrationsSaver, MigrationsSaver>()
 			.AddSingleton<IMigrationVersionDeployer, MigrationVersionDeployer>()
+			.AddSingleton<IProjectLoader, ProjectLoader>()
 			.AddSingleton<ISettingsAccessor, SettingsAccessor>()
 			.AddSingleton<ITimeProvider, Common.TimeProvider>()
 			.AddSingleton<ITransactionRunner, TransactionRunner>()

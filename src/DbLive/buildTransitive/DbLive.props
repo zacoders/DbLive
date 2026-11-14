@@ -1,0 +1,59 @@
+<Project>
+
+	<!--
+	Embeds the SQL scripts of the project in its assembly, where SetProject(assembly) reads them.
+	NuGet imports this file into every project that has DbLive in its graph: through a provider package,
+	through DbLive.xunit or through a ProjectReference. It embeds nothing until the .csproj names the scripts folder,
+	relative to the project:
+
+	  <DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
+
+	So a project that has DbLive in its graph for another reason (the deployer and the test project of separate
+	projects, a test project of the application) embeds nothing, whatever folders it has.
+	-->
+
+	<!-- Items are evaluated after all properties, so the value set in the .csproj applies here. -->
+	<ItemGroup Condition="'$(DbLiveScriptsFolder)' != ''">
+		<!--
+		LogicalName keeps the paths relative to the scripts folder: DbLive identifies scripts in the database by them.
+		WithCulture="false" keeps name.fr.sql in this assembly instead of a satellite assembly.
+		-->
+		<EmbeddedResource Include="$(DbLiveScriptsFolder)\**\*" LogicalName="DbLive/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" DbLiveScript="true" />
+
+		<!-- Lets "Go to source" of [SqlFact] tests open the .sql file. -->
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+			<_Parameter1>ProjectDir</_Parameter1>
+			<_Parameter2>$(ProjectDir)</_Parameter2>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+			<_Parameter1>DbLiveScriptsFolder</_Parameter1>
+			<_Parameter2>$(DbLiveScriptsFolder)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<!--
+	A project that names the folder and still embeds the scripts in its .csproj would get them twice. The SDK then
+	fails with NETSDK1022 (duplicate EmbeddedResource items), whose advice does not help, so this target fails first.
+	-->
+	<Target Name="_DbLiveCheckScriptsEmbeddedTwice" BeforeTargets="CheckForDuplicateItems;CoreCompile" Condition="'$(DbLiveScriptsFolder)' != ''">
+		<ItemGroup>
+			<_DbLiveScript Include="@(EmbeddedResource)" Condition="'%(EmbeddedResource.DbLiveScript)' == 'true'" />
+			<_DbLiveOtherResource Include="@(EmbeddedResource)" Condition="'%(EmbeddedResource.DbLiveScript)' != 'true'" />
+			<!-- The same file as one of the scripts. -->
+			<_DbLiveScriptEmbeddedTwice Include="@(_DbLiveOtherResource)" Condition="'%(Identity)' != '' And '@(_DbLiveScript)' != ''" />
+			<!-- Another DbLive script resource, from a block for another folder. -->
+			<_DbLiveScriptEmbeddedTwice Include="@(_DbLiveOtherResource)" Condition="'@(_DbLiveScript)' != '' And $([System.String]::Copy('%(_DbLiveOtherResource.LogicalName)').StartsWith('DbLive/'))" />
+		</ItemGroup>
+
+		<Error Condition="'@(_DbLiveScriptEmbeddedTwice)' != ''"
+			   File="$(MSBuildProjectFullPath)"
+			   Text="The DbLive package embeds the scripts of the '$(DbLiveScriptsFolder)' folder named by &lt;DbLiveScriptsFolder&gt; in the assembly, and $(MSBuildProjectFile) embeds @(_DbLiveScriptEmbeddedTwice->Distinct()->Count()) DbLive script(s) too. Remove the DbLive block from $(MSBuildProjectFile): the EmbeddedResource with LogicalName=&quot;DbLive/...&quot; and the AssemblyMetadata 'ProjectDir'. To embed the scripts in the .csproj yourself, remove &lt;DbLiveScriptsFolder&gt; instead." />
+
+		<ItemGroup>
+			<_DbLiveScript Remove="@(_DbLiveScript)" />
+			<_DbLiveOtherResource Remove="@(_DbLiveOtherResource)" />
+			<_DbLiveScriptEmbeddedTwice Remove="@(_DbLiveScriptEmbeddedTwice)" />
+		</ItemGroup>
+	</Target>
+
+</Project>

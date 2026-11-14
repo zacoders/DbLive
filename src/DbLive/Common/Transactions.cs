@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public class TransactionRunner : ITransactionRunner
+internal class TransactionRunner : ITransactionRunner
 {
 	public async Task ExecuteWithinTransactionAsync(
 		bool needTransaction,

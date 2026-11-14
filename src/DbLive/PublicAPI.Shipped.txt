@@ -1,0 +1,97 @@
+#nullable enable
+DbLive.BreakingScriptMatchesTestPatternException
+DbLive.BreakingScriptMatchesTestPatternException.RelativePath.get -> string!
+DbLive.CodeDeploymentAggregateException
+DbLive.CodeDeploymentException
+DbLive.CodeNotDeployedException
+DbLive.CodeNotDeployedException.Count.get -> int
+DbLive.CodeNotDeployedException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DbLive.DatabaseAheadOfProjectException
+DbLive.DatabaseAheadOfProjectException.Versions.get -> System.Collections.Generic.IReadOnlyList<long>!
+DbLive.DatabaseNotFoundException
+DbLive.DatabaseNotFoundException.DatabaseName.get -> string!
+DbLive.DatabaseNotFoundException.Server.get -> string!
+DbLive.DatabaseRequiresNewerDbLiveException
+DbLive.DatabaseRequiresNewerDbLiveException.MinCompatibleVersion.get -> System.Version!
+DbLive.DatabaseRequiresNewerDbLiveException.RequiredVersion.get -> System.Version!
+DbLive.DbLiveBuilder
+DbLive.DbLiveBuilder.CreateDeployer() -> DbLive.IDbLive!
+DbLive.DbLiveBuilder.CreateTester() -> DbLive.Testing.IDbLiveTester!
+DbLive.DbLiveBuilder.DbLiveBuilder() -> void
+DbLive.DbLiveBuilder.Dispose() -> void
+DbLive.DbLiveBuilder.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DbLive.DbLiveBuilderExtensions
+DbLive.DbLiveSqlException
+DbLive.DbLiveSqlException.SqlError.get -> string!
+DbLive.DeployParameters
+DbLive.DeployParameters.<Clone>$() -> DbLive.DeployParameters!
+DbLive.DeployParameters.CreateDbIfNotExists.get -> bool
+DbLive.DeployParameters.CreateDbIfNotExists.init -> void
+DbLive.DeployParameters.DeployBreaking.get -> bool
+DbLive.DeployParameters.DeployBreaking.init -> void
+DbLive.DeployParameters.DeployCode.get -> bool
+DbLive.DeployParameters.DeployCode.init -> void
+DbLive.DeployParameters.DeployMigrations.get -> bool
+DbLive.DeployParameters.DeployMigrations.init -> void
+DbLive.DeployParameters.DeployParameters() -> void
+DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
+DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
+DbLive.DeployParameters.RepairMigrationChecksums.init -> void
+DbLive.DuplicateMigrationItemException
+DbLive.FileNotUtf8Exception
+DbLive.FileNotUtf8Exception.RelativePath.get -> string!
+DbLive.FilesOutsideProjectFoldersException
+DbLive.FilesOutsideProjectFoldersException.Count.get -> int
+DbLive.FilesOutsideProjectFoldersException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DbLive.FolderDeploymentException
+DbLive.FolderDeploymentException.RelativePath.get -> string!
+DbLive.IDbLive
+DbLive.IDbLive.DeployAsync(DbLive.DeployParameters! parameters) -> System.Threading.Tasks.Task!
+DbLive.IDbLiveFixtureBuilder
+DbLive.IDbLiveFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.IDbLiveFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.InvalidMigrationItemSettingsException
+DbLive.InvalidMigrationItemSettingsException.RelativePath.get -> string!
+DbLive.InvalidMigrationVersionException
+DbLive.InvalidMigrationVersionException.FileName.get -> string!
+DbLive.MigrationChecksumMismatchException
+DbLive.MigrationDeploymentException
+DbLive.MigrationItemMustExistsException
+DbLive.MigrationSettingsWithoutScriptException
+DbLive.MigrationSettingsWithoutScriptException.RelativePath.get -> string!
+DbLive.NotSupportedTransactionIsolationLevelException
+DbLive.ObsoleteMigrationSettingsFileException
+DbLive.ObsoleteMigrationSettingsFileException.FileName.get -> string!
+DbLive.ProjectIdMismatchException
+DbLive.ScriptPathsDifferOnlyByCaseException
+DbLive.ScriptPathsDifferOnlyByCaseException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DbLive.ScriptsNotEmbeddedException
+DbLive.ScriptsNotEmbeddedException.AssemblyName.get -> string!
+DbLive.Testing.DatabaseNotDeployedException
+DbLive.Testing.IDbLiveTester
+DbLive.Testing.IDbLiveTester.RunAllTestsAsync() -> System.Threading.Tasks.Task!
+DbLive.Testing.IDbLiveTester.RunTestAsync(System.Action<string!>! writeLine, string! relativePath) -> System.Threading.Tasks.Task<DbLive.Testing.TestRunResult!>!
+DbLive.Testing.SchemaChangedException
+DbLive.Testing.TestRunResult
+DbLive.Testing.TestRunResult.ErrorMessage.get -> string?
+DbLive.Testing.TestRunResult.Exception.get -> System.Exception?
+DbLive.Testing.TestRunResult.IsSuccess.get -> bool
+DbLive.Testing.UnitTestsFailedException
+DbLive.Testing.UnitTestsFailedException.FailedCount.get -> int
+DbLive.Testing.UnitTestsFailedException.FailedTests.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DbLive.Testing.UnitTestsFailedException.TotalCount.get -> int
+DbLive.UndoNotSupportedException
+DbLive.UndoNotSupportedException.RelativePath.get -> string!
+DbLive.UnknownMigrationSettingsException
+override DbLive.DeployParameters.Equals(object? obj) -> bool
+override DbLive.DeployParameters.GetHashCode() -> int
+override DbLive.DeployParameters.ToString() -> string!
+static DbLive.DbLiveBuilderExtensions.LogTo(this DbLive.DbLiveBuilder! builder, Serilog.ILogger! logger) -> DbLive.DbLiveBuilder!
+static DbLive.DbLiveBuilderExtensions.LogToConsole(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
+static DbLive.DbLiveBuilderExtensions.SetDbConnection(this DbLive.DbLiveBuilder! builder, string! sqlDbConnectionString) -> DbLive.DbLiveBuilder!
+static DbLive.DbLiveBuilderExtensions.SetProject(this DbLive.DbLiveBuilder! builder, System.Reflection.Assembly! projectAssembly) -> DbLive.DbLiveBuilder!
+static DbLive.DbLiveBuilderExtensions.SetScriptsFolder(this DbLive.DbLiveBuilder! builder, string! scriptsPath) -> DbLive.DbLiveBuilder!
+static DbLive.DeployParameters.Breaking.get -> DbLive.DeployParameters!
+static DbLive.DeployParameters.Default.get -> DbLive.DeployParameters!
+static DbLive.DeployParameters.operator !=(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool
+static DbLive.DeployParameters.operator ==(DbLive.DeployParameters? left, DbLive.DeployParameters? right) -> bool

@@ -1,5 +1,5 @@
 -- Arrange
--- Note: Test data was prepared in init.sql file.
+-- Note: Test data was prepared in setup.test.sql file.
 
 
 -- Act
@@ -11,5 +11,5 @@ where OrderID = 1
 
 
 -- Assert
-select asstert = 'row-count=1'
+select assert = 'row-count=1'
 

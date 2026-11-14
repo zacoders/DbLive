@@ -1,0 +1,48 @@
+name: Release notes
+
+# Previews the release notes of a pull request in the job summary and checks them ("Releases" in Development.md):
+# every task closed by the PR has "## Release note", and the PR title gives the version bump the tasks need; every
+# PublicAPI.Unshipped.txt is empty, and a public symbol removed since the previous release needs a major version.
+# "edited" re-runs the check when the title changes, without rebuilding the solution.
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize, reopened, edited ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-notes-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  release-notes:
+
+    name: Release notes
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # the tags and the commits since the previous release
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    # The title goes through an environment variable, so it is never parsed as part of the script.
+    - name: Check release notes
+      env:
+        PR_TITLE: ${{ github.event.pull_request.title }}
+      run: dotnet run .github/scripts/release-notes.cs -- --check --title "$PR_TITLE" --output "$RUNNER_TEMP/release-notes.md"
+
+    - name: Write job summary
+      if: always()
+      run: |
+        if [ -f "$RUNNER_TEMP/release-notes.md" ]; then
+          cat "$RUNNER_TEMP/release-notes.md" >> "$GITHUB_STEP_SUMMARY"
+        fi

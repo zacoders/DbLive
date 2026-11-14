@@ -1,7 +1,10 @@
-﻿namespace DbLive.Deployers.Code;
+﻿namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public class CodeDeploymentAggregateException(string errorMessage, IEnumerable<Exception> innerExceptions)
-	: AggregateException(errorMessage, innerExceptions)
+public sealed class CodeDeploymentAggregateException : AggregateException
 {
+	internal CodeDeploymentAggregateException(string errorMessage, IEnumerable<Exception> innerExceptions)
+		: base(errorMessage, innerExceptions)
+	{
+	}
 }

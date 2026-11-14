@@ -1,0 +1,32 @@
+# Instructions for AI agents
+
+DbLive is a .NET library for database lifecycle management: migrations, code deployment, SQL unit tests and rollback, for SQL Server and PostgreSQL. How DbLive behaves: [docs/llms-full.txt](docs/llms-full.txt). Build and CI: [Development.md](Development.md).
+
+Write everything in the repository in English.
+
+## Tasks
+
+Work items (features, bugs, chores) are Markdown files in `tasks/`, one file per task, not GitHub Issues. Format, numbering and the template: [tasks/README.md](tasks/README.md). Read it before you create or close a task.
+
+- **Folders.** Open tasks are in `tasks/`, finished ones in `tasks/done/`, rejected tasks and ideas in `tasks/rejected/`: the folder is the status. An idea that is not decided yet goes to `tasks/ideas/`, without a number.
+- **Numbers.** A top-level task takes its GitHub issue number: `0096-documentation.md` for #96. Something found while working on a task gets its own file under that task's number, with the next free two-digit number across `tasks/`, `tasks/done/` and `tasks/rejected/`: `0096-34-<slug>.md`. Do not open a GitHub issue for it.
+- **Before proposing.** Look in `tasks/rejected/` first. Do not propose again what was rejected unless something changed since, and then say what changed.
+- **Work.** Tick the checkboxes as you go. Findings, dead ends and decisions go to `## Notes`; mark facts confirmed by an experiment as verified. Write a decision of the maintainer with its date. Open questions are `- [ ] ...?` items, and the maintainer answers them.
+- **Same commit.** A task file changes in the same commit as the code it describes. A change in DbLive behavior updates `docs/llms-full.txt` (the reference for AI agents) and the matching page under `docs/` in that commit too; the task lists them under `## Docs to update`.
+- **Close.** When everything under `## Done when` is ticked:
+  1. Write `## Release note` right after the title. It is required: GitHub Releases are built from it. Write for users of the packages: what changed, and what they must do to upgrade. Write `None.` when they see no change. Preview the notes: `dotnet run .github/scripts/release-notes.cs`.
+  2. Set `breaking: true` in the front matter when an upgrade needs a change on the user's side: a renamed file or setting, a changed call, a test that passed and now fails.
+  3. Fill `## Result`: what changed, decisions taken, tests.
+  4. Set `closed:` and `git mv` the file to `tasks/done/` in the same commit as the final change.
+- **Reject.** Only the maintainer rejects a task or an idea. Do not delete the file:
+  1. Write `## Rejected` right after the title: the maintainer's decision with its date, and why.
+  2. Set `rejected:` in the front matter.
+  3. `git mv` the file to `tasks/rejected/`. It keeps its name and number, and needs no `## Release note`.
+
+## The `dblive` tables
+
+A change after which an older DbLive misreads or miswrites the `dblive` tables (a new stored value, a dropped or renamed column, a `NOT NULL` column without a default), with a self-migration or in C# alone, raises `MinCompatibleVersion` to the version of the release. The rule and the release check: "Compatibility of the `dblive` tables" in [Development.md](Development.md).
+
+## Commits and pull requests
+
+Do not write `feat:`, `feat!` or `breaking change:` in commit messages: GitVersion takes the version bump from them. The PR title decides the version: start it with `BREAKING CHANGE:` when a task it closes has `breaking: true`, with `feat:` when a `feature` task has a release note, with neither otherwise. The "Release notes" check of the PR fails on a mismatch. See "Releases" in [Development.md](Development.md).

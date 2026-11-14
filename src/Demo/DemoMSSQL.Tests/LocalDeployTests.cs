@@ -1,5 +1,6 @@
 using DbLive;
 using DbLive.MSSQL;
+using DbLive.Testing;
 using DbLive.xunit;
 using System.Reflection;
 using Xunit.Abstractions;
@@ -28,9 +29,16 @@ public class LocalDeployTests(ITestOutputHelper _output)
 				CreateDbIfNotExists = true,
 				DeployBreaking = false,
 				DeployCode = true,
-				DeployMigrations = true,
-				RunTests = true
+				DeployMigrations = true
 			}
 		);
+
+		IDbLiveTester tester = builder.CreateTester();
+
+		await tester.RunAllTestsAsync();
+
+		await deployer.DeployAsync(DeployParameters.Breaking);
+
+		await tester.RunAllTestsAsync();
 	}
 }

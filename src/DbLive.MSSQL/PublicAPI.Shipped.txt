@@ -1,0 +1,10 @@
+#nullable enable
+DbLive.MSSQL.DbLiveBuilderExtensions
+DbLive.MSSQL.MSSQLConnectionStringExtensions
+DbLive.MSSQL.MsSqlFixtureBuilder
+DbLive.MSSQL.MsSqlFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.MSSQL.MsSqlFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.MSSQL.MsSqlFixtureBuilder.MsSqlFixtureBuilder(System.Reflection.Assembly! project, string! connectionString) -> void
+static DbLive.MSSQL.DbLiveBuilderExtensions.SqlServer(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
+static DbLive.MSSQL.MSSQLConnectionStringExtensions.SetMsSqlDatabaseName(this string! mssqlConnectionString, string! dbName) -> string!
+static DbLive.MSSQL.MSSQLConnectionStringExtensions.SetRandomMsSqlDatabaseName(this string! mssqlConnectionString) -> string!

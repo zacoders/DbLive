@@ -1,9 +1,9 @@
 ﻿namespace DbLive.Project;
 
 [ExcludeFromCodeCoverage]
-public class TestItem
+internal class TestItem
 {
 	public required string Name { get; set; }
-	public FileData? InitFileData { get; set; }
+	public FileData? SetupFileData { get; set; }
 	public required FileData FileData { get; set; }
 }

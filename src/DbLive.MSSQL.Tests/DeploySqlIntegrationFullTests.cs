@@ -11,5 +11,6 @@ public class DeploySqlIntegrationFullTests(SqlServerIntegrationFixture _fixture,
 	public async Task DeployProject_Full()
 	{
 		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveTester.RunAllTestsAsync();
 	}
 }

@@ -1,7 +1,6 @@
-﻿
 namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationsSaver
+internal interface IMigrationsSaver
 {
-	Task SaveAsync();
+	Task SaveAsync(ProjectSnapshot project);
 }

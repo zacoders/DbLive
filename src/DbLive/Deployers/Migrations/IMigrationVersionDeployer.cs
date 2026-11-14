@@ -1,6 +1,9 @@
-﻿namespace DbLive.Deployers.Migrations;
+namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationVersionDeployer
+internal interface IMigrationVersionDeployer
 {
-	Task DeployAsync(Migration migration, DeployParameters parameters);
+	/// <summary>
+	/// Deploys the migration script of the version by its own settings, in its own transaction.
+	/// </summary>
+	Task DeployAsync(Migration migration);
 }

@@ -56,20 +56,16 @@ internal static class TranIsolationLevelMapper
 			_ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
 		};
 
-	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider)
+	/// <param name="relativePath">The settings file of a migration or breaking script that sets the level, for the message; null for settings.json.</param>
+	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider, string? relativePath = null)
 	{
-		if (provider == DbProvider.PostgreSql && level == TranIsolationLevel.Snapshot)
-		{
-			throw new NotSupportedTransactionIsolationLevelException(level);
-		}
-
 		if (provider == DbProvider.PostgreSql
 			&& level is not (
 				TranIsolationLevel.ReadCommitted
 				or TranIsolationLevel.RepeatableRead
 				or TranIsolationLevel.Serializable))
 		{
-			throw new NotSupportedTransactionIsolationLevelException(level);
+			throw new NotSupportedTransactionIsolationLevelException(level, provider, relativePath);
 		}
 	}
 }

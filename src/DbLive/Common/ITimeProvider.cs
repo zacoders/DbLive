@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public interface ITimeProvider
+internal interface ITimeProvider
 {
 	DateTime UtcNow();
 	IStopWatch StartNewStopwatch();

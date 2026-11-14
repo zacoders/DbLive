@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MyDb/MyDb.csproj" />
+  <Project Path="MyDb.Tests/MyDb.Tests.csproj" />
+</Solution>

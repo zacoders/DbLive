@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DbLive.xunit" Version="DBLIVE_VERSION" />
+    <!--#if (mssql) -->
+    <!-- The test database: SQL Server in Docker. Brings DbLive.MSSQL and Testcontainers. -->
+    <PackageReference Include="DbLive.Testcontainers.MSSQL" Version="DBLIVE_VERSION" />
+    <!--#else -->
+    <!-- The test database: PostgreSQL in Docker. Brings DbLive.PostgreSQL and Testcontainers. -->
+    <PackageReference Include="DbLive.Testcontainers.PostgreSQL" Version="DBLIVE_VERSION" />
+    <!--#endif -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyDb\MyDb.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
