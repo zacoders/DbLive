@@ -26,7 +26,7 @@ public class NewerDbLiveDatabaseTests(SqlServerIntegrationFixture _fixture, ITes
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal(DbLiveCompatibility.MinCompatibleVersion, await da.GetMinDbLiveLibVersionAsync());
 
 		// what a newer DbLive stores after a change of the dblive tables that this DbLive cannot read.
@@ -63,7 +63,7 @@ public class NewerDbLiveDatabaseTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
 		// a newer DbLive with a self-migration that this DbLive can live with: it keeps the requirement.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("update dblive.version set version = 1000;");
 
 		_ = project.AddFile("Migrations/002.migration.sql", "create table dbo.t2 ( id int not null );");
@@ -85,7 +85,7 @@ public class NewerDbLiveDatabaseTests(SqlServerIntegrationFixture _fixture, ITes
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		long lastSelfMigration = await da.GetSelfMigrationVersionAsync();
 
 		// the dblive tables before self-migration 12.

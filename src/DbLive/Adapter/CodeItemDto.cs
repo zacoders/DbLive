@@ -1,7 +1,7 @@
 ﻿namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
-public class CodeItemDto
+internal class CodeItemDto
 {
 	public required string RelativePath { get; set; }
 	public required CodeItemType ItemType { get; set; }

@@ -38,7 +38,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(new DeployParameters { DeployBreaking = true });
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 
 		Assert.Equal(1, await CountAsync(da, "select count(*) from pg_indexes where indexname = 'ix_t1_name'"));
 		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
@@ -156,7 +156,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 3;
@@ -186,7 +186,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			alter table dblive.migration add column content text null;
 			insert into dblive.migration (version, item_type, name, relative_path, status, content_hash, content, created_utc, applied_utc)

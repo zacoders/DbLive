@@ -3,7 +3,7 @@ namespace DbLive.Adapter;
 /// <summary>
 /// The kind of a file of the Code folder that has a row in <c>dblive.code</c>.
 /// </summary>
-public enum CodeItemType
+internal enum CodeItemType
 {
 	Code,
 	/// <summary>

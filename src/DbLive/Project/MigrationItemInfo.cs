@@ -2,7 +2,7 @@
 namespace DbLive.Project;
 
 [ExcludeFromCodeCoverage]
-public record MigrationItemInfo
+internal record MigrationItemInfo
 {
 	public required long Version { get; init; }
 	public required string Name { get; init; }

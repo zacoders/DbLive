@@ -1,6 +1,6 @@
 namespace DbLive.Common;
 
-public interface ITransactionSettingsValidator
+internal interface ITransactionSettingsValidator
 {
 	Task ValidateAsync(DbLiveSettings settings);
 }

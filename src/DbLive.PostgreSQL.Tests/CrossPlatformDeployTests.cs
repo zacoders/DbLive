@@ -34,7 +34,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 
 		// what DbLive stored on Windows before line endings, separators and case were normalized.
 		await da.ExecuteNonQueryAsync($"""
@@ -205,7 +205,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		CodeItemDto codeBefore = (await FindCodeRowAsync(da, "code/public/v1.sql"))!;
 
 		_ = project
@@ -233,7 +233,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		CodeItemDto codeBefore = (await FindCodeRowAsync(da, "code/public/v1.sql"))!;
 
 		// DbLive on Windows took the folder part of the path from the settings and the file name from the disk.
@@ -284,7 +284,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 	}
 
 	// the row of a code file by its stored (lower-case) path.
-	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveDA da, string storedPath) =>
+	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveInternalDA da, string storedPath) =>
 		(await da.GetCodeItemsAsync()).SingleOrDefault(row => row.RelativePath == storedPath);
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)

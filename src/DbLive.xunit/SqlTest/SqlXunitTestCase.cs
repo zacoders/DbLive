@@ -4,7 +4,7 @@ using Xunit.Sdk;
 
 namespace DbLive.xunit.SqlTest;
 
-public class SqlXunitTestCase : XunitTestCase
+internal class SqlXunitTestCase : XunitTestCase
 {
 	private string? TestFileFullPath { get; set; }
 

@@ -1,6 +1,6 @@
 namespace DbLive.Deployers;
 
-public interface IProjectIdValidator
+internal interface IProjectIdValidator
 {
 	/// <summary>
 	/// Before a deployment, before the self-deployment changes the <c>dblive</c> tables: fails when the database belongs to another

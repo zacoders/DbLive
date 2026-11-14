@@ -7,7 +7,7 @@ closed: 2026-10-31
 # `UnitTestsFailedException` is internal
 
 ## Release note
-`UnitTestsFailedException`, thrown when SQL tests fail, is now public, with `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files), so a caller can catch it by type. `InvalidMigrationItemTypeException` is now public too.
+`UnitTestsFailedException`, thrown when SQL tests fail, is now public, with `FailedCount`, `TotalCount` and `FailedTests` (relative paths of the failed test files), so a caller can catch it by type.
 
 ## Problem
 Test failures can't be caught by type, only with `catch (Exception)`. A deployer can't tell "deploy succeeded, tests failed" from "deploy failed".
@@ -29,6 +29,7 @@ Make the class `public`. Optionally add `FailedCount`, `TotalCount` and the list
 ## Notes
 - `InvalidMigrationItemTypeException` had the same problem: `internal`, but thrown to the user while reading the project and listed in `docs/llms-full.txt` §4. Fixed here too.
 - `InternalException` stays internal: it marks a bug inside DbLive, not something a caller handles.
+- 2026-11-14: `InvalidMigrationItemTypeException` is internal again (0096-73): since 0096-36 it cannot reach the caller. Its sentence left the release note above, which goes into the same release.
 
 ## Result
 - `UnitTestsFailedException` is public, in the style of the other exceptions (primary constructor, `[ExcludeFromCodeCoverage]`). Properties: `FailedCount`, `TotalCount`, `FailedTests` (relative paths of the failed test files, the same key as `dblive.unit_test_run`, sorted, ordinal). The message text is unchanged.

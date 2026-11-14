@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
+internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 {
 	internal const string SettingsFileName = "settings.json";
 

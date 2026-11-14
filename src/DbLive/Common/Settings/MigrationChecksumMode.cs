@@ -1,6 +1,6 @@
 namespace DbLive.Common.Settings;
 
-public enum MigrationChecksumMode
+internal enum MigrationChecksumMode
 {
 	Strict,
 	Warn

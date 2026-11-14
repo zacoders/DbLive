@@ -5,7 +5,7 @@
 /// or <c>&lt;version&gt;.breaking.settings.json</c>.
 /// A missing key falls back to the project settings.
 /// </summary>
-public record MigrationItemSettings
+internal record MigrationItemSettings
 {
 	/// <summary>
 	/// <see cref="TransactionWrapLevel.Migration"/> or <see cref="TransactionWrapLevel.None"/>,

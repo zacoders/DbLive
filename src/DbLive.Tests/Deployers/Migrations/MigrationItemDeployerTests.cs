@@ -289,11 +289,14 @@ public class MigrationItemDeployerTests
 	}
 
 	[Theory]
-	[InlineData(TransactionWrapLevel.Migration, false)]
-	[InlineData(TransactionWrapLevel.None, true)]
-	public async Task Project_deployment_transaction_runs_the_item_inside_it(TransactionWrapLevel itemTransactionWrapLevel, bool warningExpected)
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task Project_deployment_transaction_runs_the_item_inside_it(bool itemWithoutTransaction)
 	{
 		// Arrange
+		// TransactionWrapLevel is internal: a public test method cannot take it.
+		TransactionWrapLevel itemTransactionWrapLevel = itemWithoutTransaction ? TransactionWrapLevel.None : TransactionWrapLevel.Migration;
+		bool warningExpected = itemWithoutTransaction;
 		MockSet mockSet = new();
 
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings

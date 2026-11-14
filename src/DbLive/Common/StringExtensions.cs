@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public static class StringExtensions
+internal static class StringExtensions
 {
 	/// <summary>
 	/// Relative path with '/' on every OS, so the paths stored in the database do not depend on the OS that deployed.

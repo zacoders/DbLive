@@ -39,7 +39,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		await builder.CreateDeployer().DeployAsync(new DeployParameters { DeployBreaking = true });
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 
 		Assert.Equal(1, await ScalarAsync(da, SnapshotIsolationStateQuery));
 		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
@@ -109,7 +109,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 6;
@@ -139,7 +139,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 		await da.ExecuteNonQueryAsync("""
 			alter table dblive.migration add content nvarchar(max) null;
 			go

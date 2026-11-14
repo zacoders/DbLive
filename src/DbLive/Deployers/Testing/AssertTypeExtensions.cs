@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Deployers.Testing;
 
-public static class AssertTypeExtensions
+internal static class AssertTypeExtensions
 {
 	static Dictionary<AssertType, string> assertTypesMap = new()
 	{

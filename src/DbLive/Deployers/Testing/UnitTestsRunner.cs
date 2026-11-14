@@ -2,10 +2,10 @@
 
 namespace DbLive.Deployers.Testing;
 
-public class UnitTestsRunner(
+internal class UnitTestsRunner(
 		ILogger _logger,
 		IDbLiveProject _project,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		IUnitTestItemRunner _unitTestItemRunner,
 		ISettingsAccessor settingsAccessor
 	) : IUnitTestsRunner

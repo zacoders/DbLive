@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public static class TransactionScopeManager
+internal static class TransactionScopeManager
 {
 	private static readonly object _maximumTimeoutLock = new();
 

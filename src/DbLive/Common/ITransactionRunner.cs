@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Common;
 
-public interface ITransactionRunner
+internal interface ITransactionRunner
 {
 	Task ExecuteWithinTransactionAsync(
 		bool needTransaction,

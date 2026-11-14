@@ -5,7 +5,7 @@ using DbLive.SelfDeployer;
 namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public static class Bootstrapper
+internal static class Bootstrapper
 {
 	public static void InitializeDbLive(this IServiceCollection container)
 	{

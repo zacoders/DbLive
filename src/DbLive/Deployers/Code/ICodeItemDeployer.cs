@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Deployers.Code;
 
-public interface ICodeItemDeployer
+internal interface ICodeItemDeployer
 {
 	/// <summary>
 	/// Executes the code item and saves its row. A file already deployed is skipped by <see cref="CodeDeployer"/> before.

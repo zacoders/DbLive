@@ -2,7 +2,7 @@ using System.IO.Enumeration;
 
 namespace DbLive.Project;
 
-public class DbLiveProject(
+internal class DbLiveProject(
 	IScriptSource scriptSource,
 	ISettingsAccessor settingsAccessor,
 	IMigrationVersionValidator migrationVersionValidator,

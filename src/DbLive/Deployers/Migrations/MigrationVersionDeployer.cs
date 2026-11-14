@@ -1,6 +1,6 @@
 namespace DbLive.Deployers.Migrations;
 
-public class MigrationVersionDeployer(
+internal class MigrationVersionDeployer(
 		IMigrationItemDeployer _migrationItemDeployer
 	) : IMigrationVersionDeployer
 {

@@ -1,6 +1,6 @@
 namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationVersionDeployer
+internal interface IMigrationVersionDeployer
 {
 	/// <summary>
 	/// Deploys the migration script of the version by its own settings, in its own transaction.

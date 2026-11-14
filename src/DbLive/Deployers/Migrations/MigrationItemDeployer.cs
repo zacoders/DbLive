@@ -1,8 +1,8 @@
 namespace DbLive.Deployers.Migrations;
 
-public class MigrationItemDeployer(
+internal class MigrationItemDeployer(
 		ILogger _logger,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		ITimeProvider _timeProvider,
 		ITransactionRunner _transactionRunner,
 		ISettingsAccessor _projectSettingsAccessor

@@ -83,9 +83,9 @@ public class DbLiveTablesSnapshotTests
 	{
 		List<string> lines = [$"MinCompatibleVersion {DbLiveCompatibility.MinCompatibleVersion}"];
 
-		foreach ((string provider, Type daType) in new[] { ("mssql", typeof(MsSqlDA)), ("postgresql", typeof(PostgreSqlDA)) })
+		foreach ((string provider, Type providerType) in new[] { ("mssql", typeof(MsSqlFixtureBuilder)), ("postgresql", typeof(PostgreSqlFixtureBuilder)) })
 		{
-			InternalDbLiveProject project = new(new InternalScriptSource(daType.Assembly));
+			InternalDbLiveProject project = new(new InternalScriptSource(providerType.Assembly));
 
 			lines.AddRange((await project.GetMigrationsAsync())
 				.Select(m => $"self-migration {provider} {m.FileData.RelativePath} {m.FileData.ContentHash}"));

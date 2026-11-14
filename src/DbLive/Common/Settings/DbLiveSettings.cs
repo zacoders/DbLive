@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common.Settings;
 
-public class DbLiveSettings
+internal class DbLiveSettings
 {
 	public TransactionWrapLevel TransactionWrapLevel { get; init; } = TransactionWrapLevel.Migration;
 

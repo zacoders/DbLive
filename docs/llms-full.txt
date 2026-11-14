@@ -709,7 +709,9 @@ Presets (each access returns a new instance; adjust with `with { ... }`):
 
 Even with all flags off, a deployment still performs: ProjectId validation, self-deployment, settings validation, the applied versions check (Section 5.2), checksum validation, saving migration items, BeforeDeploy and AfterDeploy. There is no flag for the SQL tests: a deployment never runs them (Section 8.2).
 
-### 11.4 `IDbLiveDA` (namespace `DbLive.Adapter`), selected members
+### 11.4 `IDbLiveDA` (namespace `DbLive.Adapter`)
+
+All its members. What DbLive reads and writes in its own tables (Section 15) is internal: a provider written outside the DbLive repository is not supported.
 
 ```csharp
 DbProvider Provider { get; }

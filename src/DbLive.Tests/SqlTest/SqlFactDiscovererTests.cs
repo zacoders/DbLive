@@ -83,6 +83,19 @@ public class SqlFactDiscovererTests
 		Assert.Null(SqlFactDiscoverer.GetSourceScriptsPath(projectDir, "Db"));
 	}
 
+	[Fact]
+	public void Discovered_test_case_survives_serialization()
+	{
+		// Visual Studio serializes the test cases between discovery and run; SqlXunitTestCase is internal.
+		IXunitTestCase testCase = Assert.Single(Discover(nameof(SqlTestsHost.SqlAsync)));
+
+		IXunitTestCase copy = SerializationHelper.Deserialize<IXunitTestCase>(SerializationHelper.Serialize(testCase));
+
+		_ = Assert.IsType<SqlXunitTestCase>(copy);
+		Assert.Equal("Tests/example.sql", copy.DisplayName);
+		Assert.Equal(testCase.TestMethodArguments, copy.TestMethodArguments);
+	}
+
 	private static IEnumerable<IXunitTestCase> Discover(string methodName)
 	{
 		ReflectionMethodInfo method = new(typeof(SqlTestsHost).GetMethod(methodName)!);

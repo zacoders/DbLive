@@ -10,8 +10,8 @@ namespace DbLive.Tests.SelfDeployer;
 public class InternalScriptsTests
 {
 	[Theory]
-	[InlineData(typeof(MsSqlDA), "DbLive.MSSQL")]
-	[InlineData(typeof(PostgreSqlDA), "DbLive.PostgreSQL")]
+	[InlineData(typeof(MsSqlFixtureBuilder), "DbLive.MSSQL")]
+	[InlineData(typeof(PostgreSqlFixtureBuilder), "DbLive.PostgreSQL")]
 	public void Provider_embeds_all_its_SQL_files(Type providerType, string projectFolder)
 	{
 		string sqlFolder = Path.Combine(GetSrcDir(), projectFolder, "SQL");
@@ -31,8 +31,8 @@ public class InternalScriptsTests
 	}
 
 	[Theory]
-	[InlineData(typeof(MsSqlDA))]
-	[InlineData(typeof(PostgreSqlDA))]
+	[InlineData(typeof(MsSqlFixtureBuilder))]
+	[InlineData(typeof(PostgreSqlFixtureBuilder))]
 	public async Task Provider_versions_are_1_to_N_without_gaps(Type providerType)
 	{
 		InternalDbLiveProject project = new(new InternalScriptSource(providerType.Assembly));

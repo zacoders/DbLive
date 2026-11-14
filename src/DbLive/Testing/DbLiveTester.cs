@@ -7,11 +7,11 @@ namespace DbLive.Testing;
 /// Runs the SQL tests of the project against a deployed database: all of them (a CI step after the deployment),
 /// or one by one from xUnit (<c>[SqlFact]</c>).
 /// </summary>
-public class DbLiveTester(
+internal class DbLiveTester(
 		IDbLiveProject _project,
 		IUnitTestItemRunner _unitTestItemRunner,
 		IUnitTestsRunner _unitTestsRunner,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		ISettingsAccessor _projectSettings,
 		IProjectIdValidator _projectIdValidator,
 		ITransactionSettingsValidator _transactionSettingsValidator

@@ -3,7 +3,7 @@ namespace DbLive.Deployers.Migrations;
 
 internal class MigrationsSaver(
 		ILogger _logger,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		ITimeProvider _timeProvider
 	) : IMigrationsSaver
 {

@@ -6,7 +6,7 @@ namespace DbLive.Deployers.Code;
 /// </summary>
 internal class CodeBreakingDeployer(
 		ILogger _logger,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
 	) : ICodeBreakingDeployer

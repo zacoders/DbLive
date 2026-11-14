@@ -26,7 +26,7 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 		DbLiveBuilder builderB = CreateBuilder(projectB);
 		await builderB.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
-		IDbLiveDA da = builderB.CreateDbLiveDA();
+		IDbLiveInternalDA da = builderB.GetRequiredService<IDbLiveInternalDA>();
 		Assert.Equal("project-b", await da.GetProjectIdAsync());
 
 		// the dblive tables as an older DbLive left them: before self-migration 12, which the deployment of project A would apply.
@@ -61,7 +61,7 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
-		IDbLiveDA da = builder.CreateDbLiveDA();
+		IDbLiveInternalDA da = builder.GetRequiredService<IDbLiveInternalDA>();
 
 		// the dblive tables before self-migration 6: the ProjectId is read before the self-deployment adds the column.
 		await da.ExecuteNonQueryAsync("alter table dblive.version drop column project_id;");

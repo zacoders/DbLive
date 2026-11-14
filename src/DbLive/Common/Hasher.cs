@@ -3,7 +3,7 @@ using System.Text;
 
 namespace DbLive.Common;
 
-public static class HashExtensions
+internal static class HashExtensions
 {
 	/// <summary>
 	/// Hash of the file text with CRLF line endings replaced by LF,

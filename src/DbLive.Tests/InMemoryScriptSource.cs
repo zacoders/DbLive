@@ -1,12 +1,12 @@
 using DbLive.SelfDeployer;
 using System.Collections.Concurrent;
 
-namespace DbLive.Tests.Common;
+namespace DbLive.Tests;
 
 /// <summary>
 /// Scripts in memory, by relative path. <see cref="GetFiles"/> returns them in the order they were added.
 /// </summary>
-public sealed class InMemoryScriptSource : IInternalScriptSource
+internal sealed class InMemoryScriptSource : IInternalScriptSource
 {
 	private readonly Dictionary<string, string> _files = [];
 	private readonly ConcurrentDictionary<string, Exception> _readErrors = new();

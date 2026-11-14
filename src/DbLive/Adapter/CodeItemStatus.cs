@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Adapter;
 
-public enum CodeItemStatus
+internal enum CodeItemStatus
 {
 	Error,
 	Skipped,

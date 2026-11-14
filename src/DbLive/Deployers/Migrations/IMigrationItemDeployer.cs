@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationItemDeployer
+internal interface IMigrationItemDeployer
 {
 	/// <summary>
 	/// Deploys one migration or breaking script as one unit: in its own transaction

@@ -4,7 +4,7 @@ namespace DbLive.Deployers.Migrations;
 
 internal class BreakingChangesDeployer(
 		ILogger _logger,
-		IDbLiveDA _da,
+		IDbLiveInternalDA _da,
 		IMigrationItemDeployer _migrationItemDeployer,
 		ICodeBreakingDeployer _codeBreakingDeployer
 	) : IBreakingChangesDeployer

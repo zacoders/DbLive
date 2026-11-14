@@ -16,12 +16,4 @@ DbLive.xunit.SqlTest.SqlFactAttribute
 DbLive.xunit.SqlTest.SqlFactAttribute.SqlFactAttribute() -> void
 DbLive.xunit.SqlTest.SqlFactAttribute.TestFixture.get -> System.Type!
 DbLive.xunit.SqlTest.SqlFactAttribute.TestFixture.set -> void
-DbLive.xunit.SqlTest.SqlFactDiscoverer
-DbLive.xunit.SqlTest.SqlFactDiscoverer.DiagnosticMessageSink.get -> Xunit.Abstractions.IMessageSink!
-DbLive.xunit.SqlTest.SqlFactDiscoverer.Discover(Xunit.Abstractions.ITestFrameworkDiscoveryOptions! discoveryOptions, Xunit.Abstractions.ITestMethod! testMethod, Xunit.Abstractions.IAttributeInfo! factAttribute) -> System.Collections.Generic.IEnumerable<Xunit.Sdk.IXunitTestCase!>!
-DbLive.xunit.SqlTest.SqlFactDiscoverer.SqlFactDiscoverer(Xunit.Abstractions.IMessageSink! diagnosticMessageSink) -> void
-DbLive.xunit.SqlTest.SqlXunitTestCase
-DbLive.xunit.SqlTest.SqlXunitTestCase.SqlXunitTestCase() -> void
-DbLive.xunit.SqlTest.SqlXunitTestCase.SqlXunitTestCase(Xunit.Abstractions.IMessageSink! sink, Xunit.Abstractions.ITestMethod! testMethod, string? testFileFullPath, string! testFileRelativePath) -> void
-override DbLive.xunit.SqlTest.SqlXunitTestCase.GetDisplayName(Xunit.Abstractions.IAttributeInfo! factAttribute, string! displayName) -> string!
 static DbLive.xunit.DbLiveBuilderExtensions.LogToXUnitOutput(this DbLive.DbLiveBuilder! builder, Xunit.Abstractions.ITestOutputHelper! output) -> DbLive.DbLiveBuilder!

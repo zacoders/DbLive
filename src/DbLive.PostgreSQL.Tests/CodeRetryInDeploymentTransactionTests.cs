@@ -106,7 +106,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 	[Fact]
 	public async Task Transaction_is_not_usable_after_an_error_of_a_statement()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA();
+		IDbLiveInternalDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 
@@ -120,7 +120,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 	[Fact]
 	public async Task Transaction_is_usable_after_an_error_of_a_code_file_and_the_statements_of_the_file_are_undone()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).CreateDbLiveDA();
+		IDbLiveInternalDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveInternalDA>();
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 

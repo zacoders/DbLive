@@ -1,7 +1,7 @@
 namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
-public class MigrationChecksumRepairDto
+internal class MigrationChecksumRepairDto
 {
 	public required long Version { get; init; }
 	public required MigrationItemType ItemType { get; init; }

@@ -50,6 +50,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbLive.Tests" />
+		<InternalsVisibleTo Include="DbLive.PostgreSQL.Tests" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public enum TransactionWrapLevel
+internal enum TransactionWrapLevel
 {
 	/// <summary>
 	/// Full deployment will be wrapped withing transaction.

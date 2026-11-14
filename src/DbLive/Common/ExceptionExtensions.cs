@@ -1,6 +1,6 @@
 namespace DbLive.Common;
 
-public static class ExceptionExtensions
+internal static class ExceptionExtensions
 {
 	public static TExceptionType? Get<TExceptionType>(this Exception ex)
 	{

@@ -33,8 +33,8 @@ public class DbLiveBuilderExtensionsTests
 	}
 
 	[Theory]
-	[InlineData(typeof(MsSqlDA))]
-	[InlineData(typeof(PostgreSqlDA))]
+	[InlineData(typeof(MsSqlFixtureBuilder))]
+	[InlineData(typeof(PostgreSqlFixtureBuilder))]
 	public void SetProject_ProviderAssembly_Throws(Type providerType)
 	{
 		using DbLiveBuilder builder = new();

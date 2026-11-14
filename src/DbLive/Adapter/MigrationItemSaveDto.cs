@@ -1,7 +1,7 @@
 ﻿namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
-public class MigrationItemSaveDto
+internal class MigrationItemSaveDto
 {
 	public required long Version { get; init; }
 	public required string Name { get; init; }

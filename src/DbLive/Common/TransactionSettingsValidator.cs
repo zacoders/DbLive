@@ -1,7 +1,7 @@
 namespace DbLive.Common;
 
-public class TransactionSettingsValidator(
-		IDbLiveDA _da,
+internal class TransactionSettingsValidator(
+		IDbLiveInternalDA _da,
 		ILogger _logger
 	) : ITransactionSettingsValidator
 {
