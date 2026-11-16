@@ -21,25 +21,47 @@ public class ErrorColumnTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
+	// SQL Server counts the line of an error from the start of its GO batch: the line above the errors names the line of the file
+	// where the batch starts, also in a file of one batch.
 	[Fact]
-	public async Task Failed_code_file_stores_the_error_of_the_server_with_its_line()
+	public async Task Failed_code_file_stores_the_error_of_the_server_with_the_line_where_its_batch_starts()
 	{
-		using TempProject project = new TempProject()
-			.AddFile("Code/dbo/GetUser.sql", "create or alter proc dbo.GetUser\nas\nselec 1;");
+		Assert.Equal(
+			"""
+			SQL Server error:
+			The batch starts at line 1 of the file.
+			Msg 102, Level 15, State 1, Line 3
+			Incorrect syntax near 'selec'.
+			Procedure: GetUser
+			""".ReplaceLineEndings(),
+			await DeployFailingCodeFileAsync("create or alter proc dbo.GetUser\nas\nselec 1;")
+		);
+	}
+
+	// the error is on line 5 of the file: the start of the batch plus its line in the batch, minus 1.
+	[Fact]
+	public async Task Error_in_the_second_batch_names_the_line_where_the_batch_starts()
+	{
+		Assert.Equal(
+			"""
+			SQL Server error:
+			The batch starts at line 3 of the file.
+			Msg 8134, Level 16, State 1, Line 3
+			Divide by zero error encountered.
+			""".ReplaceLineEndings(),
+			await DeployFailingCodeFileAsync("create or alter view dbo.ErrorLine as select 1 as a;\nGO\n\nselect 1;\nselect 1 / 0;")
+		);
+	}
+
+	private async Task<string> DeployFailingCodeFileAsync(string script)
+	{
+		using TempProject project = new TempProject().AddFile("Code/dbo/ErrorLine.sql", script);
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
 		_ = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => builder.CreateDeployer().DeployAsync(DeployParameters.Default));
 
-		Assert.Equal(
-			"""
-			SQL Server error:
-			Msg 102, Level 15, State 1, Line 3
-			Incorrect syntax near 'selec'.
-			Procedure: GetUser
-			""".ReplaceLineEndings(),
-			(await ErrorAsync(builder, "select error from dblive.code")).ReplaceLineEndings()
-		);
+		return (await ErrorAsync(builder, "select error from dblive.code")).ReplaceLineEndings();
 	}
 
 	[Fact]

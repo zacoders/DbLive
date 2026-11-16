@@ -3,6 +3,7 @@ using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
 using System.Data;
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
@@ -185,7 +186,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		try
 		{
 			// before the connection: a syntax error of a GO line fails the file before any batch runs, as it did when SMO ran the file.
-			IReadOnlyList<string> batches = SplitIntoBatches(sqlStatement);
+			IReadOnlyList<ScriptBatch> batches = SplitIntoBatches(sqlStatement);
 
 			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
@@ -204,11 +205,17 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
-			// todo 0096-85: the line of an error is its line in the GO batch, not in the file.
+			// not an error of a batch: begin or commit of the transaction of the file, the isolation level, the connection.
+			// It has no line of the file.
 			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
 		}
 	}
+
+	/// <summary>
+	/// A <c>GO</c> batch of a script: its text, and the line of the file where it starts, from 1.
+	/// </summary>
+	internal sealed record ScriptBatch(string Text, int StartLine);
 
 	/// <summary>
 	/// The <c>GO</c> batches of a script, split by SMO in its capture mode: it splits the script as its <c>ExecuteNonQuery</c> does,
@@ -216,30 +223,63 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// not inside comments, strings and brackets. The batch before <c>GO &lt;count&gt;</c> is in the list count times; <c>GO</c> on the
 	/// first line and two <c>GO</c> in a row give an empty batch. A comment without its end and a <c>GO</c> line with anything else
 	/// throw <c>BatchParserException</c>. The text of a batch is the piece of the file up to the line end before its <c>GO</c> line.
+	/// <para>
+	/// SMO gives the texts, not the lines where they start: the next batch starts after the line ends of the text and the <c>GO</c>
+	/// line. The count of <c>GO &lt;count&gt;</c> is not read, it is rare: each repetition counts as a batch of its own, and the
+	/// batches after it get lines further down than they are.
+	/// </para>
 	/// </summary>
-	internal static IReadOnlyList<string> SplitIntoBatches(string script)
+	internal static IReadOnlyList<ScriptBatch> SplitIntoBatches(string script)
 	{
 		ServerConnection splitter = new() { SqlExecutionModes = SqlExecutionModes.CaptureSql };
 		_ = splitter.ExecuteNonQuery(script);
-		return [.. splitter.CapturedSql.Text.Cast<string>()];
+
+		List<ScriptBatch> batches = [];
+		int startLine = 1;
+
+		foreach (string text in splitter.CapturedSql.Text.Cast<string>())
+		{
+			batches.Add(new ScriptBatch(text, startLine));
+			startLine += CountLineEnds(text) + 1;
+		}
+
+		return batches;
+	}
+
+	// LF, CRLF and CR alone: SMO ends a line at CR alone too, as editors do.
+	private static int CountLineEnds(string text)
+	{
+		int count = 0;
+
+		for (int i = 0; i < text.Length; i++)
+		{
+			if (text[i] == '\n' || (text[i] == '\r' && (i + 1 == text.Length || text[i + 1] != '\n')))
+			{
+				count++;
+			}
+		}
+
+		return count;
 	}
 
 	// each batch is a command of its own, and gets the time left of the file as its command timeout: the timeout is the timeout of the
 	// file, not of each batch.
-	private static async Task ExecuteBatchesAsync(SqlConnection sqlConnection, IReadOnlyList<string> batches, TimeSpan timeout)
+	// An error of a batch names the line of the file where the batch starts: SQL Server counts the line of an error from the start of
+	// its batch, or of the procedure or the dynamic SQL where it is, and does not say which batch failed.
+	private static async Task ExecuteBatchesAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
 	{
 		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
 
-		foreach (string batch in batches)
+		foreach (ScriptBatch batch in batches)
 		{
 			// SqlCommand fails on an empty text, and SMO did not run one either; a batch of white space does nothing.
-			if (string.IsNullOrWhiteSpace(batch))
+			if (string.IsNullOrWhiteSpace(batch.Text))
 			{
 				continue;
 			}
 
 			using SqlCommand cmd = sqlConnection.CreateCommand();
-			cmd.CommandText = batch;
+			cmd.CommandText = batch.Text;
 			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
 
 			try
@@ -249,6 +289,10 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			catch (SqlException e) when (IsCommandTimeout(e))
 			{
 				throw scriptTimeout.Expired(e);
+			}
+			catch (SqlException e)
+			{
+				throw new DbLiveSqlException(e.Message, GetSqlServerError(e, batch.StartLine), e);
 			}
 		}
 	}
@@ -260,7 +304,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, and the isolation level set on the
 	// connection applies to it.
-	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<string> batches, TimeSpan timeout)
+	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
 	{
 		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);
 		try
@@ -925,7 +969,11 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
-	private static string GetSqlServerError(Exception ex)
+	/// <summary>
+	/// The errors of SQL Server as it gives them. An error of a <c>GO</c> batch names the line of the file where the batch starts above
+	/// them: the line of an error in the batch itself is its line in the batch, and its line in the file is <c>start + Line - 1</c>.
+	/// </summary>
+	private static string GetSqlServerError(Exception ex, int? batchStartLine = null)
 	{
 		SqlException? sqlEx = FindSqlException(ex);
 
@@ -935,6 +983,11 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		var sb = new System.Text.StringBuilder();
 
 		_ = sb.AppendLine("SQL Server error:");
+
+		if (batchStartLine is not null)
+		{
+			_ = sb.AppendLine(CultureInfo.InvariantCulture, $"The batch starts at line {batchStartLine} of the file.");
+		}
 
 		foreach (SqlError err in sqlEx.Errors)
 		{
