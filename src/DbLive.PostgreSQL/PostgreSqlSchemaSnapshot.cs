@@ -40,10 +40,10 @@ internal static class PostgreSqlSchemaSnapshot
 			where not exists (select 1 from ext where ext.classid = 'pg_class'::regclass and ext.objid = c.oid)
 		)
 
-		select 'Schema' as object_type
-		     , n.nspname as object_name
-		     , null as parent_name
-		     , '' as definition
+		select 'Schema' as ObjectType
+		     , n.nspname as ObjectName
+		     , null as ParentName
+		     , '' as Definition
 		from nsp n
 
 		union all
@@ -283,7 +283,7 @@ internal static class PostgreSqlSchemaSnapshot
 		  )
 
 		-- objects with one name are numbered in this order (SchemaSnapshot).
-		order by object_type, object_name, definition
+		order by ObjectType, ObjectName, Definition
 		""";
 
 	/// <summary>

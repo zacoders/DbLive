@@ -107,10 +107,10 @@ internal static partial class MsSqlSchemaSnapshot
 			group by f.object_id
 		)
 
-		select 'Schema' as object_type
-		     , s.name as object_name
-		     , null as parent_name
-		     , '' as definition
+		select 'Schema' as ObjectType
+		     , s.name as ObjectName
+		     , null as ParentName
+		     , '' as Definition
 		from sys.schemas s
 		where s.schema_id between 5 and 16383
 		  and s.name <> 'dblive'
@@ -289,7 +289,7 @@ internal static partial class MsSqlSchemaSnapshot
 		join sys.synonyms sn on sn.object_id = o.object_id
 
 		-- objects with one name are numbered in this order (SchemaSnapshot).
-		order by object_type, object_name, definition
+		order by ObjectType, ObjectName, Definition
 		""";
 
 	public static SchemaObject Normalize(SchemaObject obj)

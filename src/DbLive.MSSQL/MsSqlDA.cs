@@ -4,6 +4,7 @@ using DbLive.Project;
 using DbLive.Schema;
 using System.Data;
 using System.Globalization;
+using System.Reflection;
 using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
@@ -55,26 +56,38 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return string.Concat(error.AsSpan(0, length), TruncatedMark);
 	}
 
-	static MsSqlDA()
-	{
-		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
-		DefaultTypeMap.MatchNamesWithUnderscores = true;
-	}
-
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
+
+	/// <summary>
+	/// The parameters of a query from the properties of <paramref name="values"/>, a <see cref="DateTime"/> as <c>datetime2</c>: Dapper
+	/// sends it as <c>datetime</c>, rounded to 1/300 of a second, and the dates of the dblive tables are <c>datetime2(7)</c>. Every query
+	/// with a <see cref="DateTime"/> parameter takes its parameters from here.
+	/// Not <c>SqlMapper.AddTypeMap</c>: the settings of Dapper are global for the process, also for PostgreSQL and for the queries of the
+	/// application.
+	/// </summary>
+	private static DynamicParameters Parameters(object values)
+	{
+		DynamicParameters parameters = new();
+		foreach (PropertyInfo property in values.GetType().GetProperties())
+		{
+			Type type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+			parameters.Add(property.Name, property.GetValue(values), type == typeof(DateTime) ? DbType.DateTime2 : null);
+		}
+		return parameters;
+	}
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
 		const string query = @"
 			select version
 				 , name
-				 , item_type
-				 , relative_path
+				 , item_type as ItemType
+				 , relative_path as RelativePath
 				 , status
-				 , content_hash
-				 , created_utc
-				 , applied_utc
-				 , execution_time_ms
+				 , content_hash as ContentHash
+				 , created_utc as CreatedUtc
+				 , applied_utc as AppliedUtc
+				 , execution_time_ms as ExecutionTimeMs
 			from dblive.migration
 		";
 
@@ -122,7 +135,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
+		_ = await cnn.ExecuteAsync(query, Parameters(new { version, applied_utc = migrationDateTime })).ConfigureAwait(false);
 	}
 
 	// the column comes with self-migration 12: a database deployed before it has none, and a batch that names
@@ -678,7 +691,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, @error
 				);
 			""",
-			new
+			Parameters(new
 			{
 				relative_path = item.RelativePath.ToStoredPath(),
 				item_type = item.ItemType.ToString().ToLowerInvariant(),
@@ -688,7 +701,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms = item.ExecutionTimeMs,
 				created_utc = item.CreatedUtc,
 				error = FitErrorColumn(item.ErrorMessage)
-			}
+			})
 		).ConfigureAwait(false);
 	}
 
@@ -734,7 +747,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			from dblive.code as c
 			join #paths as p on p.value = c.relative_path;
 			""",
-			new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc }
+			Parameters(new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc })
 		).ConfigureAwait(false);
 	}
 
@@ -751,7 +764,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			where c.status <> 'removed'
 			  and not exists ( select 1 from #paths as p where p.value = c.relative_path );
 			""",
-			new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc }
+			Parameters(new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc })
 		).ConfigureAwait(false)).ToList();
 	}
 
@@ -760,14 +773,14 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using var cnn = GetConnection();
 		return (await cnn.QueryAsync<CodeItemDto>(
 			"""
-			select relative_path
-				 , item_type
-				 , content_hash
-				 , applied_utc
-				 , created_utc
-				 , execution_time_ms
-				 , verified_utc
-				 , error as error_message
+			select relative_path as RelativePath
+				 , item_type as ItemType
+				 , content_hash as ContentHash
+				 , applied_utc as AppliedUtc
+				 , created_utc as CreatedUtc
+				 , execution_time_ms as ExecutionTimeMs
+				 , verified_utc as VerifiedUtc
+				 , error as ErrorMessage
 				 , status
 			from dblive.code
 			"""
@@ -804,7 +817,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, @created_utc
 			);
 			""",
-			new
+			Parameters(new
 			{
 				version = item.Version,
 				name = item.Name,
@@ -813,7 +826,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				content_hash = item.ContentHash,
 				status = item.Status.ToString().ToLowerInvariant(),
 				created_utc = item.CreatedUtc
-			}
+			})
 		).ConfigureAwait(false);
 	}
 
@@ -857,7 +870,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			where version = @version
 			  and item_type = @item_type
 			""",
-			new
+			Parameters(new
 			{
 				version = item.Version,
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
@@ -865,7 +878,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
 				error = FitErrorColumn(item.ErrorMessage)
-			}
+			})
 		).ConfigureAwait(false);
 
 		if (ver is null)
@@ -905,7 +918,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				  , @error
 				);
 			""",
-			new
+			Parameters(new
 			{
 				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
@@ -913,7 +926,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				execution_time_ms = item.ExecutionTimeMs,
 				pass = item.IsSuccess,
 				error = FitErrorColumn(item.ErrorMessage)
-			}
+			})
 		).ConfigureAwait(false);
 	}
 
@@ -957,7 +970,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, @content_hash
 				);
 			""",
-			new
+			Parameters(new
 			{
 				folder_type = projectFolder.ToString(),
 				relative_path = relativePath.ToStoredPath(),
@@ -965,7 +978,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				completed_utc = completedUtc,
 				execution_time_ms = executionTimeMs,
 				content_hash = contentHash
-			}
+			})
 		).ConfigureAwait(false);
 	}
 

@@ -2,6 +2,7 @@ namespace DbLive.Adapter;
 
 /// <summary>
 /// A <c>dblive.migration</c> row as the providers read it; <c>item_type</c> is mapped by <see cref="MigrationItemTypeMapper"/>.
+/// The query names its columns after the properties: Dapper maps them by name, and a column it does not match leaves the property empty.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal class MigrationItemRow

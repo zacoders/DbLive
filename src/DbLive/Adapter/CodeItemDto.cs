@@ -1,5 +1,9 @@
 ﻿namespace DbLive.Adapter;
 
+/// <summary>
+/// A <c>dblive.code</c> row. The query that reads it names its columns after the properties: Dapper maps them by name, and a column it
+/// does not match leaves the property empty.
+/// </summary>
 [ExcludeFromCodeCoverage]
 internal class CodeItemDto
 {

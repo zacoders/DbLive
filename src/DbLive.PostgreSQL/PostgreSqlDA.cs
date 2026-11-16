@@ -82,11 +82,6 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(sql).ConfigureAwait(false);
 	}
 
-	static PostgreSqlDA()
-	{
-		DefaultTypeMap.MatchNamesWithUnderscores = true;
-	}
-
 	private NpgsqlConnection CreateConnection() => new(_cnn.ConnectionString);
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
@@ -94,13 +89,13 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		const string query = """
 			select version
 			     , name
-			     , item_type
-			     , relative_path
+			     , item_type as ItemType
+			     , relative_path as RelativePath
 			     , status
-			     , content_hash
-			     , created_utc
-			     , applied_utc
-			     , execution_time_ms
+			     , content_hash as ContentHash
+			     , created_utc as CreatedUtc
+			     , applied_utc as AppliedUtc
+			     , execution_time_ms as ExecutionTimeMs
 			from dblive.migration
 		""";
 
@@ -542,14 +537,14 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using NpgsqlConnection cnn = CreateConnection();
 		return (await cnn.QueryAsync<CodeItemDto>(
 			"""
-			select relative_path
-				 , item_type
-				 , content_hash
-				 , applied_utc
-				 , created_utc
-				 , execution_time_ms
-				 , verified_utc
-				 , error as error_message
+			select relative_path as RelativePath
+				 , item_type as ItemType
+				 , content_hash as ContentHash
+				 , applied_utc as AppliedUtc
+				 , created_utc as CreatedUtc
+				 , execution_time_ms as ExecutionTimeMs
+				 , verified_utc as VerifiedUtc
+				 , error as ErrorMessage
 				 , status
 			from dblive.code
 			"""
