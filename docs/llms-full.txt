@@ -29,6 +29,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 17. **Give every project a `ProjectId`** in `Scripts/settings.json` (Section 14): a name unique to the project, the same in every environment (`"ProjectId": "billing-api-db"`). Breaking this → nothing stops the deployer from deploying into another project's database, and every deployment logs the warning "ProjectId is not set in settings.json ...".
 18. **Do not turn on `CreateDbIfNotExists` in a production deployer** (Section 18.10). It is off by default; turn it on only for local and test databases. Breaking this → a typo in the database name of the connection string creates an empty database and deploys the whole schema into it.
 19. **A SQL test must not end its transaction, and neither may the code it calls.** On SQL Server `ROLLBACK` without a savepoint name ends the transaction of the test also inside a procedure (the usual `begin catch if @@trancount > 0 rollback; throw; end catch`), and so does `COMMIT` in a test or in `setup.test.sql`. A procedure whose error path a test covers rolls back to a savepoint of its own when it runs inside a transaction of its caller (Section 8.2). Breaking this → the test fails with "The transaction of the test ended before the test did ...", and what ran after the end of the transaction is committed and stays in the database.
+20. **Run one deployment of a database at a time.** A pipeline job that deploys a database is limited to one run at a time (`concurrency` in GitHub Actions, Section 18.10), and an application that runs in several instances does not call `DeployAsync` at startup: deploy with a deployer step before the application starts. Breaking this → every deployment but the first fails at once with `DeploymentInProgressException` (Section 12.1).
 
 ---
 
@@ -822,20 +823,34 @@ Container builders: one container per image per test process, started by the fir
 1. **Load the project**, before anything touches the server: `settings.json` and the isolation levels it sets, which the provider must support; then every file the deployment runs, whatever the `DeployParameters`: migrations and their item settings (with the isolation levels they set, which the provider must support), code, the breaking scripts of the Code folder, BeforeDeploy and AfterDeploy (not the SQL tests). The checks of Sections 4 and 5.1 fail here (`FilesOutsideProjectFoldersException`, `ScriptPathsDifferOnlyByCaseException`, `UndoNotSupportedException` and other file name errors, item settings errors), and so does a file that cannot be read or is not UTF-8 (`FileNotUtf8Exception`, Section 4). Such an error creates no database and leaves the `dblive` tables as they were: an older DbLive can still deploy the database (Section 18.8). The steps after this one read no project file.
 2. (internal option) drop and recreate the database.
 3. `CreateDbIfNotExists` (off by default): create the database if missing. Off: check that the database exists, otherwise `DatabaseNotFoundException` (Section 17).
-4. **ProjectId check** (Section 14): a database whose stored ProjectId differs fails with `ProjectIdMismatchException` before anything changes, also before the self-deployment.
-5. **Self-deployment** (transaction, Serializable): check the minimum DbLive version the database requires (`DatabaseRequiresNewerDbLiveException` before any change, Section 15), create or upgrade the `dblive` schema, store the minimum version of this DbLive. Then the ProjectId is stored in a database that has none (Section 14).
-6. Begin the deployment transaction if `TransactionWrapLevel` is `Deployment`.
-7. **Applied versions check** (Section 5.2): every migration version applied to the database must be in the project, otherwise `DatabaseAheadOfProjectException`, before any script of the project runs.
-8. **Checksum validation** of applied migration items (Section 5.4).
-9. **Save migration items** to `dblive.migration`.
-10. **BeforeDeploy** folder.
-11. **Migrations**, if `DeployMigrations`.
-12. **Code**, if `DeployCode`; then the rows of files missing from the project are marked `removed` (Section 6).
-13. **Breaking**, if `DeployBreaking` (Section 5.5): guard (`CodeNotDeployedException` unless every code file is deployed with its current content), then every breaking script of the Code folder, then the pending breaking scripts of migrations.
-14. **AfterDeploy** folder.
-15. Commit the deployment transaction (if any).
+4. **Deployment lock** (Section 12.1): an exclusive lock of the database, held to the end of the deployment, also when it fails. Another deployment of the database holds it: `DeploymentInProgressException` at once, before anything is read or changed.
+5. **ProjectId check** (Section 14): a database whose stored ProjectId differs fails with `ProjectIdMismatchException` before anything changes, also before the self-deployment.
+6. **Self-deployment** (transaction, Serializable): check the minimum DbLive version the database requires (`DatabaseRequiresNewerDbLiveException` before any change, Section 15), create or upgrade the `dblive` schema, store the minimum version of this DbLive. Then the ProjectId is stored in a database that has none (Section 14).
+7. Begin the deployment transaction if `TransactionWrapLevel` is `Deployment`.
+8. **Applied versions check** (Section 5.2): every migration version applied to the database must be in the project, otherwise `DatabaseAheadOfProjectException`, before any script of the project runs.
+9. **Checksum validation** of applied migration items (Section 5.4).
+10. **Save migration items** to `dblive.migration`.
+11. **BeforeDeploy** folder.
+12. **Migrations**, if `DeployMigrations`.
+13. **Code**, if `DeployCode`; then the rows of files missing from the project are marked `removed` (Section 6).
+14. **Breaking**, if `DeployBreaking` (Section 5.5): guard (`CodeNotDeployedException` unless every code file is deployed with its current content), then every breaking script of the Code folder, then the pending breaking scripts of migrations.
+15. **AfterDeploy** folder.
+16. Commit the deployment transaction (if any).
 
 The SQL tests are not a step of the deployment: they run in xUnit, or with `IDbLiveTester.RunAllTestsAsync()` (Section 8.2).
+
+### 12.1 One deployment at a time
+
+Two deployments of one database at the same time would read the same applied versions and both run the new migrations: a data migration twice without an error, a DDL migration failing in the second. So step 4 takes the deployment lock of the database, and a second deployment fails at once with `DeploymentInProgressException` (`DatabaseName`, `Server`), before it reads or changes anything. It does not wait: overlapping deployments of builds N and N+1 would then run in either order, and N could deploy its code over N+1.
+
+- The lock: SQL Server `sp_getapplock @Resource = 'dblive.deployment', @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 0`; PostgreSQL `pg_try_advisory_lock(110373888423525)` (shown in `pg_locks` as `classid = 25698, objid = 1818850917, objsubid = 1`). Both are local to the database: deployments of different databases on one server do not block each other; two projects in one database (no `ProjectId`) deploy one at a time.
+- It is held by the session of a connection of its own (not pooled, not enlisted in an ambient transaction), outside the deployment transactions, and released explicitly at the end of the deployment, also when it fails.
+- The server releases it when the session ends: a deployer process that crashed or was killed closes its socket, and the lock is free at once. A deployer machine that lost its network leaves the session open until the TCP keep-alive of the server ends it: on SQL Server within about a minute (keep-alive after 30 seconds by default), on PostgreSQL after `tcp_keepalives_idle` (by default that of the OS: 2 hours on Linux). Until then every deployment fails with `DeploymentInProgressException`.
+- Find the session that holds it, and end it once you know no deployment runs (ending it does not stop a running deployment, it lets another one start beside it):
+  - SQL Server (`VIEW SERVER STATE`, or `VIEW DATABASE STATE` on Azure SQL Database; `kill` needs `ALTER ANY CONNECTION`): `select l.request_session_id, s.host_name, s.program_name, s.login_time from sys.dm_tran_locks l join sys.dm_exec_sessions s on s.session_id = l.request_session_id where l.resource_type = 'APPLICATION' and l.resource_database_id = db_id() and l.resource_description like '%:\[dblive.deployment\]:%' escape '\';` then `kill <request_session_id>;`
+  - PostgreSQL: `select a.pid, a.client_addr, a.application_name, a.backend_start from pg_locks l join pg_stat_activity a on a.pid = l.pid where l.locktype = 'advisory' and l.database = (select oid from pg_database where datname = current_database()) and l.classid = 25698 and l.objid = 1818850917 and l.objsubid = 1;` then `select pg_terminate_backend(<pid>);`
+- PostgreSQL through PgBouncer in transaction or statement pooling mode: a session lock does not work there. Deploy directly, or through a pool in session mode.
+- Pipelines: one deployment of a database at a time (`concurrency` in GitHub Actions, Section 18.10). Never `DeployAsync` at the startup of an application that runs in several instances: all but one fail.
 
 ---
 
@@ -1020,6 +1035,7 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | `[SqlFact]` test: "Go to source" does not open the `.sql` file | The SQL project's assembly lacks the `ProjectDir` metadata: it embeds the scripts in its `.csproj` (without `DbLiveScriptsFolder`) without the metadata | Add the `ProjectDir` `AssemblyMetadata` item, and `DbLiveScriptsFolder` for a folder other than `Scripts` (Section 3.1) |
 | `JsonException` reading `settings.json` | Wrong case, unknown key, or trailing comma | Section 9.1 |
 | `DatabaseNotFoundException: Database '<name>' does not exist on server '<server>'. ...` | The database of the connection string does not exist: `DeployAsync` with `CreateDbIfNotExists` off (the default, also in `DeployParameters.Default`), or `RunAllTestsAsync`. Nothing ran | Check the database name in the connection string. Create the database, or for a local or test database deploy with `DeployParameters.Default with { CreateDbIfNotExists = true }` |
+| `DeploymentInProgressException: Another deployment of database '<name>' on server '<server>' is running ...` | Another deployment of the same database holds the deployment lock (Section 12.1): two pipeline runs at the same time, or several instances of an application that deploy at startup. Or a deployment whose machine lost its network: its session holds the lock until the server ends it. Nothing ran | Run the deployment again when the other one ends; let the pipeline run one deployment of a database at a time. When no deployment runs, find the session that holds the lock and end it (Section 12.1) |
 | SQL Server: `SqlException: Cannot open database "<name>" requested by the login. The login failed.` (error 4060) | The database exists, but the login has no user in it. When the login cannot see the database list in `master` (no access to `master`, or no `VIEW ANY DATABASE`), DbLive cannot tell this from a missing database and also gives this error | Grant the login access to the database, or check the database name |
 | `ProjectIdMismatchException` | Wrong database, or `ProjectId` changed. Before the SQL tests also a database without a stored ProjectId. Also a `ProjectId` longer than 128 characters | Check the connection string; rebind deliberately (Section 14); deploy the project before running the tests |
 | `MigrationChecksumMismatchException` | An applied migration/breaking file was edited | Revert the file and add a new migration; or `RepairMigrationChecksums = true` if the database already matches |
@@ -1158,6 +1174,8 @@ Preferred: revert the file to its applied content (git history) and add a new ve
 4. Deploy the application; old and new versions run side by side.
 5. Remove the old application.
 6. Deploy breaking changes: `dotnet MyDb.Deploy.dll --breaking` (`DeployParameters.Breaking`), with the same build as step 3, once the release is confirmed. Run it only when step 3 succeeded for this build: if step 3 did not complete, it fails with `CodeNotDeployedException` only when the build added or changed a code file (Section 5.5). Up to this step a rollback is a rollback of the application (steps 4–5); after it, fix forward (Section 18.8).
+
+Steps 3 and 6 of one database never overlap, also across pipeline runs: a deployment that starts while another one runs fails with `DeploymentInProgressException` (Section 12.1). In GitHub Actions put every job that deploys the database into one `concurrency` group with `cancel-in-progress: false` (`concurrency: { group: deploy-mydb-production, cancel-in-progress: false }`): a later run waits for the running one, and cancelling a running deployment would stop it halfway.
 
 Production settings (the defaults are the safe values, except `ProjectId`):
 - `ProjectId` set in `settings.json` (rule 17, Section 14).

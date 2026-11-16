@@ -397,6 +397,44 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
+	/// <summary>
+	/// The key of the deployment lock: the ASCII codes of "dblive". An advisory lock is local to the database; <c>pg_locks</c> shows
+	/// this key as <c>classid = 25698, objid = 1818850917, objsubid = 1</c>.
+	/// </summary>
+	internal const long DeploymentLockKey = 0x64626C697665;
+
+	public async Task<IAsyncDisposable> AcquireDeploymentLockAsync()
+	{
+		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { Pooling = false, Enlist = false };
+		NpgsqlConnection cnn = new(builder.ConnectionString);
+
+		try
+		{
+			await cnn.OpenAsync().ConfigureAwait(false);
+
+			// a session lock, taken outside a transaction: the session stays idle, not idle in transaction, for the whole deployment.
+			bool acquired = await cnn.ExecuteScalarAsync<bool>(
+				"select pg_try_advisory_lock(@key);",
+				new { key = DeploymentLockKey }
+			).ConfigureAwait(false);
+
+			if (!acquired)
+			{
+				throw new DeploymentInProgressException(builder.Database ?? "", builder.Host ?? "");
+			}
+
+			return new DeploymentLock(
+				cnn,
+				c => c.ExecuteAsync("select pg_advisory_unlock(@key);", new { key = DeploymentLockKey })
+			);
+		}
+		catch
+		{
+			await cnn.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString);

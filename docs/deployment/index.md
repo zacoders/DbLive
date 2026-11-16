@@ -41,18 +41,19 @@ Every `DeployAsync` call runs these steps in this order:
 
 1. **Load the project**: read `settings.json` and every script the deployment runs, and check them: the isolation levels against the database engine, the file names, files outside the project folders, the item settings files. A mistake in the project stops the deployment here, before it changes anything on the server: no database is created and the `dblive` schema is not touched.
 2. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
-3. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
-4. **Validate**: that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations.
-5. **Record** all migration files of the project in `dblive.migration`.
-6. **BeforeDeploy** scripts.
-7. **Migrations**: pending versions in ascending order (`DeployMigrations`).
-8. **Code**: new and changed code files (`DeployCode`).
-9. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
-10. **AfterDeploy** scripts.
+3. **Lock the database** for this deployment, to its end: while another deployment of the database runs, this one fails here with `DeploymentInProgressException` (see [One deployment at a time](#one-deployment-at-a-time)).
+4. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
+5. **Validate**: that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations.
+6. **Record** all migration files of the project in `dblive.migration`.
+7. **BeforeDeploy** scripts.
+8. **Migrations**: pending versions in ascending order (`DeployMigrations`).
+9. **Code**: new and changed code files (`DeployCode`).
+10. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
+11. **AfterDeploy** scripts.
 
-With `TransactionWrapLevel: Deployment`, steps 4 to 10 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
+With `TransactionWrapLevel: Deployment`, steps 5 to 11 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
-Steps 1, 3 to 6 and 10 run whatever the flags say. A breaking-only deployment therefore still reads the whole project, validates, records migrations and runs BeforeDeploy and AfterDeploy.
+Steps 1, 3 to 7 and 11 run whatever the flags say. A breaking-only deployment therefore still reads the whole project, validates, records migrations and runs BeforeDeploy and AfterDeploy.
 
 ## DeployParameters
 
@@ -104,6 +105,61 @@ builder.LogTo(myLogger);                                  // any Serilog logger
 6. **Deploy breaking changes**: run the deployer with `Breaking`, once the release is confirmed.
 
 Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md). Until step 6 a release is rolled back by rolling back the application; the database stays (see [Roll back a release](migrations.md#roll-back-a-release)).
+
+## One deployment at a time
+
+Two deployments of one database at the same time would both read which migrations are applied and both run the new ones: a migration that changes data would run twice without an error. So a deployment locks the database (step 3 of [What a deployment does](#what-a-deployment-does)) and holds the lock to its end, also when it fails. A deployment that starts meanwhile fails at once with `DeploymentInProgressException`, before it reads or changes anything. It does not wait for the lock: two pipeline runs would then deploy their builds in either order, and the older build could deploy its code over the newer one.
+
+Let your pipeline run one deployment of a database at a time. In GitHub Actions put every job that deploys the database into one concurrency group, without cancelling a deployment that runs:
+
+```yaml
+concurrency:
+  group: deploy-mydb-production
+  cancel-in-progress: false
+```
+
+Do not deploy the database at the startup of an application that runs in several instances: all instances but one fail. Run the deployer as a step before the application starts.
+
+The lock is local to the database: deployments of different databases on one server do not block each other. On SQL Server it is an application lock (`sp_getapplock`), on PostgreSQL an advisory lock; DbLive takes it on a connection of its own.
+
+### A lock left by a lost deployment
+
+The server releases the lock when the session that holds it ends. A deployer that crashes or is killed closes its connection, and the lock is free at once. A deployer machine that loses its network leaves the session open until the server notices it: SQL Server does within about a minute, PostgreSQL after `tcp_keepalives_idle` of the server, by default the TCP keep-alive time of the operating system (2 hours on Linux). Until then every deployment fails with `DeploymentInProgressException`.
+
+To release the lock sooner, find the session that holds it and end it. Make sure first that no deployment runs: ending the session does not stop a running deployment, it only lets another one start beside it.
+
+=== "SQL Server"
+
+    The query needs `VIEW SERVER STATE` (`VIEW DATABASE STATE` on Azure SQL Database), `kill` needs `ALTER ANY CONNECTION`. Run it in the database of the deployment.
+
+    ```sql
+    select l.request_session_id, s.host_name, s.program_name, s.login_time
+    from sys.dm_tran_locks l
+    join sys.dm_exec_sessions s on s.session_id = l.request_session_id
+    where l.resource_type = 'APPLICATION'
+      and l.resource_database_id = db_id()
+      and l.resource_description like '%:\[dblive.deployment\]:%' escape '\';
+
+    kill 57; -- the request_session_id from the query
+    ```
+
+=== "PostgreSQL"
+
+    Run it in the database of the deployment.
+
+    ```sql
+    select a.pid, a.client_addr, a.application_name, a.backend_start
+    from pg_locks l
+    join pg_stat_activity a on a.pid = l.pid
+    where l.locktype = 'advisory'
+      and l.database = (select oid from pg_database where datname = current_database())
+      and l.classid = 25698 and l.objid = 1818850917 and l.objsubid = 1;
+
+    select pg_terminate_backend(12345); -- the pid from the query
+    ```
+
+!!! warning "PgBouncer"
+    The PostgreSQL lock belongs to a session. Through PgBouncer in transaction or statement pooling mode a session is not bound to one server connection, and the lock does not work. Deploy directly to PostgreSQL, or through a pool in session mode.
 
 ## Production
 

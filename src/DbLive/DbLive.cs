@@ -38,16 +38,23 @@ internal class DbLive(
 			await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);
 		}
 
-		// before the self-deployment: its self-migrations change the dblive tables, also those of the database of another project.
-		await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
+		// one deployment of the database at a time: a second one would read the same applied versions and run the new migrations again.
+		// Once the database exists, before the first read of the dblive tables; held to the end, also when the deployment fails.
+		IAsyncDisposable deploymentLock = await _da.AcquireDeploymentLockAsync().ConfigureAwait(false);
 
-		// Self deploy. Deploying DbLive to the database
-		await _selfDeployer.DeployAsync().ConfigureAwait(false);
+		await using (deploymentLock.ConfigureAwait(false))
+		{
+			// before the self-deployment: its self-migrations change the dblive tables, also those of the database of another project.
+			await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
 
-		// after the self-deployment, which creates the dblive tables of a new database.
-		await _projectIdValidator.BindAsync().ConfigureAwait(false);
+			// Self deploy. Deploying DbLive to the database
+			await _selfDeployer.DeployAsync().ConfigureAwait(false);
 
-		// Deploy actual project
-		await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
+			// after the self-deployment, which creates the dblive tables of a new database.
+			await _projectIdValidator.BindAsync().ConfigureAwait(false);
+
+			// Deploy actual project
+			await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
+		}
 	}
 }

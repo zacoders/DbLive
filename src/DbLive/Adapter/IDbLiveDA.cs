@@ -24,6 +24,15 @@ internal interface IDbLiveDA
 	/// <exception cref="DatabaseNotFoundException">The server confirms that the database does not exist.</exception>
 	Task CheckDatabaseExistsAsync();
 
+	/// <summary>
+	/// Takes the deployment lock of the database, so that one deployment of it runs at a time: an exclusive lock of the database,
+	/// owned by the session of a connection of its own (SQL Server <c>sp_getapplock</c>, PostgreSQL <c>pg_try_advisory_lock</c>).
+	/// It does not wait. The connection is not pooled, so its closing ends the session, and not enlisted in an ambient transaction.
+	/// Disposing the result releases the lock and closes the connection; the server also releases it when the session ends.
+	/// </summary>
+	/// <exception cref="DeploymentInProgressException">Another session holds the lock.</exception>
+	Task<IAsyncDisposable> AcquireDeploymentLockAsync();
+
 	/// <exception cref="DbLiveSqlException"/>
 	Task ExecuteNonQueryAsync(
 		string sqlStatement,

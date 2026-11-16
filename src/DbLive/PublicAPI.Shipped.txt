@@ -37,6 +37,9 @@ DbLive.DeployParameters.DeployParameters() -> void
 DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.init -> void
+DbLive.DeploymentInProgressException
+DbLive.DeploymentInProgressException.DatabaseName.get -> string!
+DbLive.DeploymentInProgressException.Server.get -> string!
 DbLive.DuplicateMigrationItemException
 DbLive.FileNotUtf8Exception
 DbLive.FileNotUtf8Exception.RelativePath.get -> string!

@@ -105,11 +105,82 @@ public class DbLiveTests
 		{
 			mockSet.ProjectLoader.LoadAsync();
 			mockSet.DbLiveDA.CheckDatabaseExistsAsync();
+			mockSet.DbLiveDA.AcquireDeploymentLockAsync();
 			mockSet.ProjectIdValidator.ValidateAsync();
 			mockSet.DbLiveSelfDeployer.DeployAsync();
 			mockSet.ProjectIdValidator.BindAsync();
 			mockSet.DbLiveInternalDeployer.DeployAsync(project, DeployParameters.Default);
 		});
+	}
+
+	[Fact]
+	public async Task Deployment_lock_is_taken_once_the_database_exists_and_released_at_the_end()
+	{
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		await dbLive.DeployAsync(DeployParameters.Default with { RecreateDatabase = true });
+
+		Received.InOrder(() =>
+		{
+			mockSet.DbLiveDA.DropDbAsync();
+			mockSet.DbLiveDA.CreateDBAsync();
+			mockSet.DbLiveDA.AcquireDeploymentLockAsync();
+			mockSet.ProjectIdValidator.ValidateAsync();
+			mockSet.DbLiveSelfDeployer.DeployAsync();
+			mockSet.ProjectIdValidator.BindAsync();
+			mockSet.DbLiveInternalDeployer.DeployAsync(Arg.Any<ProjectSnapshot>(), Arg.Any<DeployParameters>());
+			deploymentLock.DisposeAsync();
+		});
+		await mockSet.DbLiveDA.Received(1).AcquireDeploymentLockAsync();
+		await deploymentLock.Received(1).DisposeAsync();
+	}
+
+	[Fact]
+	public async Task Deployment_lock_is_released_when_the_deployment_fails()
+	{
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+		mockSet.DbLiveInternalDeployer.DeployAsync(Arg.Any<ProjectSnapshot>(), Arg.Any<DeployParameters>())
+			.Returns(Task.FromException(new InvalidOperationException("migration failed")));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
+			() => dbLive.DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal("migration failed", ex.Message);
+		await deploymentLock.Received(1).DisposeAsync();
+	}
+
+	[Fact]
+	public async Task Running_deployment_stops_the_second_before_it_reads_the_dblive_tables()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync()
+			.Returns(Task.FromException<IAsyncDisposable>(new DeploymentInProgressException("MyDb", "localhost")));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		DeploymentInProgressException ex = await Assert.ThrowsAsync<DeploymentInProgressException>(
+			() => dbLive.DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal(
+			"Another deployment of database 'MyDb' on server 'localhost' is running: DbLive deploys a database one deployment at a time, "
+			+ "and this deployment stopped before it changed anything. Run it again when the other one ends, and let the pipeline run one deployment "
+			+ "of the database at a time. When no deployment runs, the lock is held by the session of one that lost its connection: "
+			+ "see \"One deployment at a time\" in the DbLive docs.",
+			ex.Message
+		);
+		Assert.Empty(mockSet.ProjectIdValidator.ReceivedCalls());
+		Assert.Empty(mockSet.DbLiveSelfDeployer.ReceivedCalls());
+		Assert.Empty(mockSet.DbLiveInternalDeployer.ReceivedCalls());
 	}
 
 	[Theory]

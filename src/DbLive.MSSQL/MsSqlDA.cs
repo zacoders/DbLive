@@ -422,6 +422,54 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
+	/// <summary>
+	/// The resource of the deployment lock. An application lock is local to the database.
+	/// </summary>
+	internal const string DeploymentLockResource = "dblive.deployment";
+
+	public async Task<IAsyncDisposable> AcquireDeploymentLockAsync()
+	{
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { Pooling = false, Enlist = false };
+		SqlConnection cnn = new(builder.ConnectionString);
+
+		try
+		{
+			await cnn.OpenAsync().ConfigureAwait(false);
+
+			// 0: granted. -1: another session holds the lock, and @LockTimeout = 0 does not wait for it. Below -1: an error of the call.
+			int result = await cnn.ExecuteScalarAsync<int>("""
+				declare @result int;
+				exec @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 0;
+				select @result;
+				""",
+				new { resource = DeploymentLockResource }
+			).ConfigureAwait(false);
+
+			if (result == -1)
+			{
+				throw new DeploymentInProgressException(builder.InitialCatalog, builder.DataSource);
+			}
+
+			if (result < 0)
+			{
+				throw new InternalException($"sp_getapplock returned {result} for the deployment lock.");
+			}
+
+			return new DeploymentLock(
+				cnn,
+				c => c.ExecuteAsync(
+					"exec sp_releaseapplock @Resource = @resource, @LockOwner = 'Session';",
+					new { resource = DeploymentLockResource }
+				)
+			);
+		}
+		catch
+		{
+			await cnn.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
+	}
+
 	public async Task DropDbAsync(bool skipIfNotExists = true)
 	{
 		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
