@@ -95,90 +95,126 @@ internal class CodeDeployer(
 		}
 	}
 
+	/// <summary>
+	/// Deploys the files of a group in rounds, because SQL objects fail until the objects they use are deployed. The workers deploy
+	/// every file of a round; the files that failed form the next round, which starts when the round before has finished. A file is
+	/// then not tried again while a file it may need still runs on another worker.
+	/// The group fails when a round deploys no file: the files left do not fail on the order of dependencies. Every round but the
+	/// last deploys a file, so a group of N files takes at most N rounds.
+	/// </summary>
 	internal async Task DeployGroupAsync(IReadOnlyCollection<CodeItem> codeItems)
 	{
-		DbLiveSettings _projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-		int maxRetries = Math.Max(1, _projectSettings.MaxCodeDeployRetries);
-
-		using var cts = new CancellationTokenSource();
-
-		var queue = new ConcurrentQueue<CodeItem>();
-		var retryCounters = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-		foreach (CodeItem item in codeItems)
-		{
-			queue.Enqueue(item);
-			retryCounters[item.FileData.RelativePath] = 0;
-		}
+		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
 		bool inAmbientTransaction = Transaction.Current is not null;
-		if (inAmbientTransaction && _projectSettings.NumberOfThreadsForCodeDeploy > 1)
+		if (inAmbientTransaction && projectSettings.NumberOfThreadsForCodeDeploy > 1)
 		{
 			_logger.Information(
 				"Parallel code deploy disabled because deployment runs inside a transaction."
 			);
 		}
 
-		int workersCount = inAmbientTransaction
-			? 1
-			: Math.Min(Math.Max(1, _projectSettings.NumberOfThreadsForCodeDeploy), codeItems.Count);
+		int maxWorkers = inAmbientTransaction ? 1 : Math.Max(1, projectSettings.NumberOfThreadsForCodeDeploy);
+
+		List<CodeItem> round = [.. codeItems];
+
+		for (int roundNumber = 1; ; roundNumber++)
+		{
+			List<(CodeItem CodeItem, Exception Error)> failed =
+				await DeployRoundAsync(round, Math.Min(maxWorkers, round.Count)).ConfigureAwait(false);
+
+			if (failed.Count == 0)
+			{
+				return;
+			}
+
+			if (failed.Count == round.Count)
+			{
+				foreach ((CodeItem codeItem, Exception error) in failed)
+				{
+					// a file of round N failed in every round before it.
+					_logger.Error(
+						error,
+						"Deployment failed for {FilePath} after {Attempts} attempts",
+						codeItem.FileData.RelativePath, roundNumber
+					);
+				}
+
+				throw new CodeDeploymentAggregateException("Code deployment failed.", failed.Select(f => f.Error));
+			}
+
+			_logger.Information("Retrying {FailedCount} code files that failed in round {Round}.", failed.Count, roundNumber);
+
+			round = [.. failed.Select(f => f.CodeItem)];
+		}
+	}
+
+	/// <summary>
+	/// Deploys the files of one round and returns the ones that failed, in the order of the round.
+	/// </summary>
+	private async Task<List<(CodeItem CodeItem, Exception Error)>> DeployRoundAsync(List<CodeItem> codeItems, int workersCount)
+	{
+		ConcurrentQueue<int> queue = new(Enumerable.Range(0, codeItems.Count));
+		CodeItemDeployResult?[] results = new CodeItemDeployResult?[codeItems.Count];
+
+		using CancellationTokenSource cts = new();
 
 		Task<Exception?>[] workers = new Task<Exception?>[workersCount];
 		for (int workerId = 0; workerId < workersCount; workerId++)
 		{
-			Task<Exception?> worker = Task.Run(()
-				=> CreateWorkerAsync(maxRetries, queue, retryCounters, cts)
-			);
-			workers[workerId] = worker;
+			workers[workerId] = Task.Run(() => RunWorkerAsync(codeItems, queue, results, cts));
 		}
 
-		_ = await Task.WhenAll(workers).ConfigureAwait(false);
+		Exception?[] stopErrors = await Task.WhenAll(workers).ConfigureAwait(false);
 
-		List<Exception> exceptions = [.. workers.Where(w => w.Result is not null).Select(w => w.Result!)];
+		List<Exception> notRetried = [.. stopErrors.OfType<Exception>()];
 
-		if (exceptions.Count > 0)
+		if (notRetried.Count > 0)
 		{
-			throw new CodeDeploymentAggregateException(
-				// not "after N attempts": a file whose error left the transaction unusable is not retried.
-				"Code deployment failed.",
-				exceptions
-			);
+			// not "after N attempts": a file whose error left the transaction unusable is not retried.
+			throw new CodeDeploymentAggregateException("Code deployment failed.", notRetried);
 		}
+
+		List<(CodeItem CodeItem, Exception Error)> failed = [];
+
+		for (int i = 0; i < codeItems.Count; i++)
+		{
+			if (results[i] is { IsSuccess: false } result)
+			{
+				failed.Add((codeItems[i], result.Exception!));
+			}
+		}
+
+		return failed;
 	}
 
-	internal async Task<Exception?> CreateWorkerAsync(
-		int maxRetries,
-		ConcurrentQueue<CodeItem> queue,
-		ConcurrentDictionary<string, int> retryCounters,
+	/// <summary>
+	/// Deploys files of the round until the queue is empty. Returns the error of a file that cannot be retried, which stops the
+	/// other workers too.
+	/// </summary>
+	private async Task<Exception?> RunWorkerAsync(
+		List<CodeItem> codeItems,
+		ConcurrentQueue<int> queue,
+		CodeItemDeployResult?[] results,
 		CancellationTokenSource cts
 	)
 	{
-		while (!cts.IsCancellationRequested)
+		while (!cts.IsCancellationRequested && queue.TryDequeue(out int index))
 		{
-			if (!queue.TryDequeue(out CodeItem? codeItem))
-			{
-				break;
-			}
-
+			CodeItem codeItem = codeItems[index];
 			string relativePath = codeItem.FileData.RelativePath;
 
 			_logger.Debug("Deploying {FilePath}", relativePath);
 
 			CodeItemDeployResult result = await _codeItemDeployer.DeployAsync(codeItem).ConfigureAwait(false);
 
+			results[index] = result;
+
 			if (result.IsSuccess)
 			{
 				_logger.Debug("Successfully deployed {FilePath}", relativePath);
-				continue;
 			}
-
-			int retry = retryCounters.AddOrUpdate(
-				relativePath,
-				1,
-				static (_, current) => current + 1
-			);
-
-			if (!result.CanRetry)
+			else if (!result.CanRetry)
 			{
 				_logger.Error(result.Exception, "Deployment failed for {FilePath}, not retried", relativePath);
 
@@ -186,30 +222,12 @@ internal class CodeDeployer(
 
 				return result.Exception;
 			}
-
-			if (retry >= maxRetries)
+			else
 			{
-				_logger.Error(
-					result.Exception,
-					"Deployment failed for {FilePath} after {RetryCount} attempts",
-					relativePath, retry
-				);
-
-				await cts.CancelAsync().ConfigureAwait(false);
-
-				return result.Exception;
+				_logger.Debug(result.Exception, "Deployment failed for {FilePath}", relativePath);
 			}
-
-			_logger.Debug(
-				result.Exception,
-				"Deployment failed for {FilePath}. Retry {Retry}/{MaxRetries}. Returning to queue.",
-				relativePath, retry, maxRetries
-			);
-
-			// Queue-based retry is intentional: SQL objects may fail until their dependencies are deployed.
-			// Moving the item to the tail lets other objects deploy first, then retries this item later.
-			queue.Enqueue(codeItem);
 		}
+
 		return null;
 	}
 }

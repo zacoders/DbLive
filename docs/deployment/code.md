@@ -71,13 +71,13 @@ When only the implementation changes and the contract stays the same, keep the n
 
 ## Order, parallelism and retries
 
-- Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order. Everything else forms the last group. Nested subfolders such as `"dbo/functions"` work with either `/` or `\`.
-- Within a group, up to `NumberOfThreadsForCodeDeploy` files (10 by default) are deployed in parallel.
-- A file that fails goes to the end of the queue and is retried, up to `MaxCodeDeployRetries` attempts (5 by default). Dependencies therefore usually resolve themselves: a view that uses a function deployed later succeeds on its second attempt.
+- Subfolders listed in `CodeSubFoldersDeploymentOrder` are deployed first, one group after another, in the listed order: a group starts when the group before it has finished. Everything else forms the last group. Nested subfolders such as `"dbo/functions"` work with either `/` or `\`.
+- Within a group, files are deployed in rounds. Up to `NumberOfThreadsForCodeDeploy` files (10 by default) of a round run in parallel. The files that failed are retried in the next round, which starts when every file of the round before has finished.
+- Dependencies within a group therefore resolve themselves: a view that uses a function deployed later succeeds in the next round, even when the function takes long to deploy. A file that needs a file of a later group fails.
+- When a round deploys no file, the files left fail for another reason than the order, and the deployment stops with `CodeDeploymentAggregateException`, which contains their SQL errors. There is no limit of attempts to configure: every round but the last deploys a file. Retries do not cover transient errors: a file that fails on a deadlock or a lock timeout is retried only when another file of its round succeeded.
 - With `TransactionWrapLevel: Deployment`, a file whose error ended the deployment transaction is not retried: the deployment fails at once with the error of that file. On SQL Server most errors leave the transaction open, but any run-time error with `XACT_ABORT ON` rolls it back (a missing dependency included), and so do a failed conversion and a deadlock. Order dependencies with `CodeSubFoldersDeploymentOrder` there, and leave `set xact_abort on` out of code files: it applies to the rest of the file that sets it, not to the scripts after it. On PostgreSQL every error aborts the transaction, but each code file runs under a savepoint: a failed file is rolled back to it and retried, as without a transaction. On both, a broken connection and the end of `DeploymentTimeout` end the transaction too.
-- When a file still fails after the last attempt, the deployment stops with `CodeDeploymentAggregateException`, which contains the SQL errors.
 
-Use the ordering setting for objects that everything else depends on, so that you do not spend retries on them:
+Use the ordering setting for objects that everything else depends on, so that the files that use them need no retry:
 
 ```json
 { "CodeSubFoldersDeploymentOrder": [ "schemas", "types" ] }

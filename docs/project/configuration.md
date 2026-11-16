@@ -66,7 +66,6 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `NumberOfThreadsForCodeDeploy` | `10` | Code files deployed in parallel. Forced to 1 with `TransactionWrapLevel: Deployment`. |
-| `MaxCodeDeployRetries` | `5` | Attempts per code file before the deployment fails. |
 | `NumberOfThreadsForTestsRun` | `10` | SQL tests run in parallel by the deployment test (`[SqlDeployFact]`) and `RunAllTestsAsync()`. |
 
 ### Timeouts

@@ -37,7 +37,6 @@ internal class DbLiveSettings
 	public bool LogSelfDeploy { get; internal set; } = false;
 
 	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
-	public int MaxCodeDeployRetries { get; set; } = 5;
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
 	/// <summary>

@@ -240,9 +240,11 @@ public class CodeDeployerTests
 		MockSet mockSet = new();
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
-			NumberOfThreadsForCodeDeploy = 1,
-			MaxCodeDeployRetries = 3
+			NumberOfThreadsForCodeDeploy = 1
 		});
+
+		CodeItem item1 = GetCodeItem("item11");
+		CodeItem item2 = GetCodeItem("item22");
 
 		ProjectSnapshot project = ProjectSnapshots.Empty with
 		{
@@ -250,34 +252,41 @@ public class CodeDeployerTests
 				new CodeGroup
 				{
 					Path = "Code2",
-					CodeItems = [GetCodeItem("item11"), GetCodeItem("item22")]
+					CodeItems = [item1, item2]
 				}
 			]
 		};
 
-		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>())
-			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy1")));
+		Exception error1 = new("Dummy1");
+		Exception error2 = new("Dummy2");
+		mockSet.CodeItemDeployer.DeployAsync(item1).Returns(CodeItemDeployResult.Failed(error1));
+		mockSet.CodeItemDeployer.DeployAsync(item2).Returns(CodeItemDeployResult.Failed(error2));
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
 			async () => await deployer.DeployAsync(project, DeployParameters.Default).ConfigureAwait(false)
 		);
 
-		await mockSet.CodeItemDeployer.Received().DeployAsync(Arg.Any<CodeItem>());
+		// the first round deployed no file, so a second round would fail the same way: it does not run.
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(item1);
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(item2);
+		Assert.Equal([error1, error2], ex.InnerExceptions);
 
 		// rows of missing files are marked only by a code deployment that completed.
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkMissingCodeAsRemovedAsync(default!, default);
 	}
 
-	[Fact]
-	public async Task DeployCode_DependencyRetry_UsesQueueOrder()
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task DeployCode_DependencyRetry_UsesQueueOrder(bool inDeploymentTransaction)
 	{
 		MockSet mockSet = new();
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
-			NumberOfThreadsForCodeDeploy = 1,
-			MaxCodeDeployRetries = 3
+			// in the deployment transaction the files are deployed by one worker anyway.
+			NumberOfThreadsForCodeDeploy = inDeploymentTransaction ? 10 : 1
 		});
 
 		CodeItem dependentItem = GetCodeItem("dependent");
@@ -314,22 +323,119 @@ public class CodeDeployerTests
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await deployer.DeployAsync(project, DeployParameters.Default);
+		using (TransactionScope? scope = inDeploymentTransaction ? TransactionScopeManager.Create() : null)
+		{
+			await deployer.DeployAsync(project, DeployParameters.Default);
+			scope?.Complete();
+		}
 
 		Assert.Equal([dependentItem.Name, mainItem.Name, dependentItem.Name], attempts);
 	}
 
 	[Fact]
-	public async Task DeployCode_StopsAfterConfiguredMaxRetries_ForSingleItem()
+	public async Task DeployCode_Retries_A_File_After_Its_Dependency_That_Runs_On_Another_Worker()
 	{
 		MockSet mockSet = new();
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
-			NumberOfThreadsForCodeDeploy = 1,
-			MaxCodeDeployRetries = 3
+			NumberOfThreadsForCodeDeploy = 2
+		});
+
+		CodeItem slowBase = GetCodeItem("a_base.sql");
+		CodeItem dependent = GetCodeItem("b_dependent.sql");
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [new CodeGroup { Path = "Code", CodeItems = [slowBase, dependent] }]
+		};
+
+		TaskCompletionSource dependentFailed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		bool baseDeployed = false;
+
+		// the base completes only after the dependent failed on the other worker, and a while later.
+		mockSet.CodeItemDeployer.DeployAsync(slowBase).Returns(async _ =>
+		{
+			await dependentFailed.Task.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+			await Task.Delay(100).ConfigureAwait(false);
+			Volatile.Write(ref baseDeployed, true);
+			return CodeItemDeployResult.Success();
+		});
+
+		int dependentAttempts = 0;
+		mockSet.CodeItemDeployer.DeployAsync(dependent).Returns(_ =>
+		{
+			Interlocked.Increment(ref dependentAttempts);
+
+			if (Volatile.Read(ref baseDeployed))
+			{
+				return CodeItemDeployResult.Success();
+			}
+
+			dependentFailed.TrySetResult();
+			return CodeItemDeployResult.Failed(new Exception("Invalid object name 'dbo.v_base'."));
+		});
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		await deployer.DeployAsync(project, DeployParameters.Default);
+
+		// not retried while the base was running: the second attempt waited for the round to end.
+		Assert.Equal(2, dependentAttempts);
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(slowBase);
+	}
+
+	[Fact]
+	public async Task DeployCode_Deploys_A_Chain_Of_Dependencies_In_The_Reverse_Order()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			NumberOfThreadsForCodeDeploy = 1
+		});
+
+		// view7 uses view6, ..., view2 uses view1: a round deploys one file.
+		List<CodeItem> chain = [.. Enumerable.Range(1, 7).Reverse().Select(i => GetCodeItem($"view{i}"))];
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [new CodeGroup { Path = "Code", CodeItems = chain }]
+		};
+
+		HashSet<string> deployed = [];
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(callInfo =>
+		{
+			CodeItem item = callInfo.Arg<CodeItem>();
+			int number = int.Parse(item.Name["view".Length..]);
+
+			if (number > 1 && !deployed.Contains($"view{number - 1}"))
+			{
+				return CodeItemDeployResult.Failed(new Exception($"Invalid object name 'view{number - 1}'."));
+			}
+
+			deployed.Add(item.Name);
+			return CodeItemDeployResult.Success();
+		});
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		await deployer.DeployAsync(project, DeployParameters.Default);
+
+		Assert.Equal(7, deployed.Count);
+		// view7 waits for six files, one per round: seven attempts, more than the five a file had before.
+		await mockSet.CodeItemDeployer.Received(7).DeployAsync(chain[0]);
+	}
+
+	[Fact]
+	public async Task DeployCode_Stops_When_A_Round_Deploys_No_File()
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			NumberOfThreadsForCodeDeploy = 1
 		});
 
 		CodeItem failingItem = GetCodeItem("always-failing");
+		CodeItem otherItem = GetCodeItem("other");
 
 		ProjectSnapshot project = ProjectSnapshots.Empty with
 		{
@@ -337,23 +443,26 @@ public class CodeDeployerTests
 				new CodeGroup
 				{
 					Path = "Code",
-					CodeItems = [failingItem]
+					CodeItems = [failingItem, otherItem]
 				}
 			]
 		};
 
-		mockSet.CodeItemDeployer
-			.DeployAsync(Arg.Is<CodeItem>(i => i.Name == failingItem.Name))
-			.Returns(CodeItemDeployResult.Failed(new Exception("Dummy")));
+		Exception error = new("Dummy");
+		mockSet.CodeItemDeployer.DeployAsync(failingItem).Returns(CodeItemDeployResult.Failed(error));
+		mockSet.CodeItemDeployer.DeployAsync(otherItem).Returns(CodeItemDeployResult.Success());
 
 		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
 
-		await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
 			async () => await deployer.DeployAsync(project, DeployParameters.Default).ConfigureAwait(false)
 		);
 
-		await mockSet.CodeItemDeployer.Received(3)
-			.DeployAsync(Arg.Is<CodeItem>(i => i.Name == failingItem.Name));
+		// the first round deployed the other file, so the failed one got a second round, alone, and failed again.
+		await mockSet.CodeItemDeployer.Received(2).DeployAsync(failingItem);
+		await mockSet.CodeItemDeployer.Received(1).DeployAsync(otherItem);
+		Assert.Same(error, Assert.Single(ex.InnerExceptions));
+		mockSet.Logger.Received(1).Error(error, "Deployment failed for {FilePath} after {Attempts} attempts", "/some_path/always-failing", 2);
 	}
 
 	[Fact]
@@ -362,8 +471,7 @@ public class CodeDeployerTests
 		MockSet mockSet = new();
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
-			NumberOfThreadsForCodeDeploy = 1,
-			MaxCodeDeployRetries = 3
+			NumberOfThreadsForCodeDeploy = 1
 		});
 
 		CodeItem failingItem = GetCodeItem("aborts-the-transaction");
