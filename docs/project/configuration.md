@@ -58,7 +58,7 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `TransactionWrapLevel` | `Migration` | `Migration`: each migration and breaking script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
-| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a command without a transaction (a code file, a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a code file in its own transaction and of a command without a transaction (a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
 ### Parallelism
@@ -119,7 +119,7 @@ Typical use: the migration builds an index online without holding a long transac
 }
 ```
 
-Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; a breaking script that drops such an index needs its own `<version>.breaking.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction: two `create index concurrently` in one file fail with `CREATE INDEX CONCURRENTLY cannot run inside a transaction block`.
+Some statements cannot run inside a transaction at all: `ALTER DATABASE` and full-text DDL on SQL Server, `CREATE INDEX CONCURRENTLY`, `DROP INDEX CONCURRENTLY` and `VACUUM` on PostgreSQL. Give the script that runs them a settings file with `"TransactionWrapLevel": "None"`; a code file cannot run them, because it runs in a transaction of its own. A breaking script that drops such an index needs its own `<version>.breaking.settings.json` too. On PostgreSQL keep such a statement alone in its file, because a file with several statements runs as one implicit transaction: two `create index concurrently` in one file fail with `CREATE INDEX CONCURRENTLY cannot run inside a transaction block`.
 
 The implicit transaction also means that on PostgreSQL several `update` statements in one file commit together, even with `"TransactionWrapLevel": "None"`. To commit a large update in batches, put the loop in a `do` block with a `commit` after each batch (or `call` a procedure that does it), and keep the `do` block alone in its file. Comments around it are fine; another statement in the file, or a transaction around the script, fails with `invalid transaction termination`.
 

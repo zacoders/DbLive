@@ -85,9 +85,11 @@ Use the ordering setting for objects that everything else depends on, so that th
 
 ## Transactions and timeouts
 
-Each code file runs as its own command, without a transaction, with a timeout of `CodeItemTimeout` (30 seconds by default; on SQL Server per `GO` batch). With `TransactionWrapLevel: Deployment`, code runs single-threaded inside the deployment transaction.
+Each code file runs in a transaction of its own, so it is applied as a whole or not at all. On SQL Server its `GO` batches run between `begin transaction` and `commit`, and a batch that fails rolls back the batches before it. On PostgreSQL the file is one command, which runs as one implicit transaction. The timeout is `CodeItemTimeout` (30 seconds by default) per command, on SQL Server per `GO` batch; the transaction has none.
 
-On PostgreSQL a file with several statements runs as one implicit transaction, so it fails or succeeds as a whole. With `Deployment` it runs under a savepoint in the deployment transaction, and a failed attempt is rolled back to it, so the same holds. Each such savepoint is a subtransaction: a deployment that runs more than 64 code files (attempts included) in one transaction overflows the subtransaction cache of its session, and while it runs, other sessions on a busy server and its replicas check row visibility more slowly. On SQL Server see the retries above for the errors that end the transaction.
+Statements that SQL Server does not allow in a transaction, such as `ALTER DATABASE` and full-text DDL, fail in a code file. Put them into a migration with `"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings).
+
+With `TransactionWrapLevel: Deployment`, code runs single-threaded inside the deployment transaction instead. On PostgreSQL a file then runs under a savepoint, and a failed attempt is rolled back to it. Each such savepoint is a subtransaction: a deployment that runs more than 64 code files (attempts included) in one transaction overflows the subtransaction cache of its session, and while it runs, other sessions on a busy server and its replicas check row visibility more slowly. On SQL Server see the retries above for the errors that end the transaction.
 
 ## Things to know
 

@@ -19,13 +19,15 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return await cnn.ExecuteScalarAsync<int>("select @@trancount").ConfigureAwait(false) > 0;
 	}
 
-	// no savepoint: an error that does not roll back the whole transaction leaves it usable, and after one that does
-	// (XACT_ABORT ON, a failed conversion, a deadlock) there is no savepoint to return to.
+	// in the deployment transaction no savepoint: an error that does not roll back the whole transaction leaves it usable, and after one
+	// that does (XACT_ABORT ON, a failed conversion, a deadlock) there is no savepoint to return to.
+	// Outside it the file runs in a transaction of its own: its GO batches would commit one by one, and a batch that fails would leave
+	// the batches before it applied.
 	public Task ExecuteCodeItemAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
-	) => ExecuteNonQueryAsync(sqlStatement, isolationLevel, timeout);
+	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: Transaction.Current is null);
 
 	internal const int ErrorColumnLength = 4000;
 	internal const string TruncatedMark = "... [truncated]";
@@ -167,10 +169,17 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { project_id = ProjectIdTools.Normalize(projectId) }).ConfigureAwait(false);
 	}
 
-	public async Task ExecuteNonQueryAsync(
+	public Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
 		TimeSpan? timeout = null
+	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: false);
+
+	private async Task ExecuteScriptAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan? timeout,
+		bool ownTransaction
 	)
 	{
 		try
@@ -185,7 +194,14 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				StatementTimeout = GetTimeoutSeconds(timeout)
 			};
-			_ = serverConnection.ExecuteNonQuery(sqlStatement);
+			if (ownTransaction)
+			{
+				await ExecuteInOwnTransactionAsync(sqlConnection, serverConnection, sqlStatement).ConfigureAwait(false);
+			}
+			else
+			{
+				_ = serverConnection.ExecuteNonQuery(sqlStatement);
+			}
 			serverConnection.Disconnect();
 		}
 		catch (Exception e)
@@ -195,6 +211,36 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			//       Consider splitting statements manually.
 			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+		}
+	}
+
+	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, the command timeout stays per
+	// batch, and the isolation level set on the connection applies to it.
+	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, ServerConnection serverConnection, string sqlStatement)
+	{
+		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);
+		try
+		{
+			_ = serverConnection.ExecuteNonQuery(sqlStatement);
+			_ = await sqlConnection.ExecuteAsync("commit transaction;").ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(sqlConnection).ConfigureAwait(false);
+			throw;
+		}
+	}
+
+	// the error may have rolled the transaction back already (XACT_ABORT ON, a failed conversion, a deadlock) or broken the connection,
+	// and it is the error to throw. A connection that went back to the pool with an open transaction would keep its locks.
+	private static async Task TryRollbackAsync(SqlConnection sqlConnection)
+	{
+		try
+		{
+			_ = await sqlConnection.ExecuteAsync("if @@trancount > 0 rollback transaction;").ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
 		}
 	}
 

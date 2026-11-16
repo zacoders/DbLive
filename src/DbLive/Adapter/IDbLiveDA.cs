@@ -65,7 +65,9 @@ internal interface IDbLiveDA
 	/// Executes a code file. Inside the ambient transaction, an error of the file leaves the transaction usable when the provider can,
 	/// so that the file can be retried in it after the files it depends on; <see cref="IsTransactionUsableAsync"/> tells whether it did.
 	/// On PostgreSQL the error also undoes the statements of the file that ran before it. On SQL Server they stay in the transaction,
-	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction: <see cref="ExecuteNonQueryAsync"/>.
+	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction the file runs in a transaction
+	/// of its own, so it is applied as a whole: on SQL Server its batches run between <c>begin transaction</c> and <c>commit</c>,
+	/// on PostgreSQL its one command is one implicit transaction.
 	/// </summary>
 	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
 	Task ExecuteCodeItemAsync(
