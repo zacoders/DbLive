@@ -362,6 +362,52 @@ public class UnitTestResultCheckerRowsTests
 		);
 	}
 
+	[Theory]
+	[InlineData(double.NaN)]
+	[InlineData(double.PositiveInfinity)]
+	[InlineData(double.NegativeInfinity)]
+	public void Rows_NaN_and_infinity_equal_themselves(double value)
+	{
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision"), new SqlColumn("F", "real"), new SqlColumn("A", "double precision[]")],
+			resultRows: [new SqlRow(value, (float)value, new[] { value, 1 })]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision"), new SqlColumn("F", "real"), new SqlColumn("A", "double precision[]")],
+			resultRows: [new SqlRow(value, (float)value, new[] { value, 1 })]
+		);
+
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		Assert.True(validationResult.IsValid, validationResult.Output);
+	}
+
+	[Theory]
+	[InlineData(double.NaN, double.PositiveInfinity)]
+	[InlineData(double.PositiveInfinity, double.NegativeInfinity)]
+	[InlineData(double.NaN, 0d)]
+	public void Rows_NaN_and_infinity_differ_from_other_values(double actual, double expected)
+	{
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision")],
+			resultRows: [new SqlRow(actual)]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision")],
+			resultRows: [new SqlRow(expected)]
+		);
+
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		Assert.False(validationResult.IsValid);
+	}
+
 	private static SqlResult RowsAssertMark() => new(
 		sqlColumns: [new SqlColumn("assert", "...")],
 		resultRows: [new SqlRow("rows")]

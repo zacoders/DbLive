@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
@@ -75,6 +76,44 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 		Assert.Equal(
 			["tests/rows-with-schema.sql:True", "tests/rows.sql:True"],
 			testRuns.Single().Rows.Select(r => $"{r[0]}:{r[1]}").Order(StringComparer.Ordinal)
+		);
+	}
+
+	[Fact]
+	public async Task Rows_test_compares_NaN_and_infinity()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/nan.sql", """
+				select 'NaN'::float8 as v, '-Infinity'::float4 as i, array['NaN'::float8, 'Infinity'::float8] as a;
+
+				select 'rows-with-schema' as assert;
+				select 'NaN'::float8 as v, '-Infinity'::float4 as i, array['NaN'::float8, 'Infinity'::float8] as a;
+				""")
+			.AddFile("Tests/nan-against-number.sql", """
+				select 'NaN'::float8 as v;
+
+				select 'rows' as assert;
+				select 1::float8 as v;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		TestRunResult nan = await tester.RunTestAsync(_output.WriteLine, "Tests/nan.sql");
+		TestRunResult nanAgainstNumber = await tester.RunTestAsync(_output.WriteLine, "Tests/nan-against-number.sql");
+
+		Assert.True(nan.IsSuccess, nan.ErrorMessage);
+		// the values in the message are written in the current culture: NaN is "не число" in ru-RU.
+		Assert.False(nanAgainstNumber.IsSuccess);
+		Assert.StartsWith(
+			"""
+			Data for one or more rows does not match:
+			Columns: v: double precision
+			[Row 1]>
+			Expected values: 1
+			""",
+			nanAgainstNumber.ErrorMessage?.ReplaceLineEndings("\n")
 		);
 	}
 

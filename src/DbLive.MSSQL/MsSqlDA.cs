@@ -438,6 +438,7 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			columnName: GetValue<string>(row["ColumnName"]),
 			dataType: GetSqlTypeName(
 				providerType: GetValue<int>(row["ProviderType"]),
+				dataTypeName: GetValue<string>(row["DataTypeName"]),
 				numericPrecision: GetValueN<short?>(row["NumericPrecision"]),
 				numericScale: GetValue<short?>(row["NumericScale"]),
 				columnSize: GetValue<int>(row["ColumnSize"])
@@ -445,7 +446,14 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		);
 	}
 
-	private static string GetSqlTypeName(int providerType, short? numericPrecision, short? numericScale, int columnSize)
+	// The ColumnSize that SqlClient gives the max types: nvarchar(max), varchar(max), varbinary(max).
+	private const int MaxColumnSize = int.MaxValue;
+
+	// The type of a column for rows-with-schema, as T-SQL writes it, with its length, precision or scale: columns of different types
+	// never get the same name. A type without a case here (json and vector of SQL Server 2025, a type of a later version) gets the name
+	// SqlClient gives, without its length. A CLR type (geography, geometry, hierarchyid, a type of the user) gets its own name: SqlClient
+	// gives it with the current database and the schema, mydb.sys.geography.
+	private static string GetSqlTypeName(int providerType, string dataTypeName, short? numericPrecision, short? numericScale, int columnSize)
 	{
 		SqlDbType dbType = (SqlDbType)providerType;
 
@@ -466,20 +474,22 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlDbType.Money => "money",
 			SqlDbType.NChar => $"nchar({columnSize})",
 			SqlDbType.NText => "ntext",
-			SqlDbType.NVarChar => columnSize == -1 ? "nvarchar(max)" : $"nvarchar({columnSize})",
+			SqlDbType.NVarChar => columnSize == MaxColumnSize ? "nvarchar(max)" : $"nvarchar({columnSize})",
 			SqlDbType.Real => "real",
 			SqlDbType.UniqueIdentifier => "uniqueidentifier",
 			SqlDbType.SmallDateTime => "smalldatetime",
 			SqlDbType.SmallInt => "smallint",
 			SqlDbType.SmallMoney => "smallmoney",
 			SqlDbType.Text => "text",
+			SqlDbType.Time => $"time({numericScale ?? 7})",
 			SqlDbType.Timestamp => "timestamp",
 			SqlDbType.TinyInt => "tinyint",
-			SqlDbType.VarBinary => columnSize == -1 ? "varbinary(max)" : $"varbinary({columnSize})",
-			SqlDbType.VarChar => columnSize == -1 ? "varchar(max)" : $"varchar({columnSize})",
+			SqlDbType.Udt => dataTypeName[(dataTypeName.LastIndexOf('.') + 1)..],
+			SqlDbType.VarBinary => columnSize == MaxColumnSize ? "varbinary(max)" : $"varbinary({columnSize})",
+			SqlDbType.VarChar => columnSize == MaxColumnSize ? "varchar(max)" : $"varchar({columnSize})",
 			SqlDbType.Variant => "sql_variant",
 			SqlDbType.Xml => "xml",
-			_ => "unknown"
+			_ => dataTypeName
 		};
 	}
 

@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
 using Xunit.Extensions.AssemblyFixture;
 
@@ -95,6 +96,69 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 		Assert.Equal(
 			["tests/rows-with-schema.sql:True", "tests/rows.sql:True"],
 			testRuns.Single().Rows.Select(r => $"{r[0]}:{r[1]}").Order(StringComparer.Ordinal)
+		);
+	}
+
+	[Fact]
+	public async Task Column_types_are_named_as_in_TSql()
+	{
+		IDbLiveDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+
+		// no rows: reading a geography or hierarchyid value needs Microsoft.SqlServer.Types, and the names come from the schema.
+		List<SqlResult> results = await da.QuerySqlAsync("""
+			select cast('10:00' as time(3)) as t3
+			     , cast('10:00' as time) as t7
+			     , cast(N'x' as nvarchar(max)) as nm
+			     , cast('x' as varchar(max)) as vm
+			     , cast(0x01 as varbinary(max)) as bm
+			     , geography::Point(1, 2, 4326) as geo
+			     , hierarchyid::GetRoot() as h
+			     , cast('{"a":1}' as json) as j
+			     , cast('[1,2,3]' as vector(3)) as v
+			where 1 = 0;
+			""");
+
+		Assert.Equal(
+			[
+				new SqlColumn("t3", "time(3)"),
+				new SqlColumn("t7", "time(7)"),
+				new SqlColumn("nm", "nvarchar(max)"),
+				new SqlColumn("vm", "varchar(max)"),
+				new SqlColumn("bm", "varbinary(max)"),
+				new SqlColumn("geo", "geography"),
+				new SqlColumn("h", "hierarchyid"),
+				new SqlColumn("j", "json"),
+				new SqlColumn("v", "vector")
+			],
+			Assert.Single(results).Columns
+		);
+	}
+
+	[Fact]
+	public async Task Rows_with_schema_test_fails_for_time_of_another_scale()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/time.sql", """
+				select cast('10:00' as time(3)) as t, cast(N'x' as nvarchar(max)) as n;
+
+				select assert = 'rows-with-schema';
+				select cast('10:00' as time(7)) as t, cast(N'x' as nvarchar(10)) as n;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/time.sql");
+
+		Assert.False(result.IsSuccess);
+		Assert.Equal(
+			"""
+			Columns does not match:
+			Expected columns: t: time(7), n: nvarchar(10)
+			Actual columns:   t: time(3), n: nvarchar(max)
+			""",
+			result.ErrorMessage,
+			ignoreLineEndingDifferences: true
 		);
 	}
 

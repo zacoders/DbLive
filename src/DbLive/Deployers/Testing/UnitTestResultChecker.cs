@@ -307,21 +307,24 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		return new ValidationResult { IsValid = true };
 	}
 
+	// NaN and infinity as the strings "NaN", "Infinity" and "-Infinity", also inside an array: by default System.Text.Json throws on
+	// them. NaN then equals NaN, and in rows equals the text 'NaN' too, as rows compares no types.
+	private static readonly JsonSerializerOptions ValueJsonOptions = new()
+	{
+		DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+		PropertyNamingPolicy = null,
+		WriteIndented = false,
+		NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+	};
+
 	private ValidationResult CompareRows(SqlRow expected, SqlRow actual)
 	{
 		bool match = true;
 
-		var options = new JsonSerializerOptions
-		{
-			DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-			PropertyNamingPolicy = null,
-			WriteIndented = false
-		};
-
 		for (int i = 0; i < expected.Count; i++)
 		{
-			var expectedJson = JsonSerializer.Serialize(expected[i], options);
-			var actualJson = JsonSerializer.Serialize(actual[i], options);
+			var expectedJson = JsonSerializer.Serialize(expected[i], ValueJsonOptions);
+			var actualJson = JsonSerializer.Serialize(actual[i], ValueJsonOptions);
 
 			if (expectedJson != actualJson)
 			{

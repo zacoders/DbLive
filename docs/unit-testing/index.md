@@ -45,7 +45,7 @@ A misspelled column (`select asstert = 'rows'`) or a missing alias (`select 'row
 | Assert | Passes when |
 |--------|-------------|
 | `rows` | There are as many actual result sets as expected ones, and each expected result set matches the actual result set at the same position: same column names in the same order, same number of rows, same values row by row. |
-| `rows-with-schema` | Like `rows`, and the SQL column types match as well (for example `nvarchar(255)` vs `nvarchar(100)` fails). |
+| `rows-with-schema` | Like `rows`, and the SQL column types match as well (for example `nvarchar(255)` vs `nvarchar(100)` fails, and `time(3)` vs `time(7)`). |
 | `has-rows` | The first actual result set has at least one row. |
 | `row-count=N` | There is exactly one actual result set, with exactly N rows. |
 | `empty` | Shortcut for `row-count=0`. |
@@ -83,6 +83,8 @@ end $$;
 - Strings are compared exactly, including case and trailing spaces.
 - Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
 - `NULL` equals `NULL`.
+- `NaN` and infinity of PostgreSQL `real` and `double precision` equal themselves. A `numeric` `NaN` or infinity cannot be read: cast it to `float8` or `text` in the test.
+- SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: select `.ToString()` of the value instead.
 - Row order matters; use `order by` in the act.
 - Column names must match exactly. SQL Server gives an unnamed expression an empty name, so `select dbo.GetFullName('a', 'b')` can be compared with `select cast('a b' as nvarchar(255))`. PostgreSQL names such columns (`?column?` or the function name), so give both sides an alias.
 

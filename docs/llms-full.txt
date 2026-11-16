@@ -527,7 +527,7 @@ The test script returns result sets. One of them may be the **assert result set*
 | Assert value | Passes when |
 |---|---|
 | `rows` | There are as many actual result sets as expected ones (at least one), and for each expected result set *i*: actual result set *i* has the same column count and the same column names (case-sensitive, same order), the same number of rows, and for each row *j* equal values. |
-| `rows-with-schema` | Like `rows`, and the column SQL types are equal too (for example `nvarchar(255)`, `decimal(10, 2)`, `datetime2(7)` on SQL Server; `integer`, `bigint`, `numeric(12,2)`, `text`, `varchar(200)`, `timestamptz` on PostgreSQL). |
+| `rows-with-schema` | Like `rows`, and the column SQL types are equal too (for example `nvarchar(255)`, `nvarchar(max)`, `decimal(10, 2)`, `datetime2(7)`, `time(3)` on SQL Server; `integer`, `bigint`, `numeric(12,2)`, `text`, `varchar(200)`, `timestamptz` on PostgreSQL). Other types by their name alone: `json`, `vector` (without its dimension), `geography`, `hierarchyid` on SQL Server. |
 | `has-rows` | The first actual result set has at least one row. |
 | `row-count=N` | There is exactly one actual result set and it has exactly N rows. |
 | `empty` | Same as `row-count=0`. |
@@ -540,6 +540,8 @@ Value comparison in `rows`: each value is serialized to JSON and the strings are
 - Strings are compared exactly (case- and whitespace-sensitive).
 - Dates: compare dates with dates of the same type. A date serializes as `"2026-01-01T00:00:00"`, so `'2026-01-01'` never equals it; cast the expected value to the column's type: `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` value is read as UTC (`...Z`), so it equals only a `timestamptz`: `cast('2026-01-01 00:00:00+00' as timestamptz)`.
 - `NULL` equals `NULL`.
+- `NaN`, `Infinity` and `-Infinity` (PostgreSQL `real` and `double precision`, also inside arrays) each equal themselves. They serialize as the strings `"NaN"`, `"Infinity"`, `"-Infinity"`, so in `rows` a `float8` `NaN` also equals the text `'NaN'`; `rows-with-schema` tells them apart. A `numeric` `NaN` or infinity cannot be read: the test fails with `Numeric NaN not supported by System.Decimal` or `Numeric value does not fit in a System.Decimal`; cast the value to `float8` or `text` in the test.
+- SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: the test fails with `Could not load file or assembly 'Microsoft.SqlServer.Types ...'`. Select `.ToString()` of the value instead.
 - Column names must match exactly. SQL Server gives unnamed expressions an empty name, so `select dbo.F(1)` against `select cast('x' as nvarchar(10))` compares fine. PostgreSQL names them (`?column?`, or the function name), so alias both sides explicitly.
 - Row order matters. Make the act deterministic (`order by`).
 - Counts are checked before values: `Expected 2 result set(s), but 1 received.`, then per result set the columns, then `Expected 1 row(s), but 3 received.`, then the values. With several expected result sets the message starts with `Result set N:`. No result set after the assert result set: `No expected result set after the 'assert' result set.`
@@ -1071,6 +1073,8 @@ select relative_path, error from dblive.unit_test_run where pass = 0;   -- Postg
 | SQL Server: `Incorrect syntax near 'GO'` in a test | `GO` in a test file | Remove `GO`; move setup into `setup.test.sql` |
 | Test: `... looks like an assert result set, but its first column ...` | The assert column is misspelled or has no alias | Name it `assert`: `select 'rows' as assert` |
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
+| Test: `Numeric NaN not supported by System.Decimal` or `Numeric value does not fit in a System.Decimal` | PostgreSQL: the test reads a `numeric` value that is `NaN` or infinite | Cast the value to `float8` or `text` in the test (Section 8.3) |
+| Test: `Could not load file or assembly 'Microsoft.SqlServer.Types ...'` | SQL Server: the test reads a `geography`, `geometry` or `hierarchyid` value | Select `.ToString()` of the value (Section 8.3) |
 
 ---
 
