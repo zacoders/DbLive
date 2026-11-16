@@ -80,6 +80,7 @@ What `GetStatements` does with `ExecutionTypes.Default` (the type that `ExecuteN
 | `GO` on the first line, two `GO` in a row | empty batches `""`; `ExecuteNonQuery` does not run a batch with an empty text (from the source) |
 | `$(x)`, `:setvar`, `:r` | not processed: sent to the server as they are |
 | `/*` without `*/` | `BatchParserException: Missing end comment mark '*/'`, before any batch runs |
+| a `GO` line with `/* */`, or a count that is not digits (`GO -1`, `GO 3x`, `GO 3 4`) | `BatchParserException`, before any batch runs; all forms of the `GO` line are in 0096-85 |
 | CRLF line ends | the same as LF |
 
 A new way of splitting must give the same batches, or a file that deploys now fails after the upgrade. Test it against this table, and against SMO on the scripts of the demo projects.
