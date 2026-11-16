@@ -112,7 +112,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		Assert.True(await da.IsTransactionUsableAsync());
 
-		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => da.ExecuteNonQueryAsync("select 1/0;"));
+		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => da.ExecuteSqlAsync("select 1/0;"));
 
 		Assert.False(await da.IsTransactionUsableAsync());
 	}
@@ -124,9 +124,9 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 
-		await da.ExecuteCodeItemAsync("create table a ( x int );");
+		await da.ExecuteCodeItemAsync("create table a ( x int );", TranIsolationLevel.ReadCommitted, TimeSpan.FromSeconds(30));
 
-		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => da.ExecuteCodeItemAsync("create table c ( x int );\nselect 1/0;"));
+		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => da.ExecuteCodeItemAsync("create table c ( x int );\nselect 1/0;", TranIsolationLevel.ReadCommitted, TimeSpan.FromSeconds(30)));
 		Assert.Contains("division by zero", ex.Message);
 
 		Assert.True(await da.IsTransactionUsableAsync());
@@ -164,7 +164,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }

@@ -1,4 +1,5 @@
 using DbLive.Adapter;
+using DbLive.Deployers.Code;
 using DbLive.Deployers.Migrations;
 using DbLive.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,14 +11,14 @@ namespace DbLive.PostgreSQL.Tests;
 
 
 /// <summary>
-/// Npgsql reports a command timeout as NpgsqlException "Exception while reading from stream" with an inner TimeoutException,
-/// not as PostgresException, so the cause is in the message only when DbLive takes it from the inner exception.
+/// A script that runs longer than its timeout fails with <see cref="ExecutionTimeoutException"/>, as on SQL Server. Npgsql reports the
+/// timeout as NpgsqlException "Exception while reading from stream" with an inner TimeoutException, which is its inner exception.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
 	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
-	private const string TimeoutMessage = "Timeout during reading attempt";
+	private const string TimeoutMessage = "Execution Timeout Expired. The script ran longer than its timeout of";
 
 	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
@@ -41,10 +42,11 @@ public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 		);
 
 		Assert.Contains("001.migration.sql", ex.Message);
-		Assert.Contains(TimeoutMessage, ex.Message);
-		_ = Assert.IsType<DbLiveSqlException>(ex.InnerException);
-		_ = Assert.IsType<NpgsqlException>(ex.InnerException.InnerException);
-		_ = Assert.IsType<TimeoutException>(ex.InnerException.InnerException.InnerException);
+		Assert.Contains($"{TimeoutMessage} 00:00:01.", ex.Message);
+		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(ex.InnerException);
+		Assert.Equal(TimeSpan.FromSeconds(1), timeoutEx.Timeout);
+		_ = Assert.IsType<NpgsqlException>(timeoutEx.InnerException);
+		_ = Assert.IsType<TimeoutException>(timeoutEx.InnerException.InnerException);
 	}
 
 	[Fact]
@@ -60,8 +62,29 @@ public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/slow.sql");
 
 		Assert.False(result.IsSuccess);
-		Assert.Contains(TimeoutMessage, result.ErrorMessage);
-		Assert.Contains(TimeoutMessage, result.Output);
+		Assert.Contains($"{TimeoutMessage} 00:00:01.", result.ErrorMessage);
+		Assert.Contains($"{TimeoutMessage} 00:00:01.", result.Output);
+		_ = Assert.IsType<ExecutionTimeoutException>(result.Exception);
+	}
+
+	[Fact]
+	public async Task Code_file_whose_statements_together_run_longer_than_its_timeout_fails()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "CodeItemTimeout": "00:00:03" }""")
+			.AddFile("Code/a.sql", "select pg_sleep(2);\nselect pg_sleep(2);");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: Code/a.sql", codeEx.Message);
+		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(codeEx.InnerException);
+		Assert.Equal($"{TimeoutMessage} 00:00:03.", timeoutEx.Message);
+		_ = Assert.IsType<NpgsqlException>(timeoutEx.InnerException);
 	}
 
 	private DbLiveBuilder CreateBuilder(TempProject project)

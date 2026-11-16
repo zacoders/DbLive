@@ -116,7 +116,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync("select item || ': ' || level from iso_log order by item");
+		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync("select item || ': ' || level from iso_log order by item");
 		Assert.Equal(
 			["after deploy: repeatable read", "code: repeatable read", "migration: serializable"],
 			results.Single().Rows.Select(r => (string)r[0])
@@ -130,7 +130,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 		string cnnString = new NpgsqlConnectionStringBuilder(_dbCnnString) { MaxPoolSize = 1 }.ConnectionString;
 		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).GetRequiredService<IDbLiveDA>();
 
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable);
+		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable, TimeSpan.FromSeconds(30));
 		int pid = (int)results.Single().Rows.Single()[0];
 		Assert.Equal("serializable", results.Single().Rows.Single()[1]);
 
@@ -157,7 +157,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 3;
 			""");
@@ -187,7 +187,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			alter table dblive.migration add column content text null;
 			insert into dblive.migration (version, item_type, name, relative_path, status, content_hash, content, created_utc, applied_utc)
 			values (1, 'undo', '', 'migrations/001.undo.sql', 'none', 1, 'drop table t1;', now(), null),
@@ -227,7 +227,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 	private static async Task<long> CountAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

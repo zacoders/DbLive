@@ -49,7 +49,7 @@ public class SqlTestTransactionTests(PostgreSqlFixture _fixture, ITestOutputHelp
 		Assert.False(result.IsSuccess);
 		Assert.Contains("invalid transaction termination", result.ErrorMessage);
 
-		List<SqlResult> rows = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync("select id from t");
+		List<SqlResult> rows = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync("select id from t");
 		Assert.Empty(rows.Single().Rows);
 	}
 

@@ -36,8 +36,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// of the file. Each savepoint is a subtransaction.
 	public async Task ExecuteCodeItemAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	)
 	{
 		if (System.Transactions.Transaction.Current is null)
@@ -201,8 +201,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public async Task ExecuteNonQueryAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	)
 	{
 		try
@@ -215,16 +215,30 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
-			using NpgsqlCommand cmd = new(sqlStatement, cnn);
-			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
+			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
 
-			_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+			using NpgsqlCommand cmd = new(sqlStatement, cnn);
+			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+
+			try
+			{
+				_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+			}
+			catch (NpgsqlException e) when (IsCommandTimeout(e))
+			{
+				throw scriptTimeout.Expired(e);
+			}
 		}
-		catch (Exception e)
+		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
 		}
 	}
+
+	// Npgsql reports a command timeout as NpgsqlException "Exception while reading from stream" with TimeoutException "Timeout during
+	// reading attempt" inside, also when it has cancelled the statement on the server. A connection timeout has a TimeoutException
+	// inside too, so only the command of a script is checked for it.
+	private static bool IsCommandTimeout(NpgsqlException e) => e.InnerException is TimeoutException;
 
 	// 'set transaction' outside a transaction block only emits a warning and has no effect.
 	// The session default applies to the implicit transaction of each next command on this connection,
@@ -238,15 +252,10 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
 
-	private static int GetTimeoutSeconds(TimeSpan? timeout)
-	{
-		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
-	}
-
 	public async Task<List<SqlResult>> ExecuteQueryMultipleAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	)
 	{
 		try
@@ -259,26 +268,35 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
+			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
 			using NpgsqlCommand cmd = new(sqlStatement, cnn);
-			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
+			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
 
-			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
-
-			List<SqlResult> results = [];
-
-			do
+			try
 			{
-				SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
-				if (r is not null)
-				{
-					results.Add(r);
-				}
-			}
-			while (await reader.NextResultAsync().ConfigureAwait(false));
+				using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
 
-			return results;
+				List<SqlResult> results = [];
+
+				do
+				{
+					SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
+					if (r is not null)
+					{
+						results.Add(r);
+					}
+				}
+				while (await reader.NextResultAsync().ConfigureAwait(false));
+
+				return results;
+			}
+			catch (NpgsqlException e) when (IsCommandTimeout(e))
+			{
+				throw scriptTimeout.Expired(e);
+			}
 		}
-		catch (Exception e)
+		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
 		}
@@ -717,8 +735,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	/// <summary>
 	/// The message of an error of the server, or the distinct messages of the exception chain, one per line.
-	/// Npgsql reports a command timeout and a lost connection as <see cref="NpgsqlException"/> "Exception while reading from stream",
-	/// and the cause ("Timeout during reading attempt") is in its inner exception.
+	/// Npgsql reports a lost connection as <see cref="NpgsqlException"/> "Exception while reading from stream", and the cause is in its
+	/// inner exception. A command timeout has the same shape, but it becomes <see cref="ExecutionTimeoutException"/>.
 	/// </summary>
 	internal static string GetMessage(Exception ex)
 	{

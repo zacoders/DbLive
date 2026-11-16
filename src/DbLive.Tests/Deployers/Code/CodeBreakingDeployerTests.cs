@@ -62,7 +62,7 @@ public class CodeBreakingDeployerTests
 		await deployer.DeployAsync(project);
 		await deployer.DeployAsync(project);
 
-		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync("drop proc if exists dbo.GetUser_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
+		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync("drop proc if exists dbo.GetUser_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		await mockSet.DbLiveDA.DidNotReceive().GetCodeItemsAsync();
 	}
 
@@ -80,7 +80,7 @@ public class CodeBreakingDeployerTests
 		};
 
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(new DbLiveSqlException("Cannot drop the procedure 'dbo.a_v1'.")));
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
@@ -97,7 +97,7 @@ public class CodeBreakingDeployerTests
 			&& d.ErrorMessage == "Cannot drop the procedure 'dbo.a_v1'."
 		));
 
-		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync("drop proc if exists dbo.b_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
+		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync("drop proc if exists dbo.b_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 	}
 
 	[Fact]
@@ -109,7 +109,7 @@ public class CodeBreakingDeployerTests
 
 		DbLiveSqlException scriptError = new("Cannot drop the procedure 'dbo.a_v1'.");
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
@@ -133,7 +133,7 @@ public class CodeBreakingDeployerTests
 		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")] };
 
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(new DbLiveSqlException("Cannot drop the procedure 'dbo.a_v1'.")));
 
 		DbLiveSqlException saveError = new("Invalid column name 'error'.");

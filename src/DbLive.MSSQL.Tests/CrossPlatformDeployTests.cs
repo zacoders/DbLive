@@ -48,7 +48,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		// what DbLive stored on Windows before line endings, separators and case were normalized.
-		await da.ExecuteNonQueryAsync($"""
+		await da.ExecuteSqlAsync($"""
 			update dblive.migration
 			set content_hash = {LegacyContentHash.Of(MigrationCrLf)}, relative_path = 'Migrations\001.migration.sql'
 			where version = 1 and item_type = 'migration';
@@ -91,7 +91,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			insert into dblive.code ( relative_path, status, execution_time_ms, applied_utc, created_utc, verified_utc, content_hash )
 			values ( 'Code\dbo\v1.sql', 'applied', 1, '2026-01-01', '2026-01-01', '2026-01-03', 1 ) -- verified last
 			     , ( 'Code/dbo/v1.sql', 'applied', 1, '2026-01-02', '2026-01-02', null, 2 )
@@ -139,7 +139,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 
 		// what DbLive stored before relative paths were lower-cased.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			insert into dblive.code ( relative_path, status, execution_time_ms, applied_utc, created_utc, verified_utc, content_hash )
 			values ( 'Code/dbo/V1.sql', 'applied', 1, '2026-01-01', '2026-01-01', '2026-01-03', 1 ) -- verified last
 			     , ( 'Code/dbo/v1.sql', 'applied', 1, '2026-01-02', '2026-01-02', null, 2 )
@@ -248,7 +248,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		CodeItemDto codeBefore = (await FindCodeRowAsync(da, "code/dbo/v1.sql"))!;
 
 		// DbLive on Windows took the folder part of the path from the settings and the file name from the disk.
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			update dblive.code set relative_path = 'code/dbo/V1.sql';
 
 			update dblive.version set version = 8;
@@ -300,13 +300,13 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 
 	private static async Task<List<string>> RowsAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return results.Single().Rows.Select(r => $"{r[0]}:{r[1]}").ToList();
 	}
 }

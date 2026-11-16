@@ -2,11 +2,11 @@
 
 [Serializable]
 [ExcludeFromCodeCoverage]
-public sealed class DbLiveSqlException : Exception
+public class DbLiveSqlException : Exception
 {
 	public string SqlError { get; internal set; }
 
-	internal DbLiveSqlException(string errorMessage, string sqlError, Exception innerException)
+	internal DbLiveSqlException(string errorMessage, string sqlError, Exception? innerException)
 		: base(errorMessage, innerException)
 	{
 		SqlError = sqlError;

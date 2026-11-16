@@ -31,7 +31,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		Assert.Equal(DbLiveCompatibility.MinCompatibleVersion, await da.GetMinDbLiveLibVersionAsync());
 
 		// what a newer DbLive stores after a change of the dblive tables that this DbLive cannot read.
-		await da.ExecuteNonQueryAsync("update dblive.version set min_dblive_lib_version = '999.0.0';");
+		await da.ExecuteSqlAsync("update dblive.version set min_dblive_lib_version = '999.0.0';");
 		string tablesBefore = await DescribeDbLiveTablesAsync(da);
 
 		_ = project
@@ -65,7 +65,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		// a newer DbLive with a self-migration that this DbLive can live with: it keeps the requirement.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("update dblive.version set version = 1000;");
+		await da.ExecuteSqlAsync("update dblive.version set version = 1000;");
 
 		_ = project.AddFile("Migrations/002.migration.sql", "create table t2 (id int not null);");
 		builder = CreateBuilder(project);
@@ -90,7 +90,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		long lastSelfMigration = await da.GetSelfMigrationVersionAsync();
 
 		// the dblive tables before self-migration 9.
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			alter table dblive.version drop column min_dblive_lib_version;
 			update dblive.version set version = 8;
 			""");
@@ -117,7 +117,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("""
+		List<SqlResult> results = await da.QuerySqlAsync("""
 			select * from dblive.version;
 			select * from dblive.migration order by version, item_type;
 			select * from dblive.code order by relative_path;
@@ -133,7 +133,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

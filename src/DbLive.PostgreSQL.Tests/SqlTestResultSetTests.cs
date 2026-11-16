@@ -34,10 +34,10 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 	{
 		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
 
-		await da.ExecuteNonQueryAsync(UsersTable);
-		await da.ExecuteNonQueryAsync(Arrange);
+		await da.ExecuteSqlAsync(UsersTable);
+		await da.ExecuteSqlAsync(Arrange);
 
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select name from users where user_id = 10;");
+		List<SqlResult> results = await da.QuerySqlAsync("select name from users where user_id = 10;");
 
 		SqlResult result = Assert.Single(results);
 		Assert.Equal([new SqlColumn("name", "varchar(50)")], result.Columns);
@@ -69,7 +69,7 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateTester().RunAllTestsAsync();
 
-		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync(
+		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(
 			"select relative_path, pass from dblive.unit_test_run");
 
 		Assert.Equal(

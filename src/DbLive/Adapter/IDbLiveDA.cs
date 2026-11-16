@@ -33,17 +33,22 @@ internal interface IDbLiveDA
 	/// <exception cref="DeploymentInProgressException">Another session holds the lock.</exception>
 	Task<IAsyncDisposable> AcquireDeploymentLockAsync();
 
+	/// <param name="timeout">The timeout of the whole script, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException"/>
+	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
 	Task ExecuteNonQueryAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	);
 
+	/// <param name="timeout">The timeout of the script; <see cref="TimeSpan.Zero"/> is no limit.</param>
+	/// <exception cref="DbLiveSqlException"/>
+	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
 	Task<List<SqlResult>> ExecuteQueryMultipleAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	);
 
 	/// <summary>
@@ -69,11 +74,13 @@ internal interface IDbLiveDA
 	/// of its own, so it is applied as a whole: on SQL Server its batches run between <c>begin transaction</c> and <c>commit</c>,
 	/// on PostgreSQL its one command is one implicit transaction.
 	/// </summary>
+	/// <param name="timeout">The timeout of the whole file, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
+	/// <exception cref="ExecutionTimeoutException">The file ran longer than <paramref name="timeout"/>.</exception>
 	Task ExecuteCodeItemAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	);
 
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();

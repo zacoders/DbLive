@@ -23,6 +23,9 @@ DbLive.DbLiveBuilder.DisposeAsync() -> System.Threading.Tasks.ValueTask
 DbLive.DbLiveBuilderExtensions
 DbLive.DbLiveSqlException
 DbLive.DbLiveSqlException.SqlError.get -> string!
+DbLive.DeploymentInProgressException
+DbLive.DeploymentInProgressException.DatabaseName.get -> string!
+DbLive.DeploymentInProgressException.Server.get -> string!
 DbLive.DeployParameters
 DbLive.DeployParameters.<Clone>$() -> DbLive.DeployParameters!
 DbLive.DeployParameters.CreateDbIfNotExists.get -> bool
@@ -37,10 +40,9 @@ DbLive.DeployParameters.DeployParameters() -> void
 DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.init -> void
-DbLive.DeploymentInProgressException
-DbLive.DeploymentInProgressException.DatabaseName.get -> string!
-DbLive.DeploymentInProgressException.Server.get -> string!
 DbLive.DuplicateMigrationItemException
+DbLive.ExecutionTimeoutException
+DbLive.ExecutionTimeoutException.Timeout.get -> System.TimeSpan
 DbLive.FileNotUtf8Exception
 DbLive.FileNotUtf8Exception.RelativePath.get -> string!
 DbLive.FilesOutsideProjectFoldersException

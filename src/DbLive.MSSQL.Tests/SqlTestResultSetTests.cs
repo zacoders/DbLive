@@ -46,11 +46,11 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 	{
 		IDbLiveDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
 
-		await da.ExecuteNonQueryAsync(UsersTable);
-		await da.ExecuteNonQueryAsync(GetUserName);
-		await da.ExecuteNonQueryAsync(Arrange);
+		await da.ExecuteSqlAsync(UsersTable);
+		await da.ExecuteSqlAsync(GetUserName);
+		await da.ExecuteSqlAsync(Arrange);
 
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("""
+		List<SqlResult> results = await da.QuerySqlAsync("""
 			select Name from dbo.Users where UserId = 10;
 			exec dbo.GetUserName @UserId = 10;
 			""");
@@ -89,7 +89,7 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		await builder.CreateTester().RunAllTestsAsync();
 
-		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync(
+		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(
 			"select relative_path, pass from dblive.unit_test_run");
 
 		Assert.Equal(

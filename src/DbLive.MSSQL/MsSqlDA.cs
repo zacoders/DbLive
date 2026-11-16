@@ -25,8 +25,8 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// the batches before it applied.
 	public Task ExecuteCodeItemAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: Transaction.Current is null);
 
 	internal const int ErrorColumnLength = 4000;
@@ -171,57 +171,101 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public Task ExecuteNonQueryAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: false);
 
 	private async Task ExecuteScriptAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel,
-		TimeSpan? timeout,
+		TimeSpan timeout,
 		bool ownTransaction
 	)
 	{
 		try
 		{
+			// before the connection: a syntax error of a GO line fails the file before any batch runs, as it did when SMO ran the file.
+			IReadOnlyList<string> batches = SplitIntoBatches(sqlStatement);
+
 			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
 			if (Transaction.Current is null)
 			{
 				await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
 			}
-			ServerConnection serverConnection = new(sqlConnection)
-			{
-				StatementTimeout = GetTimeoutSeconds(timeout)
-			};
 			if (ownTransaction)
 			{
-				await ExecuteInOwnTransactionAsync(sqlConnection, serverConnection, sqlStatement).ConfigureAwait(false);
+				await ExecuteInOwnTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			}
 			else
 			{
-				_ = serverConnection.ExecuteNonQuery(sqlStatement);
+				await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			}
-			serverConnection.Disconnect();
 		}
-		catch (Exception e)
+		catch (Exception e) when (e is not DbLiveSqlException)
 		{
-			// todo: We are using Microsoft.SqlServer.Management.Common.ServerConnection
-			//       It does not provide global error line number, just line number in the 'GO' batch
-			//       Consider splitting statements manually.
+			// todo 0096-85: the line of an error is its line in the GO batch, not in the file.
 			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
 		}
 	}
 
-	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, the command timeout stays per
-	// batch, and the isolation level set on the connection applies to it.
-	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, ServerConnection serverConnection, string sqlStatement)
+	/// <summary>
+	/// The <c>GO</c> batches of a script, split by SMO in its capture mode: it splits the script as its <c>ExecuteNonQuery</c> does,
+	/// runs nothing and needs no connection. <c>GO</c> alone on its line, in any case, with an optional count and <c>-- comment</c>;
+	/// not inside comments, strings and brackets. The batch before <c>GO &lt;count&gt;</c> is in the list count times; <c>GO</c> on the
+	/// first line and two <c>GO</c> in a row give an empty batch. A comment without its end and a <c>GO</c> line with anything else
+	/// throw <c>BatchParserException</c>. The text of a batch is the piece of the file up to the line end before its <c>GO</c> line.
+	/// </summary>
+	internal static IReadOnlyList<string> SplitIntoBatches(string script)
+	{
+		ServerConnection splitter = new() { SqlExecutionModes = SqlExecutionModes.CaptureSql };
+		_ = splitter.ExecuteNonQuery(script);
+		return [.. splitter.CapturedSql.Text.Cast<string>()];
+	}
+
+	// each batch is a command of its own, and gets the time left of the file as its command timeout: the timeout is the timeout of the
+	// file, not of each batch.
+	private static async Task ExecuteBatchesAsync(SqlConnection sqlConnection, IReadOnlyList<string> batches, TimeSpan timeout)
+	{
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		foreach (string batch in batches)
+		{
+			// SqlCommand fails on an empty text, and SMO did not run one either; a batch of white space does nothing.
+			if (string.IsNullOrWhiteSpace(batch))
+			{
+				continue;
+			}
+
+			using SqlCommand cmd = sqlConnection.CreateCommand();
+			cmd.CommandText = batch;
+			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+
+			try
+			{
+				_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+			}
+			catch (SqlException e) when (IsCommandTimeout(e))
+			{
+				throw scriptTimeout.Expired(e);
+			}
+		}
+	}
+
+	// "Execution Timeout Expired". A connection timeout has the same number, so only the commands of a script are checked for it.
+	private const int TimeoutExpiredError = -2;
+
+	private static bool IsCommandTimeout(SqlException e) => e.Errors.Cast<SqlError>().Any(err => err.Number == TimeoutExpiredError);
+
+	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, and the isolation level set on the
+	// connection applies to it.
+	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<string> batches, TimeSpan timeout)
 	{
 		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);
 		try
 		{
-			_ = serverConnection.ExecuteNonQuery(sqlStatement);
+			await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			_ = await sqlConnection.ExecuteAsync("commit transaction;").ConfigureAwait(false);
 		}
 		catch
@@ -250,15 +294,10 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
 	}
 
-	private static int GetTimeoutSeconds(TimeSpan? timeout)
-	{
-		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
-	}
-
 	public async Task<List<SqlResult>> ExecuteQueryMultipleAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	)
 	{
 		try
@@ -271,28 +310,36 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
+			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
 			using SqlCommand cmd = cnn.CreateCommand();
-			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
+			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
 			cmd.CommandText = sqlStatement;
 
-			// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
-			using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
-
-			List<SqlResult> multipleResults = [];
-			do
+			try
 			{
-				SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
-				if (sqlResult is not null)
+				// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
+				using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+
+				List<SqlResult> multipleResults = [];
+				do
 				{
-					multipleResults.Add(sqlResult);
+					SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
+					if (sqlResult is not null)
+					{
+						multipleResults.Add(sqlResult);
+					}
 				}
+				while (await reader.NextResultAsync().ConfigureAwait(false));
+
+				return multipleResults;
 			}
-			while (await reader.NextResultAsync().ConfigureAwait(false));
-
-
-			return multipleResults;
+			catch (SqlException e) when (IsCommandTimeout(e))
+			{
+				throw scriptTimeout.Expired(e);
+			}
 		}
-		catch (Exception e)
+		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);

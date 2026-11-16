@@ -101,7 +101,7 @@ public class ErrorColumnTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 
 	private static async Task<string> ErrorAsync(DbLiveBuilder builder, string query)
 	{
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(query);
 		return (string)results.Single().Rows.Single()[0]!;
 	}
 }

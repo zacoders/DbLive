@@ -31,7 +31,7 @@ public class ProjectIdTests(PostgreSqlFixture _fixture, ITestOutputHelper _outpu
 		Assert.Equal("project-b", await da.GetProjectIdAsync());
 
 		// the dblive tables as an older DbLive left them: before self-migration 9, which the deployment of project A would apply.
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			alter table dblive.version drop column min_dblive_lib_version;
 			update dblive.version set version = 8;
 			""");
@@ -65,7 +65,7 @@ public class ProjectIdTests(PostgreSqlFixture _fixture, ITestOutputHelper _outpu
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
 		// the dblive tables before self-migration 3: the ProjectId is read before the self-deployment adds the column.
-		await da.ExecuteNonQueryAsync("alter table dblive.version drop column project_id;");
+		await da.ExecuteSqlAsync("alter table dblive.version drop column project_id;");
 
 		Assert.Null(await da.GetProjectIdAsync());
 	}
@@ -81,7 +81,7 @@ public class ProjectIdTests(PostgreSqlFixture _fixture, ITestOutputHelper _outpu
 
 	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("""
+		List<SqlResult> results = await da.QuerySqlAsync("""
 			select * from dblive.version;
 			select * from dblive.migration order by version, item_type;
 			select * from dblive.code order by relative_path;
@@ -96,7 +96,7 @@ public class ProjectIdTests(PostgreSqlFixture _fixture, ITestOutputHelper _outpu
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

@@ -66,7 +66,7 @@ public class InvalidProjectTests(SqlServerIntegrationFixture _fixture, ITestOutp
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 

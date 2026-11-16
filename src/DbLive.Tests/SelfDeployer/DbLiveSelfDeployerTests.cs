@@ -78,7 +78,7 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
+		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 		await mockSet.DbLiveDA.Received(1).SetSelfMigrationVersionAsync(1, Arg.Any<DateTime>());
 		await mockSet.DbLiveDA.Received(1).SetSelfMigrationVersionAsync(2, Arg.Any<DateTime>());
 	}
@@ -109,7 +109,7 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>());
+		await mockSet.DbLiveDA.Received(2).ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 
 		await mockSet.DbLiveDA.DidNotReceive()
 			.SetSelfMigrationVersionAsync(1, Arg.Any<DateTime>());
@@ -167,7 +167,7 @@ public class DbLiveSelfDeployerTests
 		await deployer.DeployAsync();
 
 		// Assert
-		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync("-- exact sql");
+		await mockSet.DbLiveDA.Received(1).ExecuteNonQueryAsync("-- exact sql", TranIsolationLevel.Serializable, TimeSpan.FromSeconds(30));
 	}
 
 
@@ -235,9 +235,9 @@ public class DbLiveSelfDeployerTests
 
 		Received.InOrder(() =>
 		{
-			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 1");
+			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 			_ = mockSet.DbLiveDA.SetSelfMigrationVersionAsync(1, new DateTime(2025, 1, 1));
-			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 2");
+			_ = mockSet.DbLiveDA.ExecuteNonQueryAsync("-- migration 2", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 			_ = mockSet.DbLiveDA.SetSelfMigrationVersionAsync(2, new DateTime(2025, 1, 1));
 			_ = mockSet.DbLiveDA.SetMinDbLiveLibVersionAsync(DbLiveCompatibility.MinCompatibleVersion);
 		});

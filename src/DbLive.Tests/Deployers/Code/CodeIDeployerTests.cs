@@ -511,7 +511,7 @@ public class CodeDeployerTests
 
 		DbLiveSqlException scriptError = new("A severe error occurred on the current command.");
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		ProjectSnapshot project = ProjectSnapshots.Empty with

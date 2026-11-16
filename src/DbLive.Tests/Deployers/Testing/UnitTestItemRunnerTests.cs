@@ -207,8 +207,8 @@ public class UnitTestItemRunnerTests
 		// one check after the test: whatever runs after the end of the transaction runs in autocommit mode, so it covers the setup file too.
 		Received.InOrder(() =>
 		{
-			mockSet.DbLiveDA.ExecuteNonQueryAsync(testItem.SetupFileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
-			mockSet.DbLiveDA.ExecuteQueryMultipleAsync(testItem.FileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
+			mockSet.DbLiveDA.ExecuteNonQueryAsync(testItem.SetupFileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+			mockSet.DbLiveDA.ExecuteQueryMultipleAsync(testItem.FileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 			mockSet.DbLiveDA.IsTransactionUsableAsync();
 		});
 		_ = await mockSet.DbLiveDA.Received(1).IsTransactionUsableAsync();
@@ -247,7 +247,7 @@ public class UnitTestItemRunnerTests
 	{
 		MockSet mockSet = CreateMockSet();
 		mockSet.DbLiveDA
-			.When(fake => fake.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>()))
+			.When(fake => fake.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>()))
 			.Throw(new InvalidOperationException("test error"));
 
 		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();

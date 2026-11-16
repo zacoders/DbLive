@@ -64,7 +64,7 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 	[Fact]
 	public async Task Snapshot_describes_each_kind_of_object()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 
 		SchemaSnapshot snapshot = await _da.GetSchemaSnapshotAsync();
 
@@ -113,11 +113,11 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 	[Fact]
 	public async Task Recreated_objects_and_column_order_are_ignored()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
 		// the columns come back at the end of the table, PostgreSQL derives the same names for the constraints.
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			drop index app.ix_person_name;
 			alter table app.person drop column age;
 			alter table app.person add column age int check (age > 0);
@@ -141,10 +141,10 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 	[Fact]
 	public async Task Current_identity_and_sequence_values_and_dblive_schema_are_ignored()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			insert into public.dept (name) values ('a'), ('b');
 			insert into app.person (name, code, price) values ('a', 'x', 1);
 			select nextval('app.seq');
@@ -160,10 +160,10 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 	[Fact]
 	public async Task Changed_objects_are_found()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			alter table app.person drop constraint ck_person_name;
 			alter table app.person drop column email;
 			create index ix_person_age on app.person (age);

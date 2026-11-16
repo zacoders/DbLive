@@ -85,7 +85,7 @@ Use the ordering setting for objects that everything else depends on, so that th
 
 ## Transactions and timeouts
 
-Each code file runs in a transaction of its own, so it is applied as a whole or not at all. On SQL Server its `GO` batches run between `begin transaction` and `commit`, and a batch that fails rolls back the batches before it. On PostgreSQL the file is one command, which runs as one implicit transaction. The timeout is `CodeItemTimeout` (30 seconds by default) per command, on SQL Server per `GO` batch; the transaction has none.
+Each code file runs in a transaction of its own, so it is applied as a whole or not at all. On SQL Server its `GO` batches run between `begin transaction` and `commit`, and a batch that fails rolls back the batches before it. On PostgreSQL the file is one command, which runs as one implicit transaction. The timeout is `CodeItemTimeout` (30 seconds by default) for the whole file, on SQL Server for all its `GO` batches together; the transaction has none of its own. A file that runs longer fails with `ExecutionTimeoutException` (`Execution Timeout Expired. The script ran longer than its timeout of 00:00:30.`), and none of its batches stays applied. See [Timeouts](../project/configuration.md#timeouts).
 
 Statements that SQL Server does not allow in a transaction, such as `ALTER DATABASE` and full-text DDL, fail in a code file. Put them into a migration with `"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings).
 

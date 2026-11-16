@@ -58,7 +58,7 @@ public class CodeItemDeployerTests
 			new InvalidOperationException("inner")
 		);
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -85,7 +85,7 @@ public class CodeItemDeployerTests
 
 		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -114,7 +114,7 @@ public class CodeItemDeployerTests
 
 		DbLiveSqlException scriptError = new("A severe error occurred on the current command.");
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -139,7 +139,7 @@ public class CodeItemDeployerTests
 		// on SQL Server the check is '@@trancount > 0': without a transaction it would tell that no file can be retried.
 		MockSet mockSet = new();
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(new DbLiveSqlException("Invalid object name 'dbo.C'.")));
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
@@ -166,8 +166,8 @@ public class CodeItemDeployerTests
 		}
 
 		Assert.True(res.IsSuccess);
-		await mockSet.DbLiveDA.Received(1).ExecuteCodeItemAsync("create view a as select 1 as x;", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
-		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!);
+		await mockSet.DbLiveDA.Received(1).ExecuteCodeItemAsync("create view a as select 1 as x;", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().ExecuteNonQueryAsync(default!, default, default);
 	}
 
 	[Fact]
@@ -180,7 +180,7 @@ public class CodeItemDeployerTests
 
 		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
 		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		DbLiveSqlException saveError = new("A network-related or instance-specific error occurred while establishing a connection to SQL Server.");

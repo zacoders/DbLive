@@ -160,11 +160,11 @@ public class MigrationItemDeployerTests
 
 		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
 
-		// what PostgreSqlDA throws on a command timeout: no SqlError, the messages of the chain in the message.
+		// what PostgreSqlDA throws on a lost connection: no SqlError, the messages of the chain in the message.
 		var exception = new DbLiveSqlException(
-			$"Exception while reading from stream{Environment.NewLine}Timeout during reading attempt",
+			$"Exception while reading from stream{Environment.NewLine}Attempted to read past the end of the stream.",
 			"",
-			new Exception("Exception while reading from stream", new TimeoutException("Timeout during reading attempt"))
+			new Exception("Exception while reading from stream", new EndOfStreamException("Attempted to read past the end of the stream."))
 		);
 
 		mockSet.DbLiveDA
@@ -182,7 +182,7 @@ public class MigrationItemDeployerTests
 		Assert.Equal("""
 			Error deploying db/migrations/001.m.some-migration.sql file.
 			Exception while reading from stream
-			Timeout during reading attempt
+			Attempted to read past the end of the stream.
 			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
 		Assert.Same(exception, ex.InnerException);
 	}

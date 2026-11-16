@@ -72,12 +72,16 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 
 | Setting | Default | Applies to |
 |---------|---------|------------|
-| `MigrationTimeout` | `12:00:00` | Each migration and breaking script of a migration: its command and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
+| `MigrationTimeout` | `12:00:00` | Each migration and breaking script of a migration: the script and its transaction. An [item settings file](#item-settings) can override it with `Timeout`. |
 | `DeploymentTimeout` | `1.00:00:00` | The transaction of the whole deployment (`TransactionWrapLevel: Deployment`) |
 | `CodeItemTimeout` | `00:00:30` | Each code file and each [breaking script of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version) |
-| `UnitTestItemTimeout` | `00:01:00` | Each SQL test, including its transaction |
+| `UnitTestItemTimeout` | `00:01:00` | Each SQL test and its `setup.test.sql`, and the transaction of the test |
 | `BeforeDeployFolderTimeout` | `06:00:00` | Each BeforeDeploy script |
 | `AfterDeployFolderTimeout` | `06:00:00` | Each AfterDeploy script |
+
+The timeout of a script is the timeout of the whole file. On SQL Server that is all its `GO` batches together: DbLive runs them one by one, and each gets the time left of the file, rounded up to whole seconds, so a batch may end up to a second late, and no batch starts after the time of the file ran out. On PostgreSQL the file is one command. A timeout under one second is one second; `00:00:00` is no limit.
+
+A script that runs longer than its timeout fails with `ExecutionTimeoutException` on both providers: `Execution Timeout Expired. The script ran longer than its timeout of 00:00:30.`. The deployment error around it names the file. The exception is a `DbLiveSqlException`; its `Timeout` is the limit, and the timeout error of the provider is its inner exception, or none when the time of a file ran out between two `GO` batches.
 
 !!! note "Transactions longer than 10 minutes"
     DbLive uses `System.Transactions`. .NET caps every transaction at the process-wide `TransactionManager.MaximumTimeout`, which is 10 minutes by default. Before opening a transaction, DbLive raises that cap to the transaction's timeout and never lowers it, so the settings above apply as written. Other `TransactionScope`s in the same process are afterwards capped at the largest timeout DbLive used.
@@ -107,7 +111,7 @@ A settings file applies to its own script only. It follows the same format rules
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
 | `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. `Snapshot` is SQL Server only: on PostgreSQL the deployment fails before anything runs. |
-| `Timeout` | time span | Timeout of the script's command and of its transaction. Default: the project `MigrationTimeout`. |
+| `Timeout` | time span | Timeout of the script (all its `GO` batches together, see [Timeouts](#timeouts)) and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.
 

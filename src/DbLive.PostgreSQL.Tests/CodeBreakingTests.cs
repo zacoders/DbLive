@@ -243,20 +243,20 @@ public class CodeBreakingTests(PostgreSqlFixture _fixture, ITestOutputHelper _ou
 
 	private static async Task<List<string>> FunctionsAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(
+		List<SqlResult> results = await da.QuerySqlAsync(
 			"select proname::text from pg_proc where pronamespace = 'public'::regnamespace and proname like 'get_user%'");
 		return [.. results.Single().Rows.Select(r => (string)r[0]!).Order(StringComparer.Ordinal)];
 	}
 
 	private static async Task<List<string>> CodeRowsAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select relative_path, item_type, status from dblive.code");
+		List<SqlResult> results = await da.QuerySqlAsync("select relative_path, item_type, status from dblive.code");
 		return [.. results.Single().Rows.Select(r => $"{r[0]}:{r[1]}:{r[2]}").Order(StringComparer.Ordinal)];
 	}
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

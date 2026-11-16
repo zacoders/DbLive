@@ -110,7 +110,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		// a database deployed by DbLive before the per-item settings: one 'settings' row per version.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			update dblive.migration set item_type = 'settings' where item_type = 'migration.settings';
 			update dblive.version set version = 6;
 			""");
@@ -140,7 +140,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		// a database deployed by a DbLive with undo scripts: undo rows with their content, and version 2 rolled back by its undo script.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		await da.ExecuteNonQueryAsync("""
+		await da.ExecuteSqlAsync("""
 			alter table dblive.migration add content nvarchar(max) null;
 			go
 			insert into dblive.migration ( version, item_type, name, relative_path, status, content_hash, content, created_utc, applied_utc )
@@ -181,7 +181,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

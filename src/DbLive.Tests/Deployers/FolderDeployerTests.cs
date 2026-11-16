@@ -79,7 +79,7 @@ public class FolderDeployerTests
 		);
 
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync("Content of file2.sql", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteNonQueryAsync("Content of file2.sql", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
@@ -97,7 +97,7 @@ public class FolderDeployerTests
 		Assert.Same(scriptError, ex.InnerException);
 
 		await mockSet.DbLiveDA.DidNotReceive()
-			.ExecuteNonQueryAsync("Content of file3.sql", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>());
+			.ExecuteNonQueryAsync("Content of file3.sql", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 
 		await mockSet.DbLiveDA.Received(1)
 			.MarkItemAsAppliedAsync(projectFolder, Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>(), Arg.Any<long>());
@@ -116,15 +116,15 @@ public class FolderDeployerTests
 			GetGenericItem("file1.sql"),
 		}.AsReadOnly());
 
-		// what PostgreSqlDA throws on a command timeout: no SqlError, the messages of the chain in the message.
+		// what PostgreSqlDA throws on a lost connection: no SqlError, the messages of the chain in the message.
 		DbLiveSqlException scriptError = new(
-			$"Exception while reading from stream{Environment.NewLine}Timeout during reading attempt",
+			$"Exception while reading from stream{Environment.NewLine}Attempted to read past the end of the stream.",
 			"",
-			new Exception("Exception while reading from stream", new TimeoutException("Timeout during reading attempt"))
+			new Exception("Exception while reading from stream", new EndOfStreamException("Attempted to read past the end of the stream."))
 		);
 
 		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan?>())
+			.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
@@ -136,7 +136,7 @@ public class FolderDeployerTests
 		Assert.Equal("""
 			Error deploying folder/file1.sql file.
 			Exception while reading from stream
-			Timeout during reading attempt
+			Attempted to read past the end of the stream.
 			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
 		Assert.Same(scriptError, ex.InnerException);
 	}
@@ -168,7 +168,7 @@ public class FolderDeployerTests
 
 		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
 
-		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>());
+		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 	}
 
 	[Fact]

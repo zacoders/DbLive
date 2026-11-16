@@ -65,7 +65,7 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 	[Fact]
 	public async Task Snapshot_describes_each_kind_of_object()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 
 		SchemaSnapshot snapshot = await _da.GetSchemaSnapshotAsync();
 
@@ -105,11 +105,11 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 	[Fact]
 	public async Task Names_given_by_the_server_and_column_order_are_ignored()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
 		// the column comes back at the end of the table; its default, the check and the foreign key get new names from the server.
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			declare @sql nvarchar(max);
 			select @sql = concat('alter table app.Person drop constraint ', name) from sys.default_constraints where parent_object_id = object_id('app.Person') and is_system_named = 1;
 			exec (@sql);
@@ -133,11 +133,11 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 	[Fact]
 	public async Task Module_text_compares_without_create_or_alter_and_whitespace()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
 		// SQL Server stores "alter" as "CREATE", "create or alter" as "create".
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			alter procedure app.GetPerson @Id int as
 			    select Id, Name
 			    from app.Person where Id = @Id;
@@ -155,10 +155,10 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 	[Fact]
 	public async Task Current_identity_and_sequence_values_and_dblive_schema_are_ignored()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			insert into dbo.Dept (Name) values ('a'), ('b');
 			select next value for app.Seq;
 			create statistics ST_Person_Age on app.Person (Age);
@@ -174,10 +174,10 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 	[Fact]
 	public async Task Changed_objects_are_found()
 	{
-		await _da.ExecuteNonQueryAsync(Schema);
+		await _da.ExecuteSqlAsync(Schema);
 		SchemaSnapshot before = await _da.GetSchemaSnapshotAsync();
 
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			alter table app.Person drop constraint CK_Person_Name;
 			alter table app.Person drop constraint UQ_Person_Email;
 			alter table app.Person drop column Email;

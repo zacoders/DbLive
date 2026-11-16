@@ -261,19 +261,19 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 
 	private static async Task<List<string>> ProceduresAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select name from sys.procedures where name like 'GetUser%'");
+		List<SqlResult> results = await da.QuerySqlAsync("select name from sys.procedures where name like 'GetUser%'");
 		return [.. results.Single().Rows.Select(r => (string)r[0]!).Order(StringComparer.Ordinal)];
 	}
 
 	private static async Task<List<string>> CodeRowsAsync(IDbLiveDA da)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select relative_path, item_type, status from dblive.code");
+		List<SqlResult> results = await da.QuerySqlAsync("select relative_path, item_type, status from dblive.code");
 		return [.. results.Single().Rows.Select(r => $"{r[0]}:{r[1]}:{r[2]}").Order(StringComparer.Ordinal)];
 	}
 
 	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

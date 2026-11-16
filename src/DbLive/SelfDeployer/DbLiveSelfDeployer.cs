@@ -11,6 +11,14 @@ internal class DbLiveSelfDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
 
+	private const TranIsolationLevel IsolationLevel = TranIsolationLevel.Serializable;
+
+	private static readonly TimeSpan TransactionTimeout = TimeSpan.FromMinutes(5);
+
+	// the timeout of each self-migration, inside the transaction: 30 seconds, the value it had while the data access gave a script
+	// without a timeout this one by default.
+	private static readonly TimeSpan SelfMigrationTimeout = TimeSpan.FromSeconds(30);
+
 	public async Task DeployAsync()
 	{
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
@@ -24,8 +32,8 @@ internal class DbLiveSelfDeployer(
 
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
-			TranIsolationLevel.Serializable,
-			TimeSpan.FromMinutes(5),
+			IsolationLevel,
+			TransactionTimeout,
 			async () =>
 			{
 				long appliedSelfMigrationVersion = 0;
@@ -45,7 +53,7 @@ internal class DbLiveSelfDeployer(
 
 				foreach (InternalMigration migration in migrations.Where(m => m.Version > appliedSelfMigrationVersion))
 				{
-					await _da.ExecuteNonQueryAsync(migration.FileData.Content).ConfigureAwait(false);
+					await _da.ExecuteNonQueryAsync(migration.FileData.Content, IsolationLevel, SelfMigrationTimeout).ConfigureAwait(false);
 					await _da.SetSelfMigrationVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
 				}
 

@@ -130,7 +130,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 
 	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
 	{
-		List<SqlResult> results = await da.ExecuteQueryMultipleAsync(query);
+		List<SqlResult> results = await da.QuerySqlAsync(query);
 		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }
