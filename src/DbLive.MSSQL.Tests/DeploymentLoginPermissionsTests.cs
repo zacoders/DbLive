@@ -116,6 +116,8 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 
 	// an open connection of the login blocks 'drop login'. SqlConnection.ClearAllPools() would also clear the pools
 	// of tests running in parallel (see MissingDatabaseTests).
+	// kill does not wait for the session to end: a killed session can stay in sys.dm_exec_sessions for a moment, and
+	// 'drop login' then fails with "Could not drop login ... as the user is currently logged in".
 	private async Task DropLoginAsync(string login)
 	{
 		await ExecuteAsync(_fixture.MasterDbConnectionString, $"""
@@ -125,6 +127,11 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 				where login_name = '{login}'
 			);
 			exec sys.sp_executesql @sql;
+
+			declare @deadline datetime2 = dateadd(second, 10, sysutcdatetime());
+			while exists (select * from sys.dm_exec_sessions where login_name = '{login}') and sysutcdatetime() < @deadline
+				waitfor delay '00:00:00.100';
+
 			drop login [{login}];
 			""");
 	}
