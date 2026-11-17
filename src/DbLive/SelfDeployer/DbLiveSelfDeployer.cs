@@ -13,7 +13,8 @@ internal class DbLiveSelfDeployer(
 
 	private const TranIsolationLevel IsolationLevel = TranIsolationLevel.Serializable;
 
-	private static readonly TimeSpan TransactionTimeout = TimeSpan.FromMinutes(5);
+	// a constant, not a setting: the message names none.
+	private static readonly TransactionTimeout TransactionTimeout = new(TimeSpan.FromMinutes(5), "The self-deployment of DbLive");
 
 	// the timeout of each self-migration, inside the transaction: 30 seconds, the value it had while the data access gave a script
 	// without a timeout this one by default.

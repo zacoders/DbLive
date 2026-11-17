@@ -121,7 +121,7 @@ Code/
 
 ## Isolation and parallelism
 
-- Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result. A test that runs longer fails with `ExecutionTimeoutException` on both providers: `Execution Timeout Expired. The script ran longer than its timeout of 00:01:00.`
+- Each test runs in its own transaction with `TestsTransactionIsolationLevel` (default `Serializable`) and a timeout of twice `UnitTestItemTimeout` (default 1 minute). The transaction is rolled back after the assertion, whatever the result. A test or its `setup.test.sql` that runs longer than `UnitTestItemTimeout` fails with `ExecutionTimeoutException` on both providers: `Execution Timeout Expired. The script ran longer than its timeout of 00:01:00.` Each file has its own limit, so the two together may run up to twice `UnitTestItemTimeout`.
 - A test must not end its transaction, and neither may the code it calls: see [Code that rolls back the transaction](#code-that-rolls-back-the-transaction).
 - The [deployment test](deployment-tests.md) and `RunAllTestsAsync()` run all tests in parallel (`NumberOfThreadsForTestsRun`, default 10). Tests that write to the same tables under `Serializable` can deadlock; lower the thread count to 1 or use `ReadCommitted` if that happens.
 

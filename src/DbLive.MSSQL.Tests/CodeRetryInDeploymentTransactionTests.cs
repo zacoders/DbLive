@@ -94,10 +94,13 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
-		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+		ExecutionTimeoutException timeoutEx = await Assert.ThrowsAsync<ExecutionTimeoutException>(
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
 		);
 
+		Assert.Equal("Execution Timeout Expired. The deployment ran longer than its timeout of 00:00:02 (DeploymentTimeout).", timeoutEx.Message);
+		// the error of the file where the time ran out is inside.
+		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
 		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
 		// the script is not interrupted: the write of its row after it cannot enlist in the transaction that timed out.

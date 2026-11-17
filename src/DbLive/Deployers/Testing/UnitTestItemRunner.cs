@@ -25,54 +25,66 @@ internal class UnitTestItemRunner(
 		bool setupFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
+		// setup.test.sql and the test get UnitTestItemTimeout each; their transaction twice that, so that it does not cut the two together.
+		TransactionTimeout transactionTimeout = new(
+			projectSettings.UnitTestItemTimeout * 2,
+			"The transaction of the test",
+			$"twice {nameof(DbLiveSettings.UnitTestItemTimeout)}"
+		);
 		try
 		{
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			);
+			long transactionStarted = Stopwatch.GetTimestamp();
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(testsIsolationLevel, transactionTimeout.Value);
+			using Transaction transaction = Transaction.Current!.Clone();
 
-			if (test.SetupFileData is not null)
+			try
 			{
-				await _da.ExecuteNonQueryAsync(
-					test.SetupFileData.Content,
+				if (test.SetupFileData is not null)
+				{
+					await _da.ExecuteNonQueryAsync(
+						test.SetupFileData.Content,
+						testsIsolationLevel,
+						projectSettings.UnitTestItemTimeout
+					).ConfigureAwait(false);
+					setupFileDeployed = true;
+				}
+
+				List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
+					test.FileData.Content,
 					testsIsolationLevel,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
-				setupFileDeployed = true;
+
+				// on SQL Server the code under test can end the transaction of the test, and the statements after it are committed at once.
+				// Transaction.Current stays Active then, only the server knows. One check after the test covers setup.test.sql too: whatever
+				// runs after the end of the transaction runs in autocommit mode, the test script included. An exception here (a broken
+				// connection, a transaction that timed out) fails the test as well.
+				if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
+				{
+					result.Output = TransactionEndedMessage;
+					result.ErrorMessage = TransactionEndedMessage;
+					return result;
+				}
+
+				ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
+				if (!compareResult.IsValid)
+				{
+					result.Output = compareResult.Output;
+					result.ErrorMessage = compareResult.Output;
+					result.IsSuccess = false;
+				}
+				else
+				{
+					result.IsSuccess = true;
+					result.Output = "Success";
+				}
+
+				_transactionScope.Dispose(); //canceling transaction
 			}
-
-			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
-				test.FileData.Content,
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			).ConfigureAwait(false);
-
-			// on SQL Server the code under test can end the transaction of the test, and the statements after it are committed at once.
-			// Transaction.Current stays Active then, only the server knows. One check after the test covers setup.test.sql too: whatever
-			// runs after the end of the transaction runs in autocommit mode, the test script included. An exception here (a broken
-			// connection, a transaction that timed out) fails the test as well.
-			if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
+			catch (Exception ex) when (transactionTimeout.IsCauseOf(transaction, transactionStarted, ex))
 			{
-				result.Output = TransactionEndedMessage;
-				result.ErrorMessage = TransactionEndedMessage;
-				return result;
+				throw transactionTimeout.Expired(ex);
 			}
-
-			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
-			if (!compareResult.IsValid)
-			{
-				result.Output = compareResult.Output;
-				result.ErrorMessage = compareResult.Output;
-				result.IsSuccess = false;
-			}
-			else
-			{
-				result.IsSuccess = true;
-				result.Output = "Success";
-			}
-
-			_transactionScope.Dispose(); //canceling transaction
 		}
 		catch (Exception ex)
 		{

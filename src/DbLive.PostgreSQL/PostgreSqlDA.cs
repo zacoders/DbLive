@@ -219,7 +219,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 			}
-			catch (NpgsqlException e) when (IsCommandTimeout(e))
+			catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
 			{
 				throw scriptTimeout.Expired(e);
 			}
@@ -234,6 +234,12 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// reading attempt" inside, also when it has cancelled the statement on the server. A connection timeout has a TimeoutException
 	// inside too, so only the command of a script is checked for it.
 	private static bool IsCommandTimeout(NpgsqlException e) => e.InnerException is TimeoutException;
+
+	// when System.Transactions aborts the transaction at its timeout while a command runs, Npgsql cancels the command to roll back, and
+	// the cancelled command has the shape of a command timeout. It is not the timeout of the script then: it stays the error of the
+	// provider, and the scope of DbLive makes it the timeout of the transaction (TransactionTimeout).
+	private static bool IsTransactionAborted() =>
+		System.Transactions.Transaction.Current?.TransactionInformation.Status == System.Transactions.TransactionStatus.Aborted;
 
 	// 'set transaction' outside a transaction block only emits a warning and has no effect.
 	// The session default applies to the implicit transaction of each next command on this connection,
@@ -286,7 +292,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 				return results;
 			}
-			catch (NpgsqlException e) when (IsCommandTimeout(e))
+			catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
 			{
 				throw scriptTimeout.Expired(e);
 			}
@@ -731,7 +737,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// <summary>
 	/// The message of an error of the server, or the distinct messages of the exception chain, one per line.
 	/// Npgsql reports a lost connection as <see cref="NpgsqlException"/> "Exception while reading from stream", and the cause is in its
-	/// inner exception. A command timeout has the same shape, but it becomes <see cref="ExecutionTimeoutException"/>.
+	/// inner exception. A command timeout has the same shape, but it becomes <see cref="ExecutionTimeoutException"/>; the cancel of a
+	/// command when its transaction timed out stays this error.
 	/// </summary>
 	internal static string GetMessage(Exception ex)
 	{

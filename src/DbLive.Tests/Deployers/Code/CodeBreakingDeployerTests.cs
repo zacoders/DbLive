@@ -47,7 +47,7 @@ public class CodeBreakingDeployerTests
 
 		// each script is its own command; no transaction of its own.
 		await mockSet.TransactionRunner.DidNotReceiveWithAnyArgs()
-			.ExecuteWithinTransactionAsync(default, default, default, default!);
+			.ExecuteWithinTransactionAsync(default, default, default!, default!);
 	}
 
 	[Fact]

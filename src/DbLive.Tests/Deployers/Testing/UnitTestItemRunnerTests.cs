@@ -243,6 +243,44 @@ public class UnitTestItemRunnerTests
 	}
 
 	[Fact]
+	public async Task RunTest_TransactionTimedOut_FailsWithTheTimeoutOfTheTransaction()
+	{
+		MockSet mockSet = CreateMockSet();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			UnitTestItemTimeout = TimeSpan.FromMilliseconds(100)
+		});
+		mockSet.DbLiveDA.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(async _ =>
+			{
+				await TransactionRunnerTests.WaitUntilAbortedAsync();
+				return new List<SqlResult>();
+			});
+		// the check after the test opens a connection, which fails in an aborted transaction.
+		TransactionException stepError = new("The operation is not valid for the state of the transaction.");
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(Task.FromException<bool>(stepError));
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "test1",
+			FileData = GetFileData("/test/folder/test1.sql"),
+			SetupFileData = null
+		});
+
+		// the transaction of the test is twice UnitTestItemTimeout: setup.test.sql and the test get UnitTestItemTimeout each.
+		Assert.False(result.IsSuccess);
+		Assert.Equal(
+			"Execution Timeout Expired. The transaction of the test ran longer than its timeout of 00:00:00.2000000 (twice UnitTestItemTimeout).",
+			result.ErrorMessage
+		);
+		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(result.Exception);
+		Assert.Equal(TimeSpan.FromMilliseconds(200), timeoutEx.Timeout);
+		Assert.Same(stepError, timeoutEx.InnerException);
+	}
+
+	[Fact]
 	public async Task RunTest_TestScriptFails_TransactionNotChecked()
 	{
 		MockSet mockSet = CreateMockSet();

@@ -25,7 +25,7 @@ internal class DbLiveDeployer(
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			projectSettings.TransactionWrapLevel == TransactionWrapLevel.Deployment,
 			projectSettings.TransactionIsolationLevel,
-			projectSettings.DeploymentTimeout,
+			new TransactionTimeout(projectSettings.DeploymentTimeout, "The deployment", nameof(DbLiveSettings.DeploymentTimeout)),
 			async () =>
 			{
 				// an older build fails here, before any script of the project runs and before any row of it is written.

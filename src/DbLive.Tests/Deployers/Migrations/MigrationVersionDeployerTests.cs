@@ -167,6 +167,6 @@ public class MigrationVersionDeployerTests
 
 		// the transaction is opened by the item deployer, per item.
 		await mockSet.TransactionRunner.DidNotReceiveWithAnyArgs()
-			.ExecuteWithinTransactionAsync(default, default, default, default!);
+			.ExecuteWithinTransactionAsync(default, default, default!, default!);
 	}
 }

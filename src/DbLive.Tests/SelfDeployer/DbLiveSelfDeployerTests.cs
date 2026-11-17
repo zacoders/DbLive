@@ -141,7 +141,7 @@ public class DbLiveSelfDeployerTests
 		await mockSet.TransactionRunner.Received(1).ExecuteWithinTransactionAsync(
 			true,
 			TranIsolationLevel.Serializable,
-			TimeSpan.FromMinutes(5),
+			new TransactionTimeout(TimeSpan.FromMinutes(5), "The self-deployment of DbLive"),
 			Arg.Any<Func<Task>>()
 		);
 	}
@@ -179,7 +179,7 @@ public class DbLiveSelfDeployerTests
 		// the transaction does not run its body.
 		mockSet.TransactionRunner
 			.Configure()
-			.ExecuteWithinTransactionAsync(default, default, default, default!)
+			.ExecuteWithinTransactionAsync(default, default, default!, default!)
 			.ReturnsForAnyArgs(Task.CompletedTask);
 
 		DbLiveSelfDeployer deployer = mockSet.CreateUsingMocks<DbLiveSelfDeployer>();

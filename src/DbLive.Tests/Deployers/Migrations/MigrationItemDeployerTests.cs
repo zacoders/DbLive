@@ -211,7 +211,7 @@ public class MigrationItemDeployerTests
 			.ExecuteWithinTransactionAsync(
 				true,
 				TranIsolationLevel.Serializable,
-				TimeSpan.FromMinutes(5),
+				new TransactionTimeout(TimeSpan.FromMinutes(5), "The transaction of the migration", "Timeout of the item settings"),
 				Arg.Any<Func<Task>>()
 			);
 
@@ -248,7 +248,7 @@ public class MigrationItemDeployerTests
 			.ExecuteWithinTransactionAsync(
 				false,
 				TranIsolationLevel.RepeatableRead,
-				TimeSpan.FromHours(1),
+				new TransactionTimeout(TimeSpan.FromHours(1), "The transaction of the migration", "Timeout of the item settings"),
 				Arg.Any<Func<Task>>()
 			);
 
@@ -283,7 +283,7 @@ public class MigrationItemDeployerTests
 			.ExecuteWithinTransactionAsync(
 				false,
 				TranIsolationLevel.Serializable,
-				TimeSpan.FromMinutes(20),
+				new TransactionTimeout(TimeSpan.FromMinutes(20), "The transaction of the migration", "MigrationTimeout"),
 				Arg.Any<Func<Task>>()
 			);
 	}
@@ -316,7 +316,7 @@ public class MigrationItemDeployerTests
 			.ExecuteWithinTransactionAsync(
 				false,
 				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
+				Arg.Any<TransactionTimeout>(),
 				Arg.Any<Func<Task>>()
 			);
 

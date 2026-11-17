@@ -34,56 +34,25 @@ internal class MigrationItemDeployer(
 			transactionWrapLevel = TransactionWrapLevel.Deployment;
 		}
 
-		await _transactionRunner.ExecuteWithinTransactionAsync(
-			transactionWrapLevel == TransactionWrapLevel.Migration,
-			isolationLevel,
+		// the transaction of one file: its timeout error goes into the error of the file, as the timeout of the script does.
+		TransactionTimeout transactionTimeout = new(
 			timeout,
-			() => DeployInternalAsync(migrationVersion, migrationItem, transactionWrapLevel, isolationLevel, timeout)
-		).ConfigureAwait(false);
-	}
-
-	private async Task DeployInternalAsync(
-		long migrationVersion,
-		MigrationItem migrationItem,
-		TransactionWrapLevel transactionWrapLevel,
-		TranIsolationLevel isolationLevel,
-		TimeSpan timeout
-	)
-	{
-		DateTime startTimeUtc = _timeProvider.UtcNow();
+			migrationItem.MigrationItemType == MigrationItemType.Breaking ? "The transaction of the breaking script" : "The transaction of the migration",
+			itemSettings.Timeout is null ? nameof(DbLiveSettings.MigrationTimeout) : "Timeout of the item settings"
+		);
 
 		try
 		{
-			_logger.Information(
-				"Deploying {relativePath}. Type {migrationType}. Transaction {transactionWrapLevel}, isolation level {isolationLevel}, timeout {timeout}.",
-				migrationItem.FileData.RelativePath,
-				migrationItem.MigrationItemType,
-				transactionWrapLevel,
+			await _transactionRunner.ExecuteWithinTransactionAsync(
+				transactionWrapLevel == TransactionWrapLevel.Migration,
 				isolationLevel,
-				timeout
-			);
-
-			await _da.ExecuteNonQueryAsync(
-				migrationItem.FileData.Content,
-				isolationLevel,
-				timeout
+				transactionTimeout,
+				() => DeployInternalAsync(migrationVersion, migrationItem, transactionWrapLevel, isolationLevel, timeout)
 			).ConfigureAwait(false);
-
-			DateTime migrationEndTime = _timeProvider.UtcNow();
-			MigrationItemStateDto dto = new()
-			{
-				Version = migrationVersion,
-				ItemType = migrationItem.MigrationItemType,
-				Status = MigrationItemStatus.Applied,
-				AppliedUtc = migrationEndTime,
-				ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
-				ErrorMessage = null
-			};
-			await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false);
 		}
 		catch (DbLiveSqlException ex)
 		{
-			// SqlError is empty for an error that does not come from the server, such as a command timeout.
+			// SqlError is empty for an error that does not come from the server, such as a timeout.
 			string error = ex.GetSqlErrorOrMessage();
 
 			_logger.Error(
@@ -104,5 +73,43 @@ internal class MigrationItemDeployer(
 		{
 			throw new MigrationDeploymentException($"Unexpected error deploying {migrationItem.FileData.RelativePath}. Type {migrationItem.MigrationItemType}.", ex);
 		}
+	}
+
+	private async Task DeployInternalAsync(
+		long migrationVersion,
+		MigrationItem migrationItem,
+		TransactionWrapLevel transactionWrapLevel,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	)
+	{
+		DateTime startTimeUtc = _timeProvider.UtcNow();
+
+		_logger.Information(
+			"Deploying {relativePath}. Type {migrationType}. Transaction {transactionWrapLevel}, isolation level {isolationLevel}, timeout {timeout}.",
+			migrationItem.FileData.RelativePath,
+			migrationItem.MigrationItemType,
+			transactionWrapLevel,
+			isolationLevel,
+			timeout
+		);
+
+		await _da.ExecuteNonQueryAsync(
+			migrationItem.FileData.Content,
+			isolationLevel,
+			timeout
+		).ConfigureAwait(false);
+
+		DateTime migrationEndTime = _timeProvider.UtcNow();
+		MigrationItemStateDto dto = new()
+		{
+			Version = migrationVersion,
+			ItemType = migrationItem.MigrationItemType,
+			Status = MigrationItemStatus.Applied,
+			AppliedUtc = migrationEndTime,
+			ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
+			ErrorMessage = null
+		};
+		await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false);
 	}
 }

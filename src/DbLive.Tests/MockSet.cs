@@ -74,7 +74,7 @@ internal class MockSet
 			.ExecuteWithinTransactionAsync(
 				Arg.Any<bool>(),
 				Arg.Any<TranIsolationLevel>(),
-				Arg.Any<TimeSpan>(),
+				Arg.Any<TransactionTimeout>(),
 				Arg.Any<Func<Task>>()
 			)
 			.Returns(ci => ci.Arg<Func<Task>>()());
