@@ -11,7 +11,7 @@ Work items (features, bugs, stories, chores) live here as Markdown files, one fi
 
 A top-level task takes the number of its GitHub issue, padded to four digits so files sort: `0096-documentation.md` for #96.
 
-A task found while working on another one, or split out of it, takes the parent's number plus its own two-digit number: `0096-04-rows-check-incomplete.md` is the fourth task found during #96. The next one takes the largest such number in `tasks/`, `tasks/done/` and `tasks/rejected/` plus one. Nesting goes deeper the same way: `0096-04-01-...`. Numbers never collide with GitHub issues, because only GitHub hands out top-level numbers.
+A task found while working on another one, or split out of it, takes the parent's number plus its own number, two digits up to 99: `0096-04-rows-check-incomplete.md` is the fourth task found during #96. The next one takes the largest such number in `tasks/`, `tasks/done/` and `tasks/rejected/` plus one; after 99 comes `0096-100-...`. `ls` lists `0096-100` between `0096-10` and `0096-11`, the release notes sort by number. Nesting goes deeper the same way: `0096-04-01-...`. Numbers never collide with GitHub issues, because only GitHub hands out top-level numbers.
 
 The branch for a task is its file name without `.md`: `0096-04-rows-check-incomplete`.
 

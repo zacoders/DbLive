@@ -6,8 +6,11 @@ using System.Text.RegularExpressions;
 /// </summary>
 record ClosedTask(string Path, string Type, bool Breaking, string? Note)
 {
-	/// <summary>The task number: 0096-13 from 0096-13-item-transaction-settings.md.</summary>
-	public string Id => Regex.Match(System.IO.Path.GetFileName(Path), @"^\d{4}(-\d{2})*").Value;
+	/// <summary>The task number: 0096-13 from 0096-13-item-transaction-settings.md, 0096-100 from 0096-100-....md.</summary>
+	public string Id => Regex.Match(System.IO.Path.GetFileName(Path), @"^\d{4}(-\d{2,})*").Value;
+
+	/// <summary>The number with each part padded, so an ordinal sort puts 0096-99 before 0096-100 (and not 0096-100 before 0096-11).</summary>
+	string SortKey => string.Join('-', Id.Split('-').Select(part => part.PadLeft(4, '0')));
 
 	/// <summary>The GitHub issue of the top-level task: #96 for 0096-13.</summary>
 	public string? Issue => Regex.Match(System.IO.Path.GetFileName(Path), @"^\d{4}") is { Success: true } m ? $"#{int.Parse(m.Value)}" : null;
@@ -25,7 +28,7 @@ record ClosedTask(string Path, string Type, bool Breaking, string? Note)
 			.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 			.Where(path => path.EndsWith(".md", StringComparison.Ordinal))
 			.Select(Read)
-			.OrderBy(t => t.Id, StringComparer.Ordinal)
+			.OrderBy(t => t.SortKey, StringComparer.Ordinal)
 			.ThenBy(t => t.Path, StringComparer.Ordinal)
 			.ToList();
 
