@@ -12,17 +12,17 @@ created: 2026-11-16
 - `UnitTestItemTimeout`: the transaction of a test, and also the timeout of `setup.test.sql` and of the test, each on its own;
 - the self-deployment of DbLive (5 minutes; its migrations 30 seconds each).
 
-When this timer runs out, System.Transactions aborts the transaction on its timer thread. It does not interrupt the running command. The error comes from the next step in the scope, in a shape that depends on that step:
-- opening the next connection: `TransactionException` "The operation is not valid for the state of the transaction." with `TimeoutException` "Transaction Timeout" inside (verified for `DeploymentTimeout` in 0096-68);
-- the next batch on the same connection: not verified;
-- the write of a row in the `dblive` tables: not verified;
-- `Complete()` and `Dispose()` of the scope: `TransactionAbortedException` (docs §17; not verified here).
+When this timer runs out, System.Transactions aborts the transaction on its timer thread. On SQL Server the running command is not interrupted, and the error comes from the next step in the scope; on PostgreSQL Npgsql cancels the running command. The shape depends on the provider and on the step (verified 2026-11-17, see "Experiment" in Notes):
+- opening the next connection (the write of a row in the `dblive` tables, the check after a SQL test): `TransactionException` "The operation is not valid for the state of the transaction." with `TimeoutException` "Transaction Timeout" inside (also verified for a code file with `DeploymentTimeout` in 0096-68);
+- the next batch on the same connection, SQL Server: `InvalidOperationException` "The transaction associated with the current connection has completed but has not been disposed. ..." from SqlClient, without a `TimeoutException`;
+- a running command, PostgreSQL: Npgsql cancels it to roll back. The cancelled command has the shape of a command timeout, so DbLive throws `ExecutionTimeoutException` with the timeout of the script, which did not run out: "... its timeout of 12:00:00." after 0.4 s of the script;
+- `Complete()` and `Dispose()` of the scope: `TransactionAbortedException` (docs §10, §17). Not seen in the experiment: the next step always failed first.
 
-The error does not say which timeout ran out, and for a script it is not `ExecutionTimeoutException`. So "a timeout always looks the same" (0096-84) does not hold for these cases.
+The error does not say which timeout ran out. On SQL Server it is not `ExecutionTimeoutException`; on PostgreSQL it is, but it names the wrong timeout, so raising that timeout does not help. So "a timeout always looks the same" (0096-84) does not hold for these cases.
 
-A migration in its own transaction (the default) has both timers at the same value. The scope starts before the script: before the connection opens, the isolation level is set and the first batch starts. So its timer runs out first, also because the command timeout of a batch is rounded up to whole seconds. A script of many short batches can therefore fail with the error of the scope instead of `ExecutionTimeoutException`. A single long statement fails with `ExecutionTimeoutException` (docs §17; to verify).
+A migration in its own transaction (the default) has both timers at the same value, and the scope starts before the script. Still, in the experiment the clock of the script ran out first on both providers, with one long statement and with many short batches: the timer of System.Transactions fires 31 to 667 ms after its timeout. The scope can win only when its timer is late by less than the time between the start of the scope and the first batch; not seen.
 
-Not known: what the batches after the abort do on SQL Server. Does the next batch on the same connection fail, or run in autocommit mode and commit? (`MsSqlDA.IsTransactionUsableAsync` notes that after the server rolled back a transaction, the next commands of the scope run in autocommit mode.) If they commit, a migration that timed out is applied in part while its row is not `applied`, and the next deployment runs it again.
+Nothing of a script stays committed after the abort, on both providers: on SQL Server the next batch fails instead of running in autocommit mode, and every other step opens a new connection, which cannot enlist.
 
 ## Where
 - `src/DbLive/Common/Transactions.cs` (`TransactionRunner`), `src/DbLive/Common/TransactionScopeManager.cs`
@@ -31,25 +31,45 @@ Not known: what the batches after the abort do on SQL Server. Does the next batc
 - `src/DbLive/Deployers/Testing/UnitTestItemRunner.cs` (the scope of a test, with `UnitTestItemTimeout`; the same value for `setup.test.sql` and the test)
 - `src/DbLive/SelfDeployer/DbLiveSelfDeployer.cs`
 - `src/DbLive/Deployers/Code/CodeItemDeployer.cs` (0096-68: the error of a code file when the deployment transaction ends under it)
+- `src/DbLive/Adapter/ScriptTimeout.cs`, `src/DbLive.PostgreSQL/PostgreSqlDA.cs` (`IsCommandTimeout`: the cancel of Npgsql looks like a command timeout)
 
 ## Fix
-Start with the experiment (see Notes), then decide.
+The goal of the maintainer (2026-11-17): a timeout gives one error with one clear message, whichever timer ran out, not a set of different exceptions that are sometimes hard to understand.
+
+The experiment is done (see "Experiment" in Notes). The proposal of 2026-11-16 was written before it; the open questions after the experiment follow it.
 
 Proposal of the agent (2026-11-16), to decide after the experiment: one timer counts the time of an item. A migration and a test are limited by the deadline of DbLive (`ScriptTimeout` of 0096-84), which fails with `ExecutionTimeoutException`. Their scope gets no timeout, or one later than the script as a backstop, so that it does not race with the script. A test gets one deadline for `setup.test.sql` and the test together, not a timeout for each. `DeploymentTimeout` stays a timeout of the transaction, because it also covers the work of DbLive between the scripts; DbLive turns its error into one that names `DeploymentTimeout`.
 
-- [ ] What does each scope throw today when its timer runs out, on both providers? The experiment in Notes.
-- [ ] Does a batch after the abort run in autocommit mode on SQL Server and commit? If it does, it is a bug of its own, more urgent than the shape of the error.
-- [ ] The scope of a migration and of a test: no timeout (the deadline of the script only), or a timeout later than the script, and how much later?
-- [ ] `setup.test.sql` and the test: one deadline for both, or each its own `UnitTestItemTimeout` as now?
-- [ ] `DeploymentTimeout`: which error, and where is it caught? `ExecutionTimeoutException` does not fit: no script ran too long, the deployment did. An exception of its own, or the error of today with a message that names `DeploymentTimeout`?
-- [ ] `breaking: true`? It depends on the answers: the error of a timeout changes, and a test whose `setup.test.sql` and test together run longer than `UnitTestItemTimeout` would fail.
+- [x] What does each scope throw today when its timer runs out, on both providers? The experiment in Notes.
+  - Verified 2026-11-17 for the deployment, a migration with `Migration` and a test: the table in "Experiment" in Notes. The self-deployment is not tested.
+- [x] Does a batch after the abort run in autocommit mode on SQL Server and commit? If it does, it is a bug of its own, more urgent than the shape of the error.
+  - No, verified 2026-11-17: SqlClient refuses the next command on the connection (`InvalidOperationException` above). In no scenario a row of a script stayed committed, and no session kept a transaction.
+- [ ] One error or two? A timeout of a script is `ExecutionTimeoutException`: a `DbLiveSqlException`, its `Timeout` holds the limit. Is a timeout of a transaction (`DeploymentTimeout`, the transaction of a migration or of a test) the same exception, or one of its own?
+  - (a) `ExecutionTimeoutException` for both, and the message says what ran out. One type to catch. But its name and its base `DbLiveSqlException` speak of a script, and when `DeploymentTimeout` runs out no script ran too long, the deployment did.
+  - (b) A new public exception for a timeout of a transaction, for example `TransactionTimeoutException`, with a base shared with `ExecutionTimeoutException`, for example `DbLiveTimeoutException`, so that one `catch` takes every timeout. More public API.
+- [ ] The message. Today: `Execution Timeout Expired. The script ran longer than its timeout of 00:00:30.` Does the message of a timeout name the setting to raise: `DeploymentTimeout`, `UnitTestItemTimeout`, the `Timeout` of a migration or `MigrationTimeout`, `CodeItemTimeout`, `BeforeDeployFolderTimeout`, `AfterDeployFolderTimeout`? For example `Execution Timeout Expired. The deployment ran longer than DeploymentTimeout 00:00:03.` The data access does not know which setting gave a timeout; the deployers and the test runner do.
+- [ ] Where does DbLive tell a timeout of a transaction, and which error is outside?
+  - Proposal of the agent (2026-11-17): where the scope is, in `TransactionRunner` (the deployment, a migration, the self-deployment) and in `UnitTestItemRunner`. When the work in the scope throws, `Complete()` and `Dispose()` included, the transaction of the scope is aborted, and its timeout has passed, DbLive throws the timeout error with the original error inside. One place covers all the shapes of the table in Notes, instead of a check after each step.
+  - Then the order differs from the timeout of a script: with `DeploymentTimeout` the timeout error is outside, and the error that names the file (`MigrationDeploymentException`, `CodeDeploymentAggregateException`) inside; with the timeout of a script the error of the file is outside, and `ExecutionTimeoutException` inside. The same order for both, the error of the file outside, needs the check after each step instead: the data access, the write of each row, the code deployer, `IsTransactionUsableAsync`.
+- [ ] PostgreSQL: Npgsql cancels the running command when the transaction times out, and DbLive turns the cancel into `ExecutionTimeoutException` with the timeout of the script, which did not run out ("... its timeout of 12:00:00." after 0.4 s of the script).
+  - Proposal of the agent (2026-11-17): `PostgreSqlDA` takes a `TimeoutException` for a timeout of the script only when the time of the script has run out (`ScriptTimeout`). Otherwise it stays the error of the provider, and the check of the question above turns it into the timeout of the transaction.
+- [ ] The scope of a migration with `Migration` and of a test: its timeout as now, a timeout later than the script, or none? In the experiment the clock of the script always ran out first: the timer of System.Transactions is 31 to 667 ms late.
+  - (a) As now. With the check of the question above, the rare case where the timer of the scope wins gives the timeout error too, with the same value.
+  - (b) A timeout of the scope later than the timeout of the script, as a backstop: how much later?
+  - (c) No timeout. `TimeSpan.Zero` raises `TransactionManager.MaximumTimeout` of the process to no limit (`EnsureMaximumTimeout`), also for the scopes of the application that runs DbLive.
+- [ ] `setup.test.sql` and the test: one deadline for both, or each its own `UnitTestItemTimeout` as now? Today they share one limit anyway, the timeout of the transaction of the test: a test whose `setup.test.sql` and test together run longer than `UnitTestItemTimeout` fails already (verified, the table in Notes), on SQL Server with an error that says nothing of a timeout.
+  - (a) One deadline: the test gets the time left after `setup.test.sql`, and fails with the timeout of a script.
+  - (b) As now, and the check of the question above turns the error of the transaction into the timeout error with `UnitTestItemTimeout`.
+- [ ] `DeploymentTimeout` does not stop a running statement on SQL Server: in the experiment it ran to its end, 7 s after `DeploymentTimeout`, and only then the deployment failed. On PostgreSQL Npgsql cancels it at once. Stop it on SQL Server too? Then each script gets as its command timeout the smaller of its own time left and the time left of the deployment. The default `DeploymentTimeout` is one day.
+- [ ] The self-deployment (a transaction of 5 minutes, its migrations 30 s each): part of this task? With the check in `TransactionRunner` it gets the same error without code of its own. It was not part of the experiment.
+- [ ] `breaking: true`? With one deadline for `setup.test.sql` and the test no test that passes today fails: such a test fails already (verified). What changes is the type and the text of the error of a transaction timeout: today `TransactionException` or `InvalidOperationException` on SQL Server, and `ExecutionTimeoutException` with the wrong timeout on PostgreSQL. Code that catches these or reads their text needs a change.
 
 ## Docs to update
 - `docs/llms-full.txt` §8.2 (the transaction of a test), §10 (transaction timeouts; "the transaction timeout above is a timer of its own"), §17 (`TransactionAbortedException`; `CodeDeploymentAggregateException` with `DeploymentTimeout`)
 - `docs/project/configuration.md` ("Timeouts")
 
 ## Done when
-- [ ] The shapes of today verified on SQL Server and PostgreSQL: `DeploymentTimeout`, the `Timeout` of a migration with `Migration` (one long statement, many short batches), `UnitTestItemTimeout` (`setup.test.sql` and the test)
+- [x] The shapes of today verified on SQL Server and PostgreSQL: `DeploymentTimeout`, the `Timeout` of a migration with `Migration` (one long statement, many short batches), `UnitTestItemTimeout` (`setup.test.sql` and the test)
 - [ ] The questions above answered by the maintainer
 - [ ] Fixed, with integration tests
 - [ ] Docs updated
@@ -59,3 +79,21 @@ Proposal of the agent (2026-11-16), to decide after the experiment: one timer co
 - Why 0096-84 did not do it: the error comes from the next step, not from one call that DbLive can wrap. The step differs (a connection, a batch, a row in `dblive`, the end of the scope), and so does the shape. The data access does not know which timeout ran out. And the timer of the scope does not interrupt the running command.
 - The experiment: for each scope (the deployment, a migration with `Migration`, a test, the self-deployment) and each provider, run a script of one long statement and a script of many short batches whose sum runs longer than the timeout. Record the exception chain, the step that threw, what stays committed afterwards, and whether the session is left with an open transaction.
 - The integration tests of 0096-84 (`CommandTimeoutTests`) use `"TransactionWrapLevel": "None"` for the migration on purpose: without a transaction only the timeout of the script applies.
+
+### Experiment
+Verified on 2026-11-17 with temporary integration tests (Testcontainers, SQL Server 2025 and PostgreSQL 18, SqlClient 6.1.4, Npgsql 10.0.1; not kept). Every timeout 3 s. The scripts insert rows into a table; after the error the tests read the committed rows, `dblive.migration` and the sessions of the database, at once and 3 and 12 s later. Times from the start of the deployment or of the test.
+
+| Scenario | SQL Server | PostgreSQL |
+| --- | --- | --- |
+| Migration with `Migration`, `Timeout` 3 s, insert + one statement of 10 s | `ExecutionTimeoutException` (inner `SqlException` -2), 3.1 s | `ExecutionTimeoutException` (inner `NpgsqlException` with `TimeoutException`), 3.1 s |
+| Migration with `Migration`, `Timeout` 3 s, 10 × (insert + 0.5 s): `GO` batches on SQL Server, one command on PostgreSQL | `ExecutionTimeoutException` between two batches, without an inner exception, 3.2 s | the same as above, 3.1 s |
+| SQL test, `UnitTestItemTimeout` 3 s: `setup.test.sql` insert + 2 s, the test insert + 2 s (PostgreSQL: 2.5 s and 2.9 s) | the test ran to its end; the check after it (`IsTransactionUsableAsync`, a new connection) failed: `TransactionException` with `TimeoutException` inside, 4.1 s. `ErrorMessage` "The operation is not valid for the state of the transaction." says nothing of a timeout | Npgsql cancelled the test: `ExecutionTimeoutException` "... its timeout of 00:00:03.", 3.4 s |
+| `Deployment`, `DeploymentTimeout` 3 s, migration `Timeout` 60 s, 10 `GO` batches of insert + 0.5 s | the next batch: `MigrationDeploymentException` ← `DbLiveSqlException` ← `InvalidOperationException` "The transaction associated with the current connection has completed but has not been disposed. ...", 3.7 s | — |
+| `Deployment`, `DeploymentTimeout` 3 s, migration `Timeout` 60 s, insert + one statement of 10 s (PostgreSQL: 20 s) | the statement ran to its end, 7 s after `DeploymentTimeout`; the write of its row failed: `MigrationDeploymentException` "Unexpected error deploying ..." ← `TransactionException` ← `TimeoutException`, 10.3 s | Npgsql cancelled the statement: `ExecutionTimeoutException` "... its timeout of 00:01:00.", 3.5 s |
+| `Deployment`, `DeploymentTimeout` 3 s, 5 migrations of insert + 1 s | the write of the row of the 4th migration: as above, 4.2 s | Npgsql cancelled the 4th migration: `ExecutionTimeoutException` "... its timeout of 12:00:00.", 3.5 s |
+
+- What stayed: in every scenario no row of a script was committed, no migration was `applied`, and afterwards no session had an open transaction. On PostgreSQL the session of the cancelled command was `idle in transaction (aborted)` for about 0.5 s, until the retry of Npgsql rolled it back.
+- Npgsql: on the timer thread its resource manager finds the connection busy, logs "Connection in use while trying to rollback, will cancel and retry", cancels the command and rolls back. The process did not fail, no exception was unhandled. The cancelled command throws `NpgsqlException` "Exception while reading from stream" with `TimeoutException` "Timeout during reading attempt", the shape that `PostgreSqlDA.IsCommandTimeout` takes for a command timeout.
+- The timer of System.Transactions: scopes with timeouts of 1, 2, 3, 5 and 10 s, six each, started at random offsets, were aborted 31 to 667 ms after their timeout, whatever the timeout. In a migration the clock of the script starts after the connection is open, a few ms after the scope, so it ran out first in every run.
+- Not tested: the self-deployment (5 minutes, its migrations 30 s each); a code file in the deployment transaction on PostgreSQL (from the shapes above probably `ExecutionTimeoutException` with `CodeItemTimeout`, not the `TransactionException` of 0096-68 and docs §17).
+- The docs differ from it: §10 says the transaction "is aborted with `TransactionAbortedException`", not seen; §8.2 says a test or setup file that runs too long fails with `ExecutionTimeoutException`, but `setup.test.sql` and the test that together run longer than `UnitTestItemTimeout` fail on SQL Server with `TransactionException`.
