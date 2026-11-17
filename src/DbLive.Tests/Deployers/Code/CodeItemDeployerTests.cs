@@ -220,6 +220,43 @@ public class CodeItemDeployerTests
 		mockSet.Logger.Received().Information("Deploying code file: {filePath}", "Code/dbo/GetUser.sql");
 	}
 
+	private const string WithoutTransactionMessage =
+		"Code file {filePath} runs without a transaction of its own: it has DDL that the server does not allow in a transaction (In-Memory OLTP on SQL Server).";
+
+	[Fact]
+	public async Task Code_item_without_a_transaction_of_its_own_is_logged()
+	{
+		// a batch that fails leaves the batches before it applied: the log says why the file is not applied as a whole.
+		MockSet mockSet = new();
+		_ = mockSet.DbLiveDA.RunsCodeItemWithoutTransaction("create type dbo.Ids as table ...").Returns(true);
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res = await deployer.DeployAsync(GetCodeItem(content: "create type dbo.Ids as table ...", relativePath: "Code/dbo/Ids.sql"));
+
+		Assert.True(res.IsSuccess);
+		mockSet.Logger.Received(1).Information(WithoutTransactionMessage, "Code/dbo/Ids.sql");
+	}
+
+	[Fact]
+	public async Task Code_item_in_the_deployment_transaction_is_not_logged_as_without_a_transaction()
+	{
+		// it runs in the deployment transaction, whatever its text.
+		MockSet mockSet = new();
+		_ = mockSet.DbLiveDA.RunsCodeItemWithoutTransaction(Arg.Any<string>()).Returns(true);
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(GetCodeItem());
+		}
+
+		Assert.True(res.IsSuccess);
+		mockSet.Logger.DidNotReceive().Information(WithoutTransactionMessage, Arg.Any<string>());
+	}
+
 	private static CodeItem GetCodeItem(string content = "select * from table", string relativePath = "/path-to/some-code-item.sql")
 	{
 		CodeItem codeItem = new()

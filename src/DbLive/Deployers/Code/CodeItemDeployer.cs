@@ -18,6 +18,15 @@ internal class CodeItemDeployer(
 		{
 			_logger.Information("Deploying code file: {filePath}", codeItem.FileData.RelativePath);
 
+			// it is applied in part when a later batch fails: the log says why the file is not applied as a whole.
+			if (Transaction.Current is null && _da.RunsCodeItemWithoutTransaction(codeItem.FileData.Content))
+			{
+				_logger.Information(
+					"Code file {filePath} runs without a transaction of its own: it has DDL that the server does not allow in a transaction (In-Memory OLTP on SQL Server).",
+					codeItem.FileData.RelativePath
+				);
+			}
+
 			await _da.ExecuteCodeItemAsync(
 				codeItem.FileData.Content,
 				_projectSettings.TransactionIsolationLevel,

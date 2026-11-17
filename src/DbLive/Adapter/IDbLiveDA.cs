@@ -72,7 +72,8 @@ internal interface IDbLiveDA
 	/// On PostgreSQL the error also undoes the statements of the file that ran before it. On SQL Server they stay in the transaction,
 	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction the file runs in a transaction
 	/// of its own, so it is applied as a whole: on SQL Server its batches run between <c>begin transaction</c> and <c>commit</c>,
-	/// on PostgreSQL its one command is one implicit transaction.
+	/// on PostgreSQL its one command is one implicit transaction. Except a file for which <see cref="RunsCodeItemWithoutTransaction"/>
+	/// is true: its batches commit one by one.
 	/// </summary>
 	/// <param name="timeout">The timeout of the whole file, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
@@ -82,6 +83,13 @@ internal interface IDbLiveDA
 		TranIsolationLevel isolationLevel,
 		TimeSpan timeout
 	);
+
+	/// <summary>
+	/// True when <see cref="ExecuteCodeItemAsync"/>, outside a transaction, runs the file without a transaction of its own: the file has
+	/// DDL that the server does not allow in a user transaction. On SQL Server a file with In-Memory OLTP DDL, found by its words
+	/// <c>native_compilation</c> and <c>memory_optimized</c>; on PostgreSQL never. Read from the text only, without a connection.
+	/// </summary>
+	bool RunsCodeItemWithoutTransaction(string sqlStatement);
 
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 

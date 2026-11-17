@@ -5,11 +5,12 @@ using DbLive.Schema;
 using System.Data;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
-internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
+internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 
@@ -24,12 +25,26 @@ internal class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// in the deployment transaction no savepoint: an error that does not roll back the whole transaction leaves it usable, and after one
 	// that does (XACT_ABORT ON, a failed conversion, a deadlock) there is no savepoint to return to.
 	// Outside it the file runs in a transaction of its own: its GO batches would commit one by one, and a batch that fails would leave
-	// the batches before it applied.
+	// the batches before it applied. A file with In-Memory OLTP DDL runs without one, as DbLive 1.5 ran every code file.
 	public Task ExecuteCodeItemAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel,
 		TimeSpan timeout
-	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: Transaction.Current is null);
+	) => ExecuteScriptAsync(
+		sqlStatement,
+		isolationLevel,
+		timeout,
+		ownTransaction: Transaction.Current is null && !RunsCodeItemWithoutTransaction(sqlStatement)
+	);
+
+	// SQL Server does not allow the DDL of natively compiled modules and of memory-optimized objects in a user transaction: Msg 12331
+	// rolls back the whole transaction, so the file could never deploy. The words are matched in the whole text: one in a comment or a
+	// string only takes the transaction away from the file. DDL in dynamic SQL, or a drop that names neither word, still fails.
+	public bool RunsCodeItemWithoutTransaction(string sqlStatement) => InMemoryOltpDdlRegex().IsMatch(sqlStatement);
+
+	// whole words: not is_memory_optimized and uses_native_compilation of the catalog views, not memory_optimized_data of a filegroup.
+	[GeneratedRegex(@"\b(?:native_compilation|memory_optimized)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+	private static partial Regex InMemoryOltpDdlRegex();
 
 	internal const int ErrorColumnLength = 4000;
 	internal const string TruncatedMark = "... [truncated]";
