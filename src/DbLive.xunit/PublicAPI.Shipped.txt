@@ -1,0 +1,17 @@
+#nullable enable
+DbLive.xunit.DbLiveBuilderExtensions
+DbLive.xunit.DbLiveTestFixture
+DbLive.xunit.DbLiveTestFixture.DbLiveTestFixture(DbLive.IDbLiveFixtureBuilder! fixtureBuilder, bool dropDatabaseOnComplete) -> void
+DbLive.xunit.DbLiveTestFixture.DisposeAsync() -> System.Threading.Tasks.Task!
+DbLive.xunit.DbLiveTestFixture.InitializeAsync() -> System.Threading.Tasks.Task!
+DbLive.xunit.DbLiveTestFixture.Tester.get -> DbLive.Testing.IDbLiveTester!
+DbLive.xunit.DeploymentTest
+DbLive.xunit.DeploymentTest.DeployAsync(Xunit.Abstractions.ITestOutputHelper! output) -> System.Threading.Tasks.Task!
+DbLive.xunit.DeploymentTest.DeploymentTest(DbLive.IDbLiveFixtureBuilder! fixtureBuilder, bool dropDatabaseOnComplete) -> void
+DbLive.xunit.SqlDeployFactAttribute
+DbLive.xunit.SqlDeployFactAttribute.SqlDeployFactAttribute() -> void
+DbLive.xunit.SqlFactAttribute
+DbLive.xunit.SqlFactAttribute.SqlFactAttribute() -> void
+DbLive.xunit.SqlFactAttribute.TestFixture.get -> System.Type!
+DbLive.xunit.SqlFactAttribute.TestFixture.set -> void
+static DbLive.xunit.DbLiveBuilderExtensions.LogToXUnitOutput(this DbLive.DbLiveBuilder! builder, Xunit.Abstractions.ITestOutputHelper! output) -> DbLive.DbLiveBuilder!

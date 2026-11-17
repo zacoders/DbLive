@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public interface IStopWatch
+internal interface IStopWatch
 {
 	void Start();
 	void Stop();

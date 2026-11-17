@@ -1,0 +1,55 @@
+# ProjectId
+
+`ProjectId` is a setting in `settings.json` that binds a DbLive project to a target database. It reduces the risk of deploying to the wrong database by blocking deployment when the configured value does not match the value stored in the database. It is optional, but recommended: without it every deployment logs a warning.
+
+## Format
+
+- Unicode string, maximum **128** characters (a longer value fails every deployment with `ProjectIdMismatchException`)
+- Case insensitive
+- Example: `"ProjectId": "my-app"`
+
+Choose a value that uniquely identifies your project, for example `billing-api` or `inventory`. `settings.json` is the same file for every environment, so the value protects against deploying one project into another project's database; it does not distinguish staging from production.
+
+## Configuration
+
+Add `ProjectId` to `settings.json` next to your scripts:
+
+```json
+{
+  "ProjectId": "my-app",
+  "TransactionWrapLevel": "migration"
+}
+```
+
+## Behavior
+
+### ProjectId not set
+
+If `ProjectId` is absent, null, or whitespace, validation is skipped entirely, and every deployment logs a warning:
+
+```
+[WRN] ProjectId is not set in settings.json, so nothing stops this project from being deployed to the database of another project. Set ProjectId in settings.json, for example "ProjectId": "billing-api-db".
+```
+
+The SQL tests (`RunAllTestsAsync()`) do not log it.
+
+### First deploy with ProjectId set
+
+When `ProjectId` is configured and `dblive.version.project_id` is null in the target database, DbLive persists the settings value right after its self-deployment, before any other project deploy steps.
+
+### Subsequent deploys
+
+On every deploy, DbLive compares the settings value with `dblive.version.project_id`. If they differ, deployment is blocked with a `ProjectIdMismatchException`. The check runs first, before DbLive upgrades its own `dblive` tables, so nothing in the other project's database changes.
+
+### Before the SQL tests
+
+[`RunAllTestsAsync()`](../unit-testing/index.md#running-all-tests-without-xunit) only compares, it never stores the value. A database with another value or with none fails with `ProjectIdMismatchException`, and no test runs. A deployment of the project stores the value, so this stops only tests run against a database the project was not deployed to.
+
+## Storage
+
+The value is stored in the `project_id` column on the singleton `dblive.version` table. The column is added automatically during DbLive self-deploy (internal migration). Values are normalized to lowercase on write; comparison is case insensitive.
+
+## See also
+
+- [Database as a Service](../database-as-service.md)
+- [Issue #71](https://github.com/zacoders/DbLive/issues/71)

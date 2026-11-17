@@ -1,5 +1,7 @@
-using DbLive.Deployers.Testing;
-using DbLive.xunit.SqlTest;
+using DbLive.MSSQL;
+using DbLive.Testing;
+using DbLive.xunit;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -8,7 +10,7 @@ namespace AdventureWorks.Tests;
 
 public class MyDbLiveTestingMSSQLFixture()
 	: DbLiveTestFixture(
-		fixtureBuilder: new DockerMsSqlFixtureBuilder(),
+		fixtureBuilder: new MsSqlContainerFixtureBuilder(Assembly.Load("AdventureWorks.Database")),
 		dropDatabaseOnComplete: true
 	  )
 {
@@ -20,7 +22,7 @@ public class DBTests(ITestOutputHelper _output, MyDbLiveTestingMSSQLFixture _fix
 	[SqlFact(TestFixture = typeof(MyDbLiveTestingMSSQLFixture))]
 	public async Task SqlAsync(string testFileRelativePath)
 	{
-		TestRunResult result = await _fixture.Tester!.RunTestAsync(_output.WriteLine, testFileRelativePath);
+		TestRunResult result = await _fixture.Tester.RunTestAsync(_output.WriteLine, testFileRelativePath);
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 }

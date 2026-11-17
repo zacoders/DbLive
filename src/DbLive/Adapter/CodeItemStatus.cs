@@ -1,8 +1,13 @@
 ﻿namespace DbLive.Adapter;
 
-public enum CodeItemStatus
+internal enum CodeItemStatus
 {
 	Error,
 	Skipped,
-	Applied
+	Applied,
+	
+	/// <summary>
+	/// The file is no longer in the project. A file that comes back is executed again.
+	/// </summary>
+	Removed
 }

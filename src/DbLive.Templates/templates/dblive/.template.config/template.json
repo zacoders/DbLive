@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "ZACoders",
+  "classifications": [ "Database", "SQL", "Test" ],
+  "identity": "DbLive.Templates.Solution",
+  "name": "DbLive database project with SQL tests",
+  "shortName": "dblive",
+  "description": "A SQL Server or PostgreSQL database deployed with DbLive: a console app with the scripts and the deployer, and an xUnit project that runs the SQL tests against a database in Docker.",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "preferNameDirectory": true,
+  "symbols": {
+    "provider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "mssql", "description": "SQL Server or Azure SQL (DbLive.MSSQL)" },
+        { "choice": "postgresql", "description": "PostgreSQL (DbLive.PostgreSQL)" }
+      ],
+      "defaultValue": "mssql",
+      "description": "The database engine."
+    },
+    "mssql": {
+      "type": "computed",
+      "value": "(provider == \"mssql\")"
+    },
+    "postgresql": {
+      "type": "computed",
+      "value": "(provider == \"postgresql\")"
+    },
+    "projectName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "identity",
+      "replaces": "MyDb",
+      "fileRename": "MyDb"
+    },
+    "projectNamespace": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "safe_namespace",
+      "replaces": "MyDbNamespace"
+    },
+    "projectId": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerCase",
+      "replaces": "mydb"
+    },
+    "dbLiveVersion": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "0.0.0-placeholder"
+      },
+      "replaces": "DBLIVE_VERSION"
+    },
+    "migrationVersion": {
+      "type": "generated",
+      "generator": "now",
+      "parameters": {
+        "format": "yyyyMMddHHmmss",
+        "utc": true
+      },
+      "replaces": "MIGRATION_VERSION",
+      "fileRename": "MIGRATION_VERSION"
+    }
+  },
+  "sources": [
+    {
+      "exclude": [ "**/[Bb]in/**", "**/[Oo]bj/**", ".template.config/**", "scripts/**" ]
+    },
+    {
+      "condition": "(mssql)",
+      "source": "scripts/mssql/",
+      "target": "./"
+    },
+    {
+      "condition": "(postgresql)",
+      "source": "scripts/postgresql/",
+      "target": "./"
+    }
+  ],
+  "postActions": [
+    {
+      "description": "Next steps.",
+      "manualInstructions": [
+        { "text": "Run the SQL tests: 'dotnet test' in the new folder. Docker must be running. Deploy to a local database: 'dotnet run' in the folder of the SQL project." }
+      ],
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C",
+      "continueOnError": true
+    }
+  ]
+}

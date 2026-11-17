@@ -18,6 +18,22 @@ public static class DbLiveBuilderExtensions
 		});
 	}
 
+	/// <summary>
+	/// Logs to <paramref name="logger"/>, any Serilog logger.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <param name="logger">The logger. The builder does not dispose it.</param>
+	/// <returns>The same builder instance for chaining.</returns>
+	public static DbLiveBuilder LogTo(this DbLiveBuilder builder, ILogger logger)
+	{
+		ArgumentNullException.ThrowIfNull(logger);
+
+		return builder.ConfigureServices(services =>
+		{
+			_ = services.AddSingleton(logger);
+		});
+	}
+
 	public static DbLiveBuilder SetDbConnection(this DbLiveBuilder builder, string sqlDbConnectionString)
 	{
 		return builder.ConfigureServices(services =>
@@ -27,38 +43,50 @@ public static class DbLiveBuilderExtensions
 	}
 
 	/// <summary>
-	/// Configures the base path for SQL scripts using the specified project assembly.
+	/// Reads the scripts embedded in the SQL project assembly: resources named <c>DbLive/&lt;path relative to Scripts&gt;</c>.
 	/// </summary>
 	/// <param name="builder">The builder instance to configure.</param>
-	/// <param name="projectAssembly">The assembly of the SQL Project used to resolve paths. Cannot be null.</param>
-	/// <param name="useVsProjectPath">
-	/// Set to <see langword="true"/> to use the Visual Studio source project directory (best for unit testing); 
-	/// otherwise, <see langword="false"/> to use the build output directory.
-	/// </param>
+	/// <param name="projectAssembly">The assembly of the SQL Project. Cannot be null.</param>
 	/// <returns>The same builder instance for chaining.</returns>
-	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly, bool useVsProjectPath = false)
+	/// <exception cref="ScriptsNotEmbeddedException">The assembly has no embedded scripts.</exception>
+	public static DbLiveBuilder SetProject(this DbLiveBuilder builder, Assembly projectAssembly)
 	{
-		string vsProjectPath = Path.Combine(GetVisualStudioProjectPath(projectAssembly), "Scripts");
-		string outputPath = vsProjectPath;
+		AssemblyScriptSource scriptSource = new(projectAssembly, AssemblyScriptSource.ProjectPrefix);
 
-		if (!useVsProjectPath)
+		// otherwise a forgotten EmbeddedResource item deploys an empty project.
+		if (scriptSource.GetFiles().Count == 0)
 		{
-			outputPath = Path.GetFullPath(projectAssembly.GetName().Name!) + ".Scripts";
+			throw new ScriptsNotEmbeddedException(projectAssembly.GetName().Name ?? projectAssembly.FullName ?? "");
 		}
 
 		return builder.ConfigureServices(services =>
 		{
-			ProjectPath projectPath = new(outputPath, vsProjectPath);
-			_ = services.AddSingleton<IProjectPath>(projectPath);
+			_ = services.AddSingleton<IScriptSource>(scriptSource);
 		});
 	}
 
-	private static string GetVisualStudioProjectPath(Assembly projectAssembly)
+	/// <summary>
+	/// Reads the scripts from a folder.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <param name="scriptsPath">The scripts folder. A relative path is resolved against the current directory.</param>
+	/// <returns>The same builder instance for chaining.</returns>
+	/// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
+	public static DbLiveBuilder SetScriptsFolder(this DbLiveBuilder builder, string scriptsPath)
 	{
-		var attr = projectAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-						   .FirstOrDefault(a => a.Key == "ProjectDir");
+		string fullPath = Path.GetFullPath(scriptsPath);
 
-		return attr?.Value ?? throw new Exception("ProjectDir metadata not found!");
+		if (!Directory.Exists(fullPath))
+		{
+			throw new DirectoryNotFoundException($"Scripts folder '{fullPath}' not found.");
+		}
+
+		FolderScriptSource scriptSource = new(fullPath);
+
+		return builder.ConfigureServices(services =>
+		{
+			_ = services.AddSingleton<IScriptSource>(scriptSource);
+		});
 	}
 }
 

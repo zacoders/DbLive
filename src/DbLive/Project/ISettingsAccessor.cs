@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public interface ISettingsAccessor
+internal interface ISettingsAccessor
 {
 	Task<DbLiveSettings> GetProjectSettingsAsync();
 }

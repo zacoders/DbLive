@@ -6,24 +6,6 @@ namespace DbLive.Tests.Deployers.Testing;
 public class UnitTestsRunnerTests
 {
 	[Fact]
-	public async Task RunTest_Tests_Disabled()
-	{
-		// Arrange
-		MockSet mockSet = new();
-
-		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
-
-		DeployParameters parameters = new() { RunTests = false };
-
-		// Act
-		await runner.RunAllTestsAsync(parameters);
-
-		// Assert
-		await mockSet.DbLiveProject.DidNotReceive().GetTestsAsync();
-	}
-
-
-	[Fact]
 	public async Task RunTest_Simple_Success()
 	{
 		// Arrange
@@ -41,7 +23,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test1.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		mockSet.DbLiveProject.GetTestsAsync().Returns([
@@ -53,10 +35,8 @@ public class UnitTestsRunnerTests
 		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
-		DeployParameters parameters = new() { RunTests = true };
-
 		// Act
-		await runner.RunAllTestsAsync(parameters);
+		await runner.RunAllTestsAsync();
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
@@ -82,7 +62,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test1.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		mockSet.DbLiveProject.GetTestsAsync().Returns([
@@ -94,10 +74,8 @@ public class UnitTestsRunnerTests
 		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
 			.Returns(new TestRunResult() { IsSuccess = true });
 
-		DeployParameters parameters = new() { RunTests = true };
-
 		// Act
-		await runner.RunAllTestsAsync(parameters);
+		await runner.RunAllTestsAsync();
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
@@ -151,7 +129,7 @@ public class UnitTestsRunnerTests
 		{
 			Name = "test2",
 			FileData = GetFileData("/tests/test2.sql"),
-			InitFileData = GetFileData("/tests/init.sql")
+			SetupFileData = GetFileData("/tests/setup.test.sql")
 		};
 
 		TestItem testItem3 = new()
@@ -173,7 +151,12 @@ public class UnitTestsRunnerTests
 				});
 			});
 
-		await Assert.ThrowsAsync<UnitTestsFailedException>(() => runner.RunAllTestsAsync(new DeployParameters { RunTests = true }));
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(runner.RunAllTestsAsync);
+
+		Assert.Equal(1, ex.FailedCount);
+		Assert.Equal(3, ex.TotalCount);
+		Assert.Equal(testItem2.FileData.RelativePath, Assert.Single(ex.FailedTests));
+		Assert.Equal("Unit test run failed. Failed test count 1 of 3.", ex.Message);
 
 		await mockSet.UnitTestItemRunner.Received(3).RunTestAsync(Arg.Any<TestItem>());
 		await mockSet.DbLiveDA.Received(3).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
@@ -210,13 +193,51 @@ public class UnitTestsRunnerTests
 			);
 	}
 
+	[Fact]
+	public async Task RunTest_Failed_Test_Keeps_The_Real_Casing_Of_Its_Path()
+	{
+		MockSet mockSet = new();
+
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+
+		// the database stores the path in lower case, the exception shows the path of the file.
+		TestItem testItem = new()
+		{
+			Name = "Select-Order.sql",
+			FileData = GetFileData("Tests/Orders/Select-Order.sql")
+		};
+
+		mockSet.DbLiveProject.GetTestsAsync().Returns([testItem]);
+
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
+			.Returns(new TestRunResult { IsSuccess = false, ErrorMessage = "failed" });
+
+		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(runner.RunAllTestsAsync);
+
+		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
+		await mockSet.DbLiveDA.Received()
+			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto => dto.RelativePath == "Tests/Orders/Select-Order.sql"));
+	}
+
+	[Fact]
+	public async Task RunTest_Logs_Under_Its_Own_Context()
+	{
+		MockSet mockSet = new();
+
+		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
+
+		await runner.RunAllTestsAsync();
+
+		_ = mockSet.Logger.Received().ForContext(typeof(UnitTestsRunner));
+		_ = mockSet.Logger.DidNotReceive().ForContext(typeof(UnitTestItemRunner));
+	}
+
 	private static FileData GetFileData(string relativePath)
 	{
 		return new FileData
 		{
 			Content = $"-- unit test mock content {Guid.NewGuid()}",
-			RelativePath = relativePath,
-			FilePath = "c:/data" + relativePath
+			RelativePath = relativePath
 		};
 	}
 }

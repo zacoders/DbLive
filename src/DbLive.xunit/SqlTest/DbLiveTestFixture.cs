@@ -1,9 +1,10 @@
 ﻿using DbLive.Adapter;
 using DbLive.Project;
 using DbLive.Testing;
+using System.Reflection;
 using Xunit;
 
-namespace DbLive.xunit.SqlTest;
+namespace DbLive.xunit;
 
 public class DbLiveTestFixture(
 		IDbLiveFixtureBuilder fixtureBuilder,
@@ -13,15 +14,30 @@ public class DbLiveTestFixture(
 {
 	private IDbLive? _deployer;
 	private DbLiveBuilder? _builder;
+	private IDbLiveTester? _tester;
 
-	public IDbLiveTester? Tester { get; private set; }
+	/// <summary>
+	/// The tester of the database that <see cref="InitializeAsync"/> deployed. xUnit initializes the fixture before the tests of the class.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">Read before <see cref="InitializeAsync"/>.</exception>
+	public IDbLiveTester Tester => _tester
+		?? throw new InvalidOperationException("The fixture is not initialized: xUnit calls InitializeAsync before the tests of the class that has it as IClassFixture.");
 
-	public IDbLiveProject GetProject()
+	/// <summary>
+	/// The SQL tests of the project, for discovery. The builder lives only for this read.
+	/// </summary>
+	internal async Task<IReadOnlyCollection<TestItem>> GetTestsAsync()
 	{
-		DbLiveBuilder builder = new DbLiveBuilder()
-			.SetProject(fixtureBuilder.GetProjectAssembly());
-		return builder.CreateProject();
+		using DbLiveBuilder builder = new();
+
+		return await builder
+			.SetProject(GetProjectAssembly())
+			.CreateProject()
+			.GetTestsAsync()
+			.ConfigureAwait(false);
 	}
+
+	internal Assembly GetProjectAssembly() => fixtureBuilder.GetProjectAssembly();
 
 	public async Task InitializeAsync()
 	{
@@ -29,24 +45,35 @@ public class DbLiveTestFixture(
 
 		_deployer = _builder.CreateDeployer();
 
-		Tester = _builder.CreateTester();
+		_tester = _builder.CreateTester();
 
 		await _deployer!.DeployAsync(new DeployParameters
 		{
 			CreateDbIfNotExists = true,
 			DeployBreaking = true,
 			DeployCode = true,
-			DeployMigrations = true,
-			RunTests = false // do not need to run tests, they will be run in VS UI.
+			DeployMigrations = true
 		}).ConfigureAwait(false);
 	}
 
 	public async Task DisposeAsync()
 	{
-		if (dropDatabaseOnComplete && _builder is not null)
+		if (_builder is null)
 		{
-			IDbLiveDA da = _builder.CreateDbLiveDA();
-			await da.DropDbAsync().ConfigureAwait(false);
+			return;
+		}
+
+		try
+		{
+			if (dropDatabaseOnComplete)
+			{
+				IDbLiveDA da = _builder.GetRequiredService<IDbLiveDA>();
+				await da.DropDbAsync().ConfigureAwait(false);
+			}
+		}
+		finally
+		{
+			await _builder.DisposeAsync().ConfigureAwait(false);
 		}
 	}
 }

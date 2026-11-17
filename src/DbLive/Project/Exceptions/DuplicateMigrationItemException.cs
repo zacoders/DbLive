@@ -1,10 +1,16 @@
-﻿namespace DbLive.Project.Exceptions;
+﻿namespace DbLive;
 
 
 [ExcludeFromCodeCoverage]
-public class DuplicateMigrationItemException(long migrationVersion, MigrationItemType migrationItemType)
-	: Exception($"Migration item already defined, check sql migrations in the project. MigrationVersion='{migrationVersion}', MigrationItemType={migrationItemType}.")
+public sealed class DuplicateMigrationItemException : Exception
 {
-	internal long MigrationVersion { get; private set; } = migrationVersion;
-	internal MigrationItemType MigrationItemType { get; private set; } = migrationItemType;
+	internal DuplicateMigrationItemException(long migrationVersion, MigrationItemType migrationItemType)
+		: base($"Migration item already defined, check sql migrations in the project. MigrationVersion='{migrationVersion}', MigrationItemType={migrationItemType}.")
+	{
+		MigrationVersion = migrationVersion;
+		MigrationItemType = migrationItemType;
+	}
+
+	internal long MigrationVersion { get; private set; }
+	internal MigrationItemType MigrationItemType { get; private set; }
 }

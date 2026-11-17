@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Project;
 
-public enum ProjectFolder
+internal enum ProjectFolder
 {
 	BeforeDeploy,
 	AfterDeploy

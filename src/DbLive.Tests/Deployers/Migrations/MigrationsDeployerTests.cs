@@ -16,21 +16,22 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(3),
 				NewMigration(4)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync()
 			.Returns([1L, 2L]);
 
-		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync()).ToArray();
+		Migration[] migrations = (await deploy.GetMigrationsToApplyAsync(project)).ToArray();
 
 		Assert.Equal(2, migrations.Length);
 		Assert.Equal(3, migrations[0].Version);
@@ -46,13 +47,14 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(3)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
@@ -60,11 +62,11 @@ public class MigrationsDeployerTests
 		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		await mockSet.MigrationVersionDeployer.Received(3)
-			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployAsync(Arg.Any<Migration>());
 	}
 
 
@@ -76,7 +78,7 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync().Returns([]);
+		ProjectSnapshot project = ProjectSnapshots.Empty;
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
@@ -84,12 +86,12 @@ public class MigrationsDeployerTests
 		DeployParameters deployParams = DeployParameters.Default;
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		mockSet.Logger.Received(1).Information("No migrations to apply.");
 		await mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployAsync(Arg.Any<Migration>());
 	}
 
 
@@ -101,200 +103,32 @@ public class MigrationsDeployerTests
 
 		MigrationsDeployer deploy = mockSet.CreateUsingMocks<MigrationsDeployer>();
 
-		mockSet.DbLiveProject.GetMigrationsAsync()
-			.Returns(
-			[
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			Migrations = [
 				NewMigration(1),
 				NewMigration(2),
 				NewMigration(2),
 				NewMigration(3)
-			]);
+			]
+		};
 
 		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-		mockSet.DbLiveDA.GetDbLiveVersionAsync().Returns(1);
+		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
 
-		DeployParameters deployParams = DeployParameters.Default;
-		deployParams.DeployMigrations = false;
+		DeployParameters deployParams = DeployParameters.Default with { DeployMigrations = false };
 
 		// Act
-		await deploy.DeployAsync(deployParams);
+		await deploy.DeployAsync(project, deployParams);
 
 		// Assert
 		await mockSet.MigrationVersionDeployer.DidNotReceive()
-			.DeployAsync(Arg.Any<Migration>(), Arg.Any<DeployParameters>());
+			.DeployAsync(Arg.Any<Migration>());
 	}
 
 
 	[Fact]
-	public async Task DeployInternal_throws_when_migration_item_is_missing()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		var migration = new Migration
-		{
-			Version = 1,
-			Items = []
-		};
-
-		// Act
-		Task act() => deployer.DeployInternalAsync(migration, DeployParameters.Default);
-
-		// Assert
-		await Assert.ThrowsAsync<InternalException>(act);
-	}
-
-	[Fact]
-	public async Task DeployInternal_migration_undo_migration()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = GetFileData("002.migration.sql", "-- content")
-		};
-
-		MigrationItem undoItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = GetFileData("002.undo.sql", "-- content")
-		};
-
-		var migration = new Migration
-		{
-			Version = 2,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
-			{
-				[MigrationItemType.Migration] = migrationItem,
-				[MigrationItemType.Undo] = undoItem
-			}
-		};
-
-		DeployParameters parameters = DeployParameters.Default with
-		{
-			UndoTestDeployment = UndoTestMode.MigrationUndoMigration
-		};
-
-		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 1, 1));
-
-		// Act
-		await deployer.DeployInternalAsync(migration, parameters);
-
-		// Assert
-		Received.InOrder(() =>
-		{
-			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
-			mockSet.MigrationItemDeployer.DeployAsync(2, undoItem);
-			mockSet.MigrationItemDeployer.DeployAsync(2, migrationItem);
-		});
-	}
-
-	[Fact]
-	public async Task DeployInternal_migration_breaking_undo_migration()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = GetFileData("003.migration.sql", "-- content")
-		};
-
-		MigrationItem breakingItem = new()
-		{
-			MigrationItemType = MigrationItemType.Breaking,
-			FileData = GetFileData("003.breaking.sql", "-- content")
-		};
-
-		MigrationItem undoItem = new()
-		{
-			MigrationItemType = MigrationItemType.Undo,
-			FileData = GetFileData("003.undo.sql", "-- content")
-		};
-
-		var migration = new Migration
-		{
-			Version = 3,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
-			{
-				[MigrationItemType.Migration] = migrationItem,
-				[MigrationItemType.Breaking] = breakingItem,
-				[MigrationItemType.Undo] = undoItem
-			}
-		};
-
-		DeployParameters parameters = DeployParameters.Default with
-		{
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
-		};
-
-		// Act
-		await deployer.DeployInternalAsync(migration, parameters);
-
-		// Assert
-		Received.InOrder(() =>
-		{
-			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem);
-			mockSet.MigrationItemDeployer.DeployAsync(3, breakingItem);
-			mockSet.MigrationItemDeployer.DeployAsync(3, undoItem);
-			mockSet.MigrationItemDeployer.DeployAsync(3, migrationItem);
-		});
-	}
-
-	[Fact]
-	public async Task DeployInternal_breaking_mode_without_breaking_item()
-	{
-		// Arrange
-		MockSet mockSet = new();
-		MigrationVersionDeployer deployer = mockSet.CreateUsingMocks<MigrationVersionDeployer>();
-
-		MigrationItem migrationItem = new()
-		{
-			MigrationItemType = MigrationItemType.Migration,
-			FileData = GetFileData("004.migration.sql", "-- content")
-		};
-
-		MigrationItem undoItem = new()
-		{
-			MigrationItemType = MigrationItemType.Undo,
-			FileData = GetFileData("004.undo.sql", "-- content")
-		};
-
-		var migration = new Migration
-		{
-			Version = 4,
-			Items = new Dictionary<MigrationItemType, MigrationItem>
-			{
-				[MigrationItemType.Migration] = migrationItem,
-				[MigrationItemType.Undo] = undoItem
-			}
-		};
-
-		DeployParameters parameters = DeployParameters.Default with
-		{
-			UndoTestDeployment = UndoTestMode.MigrationBreakingUndoMigration
-		};
-
-		// Act
-		await deployer.DeployInternalAsync(migration, parameters);
-
-		// Assert
-		Received.InOrder(() =>
-		{
-			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem);
-			mockSet.MigrationItemDeployer.DeployAsync(4, undoItem);
-			mockSet.MigrationItemDeployer.DeployAsync(4, migrationItem);
-		});
-	}
-
-	[Fact]
-	public async Task DeployInternal_saves_migration_item()
+	public async Task DeployVersion_saves_migration_item()
 	{
 		// Arrange
 		MockSet mockSet = new();
@@ -316,11 +150,11 @@ public class MigrationsDeployerTests
 		};
 
 		// Act
-		await deployer.DeployInternalAsync(migration, DeployParameters.Default);
+		await deployer.DeployAsync(migration);
 
 		// Assert
 		await mockSet.MigrationItemDeployer.Received(1)
-			.DeployAsync(5, migrationItem);
+			.DeployAsync(5, migrationItem, new MigrationItemSettings());
 	}
 
 
@@ -329,8 +163,7 @@ public class MigrationsDeployerTests
 		return new FileData
 		{
 			Content = content,
-			RelativePath = relativePath,
-			FilePath = "c:/db/migrations" + relativePath
+			RelativePath = relativePath
 		};
 	}
 }

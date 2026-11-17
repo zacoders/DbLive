@@ -1,7 +1,7 @@
 ﻿namespace DbLive.Adapter;
 
 [ExcludeFromCodeCoverage]
-public class UnitTestItemDto
+internal class UnitTestItemDto
 {
 	public required string RelativePath { get; init; }
 	public required long ContentHash { get; init; }

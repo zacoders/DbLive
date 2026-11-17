@@ -1,7 +1,10 @@
-﻿namespace DbLive.Deployers.Code;
+﻿namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public class CodeDeploymentException(string errorMessage, Exception innerException)
-	: Exception(errorMessage, innerException)
+public sealed class CodeDeploymentException : Exception
 {
+	internal CodeDeploymentException(string errorMessage, Exception innerException)
+		: base(errorMessage, innerException)
+	{
+	}
 }

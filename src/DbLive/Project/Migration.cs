@@ -1,7 +1,7 @@
 ﻿namespace DbLive.Project;
 
 [ExcludeFromCodeCoverage]
-public record Migration
+internal record Migration
 {
 	public required long Version { get; set; }
 	public required Dictionary<MigrationItemType, MigrationItem> Items { get; set; }

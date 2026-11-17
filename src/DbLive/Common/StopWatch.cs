@@ -1,7 +1,7 @@
 ﻿
 namespace DbLive.Common;
 
-public class StopWatch : IStopWatch
+internal class StopWatch : IStopWatch
 {
 	private readonly Stopwatch _stopWatch = new();
 

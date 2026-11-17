@@ -11,8 +11,10 @@ public class DeploySqlIntegrationFullRepeatTests(SqlServerIntegrationFixture _fi
 	public async Task DeployProject_Full_And_Repeat()
 	{
 		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveTester.RunAllTestsAsync();
 
 		//repeat, so code should be deployed again
 		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
+		await DbLiveTester.RunAllTestsAsync();
 	}
 }

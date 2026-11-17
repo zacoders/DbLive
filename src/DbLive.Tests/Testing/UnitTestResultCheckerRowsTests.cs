@@ -146,4 +146,270 @@ public class UnitTestResultCheckerRowsTests
 		// Assert
 		Assert.True(validationResult.IsValid);
 	}
+
+	[Fact]
+	public void Rows_SameRowCount_Match()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1), new SqlRow(2), new SqlRow(3)]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1), new SqlRow(2), new SqlRow(3)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		// Assert
+		Assert.True(validationResult.IsValid);
+	}
+
+	[Fact]
+	public void Rows_MoreActualRows_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1), new SqlRow(2), new SqlRow(3)]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			Expected 1 row(s), but 3 received.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Fact]
+	public void Rows_FewerActualRows_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1), new SqlRow(2)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			Expected 2 row(s), but 1 received.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Fact]
+	public void Rows_MoreActualResultSets_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult1 = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+		SqlResult mainResult2 = new(
+			sqlColumns: [new SqlColumn("Name", "nvarchar(10)")],
+			resultRows: [new SqlRow("extra")]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult(
+			[mainResult1, mainResult2, RowsAssertMark(), expectedResult]
+		);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			Expected 1 result set(s), but 2 received.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Fact]
+	public void Rows_FewerActualResultSets_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		SqlResult expectedResult1 = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+		SqlResult expectedResult2 = new(
+			sqlColumns: [new SqlColumn("Name", "nvarchar(10)")],
+			resultRows: [new SqlRow("second")]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult(
+			[mainResult, RowsAssertMark(), expectedResult1, expectedResult2]
+		);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			Expected 2 result set(s), but 1 received.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Fact]
+	public void Rows_NoExpectedResultSet_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark()]);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			No expected result set after the 'assert' result set.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Fact]
+	public void Rows_MultipleResultSets_SecondDoesNotMatch_Fail()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult1 = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+		SqlResult mainResult2 = new(
+			sqlColumns: [new SqlColumn("Name", "nvarchar(10)")],
+			resultRows: [new SqlRow("a"), new SqlRow("b")]
+		);
+
+		SqlResult expectedResult1 = new(
+			sqlColumns: [new SqlColumn("Id", "int")],
+			resultRows: [new SqlRow(1)]
+		);
+		SqlResult expectedResult2 = new(
+			sqlColumns: [new SqlColumn("Name", "nvarchar(10)")],
+			resultRows: [new SqlRow("a")]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult(
+			[mainResult1, mainResult2, RowsAssertMark(), expectedResult1, expectedResult2]
+		);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.Equal(
+			"""
+			Result set 2:
+			Expected 1 row(s), but 2 received.
+			"""
+			, validationResult.Output
+		);
+	}
+
+	[Theory]
+	[InlineData(double.NaN)]
+	[InlineData(double.PositiveInfinity)]
+	[InlineData(double.NegativeInfinity)]
+	public void Rows_NaN_and_infinity_equal_themselves(double value)
+	{
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision"), new SqlColumn("F", "real"), new SqlColumn("A", "double precision[]")],
+			resultRows: [new SqlRow(value, (float)value, new[] { value, 1 })]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision"), new SqlColumn("F", "real"), new SqlColumn("A", "double precision[]")],
+			resultRows: [new SqlRow(value, (float)value, new[] { value, 1 })]
+		);
+
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		Assert.True(validationResult.IsValid, validationResult.Output);
+	}
+
+	[Theory]
+	[InlineData(double.NaN, double.PositiveInfinity)]
+	[InlineData(double.PositiveInfinity, double.NegativeInfinity)]
+	[InlineData(double.NaN, 0d)]
+	public void Rows_NaN_and_infinity_differ_from_other_values(double actual, double expected)
+	{
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision")],
+			resultRows: [new SqlRow(actual)]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn("V", "double precision")],
+			resultRows: [new SqlRow(expected)]
+		);
+
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, RowsAssertMark(), expectedResult]);
+
+		Assert.False(validationResult.IsValid);
+	}
+
+	private static SqlResult RowsAssertMark() => new(
+		sqlColumns: [new SqlColumn("assert", "...")],
+		resultRows: [new SqlRow("rows")]
+	);
 }

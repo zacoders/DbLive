@@ -1,6 +1,6 @@
-﻿namespace DbLive.Deployers.Code;
+namespace DbLive.Deployers.Code;
 
-public interface ICodeDeployer
+internal interface ICodeDeployer
 {
-	Task DeployAsync(DeployParameters parameters);
+	Task DeployAsync(ProjectSnapshot project, DeployParameters parameters);
 }

@@ -1,0 +1,135 @@
+---
+type: chore
+priority: low
+created: 2026-11-09
+closed: 2026-11-14
+breaking: true
+---
+# Public types of `DbLive` that are not part of the API
+
+## Release note
+**The public API is what a user needs, in two namespaces of `DbLive`, and everything else is internal.**
+
+To upgrade:
+
+- Change the usings. The exceptions are in `DbLive` now: remove `using DbLive.Adapter;`, `DbLive.Common`, `DbLive.Project`, `DbLive.Project.Exceptions`, `DbLive.Deployers.Code`, `DbLive.Deployers.Folder`, `DbLive.Deployers.Migrations` and `DbLive.SelfDeployer`. `TestRunResult` and `UnitTestsFailedException` are in `DbLive.Testing`: replace `using DbLive.Deployers.Testing;` with `using DbLive.Testing;`. `DbLiveTestFixture`, `DeploymentTest`, `[SqlFact]` and `[SqlDeployFact]` are in `DbLive.xunit`: replace `using DbLive.xunit.SqlTest;` and `using DbLive.xunit.Deploy;` with `using DbLive.xunit;`.
+- `DbLiveBuilder.ConfigureServices` is internal. A custom Serilog logger: `builder.LogTo(myLogger)` instead of `builder.ConfigureServices(s => s.AddSingleton<Serilog.ILogger>(myLogger))`.
+- `DbLiveBuilder.CreateProject()` and the models it returned (`Migration`, `CodeGroup`, `TestItem`, `FileData` and the others) are internal, with no replacement.
+- The types DbLive returns or throws cannot be created or changed by the caller: the constructors of the exceptions and `TestRunResult`, and the setters of `TestRunResult` and `DbLiveSqlException.SqlError`, are internal. `TestRunResult.StartedUtc` and `CompletedUtc` are internal. The exceptions, `DeployParameters`, `TestRunResult` and `SqlFactAttribute` are sealed.
+- The types the documentation does not describe are internal: the deployers of single scripts, the test runners, the classes behind the dependency injection, the helpers, the data access classes of the providers (`MsSqlDA`, `PostgreSqlDA`) and their DTOs.
+
+## Problem
+`DbLive` had 136 public types when this task was written, 120 after 0096-65 made the phases internal (counted in `PublicAPI.Shipped.txt`), 33 of them exceptions. Most of the others are named nowhere in `docs/llms-full.txt` and used by no other project of `src` but the tests (verified with grep):
+
+- the item deployers: `CodeItemDeployer`, `MigrationVersionDeployer`, `MigrationItemDeployer`;
+- the test runners: `UnitTestsRunner`, `UnitTestItemRunner`, `AssertInfo`, `AssertType`, `ValidationResult`;
+- the classes behind the dependency injection: `ITransactionRunner`, `TransactionScopeManager`, `ISettingsAccessor`, `ITimeProvider`, `IStopWatch`, `IDbLiveSelfDeployer`, `IProjectIdValidator`, `IMigrationVersionValidator`, `ITransactionSettingsValidator`;
+- helpers: `StringExtensions`, `ListExtensions`, `HashExtensions`, `ExceptionExtensions`;
+- `IInternalDbLiveProject` and `InternalMigration`, internal by name.
+
+More are not documented and are used by the provider packages or `DbLive.xunit` (the DTOs of `IDbLiveDA`, `IDbLiveDbConnection`, `IInternalScriptSource`, `Bootstrapper`). Those packages see the internals of `DbLive` through `InternalsVisibleTo`, so they do not need them public. The provider packages have the same kind: `MsSqlDA`, `PostgreSqlDA` and their `Bootstrapper`.
+
+The types are public because a public class cannot take an internal type in its constructor: once a class of the graph is public, its dependencies must be public too. Not by design. The graph starts at `DbLiveTester` and `DbLiveProject`: public classes, not documented (their interfaces are), whose constructors take `ISettingsAccessor`, `IUnitTestsRunner`, `IProjectIdValidator` and the others. `docs/versioning.md` says that such types may change in any version, so they do not hold back a change. But they show in IntelliSense next to the API, `ConfigureServices` can replace them, and a user who relies on one breaks without warning.
+
+0096-65 makes the phases of the deployment internal (decided 2026-11-09); this task does the rest.
+
+## Where
+- All public types of `src/DbLive/`; the same check for `src/DbLive.MSSQL/`, `src/DbLive.PostgreSQL/`, `src/DbLive.xunit/` and the Testcontainers packages
+- `src/DbLive.Tests.Common/InMemoryScriptSource.cs`: implements `IInternalScriptSource`, and `DbLive` does not show its internals to `DbLive.Tests.Common`. Only `DbLive.Tests` uses it (verified with grep), so it moves there, as `MockSet` did in 0096-65.
+- `docs/versioning.md` (the last paragraph)
+
+## Fix
+Make a public type internal unless it is:
+
+- described in the docs: Section 11 of `docs/llms-full.txt`, the exceptions of Section 17, what `docs/versioning.md` covers;
+- in the signature of such a type: the models `IDbLiveProject` returns (`Migration`, `CodeGroup`, `GenericItem`, `TestItem`, `FileData`), the types of the members of `IDbLiveDA` that Section 11.4 lists.
+
+The compiler finds the second group: a public member with an internal type does not compile.
+
+### `IDbLiveDA`
+It stays public: `DbLiveBuilder.CreateDbLiveDA()` returns it, and Section 11.4 lists 7 of its members (`Provider`, `CreateDBAsync`, `CheckDatabaseExistsAsync`, `DropDbAsync`, `ExecuteNonQueryAsync`, `ExecuteQueryMultipleAsync`, `GetSchemaSnapshotAsync`). Its other members read and write the `dblive` tables (`GetMigrationsAsync`, `SaveCodeItemAsync`, `GetSelfMigrationVersionAsync`, `SetProjectIdAsync`, `IsTransactionUsableAsync`, `ExecuteCodeItemAsync`, ...), and their DTOs are public only because the interface is. A provider outside this repository is not supported (decided 2026-11-09), so these members move to an internal interface that `MsSqlDA` and `PostgreSqlDA` implement too, and the DTOs become internal. `IDbLiveDA` keeps the members of Section 11.4.
+
+### Tracking of the public API
+`Microsoft.CodeAnalysis.PublicApiAnalyzers` in the six packages with a C# API: `DbLive`, `DbLive.MSSQL`, `DbLive.PostgreSQL`, `DbLive.xunit`, `DbLive.Testcontainers.MSSQL`, `DbLive.Testcontainers.PostgreSQL`. A reference with `PrivateAssets="all"`, so the analyzer does not flow to the users of the packages. Each project has `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`, both starting with `#nullable enable`, so a change of a nullable annotation counts too. No code depends on the target framework (no `#if NET...` in `src`), so one pair of files serves net8.0, net9.0 and net10.0.
+
+`TreatWarningsAsErrors` (`src/Directory.Build.props`) makes the diagnostics build errors: RS0016, a public symbol not in the files; RS0017, a symbol of the files that is gone. A change of the public API does not build until the files say it, and the files are in the pull request.
+
+The rules for the two files (changed 2026-11-14, see "The files and the check" below; the first ones were: `Shipped` is the API of the last major version, `Unshipped` what changed since, moved to `Shipped` by hand in a major release):
+
+- `Shipped`: the public API on `main`, the API of the latest release, because every merge to `main` is a release. `Unshipped`: the draft of a branch, where the code fix of RS0016 writes; empty on `main`.
+- A pull request moves its `Unshipped` to `Shipped` before the merge, with `dotnet run .github/scripts/public-api.cs`.
+- A symbol removed from `Shipped`, or changed, is a breaking change: a major version only, the title of the pull request starts with `BREAKING CHANGE:`.
+
+### The files and the check
+Decided 2026-11-14: the first rules needed a move by hand once per major version, which is easy to forget, and missed a break: a symbol added in a minor version stayed in `Unshipped`, and deleting its line was not marked as a removal. So `Shipped` is the API on `main`, a script does the move, and `release-notes.cs` checks both in the PR check and on `main` before the release: a `PublicAPI.Unshipped.txt` with lines fails it, and so does a line of a `PublicAPI.Shipped.txt` of the previous release that is gone when the version is not major.
+
+The analyzer comes first, with the public API as it is now in `Shipped`: the commit that makes the types internal then shows in `Shipped` what left the API.
+
+RS0026 and RS0027 (overloads with optional parameters) may fire on the existing API (not checked): fix the overloads or turn the rules off in `.editorconfig`, and say which under Notes. They do not: see Notes.
+
+### Members, the builder and the namespaces
+Decided 2026-11-14, after the review of what stayed public: what a user does not need is not public, also when the docs named it. So:
+
+- members: a type that DbLive creates and the user only receives (an exception, a result) has internal constructors and setters; a public class that the user does not derive from is sealed;
+- `DbLiveBuilder.CreateProject()`, `IDbLiveProject` and its models are internal: only `DbLive.xunit` reads the project, and it sees the internals;
+- `DbLiveBuilder.ConfigureServices` is internal: the two uses the docs name get methods of their own, `LogTo(ILogger)` and `SetScriptSource(IScriptSource)`;
+- the namespaces: the public types of `DbLive` are in `DbLive`, `DbLive.Testing` (the SQL tests) and `DbLive.Schema` (the schema check), those of `DbLive.xunit` in `DbLive.xunit`.
+
+These remove and move documented API: the task is `breaking: true`.
+
+### Open questions
+- [x] Is a provider written outside this repository a supported case? Decided 2026-11-09: not at this stage. See `IDbLiveDA` above.
+- [x] A test of the public API, so that a new public type shows in the review? Decided 2026-11-09: yes, with `PublicApiAnalyzers` instead of a test, see Tracking of the public API and Notes.
+- [x] The project models, `ConfigureServices` and the namespaces of the public types: keep them as they are? Decided 2026-11-14: no, see Members, the builder and the namespaces.
+
+## Docs to update
+- `docs/versioning.md` (the last paragraph: which public types the policy does not cover; a provider outside this repository is not supported)
+- `docs/llms-full.txt` §8.2 and §17 (namespaces), §11 (the namespaces; 11.1 without `ConfigureServices` and `CreateProject`, with `LogTo` and `SetScriptSource`; 11.4: `IDbLiveDA` has all its members, not "selected members"), §13 (usings)
+- `docs/deployment/index.md` (logging: `LogTo`), `docs/unit-testing/index.md` and `docs/unit-testing/deployment-tests.md` (usings), the READMEs of the Testcontainers packages (usings)
+- `Development.md` ("Scripts": `public-api.cs`; "The public API": the files, what to do on RS0016 and RS0017, the move before the merge, the check, what is public and in which namespaces; "Version" and "Release notes": the checks of the public API files)
+- The template `DbLive.Templates`, the demo test projects and `.github/scripts/package-tests.cs` (usings); the comment of `.github/workflows/release-notes.yml`
+
+## Done when
+- [x] `PublicApiAnalyzers` in the six packages, committed with the API as it was before this task in `PublicAPI.Shipped.txt`
+- [x] Every public type is described in the docs or in the signature of a described one; what stayed public and why is under Notes
+- [x] `IDbLiveDA` has only the members of Section 11.4; the members for the `dblive` tables and their DTOs are internal
+- [x] Public types have public only what a user calls or reads; `CreateProject()`, the project models and `ConfigureServices` are internal, with `LogTo` and `SetScriptSource` instead
+- [x] The public types are in `DbLive`, `DbLive.Testing`, `DbLive.Schema`, `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`
+- [x] `PublicAPI.Shipped.txt` is the API on `main`: `public-api.cs` moves `Unshipped` there, and the "Release notes" check fails on a non-empty `Unshipped` and on a removed symbol without a major version
+- [x] Docs updated
+
+## Notes
+- 2026-11-09, maintainer: `PublicApiAnalyzers` instead of a snapshot test with `PublicApiGenerator`. The analyzer fails the build (in the IDE and in the build step of CI, before the tests), a test fails only where the tests run. It makes a removal an explicit `*REMOVED*` line, where a snapshot shows it as one deleted line of a diff. It tracks nullable annotations and needs no code of ours. What it costs: two files per package, and its one-line-per-member format reads a little worse in a diff than the declarations of `PublicApiGenerator`.
+- `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0, the latest on nuget.org; the SDK 10.0.402 has the compiler 5.9.0, which loads it. The package adds `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` of the project directory to the analyzer itself. The files were filled with `dotnet format analyzers <project> --diagnostics RS0016 --severity info` (the code fix of RS0016, into `Unshipped`), then moved to `Shipped`. `dotnet format` changed no `.cs` file. Lines: `DbLive` 736, `DbLive.MSSQL` 40, `DbLive.PostgreSQL` 40, `DbLive.xunit` 26, each Testcontainers package 5.
+- RS0026 and RS0027 do not fire on the existing API, also with the whole API in `Unshipped` (verified with a build of `DbLive`): nothing to fix or turn off.
+- First round (the types, second commit): 56 of the 120 types of `DbLive` stayed public, with `IDbLiveProject` and its 9 models among them.
+- 2026-11-14, maintainer, on the review of those 56: what a user does not need and does not use is closed, there is no point in keeping it public; the namespaces are moved; and this is done in this task, not in a new one. See Members, the builder and the namespaces.
+- What stays public in `DbLive`, 46 types: the 27 exceptions of Section 17 and 19 others. `DbLive`: `DbLiveBuilder`, `DbLiveBuilderExtensions`, `IDbLive`, `DeployParameters`, `IDbLiveDA`, `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider`, `TranIsolationLevel`, `IScriptSource`, `IDbLiveFixtureBuilder`, and 24 exceptions. `DbLive.Testing`: `IDbLiveTester`, `TestRunResult`, `UnitTestsFailedException`, `DatabaseNotDeployedException`. `DbLive.Schema`: `SchemaSnapshot`, `SchemaObject`, `SchemaObjectType`, `SchemaDiff`, `SchemaObjectChange`, `SchemaChangedException`. Lines of the public API: `DbLive` 186 (736 before the task), each provider 9 (40), `DbLive.xunit` 18 (26), each Testcontainers package 5 (5). The other packages keep what Sections 11.1, 11.6 and 13 describe: the `DbLiveBuilderExtensions` of each package, the connection string helpers, the fixture builders, `DbLiveTestFixture`, `DeploymentTestFixture`, `SqlFactAttribute`, `SqlDeployFactAttribute`.
+- C# has no access modifier for a primary constructor, so the 23 exceptions with one, and the positional records `SqlColumn`, `SchemaObject` and `SchemaObjectChange`, got an explicit internal constructor. The records keep their equality and `ToString` (generated from the same properties). The properties of `SchemaObject` are `internal init`: `SchemaSnapshot` and the providers copy objects with `with`. The providers called `new SqlColumn(ColumnName: ..., DataType: ...)`: the named arguments are lower case now.
+- The files of the moved types stay in their folders, so their namespace is not the folder's; IDE0130 is only a suggestion here.
+- A namespace that keeps only internal types (`DbLive.Adapter`, `DbLive.Deployers.Testing`, `DbLive.xunit.SqlTest`) still exists for the compiler, so a `using` of it in user code still compiles, and only the moved types are not found. `DbLive.xunit.Deploy` has no type left: `using DbLive.xunit.Deploy;` fails with CS0234 (verified with the demo projects before their usings changed).
+- `InitializeAsync` and `DisposeAsync` of the fixtures stay public: the demos and the template call those of `DeploymentTestFixture` from the test class that owns the fixture, and a fixture derived from `DbLiveTestFixture` may call them.
+- Nine theories took `MigrationItemType` or `ProjectFolder`, internal now: they take the name of the value (`nameof(MigrationItemType.Breaking)`) and parse it.
+- The release note of 0096-57 (same release) told users to replace `GetProject()` with `builder.CreateProject()`; it says now that there is no replacement, with a line in its Notes.
+- Internal now: 60 types of `DbLive` (4 more were deleted, see below), `MsSqlDA`, `PostgreSqlDA`, the `Bootstrapper` of each provider, and `SqlFactDiscoverer` and `SqlXunitTestCase` of `DbLive.xunit`. xUnit creates the last two by reflection: by name from the `[XunitTestCaseDiscoverer]` of `SqlFactAttribute`, and on deserialization in Visual Studio, which serializes the test cases between discovery and run. Both have a public constructor, which is all reflection needs. Verified: `Discovered_test_case_survives_serialization` (new, `SqlFactDiscovererTests`) round-trips a discovered test case through xUnit's `SerializationHelper`, and the `[SqlFact]` tests of the three demo test projects run.
+- Six exceptions are not in Section 17. `BadDeployParametersException`, `FileContentChangedException` and `ProjectFolderIsEmptyException` are thrown nowhere: deleted. `InvalidMigrationItemTypeException` and `UnknownMigrationItemTypeException` cannot reach the caller: only `*.sql` and `*.json` files reach `MigrationFileNameParser`, a `.json` file returns or throws before them, and a `.sql` file passes both checks. `DbLiveMigrationItemMissedSqlException` reaches the caller only as the inner exception of `MigrationDeploymentException` (`MigrationItemDeployer` wraps every error). The three are internal. `IDbLiveTransaction` was used nowhere: deleted.
+- `IDbLiveDA` split: `internal interface IDbLiveInternalDA : IDbLiveDA` has the other members, named like `IInternalScriptSource` and `IInternalDbLiveProject`. Every internal class takes `IDbLiveInternalDA`, so a unit test mocks one interface. A provider registers its class once as `IDbLiveInternalDA` and resolves `IDbLiveDA` to the same instance.
+- Tests. `MockSet.DbLiveDA` is an `IDbLiveInternalDA`; the fixture tests keep `IDbLiveDA`. A provider integration test that reads the `dblive` tables gets the internal interface with `builder.GetRequiredService<IDbLiveInternalDA>()`, an internal method of `DbLiveBuilder` that existed before. `DbLive.Tests` takes the provider assemblies from `MsSqlFixtureBuilder` and `PostgreSqlFixtureBuilder` instead of the DA classes. `DbLive.PostgreSQL` shows its internals to `DbLive.PostgreSQL.Tests`, which calls `InitializePostgreSQL` (`DbLive.MSSQL` already did so for its tests). A theory of `MigrationItemDeployerTests` takes a `bool`: a public test method cannot take the internal `TransactionWrapLevel`.
+- `docs/versioning.md` names the types that the listed ones return (`TestRunResult`, `SqlResult`, `SchemaSnapshot`, `SchemaDiff`) and says that the constructors of what DbLive returns or throws are not part of the API.
+- Two release notes of tasks closed for the same release (2.0.0) said the opposite of this one; they are updated, with a line in their Notes: 0096-06 ("`InvalidMigrationItemTypeException` is now public too" left it) and 0096-19 (the types the documentation does not describe are internal, no longer "may change in any version").
+- `FileData.MatchesHash(long)`, which knows the legacy hashes, is internal with `FileData`.
+- 2026-11-14, maintainer: moving `Unshipped` to `Shipped` by hand once per major version is a bad mechanism, it is easy to forget. See The files and the check.
+- `public-api.cs` keeps the order of the code fix of RS0016, by `OrdinalIgnoreCase` (all twelve files were in that order), and the line endings of each `Shipped`: the move of this branch added 95 lines to the `Shipped` of `DbLive` and 16 to that of `DbLive.xunit`, and changed no other line. Its step `public-api/ApiFile.cs` reads the files for `release-notes.cs` too.
+- The check of removed symbols compares with `PublicAPI.Shipped.txt` of the previous release tag; a package without the file at that tag is skipped, so 2.0.0 (1.5.0 has no files) is not checked. Verified with a local tag on the commit before the move: a plain title fails on the 252 symbols of `DbLive` and 16 of `DbLive.xunit` that moved to other namespaces, `BREAKING CHANGE:` passes. The check of `Unshipped` failed before the move with 95 and 16 lines, and passes after it.
+- Not seen by the check: a member added to an interface that users implement (`IScriptSource`, `IDbLiveFixtureBuilder`) is an added line, but breaks their implementations. `Development.md` says so.
+- 2026-11-14, after closing: 0096-80 (same release) makes internal what stayed public here and a user does not use: every member of `IDbLiveDA` but `DropDbAsync`, with `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider` and `TranIsolationLevel`, and the types of `DbLive.Schema`; it also makes `IScriptSource` internal and removes `SetScriptSource` (decided by the maintainer). The release note above no longer names them, and no longer recommends `ExecuteQueryMultipleAsync` for the `dblive` tables.
+
+## Result
+- `Microsoft.CodeAnalysis.PublicApiAnalyzers` 5.6.0 in the six packages with a C# API; `PublicAPI.Shipped.txt` got the API as it was (first commit), and the second commit deletes from it what left the API: 393 lines of `DbLive`, 31 of each provider, 8 of `DbLive.xunit`. `Development.md` has the rules ("The public API").
+- Every public type is described in the docs or in the signature of a described one (list under Notes). 60 types of `DbLive`, the provider DA classes and `Bootstrapper`s, and the xUnit plumbing of `DbLive.xunit` are internal; 4 unused types are deleted.
+- `IDbLiveDA` has the 7 members of Section 11.4; the others are in the internal `IDbLiveInternalDA : IDbLiveDA`, with their DTOs internal. One provider instance serves both interfaces.
+- `InMemoryScriptSource` moved from `DbLive.Tests.Common` to `DbLive.Tests` and is internal.
+- Third commit (decided 2026-11-14): the constructors and setters of what DbLive returns or throws are internal, and the classes the user does not derive from are sealed. `CreateProject()`, `IDbLiveProject` and its models are internal. `ConfigureServices` is internal; `LogTo(ILogger)` and `SetScriptSource(IScriptSource)` replace its two documented uses. The public types are in `DbLive`, `DbLive.Testing`, `DbLive.Schema` and `DbLive.xunit` (and the provider namespaces). `DbLive` has 46 public types and 186 lines of public API, from 120 types and 736 lines.
+- Fourth commit (decided 2026-11-14): `PublicAPI.Shipped.txt` is the API on `main`. `.github/scripts/public-api.cs` moves `Unshipped` to `Shipped`, and `release-notes.cs` fails a release whose `Unshipped` has lines or that removes a public symbol without a major version. The `Unshipped` of this branch is moved: `Shipped` is the API of 2.0.0.
+- Docs: `docs/versioning.md` (what the policy covers; every public type is in that list; constructors are not; a provider outside the repository is not supported), `docs/llms-full.txt` §8.2, §11, §13 and §17, `docs/deployment/index.md`, `docs/unit-testing/`, the READMEs of the Testcontainers packages; usings of the template, the demos and the package tests.
+- Tests: new `Discovered_test_case_survives_serialization` and four tests of `LogTo` and `SetScriptSource`. `DbLive.Tests` 477, `DbLive.MSSQL.Tests` 77, `DbLive.PostgreSQL.Tests` 55, `DemoMSSQL.Tests` 13, `Demo.PostgreSQL.Chinook.Tests` 6, `AdventureWorks.Tests` 5 pass.

@@ -1,6 +1,6 @@
 namespace DbLive.Common;
 
-public class TransactionSettingsValidator(
+internal class TransactionSettingsValidator(
 		IDbLiveDA _da,
 		ILogger _logger
 	) : ITransactionSettingsValidator
@@ -27,5 +27,22 @@ public class TransactionSettingsValidator(
 		}
 
 		return Task.CompletedTask;
+	}
+
+	/// <inheritdoc/>
+	public void ValidateMigrations(IReadOnlyList<Migration> migrations)
+	{
+		foreach (Migration migration in migrations)
+		{
+			foreach (MigrationItem settingsItem in migration.Items.Values.Where(i => MigrationItemTypeMapper.IsSettings(i.MigrationItemType)))
+			{
+				MigrationItemSettings settings = SettingsTools.GetMigrationItemSettings(settingsItem.FileData.Content, settingsItem.FileData.RelativePath);
+
+				if (settings.TransactionIsolationLevel is TranIsolationLevel isolationLevel)
+				{
+					TranIsolationLevelMapper.ValidateForProvider(isolationLevel, _da.Provider, settingsItem.FileData.RelativePath);
+				}
+			}
+		}
 	}
 }

@@ -45,7 +45,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		await _da.ExecuteNonQueryAsync(sql);
+		await _da.ExecuteSqlAsync(sql);
 
 		tran.Complete();
 	}
@@ -55,7 +55,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		var sql = "select 1 as col";
 
-		await _da.ExecuteNonQueryAsync(sql);
+		await _da.ExecuteSqlAsync(sql);
 	}
 
 	[Fact]
@@ -63,7 +63,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		var sql = "se_le_ct 1 as col";
 
-		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => _da.ExecuteNonQueryAsync(sql));
+		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => _da.ExecuteSqlAsync(sql));
 	}
 
 	[Fact]
@@ -77,7 +77,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 3 as col
 		";
 
-		await _da.ExecuteNonQueryAsync(sql);
+		await _da.ExecuteSqlAsync(sql);
 	}
 
 	[Fact]
@@ -85,11 +85,11 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	{
 		using TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			drop table if exists dbo.Test
 		");
 
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			create table dbo.Test (
 				Id int identity
 			  , Name nvarchar(128) not null
@@ -98,18 +98,18 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			)
 		");
 
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			insert into dbo.Test ( Name )
 			values ( 'Test1' ), ( 'Test2')
 		");
 
 
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			select *
 			from dbo.Test
 		");
 
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			drop table if exists dbo.Test
 		");
 
@@ -119,7 +119,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	[Fact]
 	public async Task TransactionTest()
 	{
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			drop table if exists dbo.TestTran1;
 		
 			create table dbo.TestTran1 (
@@ -133,12 +133,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				insert into dbo.TestTran1 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				if ( select count(*) from dbo.TestTran1 ) != 3
 					raiserror('Three rows in the tables is expected!', 16, 1);
 			
@@ -151,7 +151,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (TransactionScope tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				if ( select count(*) from dbo.TestTran1 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -162,14 +162,14 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			tran2.Complete();
 		}
 
-		await _da.ExecuteNonQueryAsync("drop table if exists dbo.TestTran1;");
+		await _da.ExecuteSqlAsync("drop table if exists dbo.TestTran1;");
 	}
 
 
 	[Fact]
 	public async Task TransactionTest_RollbackOnException()
 	{
-		await _da.ExecuteNonQueryAsync(@"
+		await _da.ExecuteSqlAsync(@"
 			drop table if exists dbo.TestTran2;
 		
 			create table dbo.TestTran2 (
@@ -185,12 +185,12 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		{
 			using TransactionScope tran1 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1));
 
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 3, 'Test3' )
 			");
 
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				insert into dbo.TestTran2 ( id, name )
 				values ( 4, 'Test4' !! syntax error !! )
 			");
@@ -202,7 +202,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 
 		using (TransactionScope tran2 = TransactionScopeManager.Create(TranIsolationLevel.ReadCommitted, TimeSpan.FromMinutes(1)))
 		{
-			await _da.ExecuteNonQueryAsync(@"
+			await _da.ExecuteSqlAsync(@"
 				if ( select count(*) from dbo.TestTran2 ) != 2
 					raiserror('Two rows in the tables is expected!', 16, 1);
 			
@@ -212,7 +212,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			tran2.Complete();
 		}
 
-		await _da.ExecuteNonQueryAsync("drop table if exists dbo.TestTran2;");
+		await _da.ExecuteSqlAsync("drop table if exists dbo.TestTran2;");
 	}
 
 	[Fact]
@@ -225,7 +225,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 			select 11 as UserId, 'TestUser11' as Name
 		";
 
-		List<SqlResult> results = await _da.ExecuteQueryMultipleAsync(sql);
+		List<SqlResult> results = await _da.QuerySqlAsync(sql);
 
 		Assert.Equal(3, results.Count);
 	}
@@ -238,7 +238,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 				throw 50001, 'Admin user must exists.', 0;
 		";
 
-		List<SqlResult> results = await _da.ExecuteQueryMultipleAsync(sql);
+		List<SqlResult> results = await _da.QuerySqlAsync(sql);
 
 		Assert.Empty(results);
 	}
@@ -249,17 +249,17 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 		SqlConnectionStringBuilder builder = new(_connectionString);
 		string dbName = builder.InitialCatalog;
 
-		await _da.ExecuteNonQueryAsync($"alter database [{dbName}] set allow_snapshot_isolation on;");
+		await _da.ExecuteSqlAsync($"alter database [{dbName}] set allow_snapshot_isolation on;");
 
 		using (TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.Snapshot, TimeSpan.FromMinutes(1)))
 		{
-			await _da.ExecuteNonQueryAsync("""
+			await _da.ExecuteSqlAsync("""
 				create table dbo.TestSnapshot (id int not null);
 				insert into dbo.TestSnapshot (id) values (1);
 			""");
 		}
 
-		await _da.ExecuteNonQueryAsync("""
+		await _da.ExecuteSqlAsync("""
 			if object_id('dbo.TestSnapshot', 'U') is not null
 				raiserror('Snapshot transaction should have rolled back.', 16, 1);
 		""");

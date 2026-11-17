@@ -1,24 +1,21 @@
-using DbLive.Common;
-using DbLive.xunit.Deploy;
+using DbLive.PostgreSQL;
+using DbLive.xunit;
 using Xunit.Abstractions;
-
 
 namespace Demo.PostgreSQL.Chinook.Tests;
 
-
-public class DeploymentTests(ITestOutputHelper _output) : IAsyncLifetime
+public class DeploymentTests(ITestOutputHelper _output)
 {
-	private readonly DeployFixture _fixture = new(
-		builderProvider: new DockerPostgresFixtureBuilder(),
-		dropDatabaseOnComplete: true
-	);
-
-	public Task InitializeAsync() => _fixture.InitializeAsync();
-	public Task DisposeAsync() => _fixture.DisposeAsync();
-
+	/// <summary>
+	/// Deploys the project to an empty database as production does, in three deployments:
+	/// 1. migrations, code and the SQL tests;
+	/// 2. the breaking phase and the SQL tests again;
+	/// 3. the breaking phase once more, which must not change the schema.
+	/// Then drops the database.
+	/// </summary>
 	[SqlDeployFact]
-	public async Task Deploy(bool deployBreaking, UndoTestMode undoTestMode)
-	{
-		await _fixture.DeployAsync(_output, deployBreaking, undoTestMode);
-	}
+	public Task ReleaseDeploys() => new DeploymentTest(
+		fixtureBuilder: new PostgreSqlContainerFixtureBuilder(typeof(DemoPostgreSQLChinookLink).Assembly),
+		dropDatabaseOnComplete: true
+	).DeployAsync(_output);
 }

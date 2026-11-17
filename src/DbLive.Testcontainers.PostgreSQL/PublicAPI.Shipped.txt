@@ -1,0 +1,6 @@
+#nullable enable
+DbLive.PostgreSQL.PostgreSqlContainerFixtureBuilder
+DbLive.PostgreSQL.PostgreSqlContainerFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.PostgreSQL.PostgreSqlContainerFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.PostgreSQL.PostgreSqlContainerFixtureBuilder.PostgreSqlContainerFixtureBuilder(System.Reflection.Assembly! project) -> void
+DbLive.PostgreSQL.PostgreSqlContainerFixtureBuilder.PostgreSqlContainerFixtureBuilder(System.Reflection.Assembly! project, string! image) -> void

@@ -1,31 +1,49 @@
 ﻿namespace DbLive.Project;
 
-public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) : ISettingsAccessor
+internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 {
-	private readonly string _projectPath = projectPath.Path;
-	private readonly IFileSystem _fileSystem = fileSystem;
+	internal const string SettingsFileName = "settings.json";
 
 	private readonly DbLiveSettings _defaultSettings = new();
 
 	private Task<DbLiveSettings>? _settingsTask;
 	private readonly object _settingsLock = new();
 
-	public Task<DbLiveSettings> GetProjectSettingsAsync()
+	public async Task<DbLiveSettings> GetProjectSettingsAsync()
 	{
-		if (_settingsTask is not null) return _settingsTask;
+		Task<DbLiveSettings> load;
 		lock (_settingsLock)
 		{
-			return _settingsTask ??= LoadSettingsAsync();
+			load = _settingsTask ??= LoadSettingsAsync();
+		}
+
+		try
+		{
+			return await load.ConfigureAwait(false);
+		}
+		catch
+		{
+			// a failed read is not kept, so the next deployment from this builder reads settings.json again (a file locked
+			// for a moment by an antivirus).
+			lock (_settingsLock)
+			{
+				if (_settingsTask == load)
+				{
+					_settingsTask = null;
+				}
+			}
+			throw;
 		}
 	}
 
 	private async Task<DbLiveSettings> LoadSettingsAsync()
 	{
-		string settingsPath = _projectPath.CombineWith("settings.json");
+		string? settingsPath = scriptSource.GetFiles()
+			.FirstOrDefault(f => f.Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase));
 
-		if (_fileSystem.FileExists(settingsPath))
+		if (settingsPath is not null)
 		{
-			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath).ConfigureAwait(false);
+			string settingsJson = await scriptSource.ReadAsync(settingsPath).ConfigureAwait(false);
 
 			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
 				settingsJson,

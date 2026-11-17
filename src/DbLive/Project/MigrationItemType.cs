@@ -1,9 +1,9 @@
 namespace DbLive.Project;
 
-public enum MigrationItemType
+internal enum MigrationItemType
 {
 	Migration,
-	Undo,
 	Breaking,
-	Settings
+	MigrationSettings,
+	BreakingSettings
 }

@@ -1,6 +1,6 @@
 ﻿namespace DbLive.SelfDeployer;
 
-public interface IDbLiveSelfDeployer
+internal interface IDbLiveSelfDeployer
 {
 	Task DeployAsync();
 }

@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public interface IDbLiveDbConnection
+internal interface IDbLiveDbConnection
 {
 	string ConnectionString { get; }
 }

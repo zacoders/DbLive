@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common;
 
-public static class ListExtensions
+internal static class ListExtensions
 {
 	public static List<T> RemoveWhere<T>(this List<T> entities, Func<T, bool> predicate)
 	{

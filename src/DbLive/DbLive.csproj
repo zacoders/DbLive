@@ -29,6 +29,11 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Serilog.Sinks.Console" />
         <PackageReference Include="System.IO.Hashing" />
     </ItemGroup>
@@ -36,9 +41,12 @@
     <ItemGroup>
         <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
+        <InternalsVisibleTo Include="DbLive.PostgreSQL.Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL" />
         <InternalsVisibleTo Include="DbLive.PostgreSQL" />
         <InternalsVisibleTo Include="DbLive.xunit" />
+        <!-- NSubstitute (Castle DynamicProxy) mocks the internal interfaces in the tests. The assembly is not signed: no public key. -->
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
 	<ItemGroup>
@@ -47,6 +55,8 @@
 			<PackagePath>\</PackagePath>
 		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
+		<!-- Embeds the scripts folder that a project with DbLive in its graph names in DbLiveScriptsFolder; NuGet imports only files named after the package. -->
+		<None Include="buildTransitive\DbLive.props" Pack="true" PackagePath="buildTransitive/" />
 	</ItemGroup>
 	
 </Project>

@@ -1,4 +1,10 @@
-namespace DbLive.Project.Exceptions;
+namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public class ProjectIdMismatchException(string message) : Exception(message);
+public sealed class ProjectIdMismatchException : Exception
+{
+	internal ProjectIdMismatchException(string message)
+		: base(message)
+	{
+	}
+}

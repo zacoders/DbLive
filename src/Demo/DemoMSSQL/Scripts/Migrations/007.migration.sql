@@ -22,6 +22,8 @@ after insert, update
 as 
 	set nocount on;
 
+	-- only the primary phone is synced: Person.PhoneNumber knows nothing about
+	-- other phones, they are added by the new application and must not be touched.
 	with cteSource
 	as (
 		select *
@@ -32,18 +34,20 @@ as
 	as (
 		select pp.*
 		from dbo.PersonPhones pp
-			join Inserted i on i.PersonId = pp.PersonId
+		where pp.IsPrimary = 1
+		  and pp.PersonId in ( select PersonId from Inserted )
 	)
 	merge into cteTarget as t
-	using Inserted s on s.PersonId = t.PersonId and t.IsPrimary = 1
-	when matched then 
-		update set 
+	using cteSource s on s.PersonId = t.PersonId
+	when matched then
+		update set
 			PhoneNumber = s.PhoneNumber
 		  , ModifiedUtc = sysutcdatetime()
-	when not matched then 
+	when not matched then
 		insert ( PersonId, PhoneNumber, IsPrimary, CreatedUtc, ModifiedUtc )
-		values ( PersonId, PhoneNumber, 1, sysutcdatetime(), sysutcdatetime() )
+		values ( s.PersonId, s.PhoneNumber, 1, sysutcdatetime(), sysutcdatetime() )
 	when not matched by source then
+		-- the phone number was removed from dbo.Person
 		delete ;
 	
 go

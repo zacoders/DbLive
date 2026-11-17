@@ -1,4 +1,4 @@
-﻿namespace DbLive.Tests.SelfDeployer;
+namespace DbLive.Tests.SelfDeployer;
 
 
 public class InternalDbLiveProjectTests
@@ -9,22 +9,11 @@ public class InternalDbLiveProjectTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
-
-		mockSet.FileSystem.EnumerateFiles(@"C:/Project", "*.sql", true)
-			.Returns(
-			[
-				@"C:/Project/Migrations/002.migration.second.sql",
-				@"C:/Project/Migrations/001.migration.first.sql"
-			]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
-			.Returns(new FileData
-			{
-				Content = $"-- some sql migration",
-				RelativePath = "db/migrations/001.demo.sql",
-				FilePath = "c:/db/migrations/001.demo.sql"
-			});
+		mockSet.InternalScriptSource.AddFiles(
+			"10.migration.tenth.sql",
+			"02.migration.second.sql",
+			"01.migration.first.sql"
+		);
 
 		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
@@ -32,9 +21,7 @@ public class InternalDbLiveProjectTests
 		IReadOnlyList<InternalMigration> result = await project.GetMigrationsAsync();
 
 		// Assert
-		Assert.Equal(2, result.Count);
-		Assert.Equal(1, result[0].Version);
-		Assert.Equal(2, result[1].Version);
+		Assert.Equal([1, 2, 10], result.Select(m => m.Version));
 	}
 
 	[Fact]
@@ -43,21 +30,7 @@ public class InternalDbLiveProjectTests
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
-
-		mockSet.FileSystem.EnumerateFiles(@"C:/Project", "*.sql", true)
-			.Returns(
-			[
-				@"C:/Project/Migrations/001.migration.create_table.sql"
-			]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
-			.Returns(new FileData
-			{
-				Content = "-- create table",
-				RelativePath = "db/migrations/001.migration.create_table.sql",
-				FilePath = "C:/Project/Migrations/001.migration.create_table.sql"
-			});
+		mockSet.InternalScriptSource.AddFile("01.migration.create_table.sql", "-- create table");
 
 		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
@@ -65,45 +38,44 @@ public class InternalDbLiveProjectTests
 		IReadOnlyList<InternalMigration> result = await project.GetMigrationsAsync();
 
 		// Assert
-		Assert.Single(result);
-
-		InternalMigration migration = result[0];
+		InternalMigration migration = Assert.Single(result);
 		Assert.Equal(1, migration.Version);
 		Assert.Equal("create_table", migration.Name);
-		Assert.Equal("db/migrations/001.migration.create_table.sql", migration.FileData.RelativePath);
+		Assert.Equal("01.migration.create_table.sql", migration.FileData.RelativePath);
+		Assert.Equal("-- create table", migration.FileData.Content);
 	}
 
 	[Fact]
-	public async Task GetMigrations_reads_file_data_for_each_migration_file()
+	public async Task GetMigrations_reads_its_own_scripts_not_the_project_scripts()
 	{
 		// Arrange
 		MockSet mockSet = new();
 
-		mockSet.InternalProjectPath.Path.Returns(@"C:/Project");
-
-		mockSet.FileSystem.EnumerateFiles(@"C:/Project", "*.sql", true)
-			.Returns(
-			[
-				@"C:/Project/Migrations/001.migration.first.sql",
-			@"C:/Project/Migrations/002.migration.second.sql"
-			]);
-
-		mockSet.FileSystem.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project")
-			.Returns(new FileData
-			{
-				Content = "-- sql",
-				RelativePath = "db/migrations/test.sql",
-				FilePath = "C:/Project/Migrations/test.sql"
-			});
+		mockSet.InternalScriptSource.AddFile("01.migrations.sql", "-- dblive");
+		mockSet.ScriptSource.AddFile("Migrations/001.migration.sql", "-- project");
 
 		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
 
 		// Act
-		await project.GetMigrationsAsync();
+		IReadOnlyList<InternalMigration> result = await project.GetMigrationsAsync();
 
 		// Assert
-		await mockSet.FileSystem.Received(2)
-			.ReadFileDataAsync(Arg.Any<string>(), @"C:/Project");
+		Assert.Equal("-- dblive", Assert.Single(result).FileData.Content);
 	}
 
+	[Fact]
+	public async Task GetMigrations_throws_when_no_scripts_are_embedded()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		InternalDbLiveProject project = mockSet.CreateUsingMocks<InternalDbLiveProject>();
+
+		// Act
+		Task act() => project.GetMigrationsAsync();
+
+		// Assert
+		InternalException ex = await Assert.ThrowsAsync<InternalException>(act);
+		Assert.Contains("memory", ex.Message);
+	}
 }

@@ -1,6 +1,6 @@
 namespace DbLive.Deployers.Migrations;
 
-public interface IMigrationChecksumValidator
+internal interface IMigrationChecksumValidator
 {
-	Task ValidateAsync(DeployParameters parameters);
+	Task ValidateAsync(ProjectSnapshot project, DeployParameters parameters);
 }

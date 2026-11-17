@@ -1,9 +1,10 @@
 ﻿using Xunit;
-using Xunit.Sdk;
 
-namespace DbLive.xunit.Deploy;
+namespace DbLive.xunit;
 
-[XunitTestCaseDiscoverer($"DbLive.xunit.Deploy.{nameof(SqlDeployFactDiscoverer)}", "DbLive.xunit")]
+/// <summary>
+/// Marks the deployment test of a project: a test without parameters that calls <see cref="DeploymentTest.DeployAsync"/>.
+/// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class SqlDeployFactAttribute : FactAttribute
 {

@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Version>0.0.0-placeholder</Version>
+		<Deterministic>true</Deterministic>
+
+		<PackageId>DbLive.Testcontainers.MSSQL</PackageId>
+		<Authors>ZACoders</Authors>
+		<Company>DbLive</Company>
+		<Description>Runs DbLive SQL tests against SQL Server in Docker (Testcontainers): a fixture builder that starts the container and gives every test fixture its own database</Description>
+
+		<PackageProjectUrl>https://github.com/zacoders/DbLive</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/zacoders/DbLive</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>sql mssql sqlserver sql-server database testing testcontainers docker xunit unit-testing</PackageTags>
+		<PackageIcon>dblive-icon.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Testcontainers.MsSql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\dblive-icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
+
+</Project>

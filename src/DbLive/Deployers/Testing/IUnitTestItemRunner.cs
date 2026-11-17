@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Testing;
 
-public interface IUnitTestItemRunner
+internal interface IUnitTestItemRunner
 {
 	/// <summary>
 	/// Runs Sql test.

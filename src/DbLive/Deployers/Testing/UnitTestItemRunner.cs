@@ -1,12 +1,16 @@
 namespace DbLive.Deployers.Testing;
 
-public class UnitTestItemRunner(
+internal class UnitTestItemRunner(
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		IUnitTestResultChecker _unitTestResultChecker,
 		ISettingsAccessor _projectSettingsAccessor
 	) : IUnitTestItemRunner
 {
+	internal const string TransactionEndedMessage =
+		"The transaction of the test ended before the test did: the test, its setup.test.sql or the code they call ran ROLLBACK or COMMIT, "
+		+ "for example a CATCH block with 'if @@trancount > 0 rollback'. The statements after it ran in autocommit mode and stay in the database. "
+		+ "Code called inside a transaction must not end it: on an error it rolls back to a savepoint of its own (save transaction).";
 
 	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
@@ -18,53 +22,76 @@ public class UnitTestItemRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
-		bool initFileDeployed = false;
+		bool setupFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
+		// setup.test.sql and the test get UnitTestItemTimeout each; their transaction twice that, so that it does not cut the two together.
+		TransactionTimeout transactionTimeout = new(
+			projectSettings.UnitTestItemTimeout * 2,
+			"The transaction of the test",
+			$"twice {nameof(DbLiveSettings.UnitTestItemTimeout)}"
+		);
 		try
 		{
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			);
+			long transactionStarted = Stopwatch.GetTimestamp();
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(testsIsolationLevel, transactionTimeout.Value);
+			using Transaction transaction = Transaction.Current!.Clone();
 
-			if (test.InitFileData is not null)
+			try
 			{
-				await _da.ExecuteNonQueryAsync(
-					test.InitFileData.Content,
+				if (test.SetupFileData is not null)
+				{
+					await _da.ExecuteNonQueryAsync(
+						test.SetupFileData.Content,
+						testsIsolationLevel,
+						projectSettings.UnitTestItemTimeout
+					).ConfigureAwait(false);
+					setupFileDeployed = true;
+				}
+
+				List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
+					test.FileData.Content,
 					testsIsolationLevel,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
-				initFileDeployed = true;
+
+				// on SQL Server the code under test can end the transaction of the test, and the statements after it are committed at once.
+				// Transaction.Current stays Active then, only the server knows. One check after the test covers setup.test.sql too: whatever
+				// runs after the end of the transaction runs in autocommit mode, the test script included. An exception here (a broken
+				// connection, a transaction that timed out) fails the test as well.
+				if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
+				{
+					result.Output = TransactionEndedMessage;
+					result.ErrorMessage = TransactionEndedMessage;
+					return result;
+				}
+
+				ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
+				if (!compareResult.IsValid)
+				{
+					result.Output = compareResult.Output;
+					result.ErrorMessage = compareResult.Output;
+					result.IsSuccess = false;
+				}
+				else
+				{
+					result.IsSuccess = true;
+					result.Output = "Success";
+				}
+
+				_transactionScope.Dispose(); //canceling transaction
 			}
-
-			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
-				test.FileData.Content,
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			).ConfigureAwait(false);
-
-			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
-			if (!compareResult.IsValid)
+			catch (Exception ex) when (transactionTimeout.IsCauseOf(transaction, transactionStarted, ex))
 			{
-				result.Output = compareResult.Output;
-				result.ErrorMessage = compareResult.Output;
-				result.IsSuccess = false;
+				throw transactionTimeout.Expired(ex);
 			}
-			else
-			{
-				result.IsSuccess = true;
-				result.Output = "Success";
-			}
-
-			_transactionScope.Dispose(); //canceling transaction
 		}
 		catch (Exception ex)
 		{
-			if (test.InitFileData is not null && !initFileDeployed)
+			if (test.SetupFileData is not null && !setupFileDeployed)
 			{
 				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR: Init file deployment error. " + ex.Message + Environment.NewLine + result.Output;
+				result.Output = "ERROR: Setup file error. " + ex.Message + Environment.NewLine + result.Output;
 				result.Exception = ex;
 			}
 			else

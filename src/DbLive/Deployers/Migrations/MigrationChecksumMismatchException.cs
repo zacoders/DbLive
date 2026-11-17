@@ -1,7 +1,10 @@
-namespace DbLive.Deployers.Migrations;
+namespace DbLive;
 
 [ExcludeFromCodeCoverage]
-public class MigrationChecksumMismatchException(string errorMessage)
-	: Exception(errorMessage)
+public sealed class MigrationChecksumMismatchException : Exception
 {
+	internal MigrationChecksumMismatchException(string errorMessage)
+		: base(errorMessage)
+	{
+	}
 }

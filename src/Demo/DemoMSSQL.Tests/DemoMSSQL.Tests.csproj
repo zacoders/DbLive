@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
 	<PackageReference Include="xunit.analyzers">
@@ -31,7 +30,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
+    <ProjectReference Include="..\..\DbLive.Testcontainers.MSSQL\DbLive.Testcontainers.MSSQL.csproj" />
     <ProjectReference Include="..\..\DbLive.xunit\DbLive.xunit.csproj" />
     <ProjectReference Include="..\DemoMSSQL\DemoMSSQL.csproj">
       <TreatAsUsed>true</TreatAsUsed>

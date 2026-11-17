@@ -51,31 +51,59 @@ jobs:
         echo "GitVersion SemVer:     ${{ steps.gitversion.outputs.SemVer }}"
         echo "GitVersion NuGetV2:    ${{ steps.gitversion.outputs.NuGetVersionV2 }}"
 
+    # Notes from the "## Release note" sections of the tasks closed since the previous tag. A task without
+    # the section fails the release here, before anything is published.
+    - name: Build release notes
+      if: github.ref == 'refs/heads/main'
+      run: dotnet run .github/scripts/release-notes.cs -- --version ${{ steps.gitversion.outputs.SemVer }} --output "$RUNNER_TEMP/release-notes.md"
+
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }} 
 
+    # One Release build: the tests run on the same assemblies that go into the packages.
+    # InformationalVersion is set explicitly because the GitVersion action also exports its outputs
+    # as environment variables, and MSBuild would take `informationalVersion` from there.
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore -p:ContinuousIntegrationBuild=true -p:Version=${{ steps.gitversion.outputs.FullSemVer }}
+      run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} -p:InformationalVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
     - name: Test
-      run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-restore --no-build --verbosity normal
+      run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-build --configuration Release --verbosity normal
 
+    # Version is needed again: it sets the package version and the DbLive dependency version.
+    # The packages of this build go to one folder, a local feed for the package tests below.
     - name: Create DbLive package
-      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive/DbLive.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
     - name: Create DbLive.xunit package
-      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.xunit/DbLive.xunit.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
     - name: Create DbLive.MSSQL package
-      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.MSSQL/DbLive.MSSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
     - name: Create DbLive.PostgreSQL package
-      run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-restore --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
+      run: dotnet pack 'src/DbLive.PostgreSQL/DbLive.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
 
+    - name: Create DbLive.Testcontainers.MSSQL package
+      run: dotnet pack 'src/DbLive.Testcontainers.MSSQL/DbLive.Testcontainers.MSSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
+    - name: Create DbLive.Testcontainers.PostgreSQL package
+      run: dotnet pack 'src/DbLive.Testcontainers.PostgreSQL/DbLive.Testcontainers.PostgreSQL.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
+    # The dotnet new template. Version also goes into the template: it creates projects on the packages of this build.
+    - name: Create DbLive.Templates package
+      run: dotnet pack 'src/DbLive.Templates/DbLive.Templates.csproj' --no-build --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} --output "$RUNNER_TEMP/packages"
+
+    # Builds projects that reference the packages, as a user project does: the DbLive package embeds the
+    # Scripts folder without a block in the .csproj, and the fixture builders compile with one package reference.
+    # Then creates a solution from the template for each provider and runs its tests (Docker) against these packages.
+    - name: Test packages
+      run: dotnet run .github/scripts/package-tests.cs -- --packages "$RUNNER_TEMP/packages"
+
+    # Pushes the .snupkg next to each .nupkg too. Quoted: dotnet expands the wildcard.
     - name: Publish packages
       if: github.ref == 'refs/heads/main'
       run: |
-        dotnet nuget push **/bin/Release/*.nupkg \
+        dotnet nuget push "$RUNNER_TEMP/packages/*.nupkg" \
           --source https://api.nuget.org/v3/index.json \
           --api-key $NUGET_ORG_AUTH_TOKEN \
           --skip-duplicate
@@ -93,3 +121,9 @@ jobs:
     - name: Push git tag
       if: github.ref == 'refs/heads/main'
       run: git push origin ${{ steps.gitversion.outputs.SemVer }}
+
+    - name: Create GitHub release
+      if: github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release create ${{ steps.gitversion.outputs.SemVer }} --verify-tag --title ${{ steps.gitversion.outputs.SemVer }} --notes-file "$RUNNER_TEMP/release-notes.md"
