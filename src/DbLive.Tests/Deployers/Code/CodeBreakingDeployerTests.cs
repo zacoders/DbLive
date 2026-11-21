@@ -126,26 +126,30 @@ public class CodeBreakingDeployerTests
 	}
 
 	[Fact]
-	public async Task Failed_script_fails_with_the_error_of_its_error_row_when_the_row_cannot_be_saved()
+	public async Task Failed_script_keeps_its_error_when_the_error_row_cannot_be_saved()
 	{
+		// the server is unreachable, for one: the deployment fails with the error of the script, with its path.
 		MockSet mockSet = new();
 
 		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")] };
 
+		DbLiveSqlException scriptError = new("Cannot drop the procedure 'dbo.a_v1'.");
 		mockSet.DbLiveDA
 			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
-			.Returns(Task.FromException(new DbLiveSqlException("Cannot drop the procedure 'dbo.a_v1'.")));
+			.Returns(Task.FromException(scriptError));
 
-		DbLiveSqlException saveError = new("Invalid column name 'error'.");
+		DbLiveSqlException saveError = new("A network-related or instance-specific error occurred while establishing a connection to SQL Server.");
 		mockSet.DbLiveDA
 			.SaveCodeItemAsync(Arg.Any<CodeItemDto>())
 			.Returns(Task.FromException(saveError));
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
-		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => deployer.DeployAsync(project));
+		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
 
-		Assert.Same(saveError, ex);
+		Assert.Equal("Deploy code breaking script error. File path: Code/a.breaking.sql", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		mockSet.Logger.Received().Warning(saveError, "The error row of {FilePath} is not saved.", "Code/a.breaking.sql");
 	}
 
 	[Fact]
