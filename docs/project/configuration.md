@@ -1,6 +1,6 @@
 # Project Configuration
 
-Project settings live in `Scripts/settings.json`. The file is optional; without it every setting has its default value.
+Project settings live in `Scripts/settings.json`. The file is optional; without it, or when it is empty, every setting has its default value.
 
 ```json
 {
@@ -28,6 +28,14 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 - Enum values are case-insensitive: `"none"` and `"None"` both work.
 - Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"01:00:00"` or `"1.00:00:00"`.
 - A list replaces the default list; it is not merged with it.
+
+An error in the file fails the deployment before anything runs, with `InvalidProjectSettingsException`. The message names the file and gives the error, with the key or the position:
+
+```
+Invalid project settings file settings.json: The JSON property 'TransactionWraplevel' could not be mapped to any .NET member contained in type 'DbLive.Common.Settings.DbLiveSettings'.
+```
+
+`RelativePath` is the file; the inner exception is the `JsonException` of `System.Text.Json`. DbLive 1.5 threw that `JsonException` itself, without the name of the file.
 
 ## Settings
 

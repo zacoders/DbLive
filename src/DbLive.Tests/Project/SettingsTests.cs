@@ -58,6 +58,44 @@ public class SettingsTests
 		Assert.Equal("my-operational-db", settings.ProjectId);
 	}
 
+	[Theory]
+	[InlineData("")]
+	[InlineData(" \r\n\t")]
+	public async Task LoadSettings_EmptyFile_DefaultSettings(string json)
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFile("settings.json", json);
+
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+
+		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
+
+		Assert.Equal(TransactionWrapLevel.Migration, settings.TransactionWrapLevel);
+	}
+
+	[Theory]
+	[InlineData("settings.json", """{ "MaxCodeDeployRetries": 5 }""", "'MaxCodeDeployRetries'")]
+	[InlineData("settings.json", """{ "transactionWrapLevel": "None" }""", "'transactionWrapLevel'")]
+	[InlineData("settings.json", """{ "TransactionWrapLevel": "Nope" }""", "$.TransactionWrapLevel")]
+	[InlineData("settings.json", """{ "TransactionWrapLevel": "None", }""", "trailing comma")]
+	[InlineData("Settings.JSON", """{ "TransactionWrapLevel": """, "LineNumber")]
+	public async Task LoadSettings_InvalidFile_ErrorNamesFile(string fileName, string json, string expectedDetail)
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFile(fileName, json);
+
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+
+		InvalidProjectSettingsException e = await Assert.ThrowsAsync<InvalidProjectSettingsException>(settingsAccessor.GetProjectSettingsAsync);
+
+		Assert.Equal(fileName, e.RelativePath);
+		Assert.StartsWith($"Invalid project settings file {fileName}: ", e.Message);
+		Assert.Contains(expectedDetail, e.Message);
+		Assert.IsAssignableFrom<System.Text.Json.JsonException>(e.InnerException);
+	}
+
 	[Fact]
 	public async Task LoadSettings_FailedRead_ReadAgain()
 	{

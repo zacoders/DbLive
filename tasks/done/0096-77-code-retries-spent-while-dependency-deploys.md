@@ -10,7 +10,7 @@ breaking: true
 ## Release note
 **Code files are retried in rounds, and `MaxCodeDeployRetries` is removed.** A code file that fails is retried in the next round, after every file of its group has finished. Before, it went back to the queue at once: a file that needed a slow file running on another worker (one that waits for a schema lock, builds an indexed view, or is large) used up its five attempts within milliseconds, and the deployment failed now and then. A group now stops only when a round deploys no file, so dependencies inside a group deploy in any order, also a chain longer than five files. A file that fails for another reason than a missing dependency is no longer tried five times: the deployment fails with its error in the first round where no file succeeds.
 
-To upgrade: remove `MaxCodeDeployRetries` from `settings.json`. A `settings.json` that still has it fails with `JsonException`.
+To upgrade: remove `MaxCodeDeployRetries` from `settings.json`. A `settings.json` that still has it fails with `InvalidProjectSettingsException`.
 
 ## Problem
 Code files of a group are deployed by several workers from one queue. A file that fails goes to the end of the queue and is tried again, `MaxCodeDeployRetries` (5) times in all. The docs say that this resolves the order of dependencies (§6: "a view that uses a function deployed later succeeds on retry").

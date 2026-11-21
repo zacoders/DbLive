@@ -36,25 +36,27 @@ internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 		}
 	}
 
+	/// <exception cref="InvalidProjectSettingsException"/>
 	private async Task<DbLiveSettings> LoadSettingsAsync()
 	{
 		string? settingsPath = scriptSource.GetFiles()
 			.FirstOrDefault(f => f.Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase));
 
-		if (settingsPath is not null)
+		if (settingsPath is null)
 		{
-			string settingsJson = await scriptSource.ReadAsync(settingsPath).ConfigureAwait(false);
-
-			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
-				settingsJson,
-				SettingsTools.JsonSerializerOptions);
-
-			if (settings is not null)
-			{
-				return settings;
-			}
+			return _defaultSettings;
 		}
 
-		return _defaultSettings;
+		string settingsJson = await scriptSource.ReadAsync(settingsPath).ConfigureAwait(false);
+
+		try
+		{
+			// an empty file gives the defaults, as an empty item settings file does.
+			return SettingsTools.GetSettings<DbLiveSettings>(settingsJson);
+		}
+		catch (JsonException e)
+		{
+			throw new InvalidProjectSettingsException(settingsPath, e.Message, e);
+		}
 	}
 }
