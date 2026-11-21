@@ -110,6 +110,8 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 
+		// the question is asked after a script: a transaction of DbLive gets its ID before every script in it.
+		await da.ExecuteNonQueryAsync("select 1;", TranIsolationLevel.ReadCommitted, TimeSpan.FromSeconds(30));
 		Assert.True(await da.IsTransactionUsableAsync());
 
 		_ = await Assert.ThrowsAsync<DbLiveSqlException>(() => da.ExecuteSqlAsync("select 1/0;"));

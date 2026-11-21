@@ -226,6 +226,10 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				await ExecuteInOwnTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			}
+			else if (Transaction.Current is not null)
+			{
+				_ = await ExecuteGuardedAsync(sqlConnection, () => ExecuteBatchesAsync(sqlConnection, batches, timeout)).ConfigureAwait(false);
+			}
 			else
 			{
 				await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
@@ -337,13 +341,82 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);
 		try
 		{
-			await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
+			_ = await ExecuteGuardedAsync(sqlConnection, () => ExecuteBatchesAsync(sqlConnection, batches, timeout)).ConfigureAwait(false);
 			_ = await sqlConnection.ExecuteAsync("commit transaction;").ConfigureAwait(false);
 		}
 		catch
 		{
 			await TryRollbackAsync(sqlConnection).ConfigureAwait(false);
 			throw;
+		}
+	}
+
+	internal const string TransactionEndedExample = "for example 'if @@trancount > 0 rollback' in a CATCH block that does not rethrow the error";
+
+	// the ID before the script, then IMPLICIT_TRANSACTIONS: with the setting on, the read itself would open a transaction when the one
+	// of DbLive is gone already, and the script would run in it unnoticed.
+	private const string StartTransactionGuardSql = "select current_transaction_id(); set implicit_transactions on;";
+
+	// another ID: the script ended the transaction of DbLive, and IMPLICIT_TRANSACTIONS made its statements after the end open a new one
+	// instead of committing at once. It is rolled back, so that nothing of it stays and the caller finds no transaction on the connection.
+	// None of these statements opens a transaction of its own with the setting on: a select without a table does not.
+	private const string EndTransactionGuardSql = """
+		declare @ended bit = iif(current_transaction_id() = @before, 0, 1);
+		if @ended = 1 and @@trancount > 0 rollback;
+		set implicit_transactions off;
+		select @ended;
+		""";
+
+	/// <summary>
+	/// Runs a script in the transaction of DbLive, the ambient one or the own transaction of a code file, and fails when the script ended
+	/// it: <c>COMMIT</c> or <c>ROLLBACK</c> in the script. SQL Server does not tell: the statements after the end run in autocommit mode, and
+	/// a script that begins a transaction of its own after it leaves <c>@@trancount</c> as it was, so the ID of the transaction is compared.
+	/// With <c>IMPLICIT_TRANSACTIONS ON</c> the statements after the end open a new transaction instead, which is rolled back: what the
+	/// script committed with its <c>COMMIT</c> stays, nothing else. While the transaction of DbLive is open, the setting changes nothing.
+	/// Only for a script in a transaction: without one, every statement would open a transaction that nothing commits.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionEndedException">The script ended the transaction.</exception>
+	private static async Task<T> ExecuteGuardedAsync<T>(SqlConnection sqlConnection, Func<Task<T>> script)
+	{
+		long before = await sqlConnection.ExecuteScalarAsync<long>(StartTransactionGuardSql).ConfigureAwait(false);
+
+		T result;
+		try
+		{
+			result = await script().ConfigureAwait(false);
+		}
+		catch
+		{
+			// the error of the script is the one to throw, also when the script ended the transaction before it: an error can end it too
+			// (XACT_ABORT ON, a failed conversion, a deadlock), and the two cannot be told apart.
+			await TryEndTransactionGuardAsync(sqlConnection, before).ConfigureAwait(false);
+			throw;
+		}
+
+		if (await sqlConnection.ExecuteScalarAsync<bool>(EndTransactionGuardSql, new { before }).ConfigureAwait(false))
+		{
+			throw new DbLiveTransactionEndedException(TransactionEndedExample);
+		}
+
+		return result;
+	}
+
+	private static Task<bool> ExecuteGuardedAsync(SqlConnection sqlConnection, Func<Task> script) =>
+		ExecuteGuardedAsync(sqlConnection, async () =>
+		{
+			await script().ConfigureAwait(false);
+			return true;
+		});
+
+	// the connection may be broken by the error of the script, which is the error to throw.
+	private static async Task TryEndTransactionGuardAsync(SqlConnection sqlConnection, long before)
+	{
+		try
+		{
+			_ = await sqlConnection.ExecuteScalarAsync<bool>(EndTransactionGuardSql, new { before }).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
 		}
 	}
 
@@ -382,39 +455,48 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
-			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
-
-			using SqlCommand cmd = cnn.CreateCommand();
-			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
-			cmd.CommandText = sqlStatement;
-
-			try
-			{
-				// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
-				using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
-
-				List<SqlResult> multipleResults = [];
-				do
-				{
-					SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
-					if (sqlResult is not null)
-					{
-						multipleResults.Add(sqlResult);
-					}
-				}
-				while (await reader.NextResultAsync().ConfigureAwait(false));
-
-				return multipleResults;
-			}
-			catch (SqlException e) when (IsCommandTimeout(e))
-			{
-				throw scriptTimeout.Expired(e);
-			}
+			// a SQL test runs in a transaction of DbLive, which it must not end.
+			return Transaction.Current is null
+				? await QueryMultipleAsync(cnn, sqlStatement, timeout).ConfigureAwait(false)
+				: await ExecuteGuardedAsync(cnn, () => QueryMultipleAsync(cnn, sqlStatement, timeout)).ConfigureAwait(false);
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			SqlException? sqlException = e.Get<SqlException>();
 			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+		}
+	}
+
+	// the reader is closed when it returns: the connection takes no other command while a reader is open.
+	private static async Task<List<SqlResult>> QueryMultipleAsync(SqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		using SqlCommand cmd = cnn.CreateCommand();
+		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+		cmd.CommandText = sqlStatement;
+
+		try
+		{
+			// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
+			using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+
+			List<SqlResult> multipleResults = [];
+			do
+			{
+				SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
+				if (sqlResult is not null)
+				{
+					multipleResults.Add(sqlResult);
+				}
+			}
+			while (await reader.NextResultAsync().ConfigureAwait(false));
+
+			return multipleResults;
+		}
+		catch (SqlException e) when (IsCommandTimeout(e))
+		{
+			throw scriptTimeout.Expired(e);
 		}
 	}
 

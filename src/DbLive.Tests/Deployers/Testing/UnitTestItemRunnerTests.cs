@@ -204,7 +204,7 @@ public class UnitTestItemRunnerTests
 
 		TestRunResult result = await runner.RunTestAsync(testItem);
 
-		// one check after the test: whatever runs after the end of the transaction runs in autocommit mode, so it covers the setup file too.
+		// one check after the test, for a transaction that ended without failing the setup file or the test.
 		Received.InOrder(() =>
 		{
 			mockSet.DbLiveDA.ExecuteNonQueryAsync(testItem.SetupFileData.Content, Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
@@ -218,6 +218,41 @@ public class UnitTestItemRunnerTests
 		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.ErrorMessage);
 		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.Output);
 		Assert.Null(result.Exception);
+	}
+
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public async Task RunTest_ScriptEndedTheTransaction_FailsWithTheMessageOfTheTest(bool inSetup)
+	{
+		// the data access fails the script that ended the transaction; its message speaks of a script, not of the test.
+		MockSet mockSet = CreateMockSet();
+		DbLiveTransactionEndedException scriptError = new("for example ...");
+		if (inSetup)
+		{
+			mockSet.DbLiveDA.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+				.Returns(Task.FromException(scriptError));
+		}
+		else
+		{
+			mockSet.DbLiveDA.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+				.Returns(Task.FromException<List<SqlResult>>(scriptError));
+		}
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "test1",
+			FileData = GetFileData("/test/folder/test1.sql"),
+			SetupFileData = GetFileData("/test/folder/setup.test.sql")
+		});
+
+		Assert.False(result.IsSuccess);
+		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.ErrorMessage);
+		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.Output);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+		_ = mockSet.UnitTestResultChecker.DidNotReceive().ValidateTestResult(Arg.Any<List<SqlResult>>());
 	}
 
 	[Fact]

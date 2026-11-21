@@ -1,22 +1,21 @@
 using DbLive.Adapter;
 using DbLive.Project;
-using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using System.Transactions;
 using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
 /// <summary>
-/// 0096-87, reproduced: a script that ends the transaction it runs in without an error (<c>if @@trancount &gt; 0 rollback</c>).
-/// The statements before the rollback are undone, the ones after it run in autocommit mode and are committed at once, together with
-/// the rows of DbLive written after them. These tests check what DbLive does now; the fix of 0096-87 changes their assertions.
+/// 0096-87: a script that ends the transaction of DbLive without an error (<c>COMMIT</c>, <c>ROLLBACK</c>). DbLive compares the ID of
+/// the transaction before and after the script and fails it. With <c>IMPLICIT_TRANSACTIONS ON</c> the statements of the script after
+/// the end open a new transaction instead of committing at once, and DbLive rolls it back: what a <c>COMMIT</c> of the script committed
+/// stays, nothing else.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
 	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
 {
-	// {0} is undone by the rollback, {1} is committed at once.
+	// {0} is undone by the rollback; {1} would be committed at once without IMPLICIT_TRANSACTIONS.
 	private const string RollbackScript = """
 		insert into dbo.T ( Id ) values ( {0} );
 		if @@trancount > 0 rollback;
@@ -25,9 +24,6 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 
 	private const string AfterDeploy = "insert into dbo.T ( Id ) select 100 where not exists ( select 1 from dbo.T where Id = 100 );";
 
-	// SQL Server: "The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION."
-	private const int CommitWithoutTransactionError = 3902;
-
 	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// DbLive deploys to an existing database without creating it.
@@ -35,34 +31,41 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
-	[Fact]
-	public async Task Migration_that_ends_its_transaction_is_recorded_as_applied_and_skipped_by_the_next_deployment()
+	[Theory]
+	[InlineData("if @@trancount > 0 rollback", new string[0])]
+	// what the script committed stays; the statements after the COMMIT are rolled back.
+	[InlineData("commit", new[] { "1" })]
+	// a transaction of the script's own after the end: @@trancount is as it was, the ID of the transaction is not.
+	[InlineData("rollback; begin tran", new string[0])]
+	[InlineData("commit; begin tran", new[] { "1" })]
+	public async Task Migration_that_ends_its_transaction_fails_and_is_not_recorded(string end, string[] rowsLeft)
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Migration);
 		_ = project
-			.AddFile("Migrations/002.migration.sql", string.Format(RollbackScript, 1, 2))
+			.AddFile("Migrations/002.migration.sql", $"insert into dbo.T ( Id ) values ( 1 ); {end}; insert into dbo.T ( Id ) values ( 2 );")
 			.AddFile("Migrations/003.migration.sql", "insert into dbo.T ( Id ) values ( 3 );");
 
 		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(() => DeployAsync(project));
 
-		// the commit of the migration scope: the message does not say that the script ended the transaction.
-		Assert.Equal(CommitWithoutTransactionError, Assert.IsType<SqlException>(Assert.IsType<TransactionAbortedException>(ex.InnerException).InnerException).Number);
+		DbLiveTransactionEndedException inner = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
+		Assert.StartsWith("Error deploying Migrations/002.migration.sql file.", ex.Message);
+		Assert.Contains(inner.Message, ex.Message);
+		Assert.StartsWith(
+			"The script ended the transaction that DbLive runs it in: it ran COMMIT or ROLLBACK, for example 'if @@trancount > 0 rollback'",
+			inner.Message
+		);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(MigrationItemStatus.Applied, await GetStatusAsync(da, 2));
-		Assert.Equal(["2"], await ListAsync(da, "select Id from dbo.T"));
-
-		await DeployAsync(project);
-
-		// 002 is not run again: the row 1 is never inserted.
-		Assert.Equal(MigrationItemStatus.Applied, await GetStatusAsync(da, 3));
-		Assert.Equal(["2", "3"], await ListAsync(da, "select Id from dbo.T"));
+		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 2));
+		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 3));
+		Assert.Equal(rowsLeft, await ListAsync(da, "select Id from dbo.T"));
 	}
 
-	// a procedure that ends the transaction of its caller is not silent: SQL Server fails the script with Msg 266 when it returns.
-	// What the script ran after the call stays committed.
+	// a procedure that ends the transaction of its caller: without IMPLICIT_TRANSACTIONS SQL Server fails the script with Msg 266 when it
+	// returns, with it on it does not, and the check of the transaction ID fails the script. What the script ran after the call is rolled
+	// back with the transaction that IMPLICIT_TRANSACTIONS opened for it.
 	[Fact]
-	public async Task Migration_whose_procedure_ends_its_transaction_fails_with_error_266()
+	public async Task Migration_whose_procedure_ends_its_transaction_fails_and_leaves_nothing()
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Migration);
 		_ = project.AddFile("Code/Swallow.sql", """
@@ -84,35 +87,33 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		_ = project.AddFile("Migrations/002.migration.sql", "insert into dbo.T ( Id ) values ( 1 ); exec dbo.Swallow; insert into dbo.T ( Id ) values ( 2 );");
 
 		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(() => DeployAsync(project));
-		Assert.Equal(266, Assert.IsType<SqlException>(Assert.IsType<DbLiveSqlException>(ex.InnerException).InnerException).Number);
+		_ = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 2));
-		Assert.Equal(["2"], await ListAsync(da, "select Id from dbo.T"));
+		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
 	}
 
 	[Fact]
-	public async Task Migration_that_ends_the_deployment_transaction_loses_its_row_and_leaves_its_statements_after_the_rollback()
+	public async Task Migration_that_ends_the_deployment_transaction_fails_and_leaves_nothing()
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Deployment);
 		_ = project.AddFile("Migrations/002.migration.sql", string.Format(RollbackScript, 1, 2));
 
-		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(() => DeployAsync(project));
+		// the next deployment fails the same way: nothing of the script stayed.
+		for (int run = 1; run <= 2; run++)
+		{
+			MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(() => DeployAsync(project));
+			_ = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
 
-		// the rollback undid the rows that this deployment saved for its migrations, so the row 'applied' has nothing to update.
-		_ = Assert.IsType<DbLiveMigrationItemMissedSqlException>(ex.InnerException);
-
-		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select version from dblive.migration where version = 2"));
-		Assert.Equal(["2"], await ListAsync(da, "select Id from dbo.T"));
-
-		// the next deployment runs the script again, on top of what it left.
-		ex = await Assert.ThrowsAsync<MigrationDeploymentException>(() => DeployAsync(project));
-		Assert.StartsWith("Violation of PRIMARY KEY constraint", Assert.IsType<DbLiveSqlException>(ex.InnerException).Message);
+			IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
+			Assert.Empty(await ListAsync(da, "select version from dblive.migration where version = 2"));
+			Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
+		}
 	}
 
 	[Fact]
-	public async Task Code_file_that_ends_the_deployment_transaction_is_recorded_as_applied_without_its_batches_before_the_rollback()
+	public async Task Code_file_that_ends_the_deployment_transaction_fails_at_once_and_leaves_nothing()
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Deployment);
 		_ = project
@@ -126,23 +127,20 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 			.AddFile("Code/c.sql", "create or alter view dbo.v3 as select 3 as x;")
 			.AddFile("AfterDeploy/after.sql", AfterDeploy);
 
-		// not a DbLive exception, and no file in it.
-		TransactionAbortedException ex = await Assert.ThrowsAsync<TransactionAbortedException>(() => DeployAsync(project));
-		Assert.Equal(CommitWithoutTransactionError, Assert.IsType<SqlException>(ex.InnerException).Number);
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => DeployAsync(project));
 
-		// everything after the rollback is committed: the rest of the file, the files after it, AfterDeploy, and their rows.
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.Equal("Deploy code file error. File path: Code/a.sql. The file ended the deployment transaction, so it is not retried.", codeEx.Message);
+		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
+
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(["100", "2"], await ListAsync(da, "select Id from dbo.T"));
-		Assert.Equal(["code/a.sql:applied", "code/c.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
-		Assert.Equal(["v2", "v3"], await ListAsync(da, "select name from sys.views"));
-
-		// the file is skipped by its hash: dbo.v1 is never created.
-		await DeployAsync(project);
-		Assert.Equal(["v2", "v3"], await ListAsync(da, "select name from sys.views"));
+		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
+		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
+		Assert.Empty(await ListAsync(da, "select name from sys.views"));
 	}
 
 	[Fact]
-	public async Task BeforeDeploy_script_that_ends_the_deployment_transaction_fails_the_deployment_after_it_is_committed()
+	public async Task BeforeDeploy_script_that_ends_the_deployment_transaction_fails_and_leaves_nothing()
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Deployment);
 		_ = project
@@ -150,22 +148,21 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 			.AddFile("Code/v.sql", "create or alter view dbo.v as select 1 as x;")
 			.AddFile("AfterDeploy/after.sql", AfterDeploy);
 
-		TransactionAbortedException ex = await Assert.ThrowsAsync<TransactionAbortedException>(() => DeployAsync(project));
-		Assert.Equal(CommitWithoutTransactionError, Assert.IsType<SqlException>(ex.InnerException).Number);
+		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(() => DeployAsync(project));
+		_ = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
+		Assert.Contains("BeforeDeploy/rollback.sql", ex.Message);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(["100", "2"], await ListAsync(da, "select Id from dbo.T"));
-		Assert.Equal(["code/v.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
-		Assert.Equal(["afterdeploy/after.sql", "beforedeploy/rollback.sql"], await ListAsync(da, "select relative_path from dblive.folder_items"));
+		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
+		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
+		Assert.Empty(await ListAsync(da, "select relative_path from dblive.folder_items"));
 	}
 
 	[Theory]
-	// the file fails on its commit, and the error does not say that the file ended the transaction.
-	[InlineData(false, "The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.")]
-	// another file of the round succeeds, so the file is tried again in the next round, on top of what its first attempt left:
-	// the error of the retry is the one reported.
-	[InlineData(true, "Violation of PRIMARY KEY constraint")]
-	public async Task Code_file_that_ends_its_own_transaction_leaves_its_batches_after_the_rollback(bool withAnotherFile, string error)
+	// not retried when another file of the round succeeds: the error of the file is reported, not the error of a retry.
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task Code_file_that_ends_its_own_transaction_fails_at_once_and_leaves_nothing(bool withAnotherFile)
 	{
 		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Migration);
 		_ = project.AddFile("Code/a.sql", $"""
@@ -183,13 +180,34 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => DeployAsync(project));
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.StartsWith(error, Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
+		Assert.Equal("Deploy code file error. File path: Code/a.sql. The file ended its transaction, so it is not retried.", codeEx.Message);
+		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(["2"], await ListAsync(da, "select Id from dbo.T"));
-		Assert.Contains("v2", await ListAsync(da, "select name from sys.views"));
+		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
 		Assert.DoesNotContain("v1", await ListAsync(da, "select name from sys.views"));
+		Assert.DoesNotContain("v2", await ListAsync(da, "select name from sys.views"));
 		Assert.Contains("code/a.sql:error", await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+	}
+
+	// IMPLICIT_TRANSACTIONS is on only while a script runs in a transaction of DbLive: not for a script without a transaction, and not for
+	// the commands after the script (the row of the migration is written on the same connection).
+	[Fact]
+	public async Task Implicit_transactions_are_on_only_for_a_script_in_a_transaction()
+	{
+		using TempProject project = await DeployTableAsync(TransactionWrapLevel.Migration);
+		_ = project
+			.AddFile("Migrations/002.migration.sql", "insert into dbo.T ( Id ) select @@options & 2;")
+			.AddFile("Migrations/003.migration.sql", "insert into dbo.T ( Id ) select 10 + ( @@options & 2 );")
+			.AddFile("Migrations/003.migration.settings.json", """{ "TransactionWrapLevel": "None" }""");
+
+		await DeployAsync(project);
+
+		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
+		// 2: on in the script in a transaction; 10: off in the script without one.
+		Assert.Equal(["10", "2"], await ListAsync(da, "select Id from dbo.T"));
+		Assert.Equal(MigrationItemStatus.Applied, await GetStatusAsync(da, 3));
+		Assert.Equal(["0"], await ListAsync(da, "select @@options & 2"));
 	}
 
 	/// <summary>
