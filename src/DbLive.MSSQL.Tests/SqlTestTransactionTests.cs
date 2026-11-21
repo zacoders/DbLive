@@ -8,8 +8,8 @@ namespace DbLive.MSSQL.Tests;
 
 /// <summary>
 /// A ROLLBACK without a savepoint name ends the transaction of the test, also inside a procedure: the usual CATCH block
-/// with <c>if @@trancount &gt; 0 rollback</c> does it. The next statements run in autocommit mode and are committed at once,
-/// and Transaction.Current stays Active. The test fails, and what ran after the end of the transaction stays in the database.
+/// with <c>if @@trancount &gt; 0 rollback</c> does it. Without IMPLICIT_TRANSACTIONS the next statements would run in autocommit mode and
+/// be committed at once, and Transaction.Current stays Active. The test fails, and only what a COMMIT committed stays in the database.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
@@ -83,11 +83,12 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 		select count(*) as cnt from dbo.T where Id = 200;
 		select assert = 'rows';
 		select 1 as cnt;
-		""")]
-	// setup.test.sql ends the transaction: the test after it runs in autocommit mode too.
-	[InlineData("Tests/Setup/plain.sql", "insert into dbo.T ( Id, Note ) values ( 300, 'test' );")]
-	[InlineData("Tests/commit.sql", "insert into dbo.T ( Id, Note ) values ( 200, 'test' ); commit;")]
-	public async Task Test_that_ends_its_transaction_fails_and_what_ran_after_it_stays(string testPath, string test)
+		""", new string[0])]
+	// setup.test.sql ends the transaction: the test does not run.
+	[InlineData("Tests/Setup/plain.sql", "insert into dbo.T ( Id, Note ) values ( 300, 'test' );", new string[0])]
+	// what the test committed stays.
+	[InlineData("Tests/commit.sql", "insert into dbo.T ( Id, Note ) values ( 200, 'test' ); commit;", new[] { "200" })]
+	public async Task Test_that_ends_its_transaction_fails_and_only_what_it_committed_stays(string testPath, string test, string[] rowsLeft)
 	{
 		using TempProject project = CreateProject()
 			.AddFile(testPath, test)
@@ -101,8 +102,7 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 		Assert.False(result.IsSuccess);
 		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.ErrorMessage);
 
-		// committed: the rollback at the end of the test has nothing to undo.
-		Assert.NotEmpty(await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select Id from dbo.T"));
+		Assert.Equal(rowsLeft, await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select Id from dbo.T"));
 	}
 
 	[Fact]

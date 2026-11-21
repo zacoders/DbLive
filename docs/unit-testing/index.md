@@ -136,13 +136,13 @@ begin catch
 end catch
 ```
 
-`COMMIT` in a test or in `setup.test.sql` ends the transaction too. The statements after it run in autocommit mode and are committed at once, so the rest of the test runs against other data than it prepared. DbLive checks the transaction after the test, and the test fails:
+`COMMIT` or `ROLLBACK` in a test or in `setup.test.sql` ends the transaction too, on PostgreSQL as well. DbLive compares the ID of the transaction before and after `setup.test.sql` and the test, and the test fails:
 
 ```text
 The transaction of the test ended before the test did: the test, its setup.test.sql or the code they call ran ROLLBACK or COMMIT, ...
 ```
 
-What was committed stays in the database: in the test database of `[SqlFact]` the other tests see it, and a database you test with `RunAllTestsAsync()` keeps it.
+DbLive rolls back what ran after the end of the transaction, but what a `COMMIT` committed stays in the database: in the test database of `[SqlFact]` the other tests see it, and a database you test with `RunAllTestsAsync()` keeps it.
 
 A procedure whose error path you test must not end a transaction it did not open. Inside a transaction of its caller it rolls back to a savepoint of its own:
 

@@ -14,13 +14,15 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	public DbProvider Provider => DbProvider.PostgreSql;
 
 	// an error aborts the transaction: every later statement fails with 25P02 until the rollback to a savepoint or of the transaction.
+	// A script that ended it with COMMIT or ROLLBACK leaves no error: the next commands run in transactions of their own, where
+	// 'select 1' succeeds. Those have no ID of a transaction yet, and a transaction of DbLive has one: ExecuteGuardedAsync assigns it
+	// before every script in it.
 	public async Task<bool> IsTransactionUsableAsync()
 	{
 		using NpgsqlConnection cnn = CreateConnection();
 		try
 		{
-			_ = await cnn.ExecuteScalarAsync<int>("select 1").ConfigureAwait(false);
-			return true;
+			return await cnn.ExecuteScalarAsync<bool>("select pg_current_xact_id_if_assigned() is not null").ConfigureAwait(false);
 		}
 		catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.InFailedSqlTransaction)
 		{
@@ -43,9 +45,11 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		TimeSpan timeout
 	)
 	{
+		// outside the deployment transaction the file runs between begin and commit of its own, as on SQL Server: one command would be one
+		// implicit transaction anyway, but a COMMIT or ROLLBACK in the file would end it unnoticed.
 		if (System.Transactions.Transaction.Current is null)
 		{
-			await ExecuteNonQueryAsync(sqlStatement, isolationLevel, timeout).ConfigureAwait(false);
+			await ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: true).ConfigureAwait(false);
 			return;
 		}
 
@@ -197,10 +201,17 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { project_id = ProjectIdTools.Normalize(projectId) }).ConfigureAwait(false);
 	}
 
-	public async Task ExecuteNonQueryAsync(
+	public Task ExecuteNonQueryAsync(
 		string sqlStatement,
 		TranIsolationLevel isolationLevel,
 		TimeSpan timeout
+	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: false);
+
+	private async Task ExecuteScriptAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout,
+		bool ownTransaction
 	)
 	{
 		try
@@ -213,18 +224,17 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
-			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
-
-			using NpgsqlCommand cmd = new(sqlStatement, cnn);
-			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
-
-			try
+			if (ownTransaction)
 			{
-				_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+				await ExecuteInOwnTransactionAsync(cnn, sqlStatement, timeout).ConfigureAwait(false);
 			}
-			catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
+			else if (System.Transactions.Transaction.Current is not null)
 			{
-				throw scriptTimeout.Expired(e);
+				_ = await ExecuteGuardedAsync(cnn, sqlStatement, script => ExecuteCommandAsync(cnn, script, timeout)).ConfigureAwait(false);
+			}
+			else
+			{
+				_ = await ExecuteCommandAsync(cnn, sqlStatement, timeout).ConfigureAwait(false);
 			}
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
@@ -232,6 +242,95 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
 		}
 	}
+
+	private static async Task<int> ExecuteCommandAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		using NpgsqlCommand cmd = new(sqlStatement, cnn);
+		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+
+		try
+		{
+			return await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+		}
+		catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
+		{
+			throw scriptTimeout.Expired(e);
+		}
+	}
+
+	// raw begin and commit on the connection, not NpgsqlTransaction: it refuses every command after a COMMIT or ROLLBACK of the script,
+	// and the check of ExecuteGuardedAsync is what finds those.
+	private static async Task ExecuteInOwnTransactionAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		_ = await cnn.ExecuteAsync("begin;").ConfigureAwait(false);
+		try
+		{
+			_ = await ExecuteGuardedAsync(cnn, sqlStatement, script => ExecuteCommandAsync(cnn, script, timeout)).ConfigureAwait(false);
+			_ = await cnn.ExecuteAsync("commit;").ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(cnn).ConfigureAwait(false);
+			throw;
+		}
+	}
+
+	// the error may have broken the connection, and it is the error to throw. Without a transaction in progress 'rollback' is a warning.
+	private static async Task TryRollbackAsync(NpgsqlConnection cnn)
+	{
+		try
+		{
+			_ = await cnn.ExecuteAsync("rollback;").ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	internal const string TransactionEndedExample =
+		"for example BEGIN ... COMMIT around the script: BEGIN inside a transaction is only a warning on PostgreSQL";
+
+	// not a code of PostgreSQL: its classes of SQLSTATE do not use DL.
+	internal const string TransactionEndedSqlState = "DL001";
+
+	/// <summary>
+	/// Runs a script in the transaction of DbLive, the ambient one or the own transaction of a code file, and fails when the script ended
+	/// it: a top-level <c>COMMIT</c> or <c>ROLLBACK</c>, which PostgreSQL runs without an error, also after a <c>BEGIN</c> of the script
+	/// (only a warning in a transaction). The ID of the transaction, read before the script, is compared at the end of the same command:
+	/// Npgsql sends its statements with one <c>Sync</c>, so the statements after the end of the transaction run in one implicit transaction
+	/// up to it, and the error of the check rolls them back. What the script committed with its <c>COMMIT</c> stays, nothing else.
+	/// Reading the ID assigns one to the transaction, which <see cref="IsTransactionUsableAsync"/> relies on.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionEndedException">The script ended the transaction.</exception>
+	private static async Task<T> ExecuteGuardedAsync<T>(NpgsqlConnection cnn, string sqlStatement, Func<string, Task<T>> execute)
+	{
+		string transactionId = (await cnn.ExecuteScalarAsync<string>("select pg_current_xact_id()::text").ConfigureAwait(false))!;
+
+		try
+		{
+			return await execute(AddTransactionCheck(sqlStatement, transactionId)).ConfigureAwait(false);
+		}
+		catch (PostgresException e) when (e.SqlState == TransactionEndedSqlState)
+		{
+			// a script that began a transaction of its own after the end (rollback; begin; ...) leaves it aborted by the check.
+			await TryRollbackAsync(cnn).ConfigureAwait(false);
+			throw new DbLiveTransactionEndedException(TransactionEndedExample);
+		}
+	}
+
+	// after a line end, so that a script that ends with a '--' comment does not swallow it, and after a semicolon, so that a script that
+	// ends without one does not run into it. A statement of its own: the positions of the errors of the script do not change.
+	internal static string AddTransactionCheck(string sqlStatement, string transactionId) => $"""
+		{sqlStatement}
+		;
+		do $dblive$ begin
+			if pg_current_xact_id() <> '{transactionId}'::xid8 then
+				raise exception using errcode = '{TransactionEndedSqlState}', message = 'The script ended the transaction that DbLive runs it in.';
+			end if;
+		end $dblive$;
+		""";
 
 	// Npgsql reports a command timeout as NpgsqlException "Exception while reading from stream" with TimeoutException "Timeout during
 	// reading attempt" inside, also when it has cancelled the statement on the server. A connection timeout has a TimeoutException
@@ -272,37 +371,46 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 			}
 
-			ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
-
-			using NpgsqlCommand cmd = new(sqlStatement, cnn);
-			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
-
-			try
-			{
-				using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
-
-				List<SqlResult> results = [];
-
-				do
-				{
-					SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
-					if (r is not null)
-					{
-						results.Add(r);
-					}
-				}
-				while (await reader.NextResultAsync().ConfigureAwait(false));
-
-				return results;
-			}
-			catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
-			{
-				throw scriptTimeout.Expired(e);
-			}
+			// a SQL test runs in a transaction of DbLive, which it must not end. The check adds a statement without a result set.
+			return System.Transactions.Transaction.Current is null
+				? await QueryMultipleAsync(cnn, sqlStatement, timeout).ConfigureAwait(false)
+				: await ExecuteGuardedAsync(cnn, sqlStatement, script => QueryMultipleAsync(cnn, script, timeout)).ConfigureAwait(false);
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
+		}
+	}
+
+	// the reader is closed when it returns: the connection takes no other command while a reader is open.
+	private static async Task<List<SqlResult>> QueryMultipleAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		using NpgsqlCommand cmd = new(sqlStatement, cnn);
+		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+
+		try
+		{
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
+
+			List<SqlResult> results = [];
+
+			do
+			{
+				SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
+				if (r is not null)
+				{
+					results.Add(r);
+				}
+			}
+			while (await reader.NextResultAsync().ConfigureAwait(false));
+
+			return results;
+		}
+		catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
+		{
+			throw scriptTimeout.Expired(e);
 		}
 	}
 

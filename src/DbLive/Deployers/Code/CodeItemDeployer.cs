@@ -57,16 +57,22 @@ internal class CodeItemDeployer(
 			// in a transaction the error row would never be seen: a failed deployment rolls it back, a successful retry overwrites it.
 			// When the error ended the transaction, a retry cannot run in it: on PostgreSQL it fails, on SQL Server it would run
 			// in autocommit mode and be committed with the files after it, while the deployment is rolled back.
+			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run. In the deployment transaction
+			// nothing is left to retry it in; in a transaction of its own a retry would run on top of what its COMMIT committed.
+			bool endedTransaction = ex is DbLiveTransactionEndedException;
+
 			if (Transaction.Current is not null)
 			{
-				bool canRetry = await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
+				bool canRetry = !endedTransaction && await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
 				return new CodeItemDeployResult
 				{
 					IsSuccess = false,
 					CanRetry = canRetry,
 					Exception = new CodeDeploymentException(
-						canRetry ? errorMessage : $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.",
+						canRetry ? errorMessage
+						: endedTransaction ? $"{errorMessage}. The file ended the deployment transaction, so it is not retried."
+						: $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.",
 						ex
 					)
 				};
@@ -74,7 +80,15 @@ internal class CodeItemDeployer(
 
 			await SaveErrorRowAsync(codeItem, migrationStartedUtc, ex).ConfigureAwait(false);
 
-			return CodeItemDeployResult.Failed(new CodeDeploymentException(errorMessage, ex));
+			return new CodeItemDeployResult
+			{
+				IsSuccess = false,
+				CanRetry = !endedTransaction,
+				Exception = new CodeDeploymentException(
+					endedTransaction ? $"{errorMessage}. The file ended its transaction, so it is not retried." : errorMessage,
+					ex
+				)
+			};
 		}
 	}
 

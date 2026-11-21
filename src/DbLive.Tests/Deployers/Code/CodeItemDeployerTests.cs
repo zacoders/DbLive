@@ -134,6 +134,59 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
+	public async Task Code_item_that_ended_the_deployment_transaction_is_not_retried_without_checking_the_transaction()
+	{
+		// on PostgreSQL the check would not see it if the check of the script had not rolled back what ran after the end.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(true);
+
+		DbLiveTransactionEndedException scriptError = new("for example ...");
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+		}
+
+		Assert.False(res.IsSuccess);
+		Assert.False(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended the deployment transaction, so it is not retried.", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
+	}
+
+	[Fact]
+	public async Task Code_item_that_ended_its_own_transaction_is_not_retried_and_saves_its_error_row()
+	{
+		// it ends its transaction on every run, and a retry would run on top of what its COMMIT committed.
+		MockSet mockSet = new();
+
+		DbLiveTransactionEndedException scriptError = new("for example ...");
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+
+		Assert.False(res.IsSuccess);
+		Assert.False(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended its transaction, so it is not retried.", ex.Message);
+		Assert.Same(scriptError, ex.InnerException);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error && i.ErrorMessage == scriptError.Message));
+	}
+
+	[Fact]
 	public async Task Failed_code_item_without_a_transaction_does_not_check_the_transaction()
 	{
 		// on SQL Server the check is '@@trancount > 0': without a transaction it would tell that no file can be retried.

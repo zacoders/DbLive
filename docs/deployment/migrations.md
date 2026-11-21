@@ -26,6 +26,17 @@ If a script fails, the deployment stops with `MigrationDeploymentException` (the
 
 On SQL Server, scripts may contain `GO` batch separators. On PostgreSQL, a file is sent as one multi-statement command.
 
+### No COMMIT or ROLLBACK in a script
+
+A script that runs in a transaction must not end it. DbLive cannot stop it (no database server lets a tool forbid `COMMIT` or `ROLLBACK` in the session the script runs in), so it checks afterwards: it compares the ID of the transaction before and after the script, and fails the deployment with `The script ended the transaction that DbLive runs it in: ...`. The migration is not marked as applied, and what the script ran after the end of the transaction is rolled back. What its `COMMIT` committed stays, and the next deployment runs the script again on top of it.
+
+The usual causes:
+
+- PostgreSQL: `BEGIN; ... COMMIT;` around the script. `BEGIN` inside a transaction is only a warning, and `COMMIT` commits the transaction of DbLive. Remove both.
+- SQL Server: a `CATCH` block with `if @@trancount > 0 rollback` that does not rethrow the error, or a procedure that does it. Rethrow the error with `throw`.
+
+A migration that must commit by itself, for example to commit a large data change in batches, gets `"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings), and must be re-runnable. The [deployment test](../unit-testing/deployment-tests.md) finds a script that ends its transaction before the release.
+
 ## Checksums
 
 Before deploying, DbLive compares every **applied** migration and breaking script with the file in the project. The checksum covers the text, including whitespace and comments, but not line endings: a Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same checksum.

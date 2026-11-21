@@ -103,9 +103,9 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture _
 		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
 		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
-		// the script is not interrupted: the write of its row after it cannot enlist in the transaction that timed out.
-		System.Transactions.TransactionException transactionEx = Assert.IsType<System.Transactions.TransactionException>(codeEx.InnerException);
-		_ = Assert.IsType<TimeoutException>(transactionEx.InnerException);
+		// the script is not interrupted: the check of its transaction after it cannot run on the connection of the transaction that timed out.
+		DbLiveSqlException sqlEx = Assert.IsType<DbLiveSqlException>(codeEx.InnerException);
+		Assert.StartsWith("The transaction associated with the current connection has completed but has not been disposed.", sqlEx.Message);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await ListAsync(da, "select name from sys.tables where schema_id = schema_id('dbo')"));
