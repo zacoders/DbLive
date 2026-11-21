@@ -15,9 +15,10 @@ Work items (features, bugs, chores) are Markdown files in `tasks/`, one file per
 - **Same commit.** A task file changes in the same commit as the code it describes. A change in DbLive behavior updates `docs/llms-full.txt` (the reference for AI agents) and the matching page under `docs/` in that commit too; the task lists them under `## Docs to update`.
 - **Close.** When everything under `## Done when` is ticked:
   1. Write `## Release note` right after the title. It is required: GitHub Releases are built from it. Write for users of the packages: what changed, and what they must do to upgrade. Write `None.` when they see no change. Preview the notes: `dotnet run .github/scripts/release-notes.cs`.
-  2. Set `breaking: true` in the front matter when an upgrade needs a change on the user's side: a renamed file or setting, a changed call, a test that passed and now fails.
-  3. Fill `## Result`: what changed, decisions taken, tests.
-  4. Set `closed:` and `git mv` the file to `tasks/done/` in the same commit as the final change.
+  2. Correct the notes of other tasks closed since the previous release that your change makes wrong: a setting or type they name is removed or moved, a behavior they describe changed again. A release describes the change from the previous release, not the steps between. Search the preview for the names your change touches.
+  3. Set `breaking: true` in the front matter when an upgrade needs a change on the user's side: a renamed file or setting, a changed call, a test that passed and now fails.
+  4. Fill `## Result`: what changed, decisions taken, tests.
+  5. Set `closed:` and `git mv` the file to `tasks/done/` in the same commit as the final change.
 - **Reject.** Only the maintainer rejects a task or an idea. Do not delete the file:
   1. Write `## Rejected` right after the title: the maintainer's decision with its date, and why.
   2. Set `rejected:` in the front matter.

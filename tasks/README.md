@@ -65,11 +65,13 @@ Filled when closing: what changed, decisions taken, commits.
 
 GitHub Releases are built from the `## Release note` sections of the tasks closed since the previous release ("Releases" in [Development.md](../Development.md)), so the section is required in every closed task; `None.` is the way to say there is nothing to tell, optionally followed by why (`None. Demo project only.`). The PR check fails a closed task without the section. Preview the notes with `dotnet run .github/scripts/release-notes.cs`.
 
+The notes of a release describe the change from the previous release, not the steps between. A task that makes the note of another task closed since the previous release wrong (a setting or type it names is removed or moved, a behavior it describes changed again) corrects that note in the same commit. Search the preview for the names the change touches.
+
 ## Workflow
 
 1. **Create.** One task per file. Something found while working on another task gets its own file, numbered under that task. Steps of a single task stay a checklist inside its file.
 2. **Work.** Tick checkboxes and add notes under `## Notes` as you go.
-3. **Close.** When everything under "Done when" is ticked, write `## Release note` (and `breaking: true` when it applies), fill `## Result`, set `closed:`, and `git mv` the file to `done/` in the same commit as the final change.
+3. **Close.** When everything under "Done when" is ticked, write `## Release note` (and `breaking: true` when it applies), correct the notes of earlier tasks of the release that the change makes wrong, fill `## Result`, set `closed:`, and `git mv` the file to `done/` in the same commit as the final change.
 4. **Docs.** A change in DbLive behavior updates `docs/llms-full.txt` (the reference for AI agents) and the matching page under `docs/` in the same commit.
 5. **Reject.** A task the maintainer decides not to do moves to `rejected/` (see [Rejected](#rejected)).
 

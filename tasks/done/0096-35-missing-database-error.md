@@ -7,7 +7,7 @@ closed: 2026-11-03
 # A clear error when the database does not exist
 
 ## Release note
-**A missing database gets a clear error.** When the database of the connection string does not exist, `DeployAsync` (with `CreateDbIfNotExists` off, the default) and `RunAllTestsAsync()` fail before anything runs with `DatabaseNotFoundException` (namespace `DbLive.Adapter`), which names the database and the server. Before, SQL Server answered `Cannot open database "<name>" requested by the login. The login failed.` after about 10 seconds of connection retries, which reads like wrong credentials; now the error comes at once. A login without access to an existing database still gets that error from SQL Server. Nothing to change when you upgrade.
+**A missing database gets a clear error.** When the database of the connection string does not exist, `DeployAsync` (with `CreateDbIfNotExists` off, the default) and `RunAllTestsAsync()` fail before anything runs with `DatabaseNotFoundException` (namespace `DbLive`), which names the database and the server. Before, SQL Server answered `Cannot open database "<name>" requested by the login. The login failed.` after about 10 seconds of connection retries, which reads like wrong credentials; now the error comes at once. A login without access to an existing database still gets that error from SQL Server. Nothing to change when you upgrade.
 
 ## Problem
 Since 0096-34 a deployment does not create the database by default. When the database of the connection string does not exist, the user got the provider's connection error:

@@ -8,7 +8,7 @@ breaking: true
 # A code file with several batches is applied in part on SQL Server
 
 ## Release note
-**On SQL Server a code file is applied as a whole.** A code file now runs in a transaction of its own: when one of its `GO` batches fails, the batches before it are rolled back. Before, they stayed applied, and the database had part of the file in its new version until a later deployment ran the file again. The files still deploy in parallel, and `CodeItemTimeout` stays the timeout of each batch. A file with In-Memory OLTP DDL (the word `native_compilation` or `memory_optimized`), which SQL Server does not allow in a transaction, runs without one, as before. On PostgreSQL a file already ran as one implicit transaction, and with `TransactionWrapLevel: Deployment` nothing changes.
+**On SQL Server a code file is applied as a whole.** A code file now runs in a transaction of its own: when one of its `GO` batches fails, the batches before it are rolled back. Before, they stayed applied, and the database had part of the file in its new version until a later deployment ran the file again. The files still deploy in parallel. A file with In-Memory OLTP DDL (the word `native_compilation` or `memory_optimized`), which SQL Server does not allow in a transaction, runs without one, as before. On PostgreSQL a file already ran as one implicit transaction, and with `TransactionWrapLevel: Deployment` nothing changes.
 
 To upgrade: a statement that SQL Server does not allow in a transaction, such as `ALTER DATABASE` or full-text DDL, now fails in a code file with the error of SQL Server (`ALTER DATABASE statement not allowed within multi-statement transaction.`). Move it into a migration with `"TransactionWrapLevel": "None"` in its item settings file.
 
