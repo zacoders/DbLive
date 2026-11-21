@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-11-17
+rejected: 2026-11-22
 ---
 # The removal of `MaxCodeDeployRetries` is not in the docs
+
+## Rejected
+Maintainer, 2026-11-22: not worth doing. DbLive 1.5 has no users other than the maintainer, so nobody upgrades a `settings.json` with `MaxCodeDeployRetries` to 2.0. The release note of 0096-77 already names the key and the upgrade step.
 
 ## Problem
 0096-77 removed the setting `MaxCodeDeployRetries` (`breaking: true`). DbLive 1.5 has it (verified: `git grep MaxCodeDeployRetries 1.5.0 -- src` finds it in `DbLiveSettings.cs:37`), so a `settings.json` with `"MaxCodeDeployRetries": 5` fails after the upgrade with `InvalidProjectSettingsException: Invalid project settings file settings.json: The JSON property 'MaxCodeDeployRetries' could not be mapped ...` (`JsonException` before 0096-90).
