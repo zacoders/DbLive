@@ -34,7 +34,7 @@ public class DbLiveDeployerTests
 			.Do(_ => calls.Add("save"));
 
 		mockSet.FolderDeployer
-			.When(x => x.DeployAsync(project, ProjectFolder.BeforeDeploy, parameters))
+			.When(x => x.DeployAsync(project, ProjectFolder.BeforeDeploy))
 			.Do(_ => calls.Add("folder-before"));
 
 		mockSet.MigrationsDeployer
@@ -50,7 +50,7 @@ public class DbLiveDeployerTests
 			.Do(_ => calls.Add("breaking"));
 
 		mockSet.FolderDeployer
-			.When(x => x.DeployAsync(project, ProjectFolder.AfterDeploy, parameters))
+			.When(x => x.DeployAsync(project, ProjectFolder.AfterDeploy))
 			.Do(_ => calls.Add("folder-after"));
 
 		DbLiveDeployer deployer = mockSet.CreateUsingMocks<DbLiveDeployer>();
@@ -122,7 +122,7 @@ public class DbLiveDeployerTests
 		Assert.Equal([7, 8], ex.Versions);
 		await mockSet.MigrationChecksumValidator.DidNotReceiveWithAnyArgs().ValidateAsync(default!, default!);
 		await mockSet.MigrationsSaver.DidNotReceiveWithAnyArgs().SaveAsync(default!);
-		await mockSet.FolderDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default, default!);
+		await mockSet.FolderDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default);
 		await mockSet.MigrationsDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);
 		await mockSet.CodeDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);
 		await mockSet.BreakingChangesDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!, default!);

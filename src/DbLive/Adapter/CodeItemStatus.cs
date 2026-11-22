@@ -3,7 +3,6 @@
 internal enum CodeItemStatus
 {
 	Error,
-	Skipped,
 	Applied,
 	
 	/// <summary>

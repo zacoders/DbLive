@@ -37,7 +37,7 @@ internal class DbLiveDeployer(
 				// saving migrations to the log table before actual deployment.
 				await _migrationsSaver.SaveAsync(project).ConfigureAwait(false);
 
-				await _folderDeployer.DeployAsync(project, ProjectFolder.BeforeDeploy, parameters).ConfigureAwait(false);
+				await _folderDeployer.DeployAsync(project, ProjectFolder.BeforeDeploy).ConfigureAwait(false);
 
 				await _migrationsDeployer.DeployAsync(project, parameters).ConfigureAwait(false);
 
@@ -45,7 +45,7 @@ internal class DbLiveDeployer(
 
 				await _breakingChangesDeployer.DeployAsync(project, parameters).ConfigureAwait(false);
 
-				await _folderDeployer.DeployAsync(project, ProjectFolder.AfterDeploy, parameters).ConfigureAwait(false);
+				await _folderDeployer.DeployAsync(project, ProjectFolder.AfterDeploy).ConfigureAwait(false);
 			}
 		).ConfigureAwait(false);
 

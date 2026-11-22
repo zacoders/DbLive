@@ -10,7 +10,7 @@ internal class FolderDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
 
-	public async Task DeployAsync(ProjectSnapshot project, ProjectFolder projectFolder, DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, ProjectFolder projectFolder)
 	{
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 

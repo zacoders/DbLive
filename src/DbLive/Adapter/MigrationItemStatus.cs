@@ -3,6 +3,5 @@
 internal enum MigrationItemStatus
 {
 	None,
-	Skipped,
 	Applied
 }

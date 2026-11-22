@@ -19,7 +19,7 @@ public class FolderDeployerTests
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder);
 
 		await mockSet.DbLiveDA.Received(3)
 			.ExecuteNonQueryAsync(
@@ -45,7 +45,7 @@ public class FolderDeployerTests
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder);
 
 		await mockSet.DbLiveDA.Received()
 			.ExecuteNonQueryAsync(
@@ -85,7 +85,7 @@ public class FolderDeployerTests
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(
-			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder)
 		);
 
 		Assert.Equal("""
@@ -130,7 +130,7 @@ public class FolderDeployerTests
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(
-			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder)
 		);
 
 		Assert.Equal("""
@@ -166,7 +166,7 @@ public class FolderDeployerTests
 
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
-		await deploy.DeployAsync(project, projectFolder, DeployParameters.Default);
+		await deploy.DeployAsync(project, projectFolder);
 
 		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 	}
@@ -185,7 +185,7 @@ public class FolderDeployerTests
 		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
 
 		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-			() => deploy.DeployAsync(project, projectFolder, DeployParameters.Default)
+			() => deploy.DeployAsync(project, projectFolder)
 		);
 	}
 
