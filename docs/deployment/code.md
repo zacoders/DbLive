@@ -49,14 +49,14 @@ When the contract of an object changes (parameters, result columns, meaning), ke
 ```sql
 -- Code/dbo/GetUsers.sql, earlier commit
 create or alter proc dbo.GetUsers_v1 as
-    select Id, UserName from dbo.Users where Deleted = 0
+    select UserId, Name from dbo.Users where Deleted = 0
 go
 ```
 
 ```sql
 -- Code/dbo/GetUsers.sql, this commit
 create or alter proc dbo.GetUsers_v2 as
-    select Id, UserName from dbo.Users where Deleted = 0 and Active = 1
+    select UserId, Name from dbo.Users where Deleted = 0 and Active = 1
 go
 ```
 

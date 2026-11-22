@@ -54,7 +54,7 @@ The interface is versioned. When the **contract** changes, **add a new version**
 -- Earlier commit: GetUsers_v1 (still called by old apps)
 create or alter proc dbo.GetUsers_v1
 as
-    select Id, UserName from dbo.Users where Deleted = 0
+    select UserId, Name from dbo.Users where Deleted = 0
 go
 ```
 
@@ -62,7 +62,7 @@ go
 -- This commit: same file, new version for the new app
 create or alter proc dbo.GetUsers_v2
 as
-    select Id, UserName from dbo.Users where Deleted = 0 and Active = 1
+    select UserId, Name from dbo.Users where Deleted = 0 and Active = 1
 go
 ```
 
