@@ -11,8 +11,8 @@ internal interface IDbLiveDA
 	Task CreateDBAsync(bool skipIfExists = true);
 
 	/// <summary>
-	/// Drops the database of the connection string, also while other connections use it: SQL Server sets it to
-	/// <c>single_user with rollback immediate</c>, PostgreSQL terminates its sessions. For the fixtures of <c>DbLive.xunit</c>
+	/// Drops the database of the connection string, also while other connections use it: SQL Server kills its sessions when the
+	/// login may, then sets it to <c>single_user with rollback immediate</c>; PostgreSQL terminates its sessions. For the fixtures of <c>DbLive.xunit</c>
 	/// and the internal option <see cref="DeployParameters.RecreateDatabase"/>.
 	/// </summary>
 	Task DropDbAsync(bool skipIfNotExists = true);

@@ -618,11 +618,12 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (dbExists && skipIfExists) return;
 
-		ServerConnection serverCnn = new(cnn);
-		_ = serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
-
-		serverCnn.Disconnect();
+		_ = await cnn.ExecuteAsync($"create database [{databaseToCreate}];", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
 	}
+
+	// the timeout of SMO, which ran the create and the drop before: both wait for the files, and the drop for the rollback of the
+	// transactions of the sessions it ends.
+	private const int CreateDropTimeoutSeconds = 600;
 
 	// Cannot open database "..." requested by the login. The login failed.
 	private const int CannotOpenDatabaseError = 4060;
@@ -753,13 +754,63 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 		}
 
-		ServerConnection serverCnn = new(cnn);
-		_ = serverCnn.ExecuteNonQuery([
-			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
-			$"drop database [{databaseToDrop}];"
-		]);
+		await KillSessionsAsync(cnn, databaseToDrop).ConfigureAwait(false);
 
-		serverCnn.Disconnect();
+		// single_user ends the sessions that are left: of a login that may not kill them, or opened after the kill.
+		// One batch: between two, another connection could take the single user of the database, and the drop would fail.
+		_ = await cnn.ExecuteAsync($"""
+			alter database [{databaseToDrop}] set single_user with rollback immediate;
+			drop database [{databaseToDrop}];
+			""",
+			commandTimeout: CreateDropTimeoutSeconds
+		).ConfigureAwait(false);
+	}
+
+	// a killed session that takes longer to end, a long rollback, is left to single_user.
+	private static readonly TimeSpan KilledSessionsEndTimeout = TimeSpan.FromSeconds(2);
+
+	/// <summary>
+	/// Kills the sessions of the database and waits until they end, so that <c>single_user with rollback immediate</c> finds none: for
+	/// any session it has to end, also an idle one of a connection pool or one of a connection closed just before, it waits about
+	/// 3 seconds. Without the permissions (<c>VIEW SERVER STATE</c>, <c>ALTER ANY CONNECTION</c>) the login sees or kills nothing, and
+	/// single_user ends the sessions, slower.
+	/// </summary>
+	private static async Task KillSessionsAsync(SqlConnection cnn, string database)
+	{
+		try
+		{
+			IEnumerable<short> sessions = await cnn.QueryAsync<short>("""
+				select session_id
+				from sys.dm_exec_sessions
+				where database_id = db_id(@name) and is_user_process = 1 and session_id <> @@spid
+				""",
+				new { name = database }
+			).ConfigureAwait(false);
+
+			foreach (short session in sessions)
+			{
+				_ = await cnn.ExecuteAsync($"kill {session};").ConfigureAwait(false);
+			}
+
+			// a killed session ends asynchronously, as does the session of a connection closed just before the drop.
+			DateTime deadline = DateTime.UtcNow + KilledSessionsEndTimeout;
+			while (DateTime.UtcNow < deadline && await cnn.ExecuteScalarAsync<bool>("""
+				select case when exists (
+					select 1
+					from sys.dm_tran_locks
+					where resource_type = 'DATABASE' and resource_database_id = db_id(@name) and request_session_id <> @@spid
+				) then 1 else 0 end
+				""",
+				new { name = database }
+			).ConfigureAwait(false))
+			{
+				await Task.Delay(20).ConfigureAwait(false);
+			}
+		}
+		catch (SqlException)
+		{
+			// no permission: to kill (6102), to read sys.dm_tran_locks (300); or a session ended before its kill (6106).
+		}
 	}
 
 	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.

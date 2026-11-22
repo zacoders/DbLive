@@ -7,8 +7,7 @@ namespace DbLive.MSSQL.Tests;
 /// <summary>
 /// A test class whose tests deploy a database of their own: xUnit creates the class for each test, so each test gets a new random
 /// database name. The database is created before the test, unless <c>createDb</c> is false: the deployment of the test creates it, or the
-/// test checks that none is created. It is dropped after the test, also a failed one, with <c>rollback immediate</c> for the sessions
-/// still open in it.
+/// test checks that none is created. It is dropped after the test, also a failed one, and the sessions still open in it end.
 /// </summary>
 /// <param name="dbName">A fixed name instead of a random one.</param>
 /// <param name="keepDb">Keeps the database after the test. With <c>.WithReuse(true)</c> in <see cref="SqlServerIntegrationFixture"/>
