@@ -3,9 +3,18 @@ using System.Reflection;
 
 namespace DbLive;
 
+/// <summary>
+/// Configures a <see cref="DbLiveBuilder"/>: the connection, the project, the logger. The provider comes from its package:
+/// <c>.SqlServer()</c> in <c>DbLive.MSSQL</c>, <c>.PostgreSQL()</c> in <c>DbLive.PostgreSQL</c>.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public static class DbLiveBuilderExtensions
 {
+	/// <summary>
+	/// Logs to the console, with a Serilog console logger.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <returns>The same builder instance for chaining.</returns>
 	public static DbLiveBuilder LogToConsole(this DbLiveBuilder builder)
 	{
 		return builder.ConfigureServices(services =>
@@ -34,6 +43,13 @@ public static class DbLiveBuilderExtensions
 		});
 	}
 
+	/// <summary>
+	/// The database to deploy to and to run the SQL tests against.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <param name="sqlDbConnectionString">The connection string of the database. A deployment creates the database only with
+	/// <see cref="DeployParameters.CreateDbIfNotExists"/>.</param>
+	/// <returns>The same builder instance for chaining.</returns>
 	public static DbLiveBuilder SetDbConnection(this DbLiveBuilder builder, string sqlDbConnectionString)
 	{
 		return builder.ConfigureServices(services =>

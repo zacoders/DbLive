@@ -1,5 +1,9 @@
 ﻿namespace DbLive;
 
+/// <summary>
+/// The provider does not support the transaction isolation level that the settings set: <c>Snapshot</c> on PostgreSQL,
+/// in <c>settings.json</c> or in the settings file of a migration or breaking script. Nothing ran.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class NotSupportedTransactionIsolationLevelException : Exception
 {
@@ -11,6 +15,8 @@ public sealed class NotSupportedTransactionIsolationLevelException : Exception
 		this.isolationLevel = isolationLevel;
 	}
 
+	/// <param name="isolationLevel">The level that the settings set.</param>
+	/// <param name="provider">The provider that does not support it.</param>
 	/// <param name="relativePath">The settings file of a migration or breaking script that sets the level; null for settings.json.</param>
 	internal NotSupportedTransactionIsolationLevelException(TranIsolationLevel isolationLevel, DbProvider provider, string? relativePath)
 		: base(relativePath is null

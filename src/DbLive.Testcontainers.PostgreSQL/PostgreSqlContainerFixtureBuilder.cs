@@ -30,6 +30,11 @@ public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string i
 	// the start of each image: its connection string, or the error every fixture gets when the start failed.
 	private static readonly Dictionary<string, Task<string>> _servers = [];
 
+	/// <summary>
+	/// A new builder for a new database in the container of the image. The first call starts the container; concurrent calls wait
+	/// for that start. A failed start, such as Docker not running or an image not found, is not retried: every call of the
+	/// test run gets its exception.
+	/// </summary>
 	public async Task<DbLiveBuilder> GetBuilderAsync()
 	{
 		string serverConnectionString = await GetServerAsync(image).ConfigureAwait(false);
@@ -37,6 +42,7 @@ public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string i
 		return await new PostgreSqlFixtureBuilder(project, serverConnectionString).GetBuilderAsync().ConfigureAwait(false);
 	}
 
+	/// <inheritdoc/>
 	public Assembly GetProjectAssembly() => project;
 
 	private static Task<string> GetServerAsync(string image)

@@ -1,6 +1,9 @@
 ﻿namespace DbLive;
 
-
+/// <summary>
+/// Two files of the Migrations folder have the same version and type, such as <c>005.migration.sql</c> and <c>005.m.sql</c>.
+/// Nothing ran.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class DuplicateMigrationItemException : Exception
 {

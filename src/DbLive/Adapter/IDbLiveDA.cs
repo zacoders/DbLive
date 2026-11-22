@@ -38,6 +38,8 @@ internal interface IDbLiveDA
 	/// transaction with COMMIT or ROLLBACK, and what the script ran after the end is rolled back; so do <see cref="ExecuteCodeItemAsync"/>
 	/// and <see cref="ExecuteQueryMultipleAsync"/>, and a code file in a transaction of its own.
 	/// </summary>
+	/// <param name="sqlStatement">The script; on SQL Server with <c>GO</c> batches.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
 	/// <param name="timeout">The timeout of the whole script, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException"/>
 	/// <exception cref="DbLiveTransactionEndedException">The script ended the ambient transaction.</exception>
@@ -48,6 +50,8 @@ internal interface IDbLiveDA
 		TimeSpan timeout
 	);
 
+	/// <param name="sqlStatement">The script; every result set it returns is an item of the result.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
 	/// <param name="timeout">The timeout of the script; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException"/>
 	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
@@ -83,6 +87,8 @@ internal interface IDbLiveDA
 	/// that transaction (<see cref="ExecuteNonQueryAsync"/>). Except a file for which <see cref="RunsCodeItemWithoutTransaction"/>
 	/// is true: its batches commit one by one.
 	/// </summary>
+	/// <param name="sqlStatement">The content of the code file; on SQL Server with <c>GO</c> batches.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
 	/// <param name="timeout">The timeout of the whole file, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
 	/// <exception cref="ExecutionTimeoutException">The file ran longer than <paramref name="timeout"/>.</exception>

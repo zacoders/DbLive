@@ -31,6 +31,8 @@ The "Release notes" check (`release-notes.cs`, see [Release notes](#release-note
 
 One pair of files serves all target frameworks: no code of `src` depends on the target framework.
 
+Every public type and member of the six packages has a doc comment. They set `GenerateDocumentationFile`, so the build writes the `.xml` file that the package carries next to the DLL, for IntelliSense, and checks the comments: with `TreatWarningsAsErrors` a public member without a comment (CS1591), a `cref` that does not resolve (CS1574) and a wrong `<param>` (CS1572, CS1573) are build errors. Write what a user needs at the call: what it does, its default, what is safe in production, the exceptions it throws. An interface implementation takes `/// <inheritdoc/>`. `package-tests.cs` checks that every package has the file.
+
 A type is public only when the docs describe it (Section 11 of `docs/llms-full.txt`, the exceptions of Section 17, what `docs/versioning.md` covers) or a described type has it in a signature. Everything else is internal, also a class that the dependency injection creates: the class is internal, its constructor public. The same for members: a public type has public only what a user calls or reads. A type that DbLive creates and the user only receives (an exception, a result) has internal constructors and setters, and a public class that the user does not derive from is sealed. The public types are in the namespaces `DbLive`, `DbLive.Testing`, `DbLive.MSSQL`, `DbLive.PostgreSQL` and `DbLive.xunit`, wherever their files are. The provider packages, `DbLive.xunit` and the test projects see the internals through `InternalsVisibleTo`.
 
 ## Releases

@@ -1,4 +1,5 @@
 #!/usr/bin/env dotnet
+// Checks that every package has the documentation file of its DLL, for IntelliSense (task 0096-94).
 // Builds projects that reference the packed DbLive packages from a local feed, the way a user project does,
 // and checks what the packages add to them: the DbLive package embeds the scripts folder without a block in the
 // .csproj (task 0096-30-01), only the folder that the .csproj names in DbLiveScriptsFolder (task 0096-43), and the
@@ -16,6 +17,7 @@
 //
 // This file lists the checks. How they work is in package-tests/:
 //   Workspace.cs     the temporary folder of the projects, isolated from the repository and from the user's caches
+//   Packages.cs      the .nupkg files themselves: the documentation file next to each DLL
 //   TestProject.cs   a project: its files, its build, and what the build embeds
 //   Template.cs      the dotnet new template: install, create a solution, run its tests
 //   Report.cs, Dotnet.cs
@@ -24,6 +26,7 @@
 #:property PublishAot=false
 
 #:include package-tests/Workspace.cs
+#:include package-tests/Packages.cs
 #:include package-tests/TestProject.cs
 #:include package-tests/Template.cs
 #:include package-tests/Report.cs
@@ -35,6 +38,9 @@ string packages = args is ["--packages", var folder]
 
 var workspace = Workspace.Create(packages);
 Console.WriteLine($"DbLive {workspace.Version} from {packages}, projects in {workspace.Root}");
+
+// Each package has the documentation file of its DLL next to it: IntelliSense shows the doc comments (task 0096-94).
+Packages.ExpectDocumentation(workspace);
 
 // Layout A: scripts and deployer in one project, DbLive comes through the provider package. The .csproj names the
 // folder of the scripts.

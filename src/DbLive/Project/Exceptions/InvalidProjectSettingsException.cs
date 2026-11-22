@@ -13,5 +13,8 @@ public sealed class InvalidProjectSettingsException : Exception
 		RelativePath = relativePath;
 	}
 
+	/// <summary>
+	/// The relative path of the settings file: <c>settings.json</c>.
+	/// </summary>
 	public string RelativePath { get; private set; }
 }

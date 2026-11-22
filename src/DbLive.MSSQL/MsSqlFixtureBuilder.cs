@@ -9,11 +9,13 @@ namespace DbLive.MSSQL;
 /// <param name="connectionString">A connection string to the server. The database name in it is replaced.</param>
 public sealed class MsSqlFixtureBuilder(Assembly project, string connectionString) : IDbLiveFixtureBuilder
 {
+	/// <inheritdoc/>
 	public Task<DbLiveBuilder> GetBuilderAsync() =>
 		Task.FromResult(new DbLiveBuilder()
 			.SqlServer()
 			.SetDbConnection(connectionString.SetRandomMsSqlDatabaseName())
 			.SetProject(project));
 
+	/// <inheritdoc/>
 	public Assembly GetProjectAssembly() => project;
 }

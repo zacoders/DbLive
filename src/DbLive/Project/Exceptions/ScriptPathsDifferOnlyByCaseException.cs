@@ -1,6 +1,9 @@
 namespace DbLive;
 
-
+/// <summary>
+/// Two files of the project have relative paths that differ only by case, possible on Linux. DbLive finds files and identifies them
+/// in the database ignoring case. Nothing ran.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class ScriptPathsDifferOnlyByCaseException : Exception
 {
@@ -10,5 +13,8 @@ public sealed class ScriptPathsDifferOnlyByCaseException : Exception
 		RelativePaths = [relativePath, otherRelativePath];
 	}
 
+	/// <summary>
+	/// The relative paths of the two files.
+	/// </summary>
 	public IReadOnlyList<string> RelativePaths { get; private set; }
 }

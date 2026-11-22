@@ -98,6 +98,7 @@ internal class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTes
 		);
 	}
 
+	/// <param name="projectDir">The folder of the SQL project; null or empty when the assembly has no <c>ProjectDir</c> metadata.</param>
 	/// <param name="scriptsFolder">Relative to the project, written in the .csproj with '\' or '/'.</param>
 	internal static string? GetSourceScriptsPath(string? projectDir, string? scriptsFolder)
 	{

@@ -20,5 +20,8 @@ public sealed class FileNotUtf8Exception : Exception
 		RelativePath = relativePath;
 	}
 
+	/// <summary>
+	/// The relative path of the file.
+	/// </summary>
 	public string RelativePath { get; private set; }
 }

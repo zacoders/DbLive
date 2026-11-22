@@ -13,5 +13,9 @@ namespace DbLive.xunit;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class SqlFactAttribute : FactAttribute
 {
+	/// <summary>
+	/// The fixture class of the test class: derived from <see cref="DbLiveTestFixture"/>, with a public parameterless constructor.
+	/// Discovery creates it to read the SQL tests from the project assembly of its fixture builder.
+	/// </summary>
 	public required Type TestFixture { get; set; }
 }

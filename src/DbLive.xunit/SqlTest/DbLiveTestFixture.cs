@@ -6,6 +6,19 @@ using Xunit;
 
 namespace DbLive.xunit;
 
+/// <summary>
+/// The fixture of the <c>[SqlFact]</c> tests of a class: deploys the project once into a new database before the tests of the class,
+/// and drops the database after them. Derive a class with a public parameterless constructor from it, and name that class in
+/// <see cref="SqlFactAttribute.TestFixture"/> and in <c>IClassFixture&lt;T&gt;</c>.
+/// </summary>
+/// <example>
+/// <code>
+/// public class MyDbTestFixture()
+///     : DbLiveTestFixture(new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly), dropDatabaseOnComplete: true);
+/// </code>
+/// </example>
+/// <param name="fixtureBuilder">Gives the builder of a new database and the SQL project assembly, from which discovery reads the tests.</param>
+/// <param name="dropDatabaseOnComplete">Drops the database after the tests of the class.</param>
 public class DbLiveTestFixture(
 		IDbLiveFixtureBuilder fixtureBuilder,
 		bool dropDatabaseOnComplete
@@ -39,6 +52,10 @@ public class DbLiveTestFixture(
 
 	internal Assembly GetProjectAssembly() => fixtureBuilder.GetProjectAssembly();
 
+	/// <summary>
+	/// Gets a new database from the fixture builder and deploys the project to it: the migrations, the code and the breaking phase,
+	/// without the SQL tests. xUnit calls it before the tests of the class.
+	/// </summary>
 	public async Task InitializeAsync()
 	{
 		_builder = await fixtureBuilder.GetBuilderAsync().ConfigureAwait(false);
@@ -56,6 +73,9 @@ public class DbLiveTestFixture(
 		}).ConfigureAwait(false);
 	}
 
+	/// <summary>
+	/// Drops the database when <c>dropDatabaseOnComplete</c> is true, and disposes the builder. xUnit calls it after the tests of the class.
+	/// </summary>
 	public async Task DisposeAsync()
 	{
 		if (_builder is null)

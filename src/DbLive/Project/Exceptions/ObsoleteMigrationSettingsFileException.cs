@@ -1,6 +1,9 @@
 namespace DbLive;
 
-
+/// <summary>
+/// The Migrations folder has a settings file of the old format, one for the whole version: <c>&lt;version&gt;.settings.json</c>
+/// or <c>&lt;version&gt;.s.json</c>. Each script has its own settings file now; the message names the new file. Nothing ran.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class ObsoleteMigrationSettingsFileException : Exception
 {
@@ -10,5 +13,8 @@ public sealed class ObsoleteMigrationSettingsFileException : Exception
 		FileName = fileName;
 	}
 
+	/// <summary>
+	/// The name of the file, without its folder.
+	/// </summary>
 	public string FileName { get; private set; }
 }

@@ -17,5 +17,8 @@ public sealed class UndoNotSupportedException : Exception
 		RelativePath = relativePath;
 	}
 
+	/// <summary>
+	/// The relative path of the undo file.
+	/// </summary>
 	public string RelativePath { get; private set; }
 }

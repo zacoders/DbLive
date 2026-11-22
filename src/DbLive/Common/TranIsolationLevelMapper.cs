@@ -56,7 +56,10 @@ internal static class TranIsolationLevelMapper
 			_ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
 		};
 
+	/// <param name="level">The level that the settings set.</param>
+	/// <param name="provider">The provider of the database.</param>
 	/// <param name="relativePath">The settings file of a migration or breaking script that sets the level, for the message; null for settings.json.</param>
+	/// <exception cref="NotSupportedTransactionIsolationLevelException">The provider does not support the level.</exception>
 	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider, string? relativePath = null)
 	{
 		if (provider == DbProvider.PostgreSql

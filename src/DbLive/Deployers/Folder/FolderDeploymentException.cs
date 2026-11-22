@@ -18,5 +18,8 @@ public sealed class FolderDeploymentException : Exception
 		RelativePath = relativePath;
 	}
 
+	/// <summary>
+	/// The relative path of the script that failed.
+	/// </summary>
 	public string RelativePath { get; }
 }

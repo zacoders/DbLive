@@ -19,7 +19,13 @@ public sealed class DeploymentInProgressException : Exception
 		Server = server;
 	}
 
+	/// <summary>
+	/// The database that another deployment holds.
+	/// </summary>
 	public string DatabaseName { get; }
 
+	/// <summary>
+	/// The server of the database.
+	/// </summary>
 	public string Server { get; }
 }

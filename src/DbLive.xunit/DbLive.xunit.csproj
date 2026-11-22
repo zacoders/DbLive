@@ -21,6 +21,10 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>sql database xunit testing deployment migration devops cicd db-deployment sql-deployment</PackageTags>
 		<PackageIcon>dblive-icon.png</PackageIcon>
+
+		<!-- The .xml file of the doc comments goes into the package next to the DLL, for IntelliSense. CS1591 (a public
+		     member without a doc comment) is an error with TreatWarningsAsErrors: see "The public API" in Development.md. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>

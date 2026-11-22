@@ -16,7 +16,13 @@ public sealed class DatabaseNotFoundException : Exception
 		Server = server;
 	}
 
+	/// <summary>
+	/// The database name of the connection string.
+	/// </summary>
 	public string DatabaseName { get; }
 
+	/// <summary>
+	/// The server of the connection string.
+	/// </summary>
 	public string Server { get; }
 }

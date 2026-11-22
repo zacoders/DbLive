@@ -9,11 +9,13 @@ namespace DbLive.PostgreSQL;
 /// <param name="connectionString">A connection string to the server. The database name in it is replaced.</param>
 public sealed class PostgreSqlFixtureBuilder(Assembly project, string connectionString) : IDbLiveFixtureBuilder
 {
+	/// <inheritdoc/>
 	public Task<DbLiveBuilder> GetBuilderAsync() =>
 		Task.FromResult(new DbLiveBuilder()
 			.PostgreSQL()
 			.SetDbConnection(connectionString.SetRandomPostgreSqlDatabaseName())
 			.SetProject(project));
 
+	/// <inheritdoc/>
 	public Assembly GetProjectAssembly() => project;
 }

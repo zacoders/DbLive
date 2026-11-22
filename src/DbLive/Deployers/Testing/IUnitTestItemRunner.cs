@@ -3,10 +3,9 @@
 internal interface IUnitTestItemRunner
 {
 	/// <summary>
-	/// Runs Sql test.
+	/// Runs one SQL test, after its <c>setup.test.sql</c>, in a transaction that is rolled back at the end.
 	/// </summary>
-	/// <param name="test"></param>
-	/// <param name="settings"></param>
-	/// <returns></returns>
+	/// <param name="test">The test and its setup file.</param>
+	/// <returns>The result. A failed test, also an error of its SQL, is a result, not an exception.</returns>
 	Task<TestRunResult> RunTestAsync(TestItem test);
 }
