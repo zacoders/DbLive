@@ -3,25 +3,11 @@ namespace DbLive.Tests.Deployers.Migrations;
 public class MigrationChecksumValidatorTests
 {
 	[Fact]
-	public async Task ValidateAsync_skips_when_dblive_not_installed()
-	{
-		MockSet mockSet = new();
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(false);
-
-		MigrationChecksumValidator validator = mockSet.CreateUsingMocks<MigrationChecksumValidator>();
-
-		await validator.ValidateAsync(ProjectSnapshots.Empty, DeployParameters.Default);
-
-		await mockSet.DbLiveDA.DidNotReceive().GetMigrationsAsync();
-	}
-
-	[Fact]
 	public async Task ValidateAsync_strict_throws_on_applied_mismatch()
 	{
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", "current content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql")
@@ -50,7 +36,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", "content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied, "/001.migration.sql")
@@ -75,7 +60,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", fileContent);
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			// applied by a DbLive version that hashed the raw text.
@@ -101,7 +85,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/002.migration.sql", "content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(2, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.None, "/002.migration.sql")
@@ -124,7 +107,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", "content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
 			MigrationChecksumMode = MigrationChecksumMode.Warn
@@ -157,7 +139,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", "content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql")
@@ -187,7 +168,6 @@ public class MigrationChecksumValidatorTests
 		MockSet mockSet = new();
 		FileData fileData = GetFileData("/001.migration.sql", "content");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, fileData.ContentHash, MigrationItemStatus.Applied, "/001.migration.sql"),
@@ -215,7 +195,6 @@ public class MigrationChecksumValidatorTests
 		FileData migration1 = GetFileData("/001.migration.sql", "migration 1");
 		FileData migration2 = GetFileData("/002.migration.sql", "migration 2");
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings());
 		mockSet.DbLiveDA.GetMigrationsAsync().Returns([
 			NewDbItem(1, MigrationItemType.Migration, migration1.ContentHash + 1, MigrationItemStatus.Applied, "/001.migration.sql"),

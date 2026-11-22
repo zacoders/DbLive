@@ -10,11 +10,6 @@ internal class MigrationChecksumValidator(
 
 	public async Task ValidateAsync(ProjectSnapshot project, DeployParameters parameters)
 	{
-		if (!await da.DbLiveInstalledAsync().ConfigureAwait(false))
-		{
-			return;
-		}
-
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 		IReadOnlyCollection<MigrationItemDto> dbItems = await da.GetMigrationsAsync().ConfigureAwait(false);
 

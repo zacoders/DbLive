@@ -26,8 +26,6 @@ public class MigrationsDeployerTests
 			]
 		};
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync()
 			.Returns([1L, 2L]);
 
@@ -56,7 +54,6 @@ public class MigrationsDeployerTests
 			]
 		};
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
 
 		DeployParameters deployParams = DeployParameters.Default;
@@ -80,7 +77,6 @@ public class MigrationsDeployerTests
 
 		ProjectSnapshot project = ProjectSnapshots.Empty;
 
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
 		mockSet.DbLiveDA.GetAppliedMigrationVersionsAsync().Returns(Array.Empty<long>());
 
 		DeployParameters deployParams = DeployParameters.Default;
@@ -112,9 +108,6 @@ public class MigrationsDeployerTests
 				NewMigration(3)
 			]
 		};
-
-		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
-		mockSet.DbLiveDA.GetSelfMigrationVersionAsync().Returns(1);
 
 		DeployParameters deployParams = DeployParameters.Default with { DeployMigrations = false };
 
