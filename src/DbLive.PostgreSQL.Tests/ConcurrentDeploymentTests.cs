@@ -130,8 +130,61 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 
 		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		// the release fails on the ended session, and the error is not thrown.
-		await lostDeploymentLock.DisposeAsync();
+		// the release fails on the ended session; the deployment logs the error as a warning.
+		_ = await Assert.ThrowsAnyAsync<NpgsqlException>(async () => await lostDeploymentLock.DisposeAsync());
+	}
+
+	[Fact]
+	public async Task Lock_connection_sends_keep_alives_both_ways()
+	{
+		await using DeploymentLock deploymentLock = await AcquireLockOfDatabasePostgresAsync(_fixture.PostgresDBConnectionString);
+		NpgsqlConnection cnn = (NpgsqlConnection)deploymentLock.Connection;
+
+		// the client: a keep-alive of Npgsql after 30 seconds without traffic.
+		Assert.Equal(30, new NpgsqlConnectionStringBuilder(cnn.ConnectionString).KeepAlive);
+
+		// the server: the session of a deployer that lost its network ends within about a minute.
+		Assert.Equal("30", await ScalarAsync<string>(cnn, "show tcp_keepalives_idle;"));
+		Assert.Equal("10", await ScalarAsync<string>(cnn, "show tcp_keepalives_interval;"));
+		Assert.Equal("3", await ScalarAsync<string>(cnn, "show tcp_keepalives_count;"));
+	}
+
+	[Fact]
+	public async Task Keep_alive_of_the_connection_string_keeps_the_lock_through_idle_session_timeout()
+	{
+		// a keep-alive of the connection string stays on the lock connection, and the keep-alive of Npgsql is activity of the session
+		// for idle_session_timeout: the session of the lock outlives a timeout of 2 seconds. Verified: with the keep-alive of DbLive
+		// (30 seconds) instead, the session ends and the lock with it.
+		string cnnString = new NpgsqlConnectionStringBuilder(_fixture.PostgresDBConnectionString)
+		{
+			KeepAlive = 1,
+			Options = "-c idle_session_timeout=2000"
+		}.ConnectionString;
+
+		await using DeploymentLock deploymentLock = await AcquireLockOfDatabasePostgresAsync(cnnString);
+		NpgsqlConnection cnn = (NpgsqlConnection)deploymentLock.Connection;
+		Assert.Equal("2s", await ScalarAsync<string>(cnn, "show idle_session_timeout;"));
+		int lockPid = await ScalarAsync<int>(cnn, "select pg_backend_pid();");
+
+		await Task.Delay(TimeSpan.FromSeconds(5));
+
+		await using NpgsqlConnection postgres = new(_fixture.PostgresDBConnectionString);
+		await postgres.OpenAsync();
+		Assert.Equal(lockPid, await ScalarAsync<int?>(postgres, LockHolderQuery));
+	}
+
+	/// <summary>
+	/// The lock of the database <c>postgres</c>, which no other test deploys: no database of the test is created, and no pool of its
+	/// connections stays open to the end of the run.
+	/// </summary>
+	private async Task<DeploymentLock> AcquireLockOfDatabasePostgresAsync(string cnnString)
+	{
+		DbLiveBuilder builder = new DbLiveBuilder()
+			.ConfigureServices(s => s.AddXUnitLogger(_output))
+			.PostgreSQL()
+			.SetDbConnection(cnnString);
+
+		return (DeploymentLock)await builder.GetRequiredService<IDbLiveDA>().AcquireDeploymentLockAsync();
 	}
 
 	private DbLiveBuilder CreateBuilder(TempProject project)

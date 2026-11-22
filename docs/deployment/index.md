@@ -126,7 +126,9 @@ The lock is local to the database: deployments of different databases on one ser
 
 ### A lock left by a lost deployment
 
-The server releases the lock when the session that holds it ends. A deployer that crashes or is killed closes its connection, and the lock is free at once. A deployer machine that loses its network leaves the session open until the server notices it: SQL Server does within about a minute, PostgreSQL after `tcp_keepalives_idle` of the server, by default the TCP keep-alive time of the operating system (2 hours on Linux). Until then every deployment fails with `DeploymentInProgressException`.
+The server releases the lock when the session that holds it ends. A deployer that crashes or is killed closes its connection, and the lock is free at once. A deployer machine that loses its network leaves the session open until the server notices it, within about a minute: the connection of the lock sends TCP keep-alives after 30 seconds without traffic (on PostgreSQL DbLive sets `tcp_keepalives_idle` and the Npgsql `Keepalive` on this connection). Until then every deployment fails with `DeploymentInProgressException`.
+
+The keep-alives also keep a NAT gateway, a firewall or a load balancer on the way from dropping the connection during a long deployment: such devices drop a connection idle for a few minutes. When the release of the lock fails at the end of a deployment, the deployment does not fail: DbLive logs the warning "The deployment lock was not released".
 
 To release the lock sooner, find the session that holds it and end it. Make sure first that no deployment runs: ending the session does not stop a running deployment, it only lets another one start beside it.
 

@@ -21,13 +21,16 @@ public class DeploymentLockTests
 	}
 
 	[Fact]
-	public async Task Error_of_the_release_is_not_thrown_and_the_connection_is_closed()
+	public async Task Error_of_the_release_is_thrown_after_the_connection_is_closed()
 	{
-		// a broken connection: the error would replace the error of the deployment.
+		// a broken connection: the deployment logs the error as a warning.
 		DbConnection connection = Substitute.For<DbConnection>();
 
-		await new DeploymentLock(connection, _ => Task.FromException(new InvalidOperationException("connection is broken"))).DisposeAsync();
+		InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
+			async () => await new DeploymentLock(connection, _ => Task.FromException(new InvalidOperationException("connection is broken"))).DisposeAsync()
+		);
 
+		Assert.Equal("connection is broken", ex.Message);
 		await connection.Received(1).DisposeAsync();
 	}
 }

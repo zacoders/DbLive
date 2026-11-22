@@ -533,14 +533,40 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// </summary>
 	internal const long DeploymentLockKey = 0x64626C697665;
 
+	/// <summary>
+	/// Seconds without traffic after which the connection of the deployment lock sends a keep-alive: Npgsql <c>KeepAlive</c> on the client,
+	/// <c>tcp_keepalives_idle</c> on the server. Under the idle timeout of a NAT gateway or a load balancer (AWS NAT Gateway 350 seconds,
+	/// Azure 4 minutes), and as on SQL Server.
+	/// </summary>
+	internal const int DeploymentLockKeepAliveSeconds = 30;
+
 	public async Task<IAsyncDisposable> AcquireDeploymentLockAsync()
 	{
 		NpgsqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { Pooling = false, Enlist = false };
+
+		// the connection sends nothing between the lock and its release, for the whole deployment. A device on the way that drops an idle
+		// connection would leave the lock held on the server after the deployment, and idle_session_timeout would end the session in the
+		// middle of it. The keep-alive of Npgsql is a message of the protocol: activity of the session also for idle_session_timeout, unlike
+		// a TCP keep-alive. A keep-alive of the connection string stays.
+		if (builder.KeepAlive == 0)
+		{
+			builder.KeepAlive = DeploymentLockKeepAliveSeconds;
+		}
+
 		NpgsqlConnection cnn = new(builder.ConnectionString);
 
 		try
 		{
 			await cnn.OpenAsync().ConfigureAwait(false);
+
+			// the server ends the session of a deployer that lost its network within about a minute, not after tcp_keepalives_idle of the
+			// operating system (2 hours on Linux), and its keep-alives also keep a device on the way from dropping the connection.
+			// Settings of the session, which any user may change; ignored on a Unix-domain socket.
+			_ = await cnn.ExecuteAsync($"""
+				set tcp_keepalives_idle = {DeploymentLockKeepAliveSeconds};
+				set tcp_keepalives_interval = 10;
+				set tcp_keepalives_count = 3;
+				""").ConfigureAwait(false);
 
 			// a session lock, taken outside a transaction: the session stays idle, not idle in transaction, for the whole deployment.
 			bool acquired = await cnn.ExecuteScalarAsync<bool>(

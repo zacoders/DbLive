@@ -42,7 +42,7 @@ internal class DbLive(
 		// Once the database exists, before the first read of the dblive tables; held to the end, also when the deployment fails.
 		IAsyncDisposable deploymentLock = await _da.AcquireDeploymentLockAsync().ConfigureAwait(false);
 
-		await using (deploymentLock.ConfigureAwait(false))
+		try
 		{
 			// before the self-deployment: its self-migrations change the dblive tables, also those of the database of another project.
 			await _projectIdValidator.ValidateAsync().ConfigureAwait(false);
@@ -55,6 +55,31 @@ internal class DbLive(
 
 			// Deploy actual project
 			await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
+		}
+		finally
+		{
+			await ReleaseDeploymentLockAsync(deploymentLock).ConfigureAwait(false);
+		}
+	}
+
+	private async Task ReleaseDeploymentLockAsync(IAsyncDisposable deploymentLock)
+	{
+		try
+		{
+			await deploymentLock.DisposeAsync().ConfigureAwait(false);
+		}
+		catch (Exception e)
+		{
+			// not thrown: it would replace the error of the deployment, and fail a deployment that did its work. The connection of the lock
+			// is broken. When the deployer crashed or the server ended the session, the lock ended with the session. When a device on the way
+			// (a NAT gateway, a firewall) dropped the connection without telling the server, the session keeps the lock until the TCP
+			// keep-alive of the server ends it, and the next deployments fail with DeploymentInProgressException until then.
+			_logger.Warning(
+				e,
+				"The deployment lock was not released: its connection is broken. If the server did not end its session, it holds the lock "
+				+ "until it notices the broken connection, and every deployment of the database fails with DeploymentInProgressException "
+				+ "until then: see \"One deployment at a time\" in the DbLive docs."
+			);
 		}
 	}
 }

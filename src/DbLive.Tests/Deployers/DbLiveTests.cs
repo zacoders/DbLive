@@ -159,6 +159,44 @@ public class DbLiveTests
 	}
 
 	[Fact]
+	public async Task Error_of_the_lock_release_is_a_warning_after_a_deployment_that_succeeded()
+	{
+		// a device on the way dropped the idle connection of the lock: the deployment did its work.
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		InvalidOperationException releaseError = new("connection is broken");
+		deploymentLock.DisposeAsync().Returns(ValueTask.FromException(releaseError));
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		await dbLive.DeployAsync(DeployParameters.Default);
+
+		mockSet.Logger.Received(1).Warning(releaseError, Arg.Is<string>(m => m.StartsWith("The deployment lock was not released", StringComparison.Ordinal)));
+	}
+
+	[Fact]
+	public async Task Error_of_the_lock_release_does_not_replace_the_error_of_the_deployment()
+	{
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		InvalidOperationException releaseError = new("connection is broken");
+		deploymentLock.DisposeAsync().Returns(ValueTask.FromException(releaseError));
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+		mockSet.DbLiveInternalDeployer.DeployAsync(Arg.Any<ProjectSnapshot>(), Arg.Any<DeployParameters>())
+			.Returns(Task.FromException(new InvalidOperationException("migration failed")));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
+			() => dbLive.DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal("migration failed", ex.Message);
+		mockSet.Logger.Received(1).Warning(releaseError, Arg.Any<string>());
+	}
+
+	[Fact]
 	public async Task Running_deployment_stops_the_second_before_it_reads_the_dblive_tables()
 	{
 		MockSet mockSet = new();

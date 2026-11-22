@@ -129,8 +129,8 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture _fixture, ITe
 
 		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		// the release fails on the ended session, and the error is not thrown.
-		await lostDeploymentLock.DisposeAsync();
+		// the release fails on the ended session; the deployment logs the error as a warning.
+		_ = await Assert.ThrowsAsync<SqlException>(async () => await lostDeploymentLock.DisposeAsync());
 	}
 
 	private DbLiveBuilder CreateBuilder(TempProject project)

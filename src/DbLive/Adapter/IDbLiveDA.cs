@@ -28,7 +28,8 @@ internal interface IDbLiveDA
 	/// Takes the deployment lock of the database, so that one deployment of it runs at a time: an exclusive lock of the database,
 	/// owned by the session of a connection of its own (SQL Server <c>sp_getapplock</c>, PostgreSQL <c>pg_try_advisory_lock</c>).
 	/// It does not wait. The connection is not pooled, so its closing ends the session, and not enlisted in an ambient transaction.
-	/// Disposing the result releases the lock and closes the connection; the server also releases it when the session ends.
+	/// Disposing the result releases the lock and closes the connection, and throws the error of the release, if any; the server also
+	/// releases the lock when the session ends. On PostgreSQL the connection sends a keep-alive every 30 seconds without traffic, both ways.
 	/// </summary>
 	/// <exception cref="DeploymentInProgressException">Another session holds the lock.</exception>
 	Task<IAsyncDisposable> AcquireDeploymentLockAsync();
