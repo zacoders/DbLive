@@ -240,7 +240,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			// not an error of a batch: begin or commit of the transaction of the file, the isolation level, the connection.
 			// It has no line of the file.
 			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(sqlException), e);
 		}
 	}
 
@@ -463,7 +463,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(sqlException), e);
 		}
 	}
 
@@ -1093,10 +1093,8 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// The errors of SQL Server as it gives them. An error of a <c>GO</c> batch names the line of the file where the batch starts above
 	/// them: the line of an error in the batch itself is its line in the batch, and its line in the file is <c>start + Line - 1</c>.
 	/// </summary>
-	private static string GetSqlServerError(Exception ex, int? batchStartLine = null)
+	private static string GetSqlServerError(SqlException? sqlEx, int? batchStartLine = null)
 	{
-		SqlException? sqlEx = FindSqlException(ex);
-
 		if (sqlEx == null)
 			return "";
 
@@ -1123,20 +1121,5 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 
 		return sb.ToString();
-	}
-
-	private static SqlException? FindSqlException(Exception ex)
-	{
-		Exception? cur = ex;
-
-		while (cur != null)
-		{
-			if (cur is SqlException sql)
-				return sql;
-
-			cur = cur.InnerException;
-		}
-
-		return null;
 	}
 }
