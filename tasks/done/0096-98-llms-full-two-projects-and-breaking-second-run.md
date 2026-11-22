@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-11-17
+closed: 2026-11-22
 ---
 # `docs/llms-full.txt`: two projects in one database, and a second run of migration breaking scripts
+
+## Release note
+None. A correction of `docs/llms-full.txt`; DbLive behaves as before.
 
 ## Problem
 Three lines of `docs/llms-full.txt` describe behavior that a task of 2.0 changed:
@@ -25,10 +29,20 @@ Found by the second code review of 2026-11-17 (findings 7 and 8).
 - §6: drop the sentence about two projects, or say that the applied versions check stops a project deployed to a database where another project applied migrations.
 - §12.1: drop "two projects in one database (no `ProjectId`) deploy one at a time".
 - §10: "and to the run of a migration breaking script in `[SqlDeployFact]`", or drop the clause, since §5.3 says it.
-- [ ] Say in §14 that a database holds one project? Rule 17 and §14 treat the database of another project as the wrong database, but no line says that two projects cannot share one.
+- [x] Say in §14 that a database holds one project? Rule 17 and §14 treat the database of another project as the wrong database, but no line says that two projects cannot share one. Yes: 2026-11-22, maintainer.
 
 ## Docs to update
-- `docs/llms-full.txt` §6, §10, §12.1, maybe §14
+- `docs/llms-full.txt` §6, §10, §12.1, §14
 
 ## Done when
-- [ ] The three lines corrected
+- [x] The three lines corrected
+- [x] §14 says that a database holds one project
+
+## Notes
+- 2026-11-22, maintainer: drop the three statements and add to §14 that a database holds one project; no code change. A hint about another project in the message of `DatabaseAheadOfProjectException` was considered and not taken: deploying into the database of another project is an operator error, and `ProjectId` stops it.
+- Two projects without migrations pass the applied versions check, and still mark each other's code rows `removed`. Not documented: the same operator error.
+- Rule 17 and the warning "nothing stops this project from being deployed to the database of another project" stay. The applied versions check stops another project only when the database has migration versions it does not have, and only after the self-deployment, which may upgrade the `dblive` tables. A project with a `ProjectId` deployed to a database that has none also binds its `ProjectId` before the check fails (`DbLive.DeployAsync`: `BindAsync` runs before `DbLiveDeployer`, outside the deployment transaction). Only the `ProjectId` check stops it before any change.
+- `docs/features/project-id.md` is correct and does not mention two projects in one database; not changed.
+
+## Result
+`docs/llms-full.txt`: §6 no longer says that two projects without a `ProjectId` share a database harmlessly, §12.1 no longer says that they deploy one at a time, §10 no longer mentions the second run of migration breaking scripts in `[SqlDeployFact]` (§5.3 says that the deployment test runs them once). §14 says that a database holds one DbLive project, and how a second project fails: `ProjectIdMismatchException` with another bound `ProjectId`, otherwise `DatabaseAheadOfProjectException` once the database has migration versions that the project does not have. No code change, no tests.
