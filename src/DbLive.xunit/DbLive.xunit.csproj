@@ -19,7 +19,7 @@
 
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>sql database xunit testing deployment migration rollback devops cicd db-deployment sql-deployment</PackageTags>
+        <PackageTags>sql database xunit testing deployment migration devops cicd db-deployment sql-deployment</PackageTags>
 		<PackageIcon>dblive-icon.png</PackageIcon>
     </PropertyGroup>
 

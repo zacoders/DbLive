@@ -1,6 +1,6 @@
 # Instructions for AI agents
 
-DbLive is a .NET library for database lifecycle management: migrations, code deployment, SQL unit tests and rollback, for SQL Server and PostgreSQL. How DbLive behaves: [docs/llms-full.txt](docs/llms-full.txt). Build and CI: [Development.md](Development.md).
+DbLive is a .NET library for database lifecycle management: migrations, code deployment, SQL unit tests and zero-downtime releases, for SQL Server and PostgreSQL. How DbLive behaves: [docs/llms-full.txt](docs/llms-full.txt). Build and CI: [Development.md](Development.md).
 
 Write everything in the repository in English.
 
