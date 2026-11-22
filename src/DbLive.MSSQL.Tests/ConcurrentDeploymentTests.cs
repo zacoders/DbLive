@@ -1,7 +1,6 @@
 using DbLive.Adapter;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -10,12 +9,10 @@ namespace DbLive.MSSQL.Tests;
 /// before it reads the applied migrations and runs them again.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ConcurrentDeploymentTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class ConcurrentDeploymentTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(30);
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	// the query of the docs ("One deployment at a time"): the session that holds the deployment lock.
 	private const string LockHolderQuery = """
@@ -47,7 +44,7 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture _fixture, ITe
 
 		Task first;
 
-		await using (SqlConnection gate = new(_dbCnnString))
+		await using (SqlConnection gate = new(DbCnnString))
 		{
 			await gate.OpenAsync();
 			await using SqlTransaction gateTran = (SqlTransaction)await gate.BeginTransactionAsync();
@@ -69,7 +66,7 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture _fixture, ITe
 					() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default).WaitAsync(WaitLimit)
 				);
 
-				Assert.Equal(new SqlConnectionStringBuilder(_dbCnnString).InitialCatalog, ex.DatabaseName);
+				Assert.Equal(DbName, ex.DatabaseName);
 			}
 			finally
 			{
@@ -133,18 +130,9 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture _fixture, ITe
 		_ = await Assert.ThrowsAsync<SqlException>(async () => await lostDeploymentLock.DisposeAsync());
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private async Task<T> ScalarAsync<T>(string query)
 	{
-		await using SqlConnection cnn = new(_dbCnnString);
+		await using SqlConnection cnn = new(DbCnnString);
 		await cnn.OpenAsync();
 		return await ScalarAsync<T>(cnn, null, query);
 	}

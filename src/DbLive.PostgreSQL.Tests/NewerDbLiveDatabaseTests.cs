@@ -1,8 +1,6 @@
 using DbLive.Adapter;
 using DbLive.SelfDeployer;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,11 +10,9 @@ namespace DbLive.PostgreSQL.Tests;
 /// that can deploy it (<c>dblive.version.min_dblive_lib_version</c>), and an older DbLive stops before it changes anything.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+public class NewerDbLiveDatabaseTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output, createDb: false)
 {
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
 	[Fact]
 	public async Task Database_that_requires_a_newer_DbLive_fails_the_deployment_and_the_tests_and_changes_nothing()
 	{
@@ -51,7 +47,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 		_ = await Assert.ThrowsAsync<DatabaseRequiresNewerDbLiveException>(builder.CreateTester().RunAllTestsAsync);
 
 		Assert.Equal(tablesBefore, await DescribeDbLiveTablesAsync(da));
-		Assert.Equal(0, await ScalarAsync(da, "select count(*) from pg_class where relname in ('t2', 'v1')"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from pg_class where relname in ('t2', 'v1')"));
 	}
 
 	[Fact]
@@ -72,7 +68,7 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from pg_class where relname = 't2'"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from pg_class where relname = 't2'"));
 		Assert.Equal(1000, await da.GetSelfMigrationVersionAsync());
 		Assert.Equal(DbLiveCompatibility.MinCompatibleVersion, await da.GetMinDbLiveLibVersionAsync());
 	}
@@ -106,15 +102,6 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveDA da)
 	{
 		List<SqlResult> results = await da.QuerySqlAsync("""
@@ -129,11 +116,5 @@ public class NewerDbLiveDatabaseTests(PostgreSqlFixture _fixture, ITestOutputHel
 			Environment.NewLine,
 			results.Select((result, i) => $"{i}: " + string.Join("; ", result.Rows.Select(row => string.Join(" | ", row))))
 		);
-	}
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

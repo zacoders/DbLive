@@ -1,26 +1,16 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 using DbLive.Project;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class ItemTransactionSettingsTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
 	private const string NoTransaction = """{ "TransactionWrapLevel": "None" }""";
-
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Each_item_runs_by_its_own_settings_in_the_migration_and_breaking_phases()
@@ -40,8 +30,8 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
-		Assert.Equal(1, await CountAsync(da, "select count(*) from pg_indexes where indexname = 'ix_t1_name'"));
-		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from pg_indexes where indexname = 'ix_t1_name'"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
 
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
@@ -64,7 +54,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		string migrationRowsQuery = "select count(*) from dblive.migration";
-		long migrationRows = await CountAsync(da, migrationRowsQuery);
+		long migrationRows = await da.ScalarAsync(migrationRowsQuery);
 
 		// the build of the release before: no 003, and a new BeforeDeploy script.
 		_ = project.DeleteFiles("003.*").AddFile("BeforeDeploy/drop-t1.sql", "drop table t1;");
@@ -78,8 +68,8 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 			Assert.Equal([3], ex.Versions);
 		}
 
-		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
-		Assert.Equal(migrationRows, await CountAsync(da, migrationRowsQuery));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from information_schema.columns where table_name = 't1' and column_name = 'code'"));
+		Assert.Equal(migrationRows, await da.ScalarAsync(migrationRowsQuery));
 	}
 
 	[Fact]
@@ -127,7 +117,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	public async Task Isolation_level_does_not_stay_on_the_pooled_connection()
 	{
 		// one connection in the pool: the next open gets the same session.
-		string cnnString = new NpgsqlConnectionStringBuilder(_dbCnnString) { MaxPoolSize = 1 }.ConnectionString;
+		string cnnString = new NpgsqlConnectionStringBuilder(DbCnnString) { MaxPoolSize = 1 }.ConnectionString;
 		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(cnnString).GetRequiredService<IDbLiveDA>();
 
 		List<SqlResult> results = await da.ExecuteQueryMultipleAsync("select pg_backend_pid(), current_setting('transaction_isolation')", TranIsolationLevel.Serializable, TimeSpan.FromSeconds(30));
@@ -164,7 +154,7 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(0, await CountAsync(da, "select count(*) from dblive.migration where item_type = 'settings'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where item_type = 'settings'"));
 
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(
@@ -200,11 +190,11 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(0, await CountAsync(da, "select count(*) from dblive.migration where item_type like 'undo%' or status = 'reverted'"));
-		Assert.Equal(0, await CountAsync(da, "select count(*) from information_schema.columns where table_schema = 'dblive' and table_name = 'migration' and column_name = 'content'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where item_type like 'undo%' or status = 'reverted'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from information_schema.columns where table_schema = 'dblive' and table_name = 'migration' and column_name = 'content'"));
 
 		// the rolled back version is deployed again: its rows are saved again and its migration runs.
-		Assert.Equal(1, await CountAsync(da, "select count(*) from information_schema.tables where table_name = 't2'"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from information_schema.tables where table_name = 't2'"));
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
 		Assert.Equal(MigrationItemStatus.None, GetItem(items, 2, MigrationItemType.Breaking).Status);
@@ -213,21 +203,6 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture _fixture, ITestOutpu
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
 		=> items.Single(i => i.Version == version && i.ItemType == itemType);
-
-	private static async Task<long> CountAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
-	}
 }

@@ -1,23 +1,23 @@
+using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
+using System.Reflection;
 
 namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class DeploySqlIntegrationPersistedTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper output)
-	: SqlServerIntegrationTestBase(
-		output,
-		_fixture.MasterDbConnectionString,
-		dbName: "DbLive-PersistedTest",
-		keepDatabaseAfterTests: true
-	), IAssemblyFixture<SqlServerIntegrationFixture>
+public class DeploySqlIntegrationPersistedTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, dbName: "DbLive-PersistedTest", keepDb: true)
 {
 	[Fact]
 	public async Task DeployProject_PersistedDbName()
 	{
-		await DbLiveDeployer.DeployAsync(DeployParameters.Default);
-		await DbLiveTester.RunAllTestsAsync();
-		await DbLiveDeployer.DeployAsync(DeployParameters.Breaking);
+		DbLiveBuilder builder = CreateBuilder().SetProject(Assembly.Load("DemoMSSQL"));
+		IDbLive deployer = builder.CreateDeployer();
+		IDbLiveTester tester = builder.CreateTester();
+
+		await deployer.DeployAsync(DeployParameters.Default);
+		await tester.RunAllTestsAsync();
+		await deployer.DeployAsync(DeployParameters.Breaking);
 	}
 }

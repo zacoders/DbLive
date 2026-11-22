@@ -1,7 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Project;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -12,8 +11,8 @@ namespace DbLive.MSSQL.Tests;
 /// stays, nothing else.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class ScriptEndsTransactionTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	// {0} is undone by the rollback; {1} would be committed at once without IMPLICIT_TRANSACTIONS.
 	private const string RollbackScript = """
@@ -23,13 +22,6 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		""";
 
 	private const string AfterDeploy = "insert into dbo.T ( Id ) select 100 where not exists ( select 1 from dbo.T where Id = 100 );";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Theory]
 	[InlineData("if @@trancount > 0 rollback", new string[0])]
@@ -58,7 +50,7 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 2));
 		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 3));
-		Assert.Equal(rowsLeft, await ListAsync(da, "select Id from dbo.T"));
+		Assert.Equal(rowsLeft, await da.ListAsync("select Id from dbo.T"));
 	}
 
 	// a procedure that ends the transaction of its caller: without IMPLICIT_TRANSACTIONS SQL Server fails the script with Msg 266 when it
@@ -91,7 +83,7 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		Assert.Equal(MigrationItemStatus.None, await GetStatusAsync(da, 2));
-		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
+		Assert.Empty(await da.ListAsync("select Id from dbo.T"));
 	}
 
 	[Fact]
@@ -107,8 +99,8 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 			_ = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
 
 			IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-			Assert.Empty(await ListAsync(da, "select version from dblive.migration where version = 2"));
-			Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
+			Assert.Empty(await da.ListAsync("select version from dblive.migration where version = 2"));
+			Assert.Empty(await da.ListAsync("select Id from dbo.T"));
 		}
 	}
 
@@ -134,9 +126,9 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
-		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
-		Assert.Empty(await ListAsync(da, "select name from sys.views"));
+		Assert.Empty(await da.ListAsync("select Id from dbo.T"));
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
+		Assert.Empty(await da.ListAsync("select name from sys.views"));
 	}
 
 	[Fact]
@@ -153,9 +145,9 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		Assert.Contains("BeforeDeploy/rollback.sql", ex.Message);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
-		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
-		Assert.Empty(await ListAsync(da, "select relative_path from dblive.folder_items"));
+		Assert.Empty(await da.ListAsync("select Id from dbo.T"));
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.folder_items"));
 	}
 
 	[Theory]
@@ -184,10 +176,10 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select Id from dbo.T"));
-		Assert.DoesNotContain("v1", await ListAsync(da, "select name from sys.views"));
-		Assert.DoesNotContain("v2", await ListAsync(da, "select name from sys.views"));
-		Assert.Contains("code/a.sql:error", await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Empty(await da.ListAsync("select Id from dbo.T"));
+		Assert.DoesNotContain("v1", await da.ListAsync("select name from sys.views"));
+		Assert.DoesNotContain("v2", await da.ListAsync("select name from sys.views"));
+		Assert.Contains("code/a.sql:error", await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
 	}
 
 	// IMPLICIT_TRANSACTIONS is on only while a script runs in a transaction of DbLive: not for a script without a transaction, and not for
@@ -205,9 +197,9 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		// 2: on in the script in a transaction; 10: off in the script without one.
-		Assert.Equal(["10", "2"], await ListAsync(da, "select Id from dbo.T"));
+		Assert.Equal(["10", "2"], await da.ListAsync("select Id from dbo.T"));
 		Assert.Equal(MigrationItemStatus.Applied, await GetStatusAsync(da, 3));
-		Assert.Equal(["0"], await ListAsync(da, "select @@options & 2"));
+		Assert.Equal(["0"], await da.ListAsync("select @@options & 2"));
 	}
 
 	/// <summary>
@@ -230,24 +222,9 @@ public class ScriptEndsTransactionTests(SqlServerIntegrationFixture _fixture, IT
 	/// </summary>
 	private Task DeployAsync(TempProject project) => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
 
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static async Task<MigrationItemStatus> GetStatusAsync(IDbLiveDA da, long version)
 	{
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		return items.Single(i => i.Version == version && i.ItemType == MigrationItemType.Migration).Status;
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }

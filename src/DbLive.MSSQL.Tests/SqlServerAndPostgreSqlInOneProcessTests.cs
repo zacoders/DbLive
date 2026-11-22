@@ -2,10 +2,8 @@ using Dapper;
 using DbLive.Adapter;
 using DbLive.PostgreSQL;
 using DbLive.Project;
-using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
 using Testcontainers.PostgreSql;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -15,8 +13,8 @@ namespace DbLive.MSSQL.Tests;
 /// <see cref="DateTime"/> sent to PostgreSQL as <c>datetime2</c> is a <c>timestamp without time zone</c>, and Npgsql rejects a UTC value for it.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SqlServerAndPostgreSqlInOneProcessTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class SqlServerAndPostgreSqlInOneProcessTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	private static readonly DeployParameters CreateAndDeploy = DeployParameters.Default with { CreateDbIfNotExists = true };
 
@@ -29,11 +27,7 @@ public class SqlServerAndPostgreSqlInOneProcessTests(SqlServerIntegrationFixture
 			.AddFile("Tests/t1.sql", "select 1 as x;")
 			.AddFile("AfterDeploy/a.sql", "select 1 as x;");
 
-		DbLiveBuilder msSql = new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName())
-			.SetScriptsFolder(msSqlProject.Path);
+		DbLiveBuilder msSql = CreateBuilder(msSqlProject);
 
 		await msSql.CreateDeployer().DeployAsync(CreateAndDeploy);
 		await msSql.CreateTester().RunAllTestsAsync();
@@ -48,7 +42,7 @@ public class SqlServerAndPostgreSqlInOneProcessTests(SqlServerIntegrationFixture
 			.AddFile("AfterDeploy/a.sql", "select 1 as x;");
 
 		DbLiveBuilder pg = new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
+			.LogToXUnitOutput(Output)
 			.PostgreSQL()
 			.SetDbConnection(container.GetConnectionString().SetRandomPostgreSqlDatabaseName())
 			.SetScriptsFolder(pgProject.Path);

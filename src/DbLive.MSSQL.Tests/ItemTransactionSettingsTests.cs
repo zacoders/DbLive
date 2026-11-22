@@ -1,27 +1,17 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 using DbLive.Project;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class ItemTransactionSettingsTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string NoTransaction = """{ "TransactionWrapLevel": "None" }""";
 
 	private const string SnapshotIsolationStateQuery = "select snapshot_isolation_state from sys.databases where name = db_name()";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Each_item_runs_by_its_own_settings_in_the_migration_and_breaking_phases()
@@ -41,8 +31,8 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 
-		Assert.Equal(1, await ScalarAsync(da, SnapshotIsolationStateQuery));
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
+		Assert.Equal(1, await da.ScalarAsync(SnapshotIsolationStateQuery));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
 
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
@@ -63,7 +53,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		string migrationRowsQuery = "select count(*) from dblive.migration";
-		long migrationRows = await ScalarAsync(da, migrationRowsQuery);
+		long migrationRows = await da.ScalarAsync(migrationRowsQuery);
 
 		// the build of the release before: no 003, and a new BeforeDeploy script.
 		_ = project.DeleteFiles("003.*").AddFile("BeforeDeploy/drop-t1.sql", "drop table dbo.t1;");
@@ -77,8 +67,8 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 			Assert.Equal([3], ex.Versions);
 		}
 
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
-		Assert.Equal(migrationRows, await ScalarAsync(da, migrationRowsQuery));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from sys.columns where object_id = object_id('dbo.t1') and name = 'code'"));
+		Assert.Equal(migrationRows, await da.ScalarAsync(migrationRowsQuery));
 	}
 
 	[Fact]
@@ -117,7 +107,7 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(0, await ScalarAsync(da, "select count(*) from dblive.migration where item_type = 'settings'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where item_type = 'settings'"));
 
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(
@@ -154,11 +144,11 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(0, await ScalarAsync(da, "select count(*) from dblive.migration where item_type like 'undo%' or status = 'reverted'"));
-		Assert.Equal(0, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dblive.migration') and name = 'content'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where item_type like 'undo%' or status = 'reverted'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from sys.columns where object_id = object_id('dblive.migration') and name = 'content'"));
 
 		// the rolled back version is deployed again: its rows are saved again and its migration runs.
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.tables where object_id = object_id('dbo.t2')"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from sys.tables where object_id = object_id('dbo.t2')"));
 		IReadOnlyCollection<MigrationItemDto> items = await da.GetMigrationsAsync();
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 2, MigrationItemType.Migration).Status);
 		Assert.Equal(MigrationItemStatus.None, GetItem(items, 2, MigrationItemType.Breaking).Status);
@@ -167,21 +157,6 @@ public class ItemTransactionSettingsTests(SqlServerIntegrationFixture _fixture, 
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static MigrationItemDto GetItem(IReadOnlyCollection<MigrationItemDto> items, long version, MigrationItemType itemType)
 		=> items.Single(i => i.Version == version && i.ItemType == itemType);
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
-	}
 }

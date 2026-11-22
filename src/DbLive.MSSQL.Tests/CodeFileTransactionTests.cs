@@ -1,7 +1,5 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Code;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -10,16 +8,9 @@ namespace DbLive.MSSQL.Tests;
 /// none of its batches applied. A file with In-Memory OLTP DDL runs without one: SQL Server does not allow that DDL in a transaction.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CodeFileTransactionTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class CodeFileTransactionTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Theory]
 	[InlineData("")]
 	// the error rolls back the transaction itself, and there is nothing left to roll back.
@@ -39,11 +30,11 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture _fixture, ITes
 		Assert.Equal("Invalid object name 'dbo.missing'.", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select name from sys.views"));
-		Assert.Equal(["code/a.sql:error"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Empty(await da.ListAsync("select name from sys.views"));
+		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
 
 		// the connection of the file went back to the pool without an open transaction, which would keep its locks.
-		Assert.Equal(["0"], await ListAsync(da, "select count(*) from sys.dm_exec_sessions where database_id = db_id() and open_transaction_count > 0 and session_id <> @@spid"));
+		Assert.Equal(["0"], await da.ListAsync("select count(*) from sys.dm_exec_sessions where database_id = db_id() and open_transaction_count > 0 and session_id <> @@spid"));
 	}
 
 	[Fact]
@@ -67,7 +58,7 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture _fixture, ITes
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		// 4: serializable; 1: in a transaction that began before the file.
-		Assert.Equal(["4:1"], await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select concat(level, ':', user_transactions) from dbo.T"));
+		Assert.Equal(["4:1"], await builder.GetRequiredService<IDbLiveDA>().ListAsync("select concat(level, ':', user_transactions) from dbo.T"));
 	}
 
 	[Fact]
@@ -115,9 +106,9 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture _fixture, ITes
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Equal(
 			["code/countids.sql:applied", "code/types/ids.sql:applied"],
-			await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code")
+			await da.ListAsync("select concat(relative_path, ':', status) from dblive.code")
 		);
-		Assert.Equal(["20"], await ListAsync(da, "declare @ids dbo.Ids; insert into @ids values (1), (2); exec dbo.CountIds @ids;"));
+		Assert.Equal(["20"], await da.ListAsync("declare @ids dbo.Ids; insert into @ids values (1), (2); exec dbo.CountIds @ids;"));
 	}
 
 	// In-Memory OLTP needs a filegroup for its data, also for natively compiled modules and memory-optimized table types.
@@ -139,19 +130,4 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture _fixture, ITes
 			select {count} as n from @ids;
 		end
 		""";
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
-	}
 }

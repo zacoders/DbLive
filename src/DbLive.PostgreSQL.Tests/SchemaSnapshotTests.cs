@@ -1,14 +1,13 @@
 using DbLive.Adapter;
 using DbLive.Schema;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class SchemaSnapshotTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
 	private const string Schema = """
 		create extension if not exists pg_trgm;
@@ -49,17 +48,13 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 		alter table app.cache add constraint ex_cache exclude using btree (v with =);
 		""";
 
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
 	private IDbLiveDA _da = null!;
 
-	public async Task InitializeAsync()
+	public override async Task InitializeAsync()
 	{
-		_da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
-		await _da.CreateDBAsync();
+		await base.InitializeAsync();
+		_da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 	}
-
-	public Task DisposeAsync() => _da.DropDbAsync();
 
 	[Fact]
 	public async Task Snapshot_describes_each_kind_of_object()
@@ -68,7 +63,7 @@ public class SchemaSnapshotTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 
 		SchemaSnapshot snapshot = await _da.GetSchemaSnapshotAsync();
 
-		_output.WriteLine(string.Join(Environment.NewLine, snapshot.Objects.Select(o => $"{o.Type} {o.Name}: {o.Definition}")));
+		Output.WriteLine(string.Join(Environment.NewLine, snapshot.Objects.Select(o => $"{o.Type} {o.Name}: {o.Definition}")));
 
 		Assert.Equal("", Definition(snapshot, SchemaObjectType.Schema, "app"));
 		Assert.StartsWith("version ", Definition(snapshot, SchemaObjectType.Extension, "pg_trgm"));

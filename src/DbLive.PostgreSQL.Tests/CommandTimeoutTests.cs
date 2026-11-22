@@ -1,11 +1,8 @@
-using DbLive.Adapter;
 using DbLive.Deployers.Code;
 using DbLive.Deployers.Migrations;
 using DbLive.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -15,17 +12,10 @@ namespace DbLive.PostgreSQL.Tests;
 /// timeout as NpgsqlException "Exception while reading from stream" with an inner TimeoutException, which is its inner exception.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class CommandTimeoutTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
 	private const string TimeoutMessage = "Execution Timeout Expired. The script ran longer than its timeout of";
-
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Command_timeout_of_a_migration_is_in_the_exception()
@@ -59,7 +49,7 @@ public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/slow.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/slow.sql");
 
 		Assert.False(result.IsSuccess);
 		Assert.Contains($"{TimeoutMessage} 00:00:01.", result.ErrorMessage);
@@ -85,14 +75,5 @@ public class CommandTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _
 		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(codeEx.InnerException);
 		Assert.Equal($"{TimeoutMessage} 00:00:03.", timeoutEx.Message);
 		_ = Assert.IsType<NpgsqlException>(timeoutEx.InnerException);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
 	}
 }

@@ -1,7 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Project;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -10,8 +9,8 @@ namespace DbLive.MSSQL.Tests;
 /// <see cref="DateTime"/> as <c>datetime</c>, rounded to 1/300 of a second, unless the parameter says <c>datetime2</c>.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	[Fact]
 	public async Task Dates_written_to_the_dblive_tables_keep_their_100_ns()
@@ -22,11 +21,7 @@ public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture _fixture, ITe
 		// a project without scripts: the deployment creates the dblive tables and writes no row of the project.
 		using TempProject project = new TempProject().AddFile("settings.json", "{}");
 
-		DbLiveBuilder builder = new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName())
-			.SetScriptsFolder(project.Path);
+		DbLiveBuilder builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 

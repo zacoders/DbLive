@@ -1,9 +1,6 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 using DbLive.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -20,16 +17,9 @@ public class TransactionTimeoutTestsCollection;
 /// </summary>
 [Collection(nameof(TransactionTimeoutTests))]
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class TransactionTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class TransactionTimeoutTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Fact]
 	public async Task Deployment_that_runs_longer_than_DeploymentTimeout_fails_with_its_timeout_and_leaves_nothing()
 	{
@@ -52,8 +42,9 @@ public class TransactionTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelp
 		Assert.DoesNotContain("The script ran longer", fileEx.Message);
 		_ = Assert.IsType<DbLiveSqlException>(fileEx.InnerException);
 
-		Assert.Equal(0, await CountAsync(builder, "select count(*) from information_schema.tables where table_name = 't'"));
-		Assert.Equal(0, await CountAsync(builder, "select count(*) from dblive.migration where status = 'applied'"));
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from information_schema.tables where table_name = 't'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where status = 'applied'"));
 	}
 
 	[Fact]
@@ -68,23 +59,8 @@ public class TransactionTimeoutTests(PostgreSqlFixture _fixture, ITestOutputHelp
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/Slow/slow.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/Slow/slow.sql");
 
 		Assert.True(result.IsSuccess, result.ErrorMessage);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<long> CountAsync(DbLiveBuilder builder, string query)
-	{
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

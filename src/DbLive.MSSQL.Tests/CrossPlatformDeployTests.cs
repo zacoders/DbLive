@@ -2,9 +2,7 @@ using DbLive.Adapter;
 using DbLive.Testing;
 using DbLive.Project;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -13,26 +11,22 @@ namespace DbLive.MSSQL.Tests;
 /// The database has a case-sensitive collation, like PostgreSQL, so rows that differ only by case can exist in it.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string MigrationCrLf = "create table dbo.t1 ( id int not null );\r\ngo\r\n";
 	private const string CodeCrLf = "create or alter view dbo.v1\r\nas\r\nselect 1 as x;\r\n";
 	private const string Code = "create or alter view dbo.v1 as select 1 as x;";
 
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	public async Task InitializeAsync()
+	// the database of the test with a case-sensitive collation instead of the default one of the server.
+	public override async Task InitializeAsync()
 	{
-		// DbLive deploys to an existing database without creating it.
-		using SqlConnection cnn = new(_fixture.MasterDbConnectionString);
+		using SqlConnection cnn = new(Fixture.MasterDbConnectionString);
 		await cnn.OpenAsync();
 		using SqlCommand cmd = cnn.CreateCommand();
-		cmd.CommandText = $"create database [{new SqlConnectionStringBuilder(_dbCnnString).InitialCatalog}] collate Latin1_General_100_CS_AS;";
+		cmd.CommandText = $"create database [{DbName}] collate Latin1_General_100_CS_AS;";
 		_ = await cmd.ExecuteNonQueryAsync();
 	}
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Database_deployed_by_older_DbLive_from_Windows_deploys_from_Linux_checkout()
@@ -77,7 +71,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 		Assert.NotNull(code);
 		Assert.Equal(CodeItemStatus.Applied, code.Status);
 		Assert.Equal(CodeCrLf.ComputeFileHash(), code.ContentHash);
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from dblive.code"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from dblive.code"));
 	}
 
 	[Fact]
@@ -285,24 +279,9 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture _fixture, ITes
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	// the row of a code file by its stored (lower-case) path.
 	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveDA da, string storedPath) =>
 		(await da.GetCodeItemsAsync()).SingleOrDefault(row => row.RelativePath == storedPath);
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
-	}
 
 	private static async Task<List<string>> RowsAsync(IDbLiveDA da, string query)
 	{

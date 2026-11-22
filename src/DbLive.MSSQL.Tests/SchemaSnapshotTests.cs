@@ -1,14 +1,13 @@
 using DbLive.Adapter;
 using DbLive.Schema;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class SchemaSnapshotTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string Schema = """
 		create schema app;
@@ -50,17 +49,13 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		create synonym app.P for app.Person;
 		""";
 
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
 	private IDbLiveDA _da = null!;
 
-	public async Task InitializeAsync()
+	public override async Task InitializeAsync()
 	{
-		_da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
-		await _da.CreateDBAsync();
+		await base.InitializeAsync();
+		_da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 	}
-
-	public Task DisposeAsync() => _da.DropDbAsync();
 
 	[Fact]
 	public async Task Snapshot_describes_each_kind_of_object()
@@ -69,7 +64,7 @@ public class SchemaSnapshotTests(SqlServerIntegrationFixture _fixture, ITestOutp
 
 		SchemaSnapshot snapshot = await _da.GetSchemaSnapshotAsync();
 
-		_output.WriteLine(string.Join(Environment.NewLine, snapshot.Objects.Select(o => $"{o.Type} {o.Name}: {o.Definition}")));
+		Output.WriteLine(string.Join(Environment.NewLine, snapshot.Objects.Select(o => $"{o.Type} {o.Name}: {o.Definition}")));
 
 		Assert.Equal("", Definition(snapshot, SchemaObjectType.Schema, "app"));
 		Assert.Equal("", Definition(snapshot, SchemaObjectType.Table, "app.Person"));

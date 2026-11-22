@@ -1,7 +1,5 @@
 using DbLive.Adapter;
-using DbLive.Project.Exceptions;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -11,11 +9,9 @@ namespace DbLive.MSSQL.Tests;
 /// anything in it, also before its self-migrations change the dblive tables.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class ProjectIdTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
 	[Fact]
 	public async Task Database_of_another_project_fails_before_DbLive_changes_its_tables()
 	{
@@ -48,7 +44,7 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 			ex.Message
 		);
 		Assert.Equal(tablesBefore, await DescribeDbLiveTablesAsync(da));
-		Assert.Equal(0, await ScalarAsync(da, "select count(*) from sys.tables where name = 'a'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from sys.tables where name = 'a'"));
 	}
 
 	[Fact]
@@ -69,15 +65,6 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 		Assert.Null(await da.GetProjectIdAsync());
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static async Task<string> DescribeDbLiveTablesAsync(IDbLiveDA da)
 	{
 		List<SqlResult> results = await da.QuerySqlAsync("""
@@ -91,11 +78,5 @@ public class ProjectIdTests(SqlServerIntegrationFixture _fixture, ITestOutputHel
 			Environment.NewLine,
 			results.Select((result, i) => $"{i}: " + string.Join("; ", result.Rows.Select(row => string.Join(" | ", row))))
 		);
-	}
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

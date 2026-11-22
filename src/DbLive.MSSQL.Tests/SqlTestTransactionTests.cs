@@ -2,7 +2,6 @@ using DbLive.Adapter;
 using DbLive.Deployers.Testing;
 using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -12,8 +11,8 @@ namespace DbLive.MSSQL.Tests;
 /// be committed at once, and Transaction.Current stays Active. The test fails, and only what a COMMIT committed stays in the database.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class SqlTestTransactionTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string Table = "create table dbo.T ( Id int not null primary key, Note nvarchar(4000) not null );";
 
@@ -68,13 +67,6 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 		end catch
 		""";
 
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Theory]
 	// the code under test rolls back the transaction, and the test goes on: its assertion passes on data it did not prepare.
 	[InlineData("Tests/code.sql", $$"""
@@ -97,12 +89,12 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, testPath);
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, testPath);
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.ErrorMessage);
 
-		Assert.Equal(rowsLeft, await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select Id from dbo.T"));
+		Assert.Equal(rowsLeft, await builder.GetRequiredService<IDbLiveDA>().ListAsync("select Id from dbo.T"));
 	}
 
 	[Fact]
@@ -131,10 +123,10 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/add-order-error.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/add-order-error.sql");
 
 		Assert.True(result.IsSuccess, result.ErrorMessage);
-		Assert.Empty(await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select Id from dbo.T"));
+		Assert.Empty(await builder.GetRequiredService<IDbLiveDA>().ListAsync("select Id from dbo.T"));
 	}
 
 	private static TempProject CreateProject()
@@ -143,20 +135,5 @@ public class SqlTestTransactionTests(SqlServerIntegrationFixture _fixture, ITest
 			.AddFile("Migrations/001.migration.sql", Table)
 			.AddFile("Code/dbo/Fail.sql", RollbackProc)
 			.AddFile("Code/dbo/AddOrder.sql", SavepointProc);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }

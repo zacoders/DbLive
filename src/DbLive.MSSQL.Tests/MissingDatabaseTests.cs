@@ -1,7 +1,5 @@
-using DbLive.Adapter;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -11,13 +9,9 @@ namespace DbLive.MSSQL.Tests;
 /// and for a login without access to an existing one. DbLive names the first case and leaves the second to SQL Server.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class MissingDatabaseTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	private string DbName => new SqlConnectionStringBuilder(_dbCnnString).InitialCatalog;
-
 	[Fact]
 	public async Task Deployment_to_a_database_that_does_not_exist_fails_with_its_name()
 	{
@@ -25,15 +19,15 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
 
 		DatabaseNotFoundException ex = await Assert.ThrowsAsync<DatabaseNotFoundException>(
-			() => CreateBuilder(project, _dbCnnString).CreateDeployer().DeployAsync(DeployParameters.Default)
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default)
 		);
 
 		Assert.Equal(
-			$"Database '{DbName}' does not exist on server '{new SqlConnectionStringBuilder(_dbCnnString).DataSource}'. Check the database name in the connection string. A deployment creates the database only with DeployParameters.CreateDbIfNotExists = true.",
+			$"Database '{DbName}' does not exist on server '{new SqlConnectionStringBuilder(DbCnnString).DataSource}'. Check the database name in the connection string. A deployment creates the database only with DeployParameters.CreateDbIfNotExists = true.",
 			ex.Message
 		);
 		Assert.Equal(4060, Assert.IsType<SqlException>(ex.InnerException).Number);
-		Assert.False(await DatabaseExistsAsync());
+		Assert.False(await DbExistsAsync());
 	}
 
 	[Fact]
@@ -43,7 +37,7 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 			.AddFile("Tests/t1.test.sql", "select 'empty' as assert;");
 
 		DatabaseNotFoundException ex = await Assert.ThrowsAsync<DatabaseNotFoundException>(
-			CreateBuilder(project, _dbCnnString).CreateTester().RunAllTestsAsync
+			CreateBuilder(project).CreateTester().RunAllTestsAsync
 		);
 
 		Assert.Equal(DbName, ex.DatabaseName);
@@ -63,13 +57,13 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 			// a pooled connection of the login to master would block 'drop login'. SqlConnection.ClearAllPools() is not an option:
 			// it also clears the pools of tests running in parallel, and their open transactions get promoted to distributed ones.
 			// DbLive builds its connection to master from this connection string, so it is not pooled either.
-			SqlConnectionStringBuilder loginCnnString = new(_dbCnnString) { UserID = login, Password = password, Pooling = false };
+			SqlConnectionStringBuilder loginCnnString = new(DbCnnString) { UserID = login, Password = password, Pooling = false };
 
 			using TempProject project = new TempProject()
 				.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );");
 
 			SqlException ex = await Assert.ThrowsAsync<SqlException>(
-				() => CreateBuilder(project, loginCnnString.ConnectionString).CreateDeployer().DeployAsync(DeployParameters.Default)
+				() => CreateLoginBuilder(project, loginCnnString.ConnectionString).CreateDeployer().DeployAsync(DeployParameters.Default)
 			);
 
 			Assert.Equal(4060, ex.Number);
@@ -80,31 +74,22 @@ public class MissingDatabaseTests(SqlServerIntegrationFixture _fixture, ITestOut
 		}
 	}
 
-	private async Task<bool> DatabaseExistsAsync()
-	{
-		using SqlConnection cnn = new(_fixture.MasterDbConnectionString);
-		await cnn.OpenAsync();
-		using SqlCommand cmd = cnn.CreateCommand();
-		cmd.CommandText = "select count(*) from sys.databases where name = @name";
-		_ = cmd.Parameters.AddWithValue("name", DbName);
-		return (int)(await cmd.ExecuteScalarAsync())! == 1;
-	}
-
 	private async Task ExecuteOnMasterAsync(string sql)
 	{
-		using SqlConnection cnn = new(_fixture.MasterDbConnectionString);
+		using SqlConnection cnn = new(Fixture.MasterDbConnectionString);
 		await cnn.OpenAsync();
 		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = sql;
 		_ = await cmd.ExecuteNonQueryAsync();
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project, string cnnString)
+	// the database of the test with the connection string of another login.
+	private DbLiveBuilder CreateLoginBuilder(TempProject project, string loginCnnString)
 	{
 		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
+			.LogToXUnitOutput(Output)
 			.SqlServer()
-			.SetDbConnection(cnnString)
+			.SetDbConnection(loginCnnString)
 			.SetScriptsFolder(project.Path);
 	}
 }

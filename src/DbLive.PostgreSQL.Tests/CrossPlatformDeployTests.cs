@@ -1,27 +1,18 @@
 using DbLive.Adapter;
 using DbLive.Testing;
 using DbLive.Project;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class CrossPlatformDeployTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
 	private const string MigrationCrLf = "create table t1 (\r\n    id int not null\r\n);\r\n";
 	private const string CodeCrLf = "create or replace view v1\r\nas\r\nselect 1 as x;\r\n";
 	private const string Code = "create or replace view v1 as select 1 as x;";
-
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Database_deployed_by_older_DbLive_from_Windows_deploys_from_Linux_checkout()
@@ -66,7 +57,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 		Assert.NotNull(code);
 		Assert.Equal(CodeItemStatus.Applied, code.Status);
 		Assert.Equal(CodeCrLf.ComputeFileHash(), code.ContentHash);
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from dblive.code"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from dblive.code"));
 	}
 
 	[Fact]
@@ -274,24 +265,9 @@ public class CrossPlatformDeployTests(PostgreSqlFixture _fixture, ITestOutputHel
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	// the row of a code file by its stored (lower-case) path.
 	private static async Task<CodeItemDto?> FindCodeRowAsync(IDbLiveDA da, string storedPath) =>
 		(await da.GetCodeItemsAsync()).SingleOrDefault(row => row.RelativePath == storedPath);
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
-	}
 
 	private static async Task<List<string>> RowsAsync(IDbLiveDA da, string query)
 	{

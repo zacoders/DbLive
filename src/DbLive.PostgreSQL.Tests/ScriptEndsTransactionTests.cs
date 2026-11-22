@@ -2,7 +2,6 @@ using DbLive.Adapter;
 using DbLive.Deployers.Testing;
 using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,15 +11,9 @@ namespace DbLive.PostgreSQL.Tests;
 /// the script and fails it; the error of the check rolls back what the script ran after the end. What a <c>COMMIT</c> committed stays.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class ScriptEndsTransactionTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Theory]
 	[InlineData("insert into t ( id ) values ( 1 ); rollback; insert into t ( id ) values ( 2 );", new string[0])]
 	// what the script committed stays; the statements after the COMMIT are rolled back.
@@ -48,8 +41,8 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 		);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(["001:applied", "002:none", "003:none"], await ListAsync(da, "select concat(lpad(version::text, 3, '0'), ':', status) from dblive.migration where item_type = 'migration'"));
-		Assert.Equal(rowsLeft, await ListAsync(da, "select id::text from t"));
+		Assert.Equal(["001:applied", "002:none", "003:none"], await da.ListAsync("select concat(lpad(version::text, 3, '0'), ':', status) from dblive.migration where item_type = 'migration'"));
+		Assert.Equal(rowsLeft, await da.ListAsync("select id::text from t"));
 	}
 
 	[Fact]
@@ -65,8 +58,8 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 			_ = Assert.IsType<DbLiveTransactionEndedException>(ex.InnerException);
 
 			IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-			Assert.Empty(await ListAsync(da, "select version::text from dblive.migration where version = 2"));
-			Assert.Empty(await ListAsync(da, "select id::text from t"));
+			Assert.Empty(await da.ListAsync("select version::text from dblive.migration where version = 2"));
+			Assert.Empty(await da.ListAsync("select id::text from t"));
 		}
 	}
 
@@ -85,9 +78,9 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select id::text from t"));
-		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
-		Assert.Empty(await ListAsync(da, ViewsQuery));
+		Assert.Empty(await da.ListAsync("select id::text from t"));
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
+		Assert.Empty(await da.ListAsync(ViewsQuery));
 	}
 
 	[Theory]
@@ -107,9 +100,9 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(rowsLeft, await ListAsync(da, "select id::text from t"));
-		Assert.Equal(viewsLeft, await ListAsync(da, ViewsQuery));
-		Assert.Equal(["code/a.sql:error"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Equal(rowsLeft, await da.ListAsync("select id::text from t"));
+		Assert.Equal(viewsLeft, await da.ListAsync(ViewsQuery));
+		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
 	}
 
 	[Fact]
@@ -121,8 +114,8 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 		await DeployAsync(project);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
-		Assert.Equal(["v1", "v2"], await ListAsync(da, ViewsQuery));
-		Assert.Equal(["code/a.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Equal(["v1", "v2"], await da.ListAsync(ViewsQuery));
+		Assert.Equal(["code/a.sql:applied"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
 	}
 
 	[Theory]
@@ -137,11 +130,11 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/end.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/end.sql");
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(UnitTestItemRunner.TransactionEndedMessage, result.ErrorMessage);
-		Assert.Equal(rowsLeft, await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select id::text from t"));
+		Assert.Equal(rowsLeft, await builder.GetRequiredService<IDbLiveDA>().ListAsync("select id::text from t"));
 	}
 
 	private const string ViewsQuery = "select table_name::text from information_schema.views where table_schema = 'public'";
@@ -158,18 +151,4 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture _fixture, ITestOutputH
 	}
 
 	private Task DeployAsync(TempProject project) => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
-	}
 }

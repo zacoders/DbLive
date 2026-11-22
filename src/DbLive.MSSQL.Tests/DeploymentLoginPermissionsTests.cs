@@ -1,6 +1,5 @@
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -10,14 +9,10 @@ namespace DbLive.MSSQL.Tests;
 /// itself, also when the schema dblive belongs to dbo (an administrator deployed the database first, or DbLive 1.5 did).
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	private const string Password = "Deploy-login-1234";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	private string DbName => new SqlConnectionStringBuilder(_dbCnnString).InitialCatalog;
 
 	[Fact]
 	public async Task Login_with_ddladmin_datareader_datawriter_deploys_a_database_deployed_by_dbo()
@@ -28,7 +23,7 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 			.AddFile("Code/v2.sql", "create or alter view dbo.v2 as select 2 as two;");
 
 		// the first deployment by an administrator: the schema dblive and its objects belong to dbo.
-		await CreateBuilder(project, _dbCnnString).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
+		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
 
 		string login = await CreateLoginAsync();
 		try
@@ -43,7 +38,7 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 				.AddFile("BeforeDeploy/01.sql", "select 1 as one;")
 				.AddFile("AfterDeploy/01.sql", "select 1 as one;");
 
-			DbLiveBuilder builder = CreateBuilder(project, LoginCnnString(login));
+			DbLiveBuilder builder = CreateLoginBuilder(project, LoginCnnString(login));
 			await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 			await builder.CreateDeployer().DeployAsync(DeployParameters.Breaking);
 		}
@@ -74,15 +69,15 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );")
 			.AddFile("Code/v1.sql", "create or alter view dbo.v1 as select 1 as one;");
 
-		await ExecuteAsync(_fixture.MasterDbConnectionString, $"create database [{DbName}];");
+		await ExecuteAsync(Fixture.MasterDbConnectionString, $"create database [{DbName}];");
 
 		string login = await CreateLoginAsync();
 		try
 		{
-			await CreateBuilder(project, LoginCnnString(login)).CreateDeployer().DeployAsync(DeployParameters.Default);
+			await CreateLoginBuilder(project, LoginCnnString(login)).CreateDeployer().DeployAsync(DeployParameters.Default);
 
 			// the second deployment skips the code file by its hash.
-			await CreateBuilder(project, LoginCnnString(login)).CreateDeployer().DeployAsync(DeployParameters.Default);
+			await CreateLoginBuilder(project, LoginCnnString(login)).CreateDeployer().DeployAsync(DeployParameters.Default);
 		}
 		finally
 		{
@@ -99,8 +94,8 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 	private async Task<string> CreateLoginAsync()
 	{
 		string login = $"dblive-deploy-{Guid.NewGuid():N}";
-		await ExecuteAsync(_fixture.MasterDbConnectionString, $"create login [{login}] with password = '{Password}', check_policy = off;");
-		await ExecuteAsync(_dbCnnString, $"""
+		await ExecuteAsync(Fixture.MasterDbConnectionString, $"create login [{login}] with password = '{Password}', check_policy = off;");
+		await ExecuteAsync(DbCnnString, $"""
 			create user [{login}] for login [{login}];
 			alter role db_ddladmin add member [{login}];
 			alter role db_datareader add member [{login}];
@@ -112,7 +107,7 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 	// pooled: without pooling every connection in a TransactionScope of DbLive is a new one, and the transaction is promoted
 	// to a distributed one. The pools of the login are never used again, so DropLoginAsync kills their connections.
 	private string LoginCnnString(string login) =>
-		new SqlConnectionStringBuilder(_dbCnnString) { UserID = login, Password = Password }.ConnectionString;
+		new SqlConnectionStringBuilder(DbCnnString) { UserID = login, Password = Password }.ConnectionString;
 
 	// an open connection of the login blocks 'drop login'. SqlConnection.ClearAllPools() would also clear the pools
 	// of tests running in parallel (see MissingDatabaseTests).
@@ -120,7 +115,7 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 	// 'drop login' then fails with "Could not drop login ... as the user is currently logged in".
 	private async Task DropLoginAsync(string login)
 	{
-		await ExecuteAsync(_fixture.MasterDbConnectionString, $"""
+		await ExecuteAsync(Fixture.MasterDbConnectionString, $"""
 			declare @sql nvarchar(max) = (
 				select string_agg(concat('kill ', session_id, ';'), ' ')
 				from sys.dm_exec_sessions
@@ -147,7 +142,7 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 
 	private async Task<List<string>> QueryAsync(string sql)
 	{
-		using SqlConnection cnn = new(_dbCnnString);
+		using SqlConnection cnn = new(DbCnnString);
 		await cnn.OpenAsync();
 		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = sql;
@@ -160,12 +155,13 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture _fixtur
 		return rows;
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project, string cnnString)
+	// the database of the test with the connection string of another login.
+	private DbLiveBuilder CreateLoginBuilder(TempProject project, string loginCnnString)
 	{
 		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
+			.LogToXUnitOutput(Output)
 			.SqlServer()
-			.SetDbConnection(cnnString)
+			.SetDbConnection(loginCnnString)
 			.SetScriptsFolder(project.Path);
 	}
 }

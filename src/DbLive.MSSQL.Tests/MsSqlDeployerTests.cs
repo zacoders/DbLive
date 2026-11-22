@@ -1,41 +1,21 @@
 ﻿using DbLive.Adapter;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
 using System.Transactions;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
 
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class MsSqlDeployerTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
-	private readonly IDbLiveDA _da;
+	private IDbLiveDA _da = null!;
 
-	private readonly string _connectionString;
-
-	public MsSqlDeployerTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper output) : base(output)
+	public override async Task InitializeAsync()
 	{
-		Container.InitializeMSSQL();
-
-		var cnn = new DbLiveDbConnection(_fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName());
-		_connectionString = cnn.ConnectionString;
-		_ = Container.AddSingleton<IDbLiveDbConnection>(cnn);
-
-		Container.InitializeDbLive();
-
-		_da = GetService<IDbLiveDA>();
-	}
-
-	public async Task InitializeAsync()
-	{
-		await _da.CreateDBAsync(skipIfExists: true).ConfigureAwait(false);
-	}
-
-	public Task DisposeAsync()
-	{
-		return Task.CompletedTask;
+		await base.InitializeAsync();
+		_da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 	}
 
 	[Fact]
@@ -246,10 +226,7 @@ public class MsSqlDeployerTests : IntegrationTestsBase, IAssemblyFixture<SqlServ
 	[Fact]
 	public async Task Snapshot_IsolationLevel_Works()
 	{
-		SqlConnectionStringBuilder builder = new(_connectionString);
-		string dbName = builder.InitialCatalog;
-
-		await _da.ExecuteSqlAsync($"alter database [{dbName}] set allow_snapshot_isolation on;");
+		await _da.ExecuteSqlAsync($"alter database [{DbName}] set allow_snapshot_isolation on;");
 
 		using (TransactionScope tran = TransactionScopeManager.Create(TranIsolationLevel.Snapshot, TimeSpan.FromMinutes(1)))
 		{

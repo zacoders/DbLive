@@ -2,7 +2,6 @@ using DbLive.Testing;
 using DbLive.xunit;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,8 +11,8 @@ namespace DbLive.PostgreSQL.Tests;
 /// A migration breaking script runs once.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+public class SchemaCheckTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output, createDb: false)
 {
 	private const string CreatePerson = """
 		create table person (
@@ -33,8 +32,6 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 		""";
 	// without 'if exists': the deployment test does not run a migration breaking script a second time.
 	private const string Breaking = "alter table person drop column phone;";
-
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	[Fact]
 	public async Task Breaking_script_runs_once()
@@ -83,15 +80,7 @@ public class SchemaCheckTests(PostgreSqlFixture _fixture, ITestOutputHelper _out
 	}
 
 	private Task DeploymentTestAsync(TempProject project) =>
-		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(_output);
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
+		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(Output);
 
 	private sealed class FixtureBuilder(DbLiveBuilder builder) : IDbLiveFixtureBuilder
 	{

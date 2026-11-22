@@ -1,11 +1,9 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Code;
 using DbLive.Deployers.Folder;
 using DbLive.Deployers.Migrations;
 using DbLive.Testing;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -16,17 +14,10 @@ namespace DbLive.MSSQL.Tests;
 /// (SqlException -2 "Execution Timeout Expired") is its inner exception, and there is none when the time ran out between two batches.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class CommandTimeoutTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string TimeoutMessage = "Execution Timeout Expired. The script ran longer than its timeout of";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Command_timeout_of_a_migration_is_in_the_exception()
@@ -59,7 +50,7 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/slow.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/slow.sql");
 
 		Assert.False(result.IsSuccess);
 		Assert.Contains($"{TimeoutMessage} 00:00:01.", result.ErrorMessage);
@@ -90,8 +81,8 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		Assert.Equal(-2, Assert.IsType<SqlException>(timeoutEx.InnerException).Number);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select name from sys.views"));
-		Assert.Equal(["code/a.sql:error"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Empty(await da.ListAsync("select name from sys.views"));
+		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
 	}
 
 	[Fact]
@@ -114,7 +105,7 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutp
 		Assert.Null(timeoutEx.InnerException);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await ListAsync(da, "select name from sys.views"));
+		Assert.Empty(await da.ListAsync("select name from sys.views"));
 	}
 
 	[Fact]
@@ -128,7 +119,7 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutp
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		Assert.Equal(["v1"], await ListAsync(builder.GetRequiredService<IDbLiveDA>(), "select name from sys.views"));
+		Assert.Equal(["v1"], await builder.GetRequiredService<IDbLiveDA>().ListAsync("select name from sys.views"));
 	}
 
 	[Fact]
@@ -150,20 +141,5 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutp
 			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
 		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(ex.InnerException);
 		Assert.Equal(-2, Assert.IsType<SqlException>(timeoutEx.InnerException).Number);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }

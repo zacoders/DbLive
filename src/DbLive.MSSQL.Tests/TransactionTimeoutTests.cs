@@ -1,8 +1,6 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -19,16 +17,9 @@ public class TransactionTimeoutTestsCollection;
 /// </summary>
 [Collection(nameof(TransactionTimeoutTests))]
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class TransactionTimeoutTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class TransactionTimeoutTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Fact]
 	public async Task Deployment_that_runs_longer_than_DeploymentTimeout_fails_with_its_timeout_and_leaves_nothing()
 	{
@@ -52,8 +43,9 @@ public class TransactionTimeoutTests(SqlServerIntegrationFixture _fixture, ITest
 		MigrationDeploymentException fileEx = Assert.IsType<MigrationDeploymentException>(ex.InnerException);
 		Assert.Contains("001.migration.sql", fileEx.Message);
 
-		Assert.Equal(0, await CountAsync(builder, "select count(*) from sys.tables where name = 'T'"));
-		Assert.Equal(0, await CountAsync(builder, "select count(*) from dblive.migration where status = 'applied'"));
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from sys.tables where name = 'T'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where status = 'applied'"));
 	}
 
 	[Fact]
@@ -68,23 +60,8 @@ public class TransactionTimeoutTests(SqlServerIntegrationFixture _fixture, ITest
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/Slow/slow.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/Slow/slow.sql");
 
 		Assert.True(result.IsSuccess, result.ErrorMessage);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
-	private static async Task<int> CountAsync(DbLiveBuilder builder, string query)
-	{
-		List<SqlResult> results = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(query);
-		return Convert.ToInt32(results.Single().Rows.Single()[0]);
 	}
 }

@@ -1,9 +1,7 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,12 +10,10 @@ namespace DbLive.PostgreSQL.Tests;
 /// before it reads the applied migrations and runs them again.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>
+public class ConcurrentDeploymentTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output, createDb: false)
 {
 	private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(30);
-
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
 
 	// the query of the docs ("One deployment at a time"): the session that holds the deployment lock.
 	private const string LockHolderQuery = """
@@ -48,7 +44,7 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 
 		Task first;
 
-		await using (NpgsqlConnection gate = new(_dbCnnString))
+		await using (NpgsqlConnection gate = new(DbCnnString))
 		{
 			await gate.OpenAsync();
 			await using NpgsqlTransaction gateTran = await gate.BeginTransactionAsync();
@@ -71,7 +67,7 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 					() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default).WaitAsync(WaitLimit)
 				);
 
-				Assert.Equal(new NpgsqlConnectionStringBuilder(_dbCnnString).Database, ex.DatabaseName);
+				Assert.Equal(DbName, ex.DatabaseName);
 			}
 			finally
 			{
@@ -137,7 +133,7 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 	[Fact]
 	public async Task Lock_connection_sends_keep_alives_both_ways()
 	{
-		await using DeploymentLock deploymentLock = await AcquireLockOfDatabasePostgresAsync(_fixture.PostgresDBConnectionString);
+		await using DeploymentLock deploymentLock = await AcquireLockOfDatabasePostgresAsync(Fixture.PostgresDBConnectionString);
 		NpgsqlConnection cnn = (NpgsqlConnection)deploymentLock.Connection;
 
 		// the client: a keep-alive of Npgsql after 30 seconds without traffic.
@@ -155,7 +151,7 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 		// a keep-alive of the connection string stays on the lock connection, and the keep-alive of Npgsql is activity of the session
 		// for idle_session_timeout: the session of the lock outlives a timeout of 2 seconds. Verified: with the keep-alive of DbLive
 		// (30 seconds) instead, the session ends and the lock with it.
-		string cnnString = new NpgsqlConnectionStringBuilder(_fixture.PostgresDBConnectionString)
+		string cnnString = new NpgsqlConnectionStringBuilder(Fixture.PostgresDBConnectionString)
 		{
 			KeepAlive = 1,
 			Options = "-c idle_session_timeout=2000"
@@ -168,37 +164,27 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture _fixture, ITestOutputHe
 
 		await Task.Delay(TimeSpan.FromSeconds(5));
 
-		await using NpgsqlConnection postgres = new(_fixture.PostgresDBConnectionString);
+		await using NpgsqlConnection postgres = new(Fixture.PostgresDBConnectionString);
 		await postgres.OpenAsync();
 		Assert.Equal(lockPid, await ScalarAsync<int?>(postgres, LockHolderQuery));
 	}
 
 	/// <summary>
-	/// The lock of the database <c>postgres</c>, which no other test deploys: no database of the test is created, and no pool of its
-	/// connections stays open to the end of the run.
+	/// The lock of the database <c>postgres</c>, which no other test deploys: the tests of the lock connection need no database of their own.
 	/// </summary>
 	private async Task<DeploymentLock> AcquireLockOfDatabasePostgresAsync(string cnnString)
 	{
 		DbLiveBuilder builder = new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
+			.ConfigureServices(s => s.AddXUnitLogger(Output))
 			.PostgreSQL()
 			.SetDbConnection(cnnString);
 
 		return (DeploymentLock)await builder.GetRequiredService<IDbLiveDA>().AcquireDeploymentLockAsync();
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private async Task<T> ScalarAsync<T>(string query)
 	{
-		await using NpgsqlConnection cnn = new(_dbCnnString);
+		await using NpgsqlConnection cnn = new(DbCnnString);
 		await cnn.OpenAsync();
 		return await ScalarAsync<T>(cnn, query);
 	}

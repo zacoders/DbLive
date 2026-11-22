@@ -1,7 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Testing;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -11,8 +10,8 @@ namespace DbLive.MSSQL.Tests;
 /// (SET NO_BROWSETABLE ON), and SQL Server adds the key columns of the base table to the result set as hidden columns.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class SqlTestResultSetTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string UsersTable = """
 		create table dbo.Users (
@@ -36,16 +35,10 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 		set identity_insert dbo.Users off;
 		""";
 
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Fact]
 	public async Task Result_set_of_a_select_without_the_key_column_has_no_hidden_columns()
 	{
-		IDbLiveDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 
 		await da.ExecuteSqlAsync(UsersTable);
 		await da.ExecuteSqlAsync(GetUserName);
@@ -102,7 +95,7 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 	[Fact]
 	public async Task Column_types_are_named_as_in_TSql()
 	{
-		IDbLiveDA da = new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 
 		// no rows: reading a geography or hierarchyid value needs Microsoft.SqlServer.Types, and the names come from the schema.
 		List<SqlResult> results = await da.QuerySqlAsync("""
@@ -148,7 +141,7 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 		DbLiveBuilder builder = CreateBuilder(project);
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
-		TestRunResult result = await builder.CreateTester().RunTestAsync(_output.WriteLine, "Tests/time.sql");
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/time.sql");
 
 		Assert.False(result.IsSuccess);
 		Assert.Equal(
@@ -160,14 +153,5 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture _fixture, ITestOu
 			result.ErrorMessage,
 			ignoreLineEndingDifferences: true
 		);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
 	}
 }

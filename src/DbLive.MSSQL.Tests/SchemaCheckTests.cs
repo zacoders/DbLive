@@ -1,8 +1,6 @@
 using DbLive.Testing;
-using DbLive.xunit;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -12,8 +10,8 @@ namespace DbLive.MSSQL.Tests;
 /// A migration breaking script runs once.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>
+public class SchemaCheckTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	private const string CreatePerson = """
 		create table dbo.Person (
@@ -33,8 +31,6 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 		""";
 	// without 'if exists': the deployment test does not run a migration breaking script a second time.
 	private const string Breaking = "alter table dbo.Person drop column Phone;";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
 
 	[Fact]
 	public async Task Breaking_script_runs_once()
@@ -80,16 +76,7 @@ public class SchemaCheckTests(SqlServerIntegrationFixture _fixture, ITestOutputH
 	}
 
 	private Task DeploymentTestAsync(TempProject project) =>
-		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(_output);
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
+		new DeploymentTest(new FixtureBuilder(CreateBuilder(project)), dropDatabaseOnComplete: true).DeployAsync(Output);
 
 	private sealed class FixtureBuilder(DbLiveBuilder builder) : IDbLiveFixtureBuilder
 	{

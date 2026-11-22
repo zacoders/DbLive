@@ -1,8 +1,6 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Code;
 using DbLive.Deployers.Migrations;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -12,19 +10,12 @@ namespace DbLive.MSSQL.Tests;
 /// drops GetUser_v1 in the breaking phase. Each test deploys the builds of consecutive releases from one folder.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<SqlServerIntegrationFixture>, IAsyncLifetime
+public class CodeBreakingTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
 {
 	private const string ProcV1 = "create or alter proc dbo.GetUser_v1 as select 1 as user_id;";
 	private const string ProcV2 = "create or alter proc dbo.GetUser_v2 @UserId int as select @UserId as user_id;";
 	private const string DropV1 = "drop proc if exists dbo.GetUser_v1;";
-
-	private readonly string _dbCnnString = _fixture.MasterDbConnectionString.SetRandomMsSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().SqlServer().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
 	public async Task Code_breaking_script_drops_the_old_version_and_a_revert_restores_it()
@@ -195,7 +186,7 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
 		);
 
-		Assert.Equal(1, await ScalarAsync(da, "select count(*) from sys.columns where object_id = object_id('dbo.Users') and name = 'Phone'"));
+		Assert.Equal(1, await da.ScalarAsync("select count(*) from sys.columns where object_id = object_id('dbo.Users') and name = 'Phone'"));
 	}
 
 	[Theory]
@@ -244,21 +235,12 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 
 		Assert.Equal(["code/a_view.sql:code:applied", "code/b_function.sql:code:applied"], await CodeRowsAsync(da));
-		Assert.Equal(1, await ScalarAsync(da, "select one from dbo.UserOne"));
+		Assert.Equal(1, await da.ScalarAsync("select one from dbo.UserOne"));
 	}
 
 	/// <summary>
 	/// A builder reads the project once: a new build of the folder takes a new builder, like a new run of a release pipeline.
 	/// </summary>
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.LogToXUnitOutput(_output)
-			.SqlServer()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static async Task<List<string>> ProceduresAsync(IDbLiveDA da)
 	{
 		List<SqlResult> results = await da.QuerySqlAsync("select name from sys.procedures where name like 'GetUser%'");
@@ -269,11 +251,5 @@ public class CodeBreakingTests(SqlServerIntegrationFixture _fixture, ITestOutput
 	{
 		List<SqlResult> results = await da.QuerySqlAsync("select relative_path, item_type, status from dblive.code");
 		return [.. results.Single().Rows.Select(r => $"{r[0]}:{r[1]}:{r[2]}").Order(StringComparer.Ordinal)];
-	}
-
-	private static async Task<long> ScalarAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return Convert.ToInt64(results.Single().Rows.Single()[0]);
 	}
 }

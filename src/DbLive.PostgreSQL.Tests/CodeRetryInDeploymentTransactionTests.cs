@@ -1,8 +1,6 @@
 using DbLive.Adapter;
-using DbLive.Deployers.Code;
 using System.Diagnostics.CodeAnalysis;
 using System.Transactions;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,16 +10,9 @@ namespace DbLive.PostgreSQL.Tests;
 /// a transaction.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	// DbLive deploys to an existing database without creating it.
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Theory]
 	// a view and a 'language sql' function check their references when they are created. A plpgsql function does not.
 	[InlineData("create view a as select x from c;", "create view c as select 1 as x;")]
@@ -36,8 +27,8 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Equal(["a", "c", "m"], await ObjectsAsync(da));
-		Assert.Equal(["code/a.sql:applied", "code/c.sql:applied"], await ListAsync(da, "select concat(relative_path, ':', status) from dblive.code"));
-		Assert.Equal(["1:applied"], await ListAsync(da, "select concat(version, ':', status) from dblive.migration where item_type = 'migration'"));
+		Assert.Equal(["code/a.sql:applied", "code/c.sql:applied"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
+		Assert.Equal(["1:applied"], await da.ListAsync("select concat(version, ':', status) from dblive.migration where item_type = 'migration'"));
 	}
 
 	[Fact]
@@ -78,8 +69,8 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 		// neither the migration before it nor the file after it, and no error row.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await ObjectsAsync(da));
-		Assert.Empty(await ListAsync(da, "select version::text from dblive.migration"));
-		Assert.Empty(await ListAsync(da, "select relative_path from dblive.code"));
+		Assert.Empty(await da.ListAsync("select version::text from dblive.migration"));
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
 	}
 
 	[Fact]
@@ -100,13 +91,13 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await ObjectsAsync(da));
-		Assert.Empty(await ListAsync(da, "select version::text from dblive.migration"));
+		Assert.Empty(await da.ListAsync("select version::text from dblive.migration"));
 	}
 
 	[Fact]
 	public async Task Transaction_is_not_usable_after_an_error_of_a_statement()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 
@@ -122,7 +113,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 	[Fact]
 	public async Task Transaction_is_usable_after_an_error_of_a_code_file_and_the_statements_of_the_file_are_undone()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 
 		using TransactionScope scope = TransactionScopeManager.Create();
 
@@ -146,27 +137,12 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture _fixture, I
 			.AddFile("Code/c.sql", fileC);
 	}
 
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
-	}
-
 	private static Task<List<string>> ObjectsAsync(IDbLiveDA da)
 	{
-		return ListAsync(da, """
+		return da.ListAsync("""
 			select relname::text from pg_class where relnamespace = 'public'::regnamespace and relkind in ('r', 'v')
 			union all
 			select proname::text from pg_proc where pronamespace = 'public'::regnamespace
 			""");
-	}
-
-	private static async Task<List<string>> ListAsync(IDbLiveDA da, string query)
-	{
-		List<SqlResult> results = await da.QuerySqlAsync(query);
-		return [.. results.Single().Rows.Select(r => Convert.ToString(r[0])!).Order(StringComparer.Ordinal)];
 	}
 }

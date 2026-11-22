@@ -1,8 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using Xunit.Extensions.AssemblyFixture;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -12,8 +10,8 @@ namespace DbLive.PostgreSQL.Tests;
 /// and Npgsql does not add key columns to the result set (unlike SqlClient on SQL Server).
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
-public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper _output)
-	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
+public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper output)
+	: PostgreSqlDbTests(fixture, output)
 {
 	private const string UsersTable = """
 		create table users (
@@ -24,16 +22,10 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 
 	private const string Arrange = "insert into users ( user_id, name ) values ( 10, 'TestUser10' );";
 
-	private readonly string _dbCnnString = _fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
-
-	public Task InitializeAsync() => new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>().CreateDBAsync();
-
-	public Task DisposeAsync() => Task.CompletedTask;
-
 	[Fact]
 	public async Task Result_set_of_a_select_without_the_key_column_has_no_hidden_columns()
 	{
-		IDbLiveDA da = new DbLiveBuilder().PostgreSQL().SetDbConnection(_dbCnnString).GetRequiredService<IDbLiveDA>();
+		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
 
 		await da.ExecuteSqlAsync(UsersTable);
 		await da.ExecuteSqlAsync(Arrange);
@@ -100,8 +92,8 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
 		IDbLiveTester tester = builder.CreateTester();
 
-		TestRunResult nan = await tester.RunTestAsync(_output.WriteLine, "Tests/nan.sql");
-		TestRunResult nanAgainstNumber = await tester.RunTestAsync(_output.WriteLine, "Tests/nan-against-number.sql");
+		TestRunResult nan = await tester.RunTestAsync(Output.WriteLine, "Tests/nan.sql");
+		TestRunResult nanAgainstNumber = await tester.RunTestAsync(Output.WriteLine, "Tests/nan-against-number.sql");
 
 		Assert.True(nan.IsSuccess, nan.ErrorMessage);
 		// the values in the message are written in the current culture: NaN is "не число" in ru-RU.
@@ -115,14 +107,5 @@ public class SqlTestResultSetTests(PostgreSqlFixture _fixture, ITestOutputHelper
 			""",
 			nanAgainstNumber.ErrorMessage?.ReplaceLineEndings("\n")
 		);
-	}
-
-	private DbLiveBuilder CreateBuilder(TempProject project)
-	{
-		return new DbLiveBuilder()
-			.ConfigureServices(s => s.AddXUnitLogger(_output))
-			.PostgreSQL()
-			.SetDbConnection(_dbCnnString)
-			.SetScriptsFolder(project.Path);
 	}
 }
