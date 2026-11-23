@@ -21,8 +21,8 @@ So in a `rows` test on PostgreSQL:
 Any value of a CLR type without public properties serializes as `{}` and equals `NULL`. §8.3 says "`NULL` equals `NULL`", which implies that it equals nothing else.
 
 ## Where
-- `src/DbLive/Deployers/Testing/UnitTestResultChecker.cs:312-333`
-- The values come from `src/DbLive.MSSQL/MsSqlDA.cs:524` and `src/DbLive.PostgreSQL/PostgreSqlDA.cs:438` (`reader.GetValue(i)`).
+- `src/DbLive/Deployers/Testing/UnitTestResultChecker.cs:312-349`
+- The values come from `src/DbLive.MSSQL/MsSqlDA.cs:508` and `src/DbLive.PostgreSQL/PostgreSqlDA.cs:444` (`reader.GetValue(i)`).
 
 ## Fix
 Normalize each value before the comparison: `DBNull` becomes `null`; known types without a JSON shape (`PhysicalAddress`, `IPAddress`, `NpgsqlInet`, `NpgsqlCidr`) become their text. The types of SQL Server (`hierarchyid`, `geography`, `sql_variant`) were not checked.

@@ -19,7 +19,7 @@ On PostgreSQL DbLive sets only `NpgsqlCommand.CommandTimeout`. Npgsql restarts t
 Notices are common on PostgreSQL: `drop ... if exists` of a missing object, `create ... if not exists` of an existing one, `raise notice` in a data migration that reports its progress. The test of 0096-84 (two `pg_sleep(2)`, timeout 3 s) sends no notice, so it does not catch this.
 
 ## Where
-- `src/DbLive.PostgreSQL/PostgreSqlDA.cs:246-261` (`ExecuteCommandAsync`) and the other places that set `CommandTimeout` from `ScriptTimeout` (a code file in its own transaction, the reader of the tests).
+- `src/DbLive.PostgreSQL/PostgreSqlDA.cs:252-267` (`ExecuteCommandAsync`, `CommandTimeout` at `:257`; `QueryMultipleAsync`, the reader of the tests, at `:397`). `ExecuteInOwnTransactionAsync` (a code file in its own transaction) runs through `ExecuteCommandAsync` too.
 
 ## Fix
 Enforce the deadline in DbLive: a `CancellationTokenSource` with `CancelAfter(timeout)`, passed to `ExecuteNonQueryAsync` / `ExecuteReaderAsync`. Map the cancellation (Npgsql throws `OperationCanceledException` with a `57014` `PostgresException` inside) to `ExecutionTimeoutException`, as the command timeout is mapped now. Keep the exclusion for a transaction that System.Transactions aborted (`IsTransactionAborted`).

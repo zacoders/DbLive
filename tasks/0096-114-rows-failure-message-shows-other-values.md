@@ -6,7 +6,7 @@ created: 2026-11-23
 # The failure message of `rows` prints the values in another way than it compares them
 
 ## Problem
-`rows` compares the JSON text of two values (`UnitTestResultChecker.cs:320-333`) but prints them with `ToString()` (`ListToSring`, `:351-354`):
+`rows` compares the JSON text of two values (`UnitTestResultChecker.cs:320-349`) but prints them with `ToString()` (`ListToSring`, `:351-354`):
 - `NULL` prints as an empty string.
 - Decimals and dates use the current culture (`150,00` on a `ru-RU` machine).
 - Arrays and `byte[]` print as `System.Int32[]` and `System.Byte[]` on both sides.
