@@ -515,8 +515,13 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using NpgsqlCommand cmd = cnn.CreateCommand();
 		var quotedDbName = new NpgsqlCommandBuilder().QuoteIdentifier(dbName!);
 		cmd.CommandText = $"CREATE DATABASE {quotedDbName};";
+		cmd.CommandTimeout = CreateDropTimeoutSeconds;
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 	}
+
+	// as on SQL Server, instead of the 30 seconds of Npgsql: both wait for the files. Before PostgreSQL 15 CREATE DATABASE copies the
+	// template with checkpoints (FILE_COPY), which a busy server makes slow.
+	private const int CreateDropTimeoutSeconds = 600;
 
 	public async Task CheckDatabaseExistsAsync()
 	{
@@ -628,7 +633,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		_ = await cnn.ExecuteAsync($"""
 			drop database "{dbName}";
-		""").ConfigureAwait(false);
+		""", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
 	}
 
 
