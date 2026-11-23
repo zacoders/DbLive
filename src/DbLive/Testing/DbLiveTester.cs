@@ -46,10 +46,13 @@ internal class DbLiveTester(
 		IReadOnlyCollection<TestItem> tests =
 			await _project.GetTestsAsync().ConfigureAwait(false);
 
+		// a test is identified by its relative path ignoring case, as DbLive finds files in the project; the project load
+		// rejects two paths that differ only by case (ScriptPathsDifferOnlyByCaseException).
 		return new ReadOnlyDictionary<string, TestItem>(
 			tests.ToDictionary(
 				test => test.FileData.RelativePath,
-				test => test
+				test => test,
+				StringComparer.OrdinalIgnoreCase
 			)
 		);
 	}
@@ -68,7 +71,13 @@ internal class DbLiveTester(
 	{
 		ReadOnlyDictionary<string, TestItem> testsList = await GetTestsAsync().ConfigureAwait(false);
 
-		TestItem testItem = testsList[testFileRelativePath];
+		// the project has relative paths with '/' on every OS; a caller on Windows may pass '\'.
+		if (!testsList.TryGetValue(testFileRelativePath.Replace('\\', '/'), out TestItem? testItem))
+		{
+			throw new KeyNotFoundException(
+				$"Test '{testFileRelativePath}' not found in the project. Pass the path of the test file relative to the scripts folder, for example 'Tests/Orders/select-order.test.sql'."
+			);
+		}
 
 		if (testItem.SetupFileData is not null)
 		{

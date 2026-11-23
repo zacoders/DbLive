@@ -22,8 +22,9 @@ public interface IDbLiveTester
 	/// Runs one SQL test, the way <c>[SqlFact]</c> does. Does not check the database and does not save the result.
 	/// </summary>
 	/// <param name="writeLine">Gets the output of the test: its setup file and what the test returned or why it failed.</param>
-	/// <param name="relativePath">The relative path of the test file in the project, with <c>/</c>: <c>Tests/user-name-is-required.sql</c>.</param>
+	/// <param name="relativePath">The relative path of the test file in the project: <c>Tests/user-name-is-required.sql</c>.
+	/// Ignoring case; <c>\</c> is taken as <c>/</c>.</param>
 	/// <returns>The result. A failed test is a result, not an exception.</returns>
-	/// <exception cref="KeyNotFoundException">The project has no test with <paramref name="relativePath"/>.</exception>
+	/// <exception cref="KeyNotFoundException">The project has no test with <paramref name="relativePath"/>. The message names the path.</exception>
 	Task<TestRunResult> RunTestAsync(Action<string> writeLine, string relativePath);
 }

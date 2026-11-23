@@ -60,6 +60,58 @@ public class DbLiveTesterTests
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
 	}
 
+	[Theory]
+	[InlineData("Tests/Orders/Select-Order.sql")]
+	[InlineData("tests/orders/select-order.SQL")]
+	[InlineData("TESTS/ORDERS/SELECT-ORDER.SQL")]
+	[InlineData(@"Tests\Orders\Select-Order.sql")]
+	[InlineData(@"tests\orders/select-order.sql")]
+	public async Task RunTest_finds_the_test_ignoring_case_and_with_backslashes(string relativePath)
+	{
+		MockSet mockSet = new();
+		TestItem selectOrder = new() { Name = "Select-Order.sql", FileData = GetFileData("Tests/Orders/Select-Order.sql") };
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
+			new TestItem { Name = "Select-Order.sql", FileData = GetFileData("Tests/Select-Order.sql") },
+			selectOrder,
+			new TestItem { Name = "Select-Order.sql", FileData = GetFileData("Tests/Users/Select-Order.sql") }
+		]);
+		mockSet.UnitTestItemRunner.RunTestAsync(Arg.Any<TestItem>())
+			.Returns(new TestRunResult { IsSuccess = true });
+
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+
+		TestRunResult result = await tester.RunTestAsync(_ => { }, relativePath);
+
+		Assert.True(result.IsSuccess);
+		await mockSet.UnitTestItemRunner.Received(1).RunTestAsync(Arg.Any<TestItem>());
+		await mockSet.UnitTestItemRunner.Received(1).RunTestAsync(selectOrder);
+	}
+
+	[Theory]
+	[InlineData("Tests/Orders/missing.sql")]
+	[InlineData("Scripts/Tests/Orders/Select-Order.sql")]
+	[InlineData("Code/dbo/GetOrder.sql")]
+	[InlineData(@"Tests\Orders\missing.sql")]
+	public async Task RunTest_throws_when_the_path_is_not_a_test_of_the_project(string relativePath)
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveProject.GetTestsAsync().Returns([
+			new TestItem { Name = "Select-Order.sql", FileData = GetFileData("Tests/Orders/Select-Order.sql") }
+		]);
+
+		DbLiveTester tester = mockSet.CreateUsingMocks<DbLiveTester>();
+
+		KeyNotFoundException ex = await Assert.ThrowsAsync<KeyNotFoundException>(
+			() => tester.RunTestAsync(_ => { }, relativePath)
+		);
+
+		Assert.Equal(
+			$"Test '{relativePath}' not found in the project. Pass the path of the test file relative to the scripts folder, for example 'Tests/Orders/select-order.test.sql'.",
+			ex.Message
+		);
+		await mockSet.UnitTestItemRunner.DidNotReceiveWithAnyArgs().RunTestAsync(default!);
+	}
+
 	[Fact]
 	public async Task RunAllTests_checks_the_database_then_runs_the_tests()
 	{
