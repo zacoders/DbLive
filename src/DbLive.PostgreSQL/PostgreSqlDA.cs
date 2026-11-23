@@ -511,12 +511,18 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (exists && skipIfExists) return;
 
-		// Use a command builder to safely quote the identifier
 		using NpgsqlCommand cmd = cnn.CreateCommand();
-		var quotedDbName = new NpgsqlCommandBuilder().QuoteIdentifier(dbName!);
-		cmd.CommandText = $"CREATE DATABASE {quotedDbName};";
+		cmd.CommandText = $"CREATE DATABASE {QuoteDbName(dbName!)};";
 		cmd.CommandTimeout = CreateDropTimeoutSeconds;
 		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+	}
+
+	// the name in double quotes, with '"' doubled: a database name may have any character, also a '"'. Quoted, the case of the name
+	// stays as in the connection string.
+	private static string QuoteDbName(string name)
+	{
+		using NpgsqlCommandBuilder builder = new();
+		return builder.QuoteIdentifier(name);
 	}
 
 	// as on SQL Server, instead of the 30 seconds of Npgsql: both wait for the files. Before PostgreSQL 15 CREATE DATABASE copies the
@@ -622,8 +628,10 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			throw new Exception($"Database '{dbName}' does not exist.");
 		}
 
+		string quotedName = QuoteDbName(dbName!);
+
 		_ = await cnn.ExecuteAsync($"""
-			revoke connect on database "{dbName}" from public;
+			revoke connect on database {quotedName} from public;
 		""").ConfigureAwait(false);
 
 		_ = await cnn.ExecuteAsync(
@@ -632,7 +640,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 
 		_ = await cnn.ExecuteAsync($"""
-			drop database "{dbName}";
+			drop database {quotedName};
 		""", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
 	}
 

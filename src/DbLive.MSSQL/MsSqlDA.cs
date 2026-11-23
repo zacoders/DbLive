@@ -602,7 +602,14 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (dbExists && skipIfExists) return;
 
-		_ = await cnn.ExecuteAsync($"create database [{databaseToCreate}];", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
+		_ = await cnn.ExecuteAsync($"create database {QuoteDbName(databaseToCreate)};", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
+	}
+
+	// the name in brackets, with ']' doubled: a database name may have any character, also a ']'.
+	private static string QuoteDbName(string name)
+	{
+		using SqlCommandBuilder builder = new();
+		return builder.QuoteIdentifier(name);
 	}
 
 	// the timeout of SMO, which ran the create and the drop before: both wait for the files, and the drop for the rollback of the
@@ -742,9 +749,10 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		// single_user ends the sessions that are left: of a login that may not kill them, or opened after the kill.
 		// One batch: between two, another connection could take the single user of the database, and the drop would fail.
+		string quotedName = QuoteDbName(databaseToDrop);
 		_ = await cnn.ExecuteAsync($"""
-			alter database [{databaseToDrop}] set single_user with rollback immediate;
-			drop database [{databaseToDrop}];
+			alter database {quotedName} set single_user with rollback immediate;
+			drop database {quotedName};
 			""",
 			commandTimeout: CreateDropTimeoutSeconds
 		).ConfigureAwait(false);

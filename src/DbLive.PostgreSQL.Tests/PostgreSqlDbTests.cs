@@ -10,14 +10,17 @@ namespace DbLive.PostgreSQL.Tests;
 /// test checks that none is created. It is dropped after the test, also a failed one. The drop ends the sessions of the database, so the
 /// pools of its connection strings keep no connection to the server to the end of the run (0096-103).
 /// </summary>
-public abstract class PostgreSqlDbTests(PostgreSqlFixture fixture, ITestOutputHelper output, bool createDb = true)
+/// <param name="dbName">A fixed name instead of a random one.</param>
+public abstract class PostgreSqlDbTests(PostgreSqlFixture fixture, ITestOutputHelper output, bool createDb = true, string? dbName = null)
 	: IAssemblyFixture<PostgreSqlFixture>, IAsyncLifetime
 {
 	protected PostgreSqlFixture Fixture { get; } = fixture;
 
 	protected ITestOutputHelper Output { get; } = output;
 
-	protected string DbCnnString { get; } = fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName();
+	protected string DbCnnString { get; } = dbName is null
+		? fixture.PostgresDBConnectionString.SetRandomPostgreSqlDatabaseName()
+		: fixture.PostgresDBConnectionString.SetPostgreSqlDatabaseName(dbName);
 
 	protected string DbName => new NpgsqlConnectionStringBuilder(DbCnnString).Database!;
 
