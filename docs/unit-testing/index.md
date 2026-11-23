@@ -116,7 +116,7 @@ Code/
 ```
 
 - It applies to tests in its own folder only, not to subfolders.
-- It runs on a separate connection within the same transaction. Rows it inserts are visible to the test; session state is not (temporary tables, variables, `SET` options).
+- It runs in the same transaction as the test, before it. Rows it inserts are visible to the test. Session state (temporary tables, variables, `SET` options) is not on SQL Server, where the test runs on a reset session; on PostgreSQL the transaction is one session, and the test sees the temporary tables and settings of the setup. Use permanent tables: they work the same on both providers.
 - It is never a test itself and never deployed as code, whatever `TestFilePatterns` contains.
 
 ## Isolation and parallelism
