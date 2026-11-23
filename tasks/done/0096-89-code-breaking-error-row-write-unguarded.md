@@ -7,9 +7,7 @@ closed: 2026-11-21
 # A failed write of the error row replaces the error of a Code breaking script
 
 ## Release note
-**A failed breaking script of the Code folder keeps its error when its error row cannot be saved.** When a `*.breaking.sql` of the Code folder failed outside a transaction and the write of its row with the error to `dblive.code` failed too (the server became unreachable, for one), the deployment failed with the error of that write instead of `CodeDeploymentException` with the path of the script and its SQL error. It now fails with `CodeDeploymentException`, and the failed write is logged as a warning, as for code files.
-
-Nothing to change on upgrade.
+None. Breaking scripts of the Code folder are new in this release, and 0096-141 removed the write of the error row that this task guarded: a failed script writes no row.
 
 ## Problem
 When a `*.breaking.sql` of the Code folder fails outside a transaction, `CodeBreakingDeployer` writes its error row in the `catch` block, and that write is not protected. When the write fails too, its exception leaves the `catch`: the caller gets a raw exception of the provider instead of `CodeDeploymentException` with the path of the file and the SQL error. The docs promise `CodeDeploymentException` (`docs/llms-full.txt` §6.1).

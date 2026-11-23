@@ -7,7 +7,7 @@ closed: 2026-11-16
 # On SQL Server an error names its line in the `GO` batch, not in the file
 
 ## Release note
-**SQL Server: the error of a script names the line of the file where its `GO` batch starts.** SQL Server counts the line of an error from the start of the batch that failed, and in a file of several `GO` batches that line did not point to the line of the file. Now `SqlError` of `DbLiveSqlException`, the `error` column of the `dblive` tables and the log have a line above the errors of the server:
+**SQL Server: the error of a script names the line of the file where its `GO` batch starts.** SQL Server counts the line of an error from the start of the batch that failed, and in a file of several `GO` batches that line did not point to the line of the file. Now `SqlError` of `DbLiveSqlException`, the message of the deployment error that names the file and the log have a line above the errors of the server:
 
 ```
 SQL Server error:

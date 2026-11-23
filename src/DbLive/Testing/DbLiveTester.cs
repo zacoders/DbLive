@@ -23,13 +23,13 @@ internal class DbLiveTester(
 	{
 		await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);
 
-		// otherwise the first test fails on saving its result to dblive.unit_test_run.
+		// a database without the DbLive tables was never deployed, and the check of the ProjectId reads dblive.version.
 		if (!await _da.DbLiveInstalledAsync().ConfigureAwait(false))
 		{
 			throw new DatabaseNotDeployedException();
 		}
 
-		// the tests write dblive.unit_test_run, which a newer DbLive may have changed. Only checked: a deployment writes the requirement.
+		// the check of the ProjectId reads dblive.version, which a newer DbLive may have changed. Only checked: a deployment writes the requirement.
 		DbLiveCompatibility.Check(await _da.GetMinDbLiveLibVersionAsync().ConfigureAwait(false));
 
 		await _projectIdValidator.ValidateBeforeTestsAsync().ConfigureAwait(false);

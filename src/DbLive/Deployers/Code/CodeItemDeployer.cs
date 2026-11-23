@@ -44,50 +44,45 @@ internal class CodeItemDeployer(
 				ContentHash = codeItem.FileData.ContentHash,
 				AppliedUtc = appliedUtc,
 				ExecutionTimeMs = executionTimeMs,
-				CreatedUtc = _timeProvider.UtcNow(),
-				ErrorMessage = ""
+				CreatedUtc = _timeProvider.UtcNow()
 			}).ConfigureAwait(false);
 
 			return CodeItemDeployResult.Success();
 		}
 		catch (Exception ex)
 		{
+			// no row is written: the row of the file stays its last success, and the error is in the exception and the log. The file runs
+			// again on the next deployment, since its row, if any, is not an applied row of this content.
 			string errorMessage = $"Deploy code file error. File path: {codeItem.FileData.RelativePath}";
 
-			// in a transaction the error row would never be seen: a failed deployment rolls it back, a successful retry overwrites it.
-			// When the error ended the transaction, a retry cannot run in it: on PostgreSQL it fails, on SQL Server it would run
-			// in autocommit mode and be committed with the files after it, while the deployment is rolled back.
 			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run. In the deployment transaction
 			// nothing is left to retry it in; in a transaction of its own a retry would run on top of what its COMMIT committed.
 			bool endedTransaction = ex is DbLiveTransactionEndedException;
 
+			bool canRetry;
+
 			if (Transaction.Current is not null)
 			{
-				bool canRetry = !endedTransaction && await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
+				// when the error ended the transaction, a retry cannot run in it: on PostgreSQL it fails, on SQL Server it would run
+				// in autocommit mode and be committed with the files after it, while the deployment is rolled back.
+				canRetry = !endedTransaction && await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
-				return new CodeItemDeployResult
-				{
-					IsSuccess = false,
-					CanRetry = canRetry,
-					Exception = new CodeDeploymentException(
-						canRetry ? errorMessage
-						: endedTransaction ? $"{errorMessage}. The file ended the deployment transaction, so it is not retried."
-						: $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.",
-						ex
-					)
-				};
+				errorMessage = canRetry ? errorMessage
+					: endedTransaction ? $"{errorMessage}. The file ended the deployment transaction, so it is not retried."
+					: $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.";
 			}
+			else
+			{
+				canRetry = !endedTransaction;
 
-			await SaveErrorRowAsync(codeItem, migrationStartedUtc, ex).ConfigureAwait(false);
+				errorMessage = endedTransaction ? $"{errorMessage}. The file ended its transaction, so it is not retried." : errorMessage;
+			}
 
 			return new CodeItemDeployResult
 			{
 				IsSuccess = false,
-				CanRetry = !endedTransaction,
-				Exception = new CodeDeploymentException(
-					endedTransaction ? $"{errorMessage}. The file ended its transaction, so it is not retried." : errorMessage,
-					ex
-				)
+				CanRetry = canRetry,
+				Exception = new CodeDeploymentException(ex.WithSqlErrorOrMessage(errorMessage), ex)
 			};
 		}
 	}
@@ -107,32 +102,6 @@ internal class CodeItemDeployer(
 		{
 			_logger.Warning(ex, "The deployment transaction cannot be used after the error of {FilePath}.", relativePath);
 			return false;
-		}
-	}
-
-	private async Task SaveErrorRowAsync(CodeItem codeItem, DateTime startedUtc, Exception error)
-	{
-		try
-		{
-			DateTime appliedUtc = _timeProvider.UtcNow();
-			int executionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds;
-			await _da.SaveCodeItemAsync(new CodeItemDto()
-			{
-				RelativePath = codeItem.FileData.RelativePath,
-				ItemType = CodeItemType.Code,
-				Status = CodeItemStatus.Error,
-				ContentHash = codeItem.FileData.ContentHash,
-				AppliedUtc = appliedUtc,
-				ExecutionTimeMs = executionTimeMs,
-				CreatedUtc = _timeProvider.UtcNow(),
-				// the full exception with its stack traces is in the result: CodeDeployer logs it.
-				ErrorMessage = error.GetSqlErrorOrMessage()
-			}).ConfigureAwait(false);
-		}
-		catch (Exception ex)
-		{
-			// the server is unreachable, for one: the error of the file stays the result, with its path.
-			_logger.Warning(ex, "The error row of {FilePath} is not saved.", codeItem.FileData.RelativePath);
 		}
 	}
 }

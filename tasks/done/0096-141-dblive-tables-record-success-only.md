@@ -2,8 +2,17 @@
 type: chore
 priority: high
 created: 2026-11-23
+closed: 2026-11-23
+breaking: true
 ---
 # Write only successes to the `dblive` tables; a failure is in the exception and the log
+
+## Release note
+**Failures are no longer written to the `dblive` tables.** The tables keep what the next deployment needs and the history of successful runs; an error is in the exception and the log, with every `TransactionWrapLevel`. A failed code file or breaking script of the Code folder writes no row: its row keeps its last success, and a failed code file runs again on the next deployment, as before. `RunAllTestsAsync` writes nothing: each result is in the log. The first deployment with this version deletes the rows with `status = 'error'` from `dblive.code` and drops the columns `error` of `dblive.code` and `dblive.migration` and the table `dblive.unit_test_run`.
+
+The message of `CodeDeploymentException` now holds the error of the server on the lines after the one that names the file, as `MigrationDeploymentException` and `FolderDeploymentException` do: on SQL Server `Msg`, `Line`, `Procedure` and the line of the file where the failed `GO` batch starts, on PostgreSQL `SqlState` and `Position`. So the log has it too.
+
+To upgrade: read failures from the log or the exception; remove queries and reports that read `dblive.code.error`, `dblive.migration.error`, `status = 'error'` or `dblive.unit_test_run`. A test that compares the whole message of a `CodeDeploymentException` gets the error of the server after its first line.
 
 ## Problem
 DbLive writes the failure of an item to its tables in some cases only:
@@ -47,11 +56,11 @@ Line numbers as of 2026-11-23.
 - Release notes of the tasks closed since 1.5.0 that name `dblive.code.error`, `status = 'error'` or `dblive.unit_test_run`: 0096-60, 0096-68, 0096-85, 0096-89, possibly 0096-17. The same search found 0096-15, 0096-18 and 0096-44: check them.
 
 ## Done when
-- [ ] The SQL error of a code file and of a breaking script of the Code folder is in the log and in the exception message, with tests on both providers
-- [ ] No failure is written to the `dblive` tables; the `error` columns and `dblive.unit_test_run` are dropped by a self-migration on both providers, with tests
-- [ ] Release notes of the earlier tasks of 2.0 corrected
-- [ ] Docs updated
-- [ ] 0096-131 closed or reduced to `dblive.code.created_utc`
+- [x] The SQL error of a code file and of a breaking script of the Code folder is in the log and in the exception message, with tests on both providers
+- [x] No failure is written to the `dblive` tables; the `error` columns and `dblive.unit_test_run` are dropped by a self-migration on both providers, with tests
+- [x] Release notes of the earlier tasks of 2.0 corrected
+- [x] Docs updated
+- [x] 0096-131 closed or reduced to `dblive.code.created_utc`
 
 ## Notes
 - 2026-11-23, the maintainer: a failure is an error in the log, and the user works with the log; going to the tables to see an error is not needed. Write only successes, for example so that the next deployment does not run the item again.
@@ -61,3 +70,14 @@ Line numbers as of 2026-11-23.
   - Outside the deployment transaction a code file runs in a transaction of its own and is rolled back as a whole on both providers; in the deployment transaction a failed deployment rolls back everything. The database keeps the last success, and the applied row is right.
   - In part only: (a) SQL Server, a code file with In-Memory OLTP DDL (`RunsCodeItemWithoutTransaction`): its `GO` batches commit one by one, for example the `drop` succeeds and the `create` fails. §6 advises one object per file; with `create or alter` it is one batch, and nothing is applied in part. (b) A file that ends its transaction with `COMMIT`: it fails on every run, so the deployment test catches it before production. (c) The connection breaks between the commit of the file and the write of its row: the file is applied, the row is old. The error row of today does not reliably help here: its write goes to the same server right after the failure.
   - So it takes a multi-batch In-Memory OLTP file, a failure in production after an earlier batch committed, and the return of the previous content before any later successful deployment. The object is then missing or old, which shows at once, and §6 gives the fix: change the file or delete its row.
+- Self-migrations 08 and 09 of SQL Server and 05 and 06 of PostgreSQL deduplicated and renamed the paths of `dblive.unit_test_run`; that part is removed. Tests simulate an older database by lowering `dblive.version` on a database that already ran the new self-migration (13 / 10), and 08/09 (05/06) then failed on the missing table. They are not released (1.5.0 has SQL Server 01-06 and PostgreSQL 01-03), a database that ran them never runs them again, and a 1.5 database loses the table in 13 / 10 anyway. `DbLiveTablesSnapshotTests` shows the changed hashes.
+- The message of `CodeDeploymentException`: the first line stays as it was (`Deploy code file error. File path: <path>`, with the reason it is not retried), and the error follows on the next lines, `ExceptionExtensions.WithSqlErrorOrMessage`: `SqlError`, or the message of the exception for an error that does not come from the server, as in `MigrationItemDeployer` and `FolderDeployer`. Lines are joined with `Environment.NewLine`, not with a raw string literal: the newline of a literal is the one of the source file, and the files of the repository mix LF and CRLF. A code file's error reaches the log through the exception: `CodeDeployer` logs the `CodeDeploymentException`, and its message now has the error. The breaking script logs its `CodeDeploymentException` too, instead of the inner exception.
+- `RunAllTestsAsync` still requires the DbLive tables and checks the minimum DbLive version, though it no longer writes the tables: the check of the ProjectId reads `dblive.version`, and a database without the tables was never deployed. Unchanged behavior; the comments in `DbLiveTester` now give these reasons.
+- `TestRunResult.StartedUtc`, `CompletedUtc` and `ExecutionTimeMs` (internal) are read by nothing in production now; left as they are, `UnitTestItemRunnerTests` covers them.
+
+## Result
+- **Code.** `CodeItemDeployer` and `CodeBreakingDeployer` write no row on failure (both `SaveErrorRowAsync` removed); the message of their `CodeDeploymentException` has the error of the server after its first line (`ExceptionExtensions.WithSqlErrorOrMessage`). `UnitTestsRunner` writes nothing and no longer takes `IDbLiveDA`. Removed: `IDbLiveDA.SaveUnitTestResultAsync`, `UnitTestItemDto`, `CodeItemStatus.Error`, `ErrorMessage` of `CodeItemDto` and `MigrationItemStateDto`, `MsSqlDA.FitErrorColumn` with `ErrorColumnLength` and `TruncatedMark`, the `error` column in the queries of both providers.
+- **Self-migrations.** `13.record-success-only.sql` (SQL Server) and `10.record-success-only.sql` (PostgreSQL), re-runnable: delete the rows with `status = 'error'`, drop `error` of `dblive.code` and `dblive.migration`, drop `dblive.unit_test_run`. The parts on `dblive.unit_test_run` are removed from the unreleased 08/09 and 05/06 (Notes). `MinCompatibleVersion` stays 2.0.0; snapshot updated.
+- **Tests.** New `CodeFileFailureTests` on both providers (replace `ErrorColumnTests`; `MsSqlDAFitErrorColumnTests` deleted): the message of a failed code file has the error of the server (SQL Server: the exact text with the batch line and `Procedure`, a 7000-character error whole; PostgreSQL: `PostgreSQL error:`, `SqlState`, `Position`) and no row is written; a failed file keeps the row of its last success and runs again on the next deployment; the self-migration removes the error rows, the columns and the table of an older database. `CodeBreakingTests` on both providers check the error of the server in the message and that no row is written, with `Migration` and `Deployment`. Unit tests of the deployers and of `UnitTestsRunner` check the message, the log and that nothing is written. Tests that read the error rows or `dblive.unit_test_run` now check the message or run the tests one by one. Verified: `DbLive.Tests` 549, `DbLive.MSSQL.Tests` 153, `DbLive.PostgreSQL.Tests` 86, all passed.
+- **Docs.** `docs/llms-full.txt` §6, §6.1, §8.2, §11.2 (the format of `SqlError` moved here from §15), §11.4, §15 (tables, conversion of older databases, queries), §17; `docs/deployment/code.md`, `breaking-changes.md`, `index.md`, `docs/unit-testing/index.md`.
+- **Other tasks.** Release notes of 0096-17, 0096-60, 0096-68, 0096-85 corrected; 0096-89 is `None.` now (the write it guarded is gone, and breaking scripts of the Code folder are new in this release). 0096-15, 0096-18 and 0096-44 checked: their notes do not name the removed columns. 0096-131 closed: only `dblive.code.created_utc` was left, now in §15. Notes added to 0096-112 and 0096-133.

@@ -107,8 +107,7 @@ internal class MigrationItemDeployer(
 			ItemType = migrationItem.MigrationItemType,
 			Status = MigrationItemStatus.Applied,
 			AppliedUtc = migrationEndTime,
-			ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds,
-			ErrorMessage = null
+			ExecutionTimeMs = (long)(migrationEndTime - startTimeUtc).TotalMilliseconds
 		};
 		await _da.UpdateMigrationStateAsync(dto).ConfigureAwait(false);
 	}

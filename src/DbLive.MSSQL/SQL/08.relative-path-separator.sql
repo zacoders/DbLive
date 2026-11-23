@@ -16,17 +16,6 @@ where charindex('\', relative_path) > 0;
 go
 
 with numbered as (
-	select row_number() over ( partition by replace(relative_path, '\', '/') order by run_utc desc ) as rn
-	from dblive.unit_test_run
-)
-delete from numbered where rn > 1;
-
-update dblive.unit_test_run
-set relative_path = replace(relative_path, '\', '/')
-where charindex('\', relative_path) > 0;
-go
-
-with numbered as (
 	select row_number() over ( partition by folder_type, replace(relative_path, '\', '/') order by completed_utc desc ) as rn
 	from dblive.folder_items
 )

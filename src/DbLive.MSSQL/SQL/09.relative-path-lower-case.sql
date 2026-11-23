@@ -17,17 +17,6 @@ where relative_path collate Latin1_General_100_BIN2 <> lower(relative_path);
 go
 
 with numbered as (
-	select row_number() over ( partition by lower(relative_path) order by run_utc desc ) as rn
-	from dblive.unit_test_run
-)
-delete from numbered where rn > 1;
-
-update dblive.unit_test_run
-set relative_path = lower(relative_path)
-where relative_path collate Latin1_General_100_BIN2 <> lower(relative_path);
-go
-
-with numbered as (
 	select row_number() over ( partition by folder_type, lower(relative_path) order by completed_utc desc ) as rn
 	from dblive.folder_items
 )

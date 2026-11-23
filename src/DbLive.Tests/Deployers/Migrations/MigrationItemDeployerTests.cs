@@ -101,13 +101,12 @@ public class MigrationItemDeployerTests
 					&& dbo.Status == MigrationItemStatus.Applied
 					&& dbo.AppliedUtc == utcNow2
 					&& dbo.ExecutionTimeMs == 2000
-					&& dbo.ErrorMessage == null
 				)
 			);
 	}
 
 	[Fact]
-	public async Task Deploy_when_execute_non_query_fails_should_save_failed_state_and_re_throw()
+	public async Task Deploy_when_execute_non_query_fails_throws_with_the_sql_error()
 	{
 		// Arrange
 		MockSet mockSet = new();

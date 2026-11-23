@@ -8,5 +8,4 @@ internal class MigrationItemStateDto
 	public required MigrationItemStatus Status { get; init; }
 	public DateTime? AppliedUtc { get; set; }
 	public long? ExecutionTimeMs { get; set; }
-	public string? ErrorMessage { get; set; }
 }

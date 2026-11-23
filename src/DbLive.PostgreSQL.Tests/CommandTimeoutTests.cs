@@ -71,7 +71,7 @@ public class CommandTimeoutTests(PostgreSqlFixture fixture, ITestOutputHelper ou
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql", codeEx.Message);
+		Assert.Equal($"Deploy code file error. File path: Code/a.sql{Environment.NewLine}{TimeoutMessage} 00:00:03.", codeEx.Message);
 		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(codeEx.InnerException);
 		Assert.Equal($"{TimeoutMessage} 00:00:03.", timeoutEx.Message);
 		_ = Assert.IsType<NpgsqlException>(timeoutEx.InnerException);

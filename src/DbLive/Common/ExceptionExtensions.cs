@@ -21,4 +21,12 @@ internal static class ExceptionExtensions
 			? sqlError.TrimEnd()
 			: ex.Message;
 	}
+
+	/// <summary>
+	/// The message of the error that names a failed file: <paramref name="message"/>, then the error of the file on the next lines
+	/// (<see cref="GetSqlErrorOrMessage"/>). <see cref="DbLiveSqlException.SqlError"/> is a property, not a part of the message: without
+	/// this the log and the message would have the message of the server only, without its number and lines.
+	/// </summary>
+	internal static string WithSqlErrorOrMessage(this Exception ex, string message) =>
+		$"{message}{Environment.NewLine}{ex.GetSqlErrorOrMessage()}";
 }

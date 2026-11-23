@@ -5,7 +5,6 @@ namespace DbLive.Deployers.Testing;
 internal class UnitTestsRunner(
 		ILogger _logger,
 		IDbLiveProject _project,
-		IDbLiveDA _da,
 		IUnitTestItemRunner _unitTestItemRunner,
 		ISettingsAccessor settingsAccessor
 	) : IUnitTestsRunner
@@ -45,18 +44,6 @@ internal class UnitTestsRunner(
 				failedTests.Add(test.FileData.RelativePath);
 				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
 			}
-
-			await _da.SaveUnitTestResultAsync(
-				new UnitTestItemDto
-				{
-					RelativePath = test.FileData.RelativePath,
-					ContentHash = test.FileData.ContentHash,
-					StartedUtc = testResult.StartedUtc,
-					ExecutionTimeMs = testResult.ExecutionTimeMs,
-					IsSuccess = testResult.IsSuccess,
-					ErrorMessage = testResult.ErrorMessage
-				}
-			).ConfigureAwait(false);
 		}).ConfigureAwait(false);
 
 		_logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",

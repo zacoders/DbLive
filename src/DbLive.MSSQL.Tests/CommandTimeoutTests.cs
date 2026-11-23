@@ -75,14 +75,15 @@ public class CommandTimeoutTests(SqlServerIntegrationFixture fixture, ITestOutpu
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql", codeEx.Message);
+		Assert.Equal($"Deploy code file error. File path: Code/a.sql{Environment.NewLine}{TimeoutMessage} 00:00:03.", codeEx.Message);
 		ExecutionTimeoutException timeoutEx = Assert.IsType<ExecutionTimeoutException>(codeEx.InnerException);
 		Assert.Equal($"{TimeoutMessage} 00:00:03.", timeoutEx.Message);
 		Assert.Equal(-2, Assert.IsType<SqlException>(timeoutEx.InnerException).Number);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await da.ListAsync("select name from sys.views"));
-		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
+		// a failure writes no row.
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
 	}
 
 	[Fact]

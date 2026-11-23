@@ -74,8 +74,12 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture fixture, ITestOutputHe
 		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => DeployAsync(project));
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The file ended the deployment transaction, so it is not retried.", codeEx.Message);
-		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
+		DbLiveTransactionEndedException endedEx = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
+		Assert.Equal(
+			"Deploy code file error. File path: Code/a.sql. The file ended the deployment transaction, so it is not retried."
+			+ Environment.NewLine + endedEx.Message,
+			codeEx.Message
+		);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await da.ListAsync("select id::text from t"));
@@ -96,13 +100,18 @@ public class ScriptEndsTransactionTests(PostgreSqlFixture fixture, ITestOutputHe
 		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => DeployAsync(project));
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The file ended its transaction, so it is not retried.", codeEx.Message);
-		_ = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
+		DbLiveTransactionEndedException endedEx = Assert.IsType<DbLiveTransactionEndedException>(codeEx.InnerException);
+		Assert.Equal(
+			"Deploy code file error. File path: Code/a.sql. The file ended its transaction, so it is not retried."
+			+ Environment.NewLine + endedEx.Message,
+			codeEx.Message
+		);
 
 		IDbLiveDA da = CreateBuilder(project).GetRequiredService<IDbLiveDA>();
 		Assert.Equal(rowsLeft, await da.ListAsync("select id::text from t"));
 		Assert.Equal(viewsLeft, await da.ListAsync(ViewsQuery));
-		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
+		// a failure writes no row.
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
 	}
 
 	[Fact]

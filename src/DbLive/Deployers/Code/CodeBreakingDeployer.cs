@@ -49,48 +49,28 @@ internal class CodeBreakingDeployer(
 		}
 		catch (Exception ex)
 		{
-			_logger.Error(ex, "Deploy code breaking script error. File path: {FilePath}", item.FileData.RelativePath);
+			// no row is written: the row of the script stays its last success, and the error is in the exception and the log.
+			CodeDeploymentException error = new(
+				ex.WithSqlErrorOrMessage($"Deploy code breaking script error. File path: {item.FileData.RelativePath}"),
+				ex
+			);
 
-			// in a transaction the error row would never be seen: the failed deployment rolls it back. When the error ended the transaction,
-			// it cannot be written there either: on PostgreSQL the write fails, on SQL Server it would be committed outside the transaction.
-			if (Transaction.Current is null)
-			{
-				await SaveErrorRowAsync(item, startedUtc, ex).ConfigureAwait(false);
-			}
+			_logger.Error(error, "Deploy code breaking script error. File path: {FilePath}", item.FileData.RelativePath);
 
-			throw new CodeDeploymentException($"Deploy code breaking script error. File path: {item.FileData.RelativePath}", ex);
+			throw error;
 		}
 
-		await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Applied, startedUtc, "")).ConfigureAwait(false);
-	}
-
-	private async Task SaveErrorRowAsync(GenericItem item, DateTime startedUtc, Exception error)
-	{
-		try
-		{
-			await _da.SaveCodeItemAsync(CreateRow(item, CodeItemStatus.Error, startedUtc, error.GetSqlErrorOrMessage())).ConfigureAwait(false);
-		}
-		catch (Exception ex)
-		{
-			// the server is unreachable, for one: the error of the script stays the one thrown, with its path.
-			_logger.Warning(ex, "The error row of {FilePath} is not saved.", item.FileData.RelativePath);
-		}
-	}
-
-	private CodeItemDto CreateRow(GenericItem item, CodeItemStatus status, DateTime startedUtc, string errorMessage)
-	{
 		DateTime appliedUtc = _timeProvider.UtcNow();
 
-		return new CodeItemDto
+		await _da.SaveCodeItemAsync(new CodeItemDto
 		{
 			RelativePath = item.FileData.RelativePath,
 			ItemType = CodeItemType.Breaking,
-			Status = status,
+			Status = CodeItemStatus.Applied,
 			ContentHash = item.FileData.ContentHash,
 			AppliedUtc = appliedUtc,
 			ExecutionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds,
-			CreatedUtc = appliedUtc,
-			ErrorMessage = errorMessage
-		};
+			CreatedUtc = appliedUtc
+		}).ConfigureAwait(false);
 	}
 }

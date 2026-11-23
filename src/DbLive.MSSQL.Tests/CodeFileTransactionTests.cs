@@ -31,7 +31,8 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture fixture, ITest
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await da.ListAsync("select name from sys.views"));
-		Assert.Equal(["code/a.sql:error"], await da.ListAsync("select concat(relative_path, ':', status) from dblive.code"));
+		// a failure writes no row.
+		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
 
 		// the connection of the file went back to the pool without an open transaction, which would keep its locks.
 		Assert.Equal(["0"], await da.ListAsync("select count(*) from sys.dm_exec_sessions where database_id = db_id() and open_transaction_count > 0 and session_id <> @@spid"));

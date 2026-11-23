@@ -191,10 +191,9 @@ public class CodeBreakingTests(PostgreSqlFixture fixture, ITestOutputHelper outp
 	}
 
 	[Theory]
-	[InlineData("Migration", "code/public/get_user.breaking.sql:breaking:error")]
-	// in a deployment transaction no error row is written, and the deployment is rolled back.
-	[InlineData("Deployment", null)]
-	public async Task Failed_code_breaking_script_fails_with_its_own_error(string transactionWrapLevel, string? breakingRow)
+	[InlineData("Migration")]
+	[InlineData("Deployment")]
+	public async Task Failed_code_breaking_script_fails_with_its_own_error_and_writes_no_row(string transactionWrapLevel)
 	{
 		using TempProject project = new TempProject()
 			.AddFile("settings.json", $$"""{ "TransactionWrapLevel": "{{transactionWrapLevel}}" }""")
@@ -211,13 +210,21 @@ public class CodeBreakingTests(PostgreSqlFixture fixture, ITestOutputHelper outp
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
 		);
 
-		Assert.Equal("Deploy code breaking script error. File path: Code/public/get_user.breaking.sql", ex.Message);
+		// the details of the server, which only SqlError of the inner exception has, are in the message and so in the log.
+		string message = ex.Message.ReplaceLineEndings();
+		Assert.StartsWith(
+			"""
+			Deploy code breaking script error. File path: Code/public/get_user.breaking.sql
+			PostgreSQL error:
+			Severity: ERROR
+			SqlState: 42883
+			""".ReplaceLineEndings(),
+			message
+		);
+		Assert.Contains("get_user_v1() does not exist", message);
 		Assert.Contains("get_user_v1() does not exist", Assert.IsType<DbLiveSqlException>(ex.InnerException).Message);
 
-		Assert.Equal(
-			[.. new[] { breakingRow, "code/public/get_user.sql:code:applied" }.OfType<string>()],
-			await CodeRowsAsync(da)
-		);
+		Assert.Equal(["code/public/get_user.sql:code:applied"], await CodeRowsAsync(da));
 	}
 
 	/// <summary>

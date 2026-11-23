@@ -81,15 +81,12 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture fixture, ITestOut
 		DbLiveBuilder builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
-		await builder.CreateTester().RunAllTestsAsync();
-
-		List<SqlResult> testRuns = await builder.GetRequiredService<IDbLiveDA>().QuerySqlAsync(
-			"select relative_path, pass from dblive.unit_test_run");
-
-		Assert.Equal(
-			["tests/rows-with-schema.sql:True", "tests/rows.sql:True"],
-			testRuns.Single().Rows.Select(r => $"{r[0]}:{r[1]}").Order(StringComparer.Ordinal)
-		);
+		IDbLiveTester tester = builder.CreateTester();
+		foreach (string test in new[] { "Tests/rows.sql", "Tests/rows-with-schema.sql" })
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.True(result.IsSuccess, result.ErrorMessage);
+		}
 	}
 
 	[Fact]

@@ -7,7 +7,7 @@ namespace DbLive.Testing;
 public interface IDbLiveTester
 {
 	/// <summary>
-	/// Runs all SQL tests of the project in parallel and saves their results to <c>dblive.unit_test_run</c>.
+	/// Runs all SQL tests of the project in parallel and logs the result of each. Writes nothing to the <c>dblive</c> tables.
 	/// Not part of a deployment: a production deployer does not call it.
 	/// </summary>
 	/// <exception cref="UnitTestsFailedException">A test failed. All tests run first.</exception>

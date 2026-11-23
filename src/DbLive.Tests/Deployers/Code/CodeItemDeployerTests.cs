@@ -41,13 +41,16 @@ public class CodeItemDeployerTests
 		// Assert
 		Assert.False(res.IsSuccess);
 		Assert.True(res.CanRetry);
+		Assert.Equal(Message("Deploy code file error. File path: /path-to/some-code-item.sql", "some exception"), res.Exception!.Message);
 		await mockSet.DbLiveDA.Received().ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
-		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error && i.ErrorMessage == "some exception"));
+		// the row of the file stays its last success.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}
 
 	[Fact]
-	public async Task Failed_code_item_saves_the_sql_error_without_stack_traces()
+	public async Task Failed_code_item_has_the_sql_error_in_its_message()
 	{
+		// SqlError is a property of the inner exception: without it in the message, the log would have the message of the server only.
 		MockSet mockSet = new();
 
 		CodeItem codeItem = GetCodeItem();
@@ -67,16 +70,19 @@ public class CodeItemDeployerTests
 
 		Assert.False(res.IsSuccess);
 		Assert.Same(scriptError, res.Exception!.InnerException);
-		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i =>
-			i.Status == CodeItemStatus.Error
-			&& i.ErrorMessage == "SQL Server error:\nMsg 208, Level 16, State 1, Line 3\nInvalid object name 'dbo.Missing'."
-		));
+		Assert.Equal(
+			Message(
+				"Deploy code file error. File path: /path-to/some-code-item.sql",
+				"SQL Server error:\nMsg 208, Level 16, State 1, Line 3\nInvalid object name 'dbo.Missing'."
+			),
+			res.Exception.Message
+		);
 	}
 
 	[Theory]
 	[InlineData(true, "Deploy code file error. File path: Code/dbo/GetUser.sql")]
 	[InlineData(false, "Deploy code file error. File path: Code/dbo/GetUser.sql. The error ended the deployment transaction, so the file is not retried.")]
-	public async Task Failed_code_item_in_a_transaction_saves_no_error_row(bool transactionUsable, string message)
+	public async Task Failed_code_item_in_a_transaction_is_retried_when_the_transaction_is_usable(bool transactionUsable, string message)
 	{
 		MockSet mockSet = new();
 		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(transactionUsable);
@@ -99,7 +105,7 @@ public class CodeItemDeployerTests
 		Assert.False(res.IsSuccess);
 		Assert.Equal(transactionUsable, res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal(message, ex.Message);
+		Assert.Equal(Message(message, "Incorrect syntax near 'selec'."), ex.Message);
 		Assert.Same(scriptError, ex.InnerException);
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}
@@ -128,7 +134,13 @@ public class CodeItemDeployerTests
 		Assert.False(res.IsSuccess);
 		Assert.False(res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The error ended the deployment transaction, so the file is not retried.", ex.Message);
+		Assert.Equal(
+			Message(
+				"Deploy code file error. File path: Code/dbo/GetUser.sql. The error ended the deployment transaction, so the file is not retried.",
+				"A severe error occurred on the current command."
+			),
+			ex.Message
+		);
 		Assert.Same(scriptError, ex.InnerException);
 		mockSet.Logger.Received().Warning(transactionError, "The deployment transaction cannot be used after the error of {FilePath}.", "Code/dbo/GetUser.sql");
 	}
@@ -156,14 +168,17 @@ public class CodeItemDeployerTests
 		Assert.False(res.IsSuccess);
 		Assert.False(res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended the deployment transaction, so it is not retried.", ex.Message);
+		Assert.Equal(
+			Message("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended the deployment transaction, so it is not retried.", scriptError.Message),
+			ex.Message
+		);
 		Assert.Same(scriptError, ex.InnerException);
 		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}
 
 	[Fact]
-	public async Task Code_item_that_ended_its_own_transaction_is_not_retried_and_saves_its_error_row()
+	public async Task Code_item_that_ended_its_own_transaction_is_not_retried()
 	{
 		// it ends its transaction on every run, and a retry would run on top of what its COMMIT committed.
 		MockSet mockSet = new();
@@ -180,10 +195,13 @@ public class CodeItemDeployerTests
 		Assert.False(res.IsSuccess);
 		Assert.False(res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended its transaction, so it is not retried.", ex.Message);
+		Assert.Equal(
+			Message("Deploy code file error. File path: Code/dbo/GetUser.sql. The file ended its transaction, so it is not retried.", scriptError.Message),
+			ex.Message
+		);
 		Assert.Same(scriptError, ex.InnerException);
 		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
-		await mockSet.DbLiveDA.Received().SaveCodeItemAsync(Arg.Is<CodeItemDto>(i => i.Status == CodeItemStatus.Error && i.ErrorMessage == scriptError.Message));
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}
 
 	[Fact]
@@ -224,17 +242,10 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
-	public async Task Failed_code_item_keeps_its_error_when_the_error_row_cannot_be_saved()
+	public async Task Code_item_whose_row_cannot_be_saved_fails_with_the_error_of_the_save()
 	{
-		// the server is unreachable, for one: the result is the error of the file, with its path.
+		// the file ran, and the server became unreachable before its row was written.
 		MockSet mockSet = new();
-
-		CodeItem codeItem = GetCodeItem();
-
-		DbLiveSqlException scriptError = new("Incorrect syntax near 'selec'.");
-		mockSet.DbLiveDA
-			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
-			.Returns(Task.FromException(scriptError));
 
 		DbLiveSqlException saveError = new("A network-related or instance-specific error occurred while establishing a connection to SQL Server.");
 		mockSet.DbLiveDA
@@ -243,14 +254,14 @@ public class CodeItemDeployerTests
 
 		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
 
-		CodeItemDeployResult res = await deployer.DeployAsync(codeItem);
+		CodeItemDeployResult res = await deployer.DeployAsync(GetCodeItem());
 
 		Assert.False(res.IsSuccess);
 		Assert.True(res.CanRetry);
 		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
-		Assert.Equal("Deploy code file error. File path: /path-to/some-code-item.sql", ex.Message);
-		Assert.Same(scriptError, ex.InnerException);
-		mockSet.Logger.Received().Warning(saveError, "The error row of {FilePath} is not saved.", "/path-to/some-code-item.sql");
+		Assert.Equal(Message("Deploy code file error. File path: /path-to/some-code-item.sql", saveError.Message), ex.Message);
+		Assert.Same(saveError, ex.InnerException);
+		await mockSet.DbLiveDA.Received(1).SaveCodeItemAsync(Arg.Any<CodeItemDto>());
 	}
 
 	[Fact]
@@ -309,6 +320,9 @@ public class CodeItemDeployerTests
 		Assert.True(res.IsSuccess);
 		mockSet.Logger.DidNotReceive().Information(WithoutTransactionMessage, Arg.Any<string>());
 	}
+
+	// the message names the file on its first line; the error of the file follows on the next lines.
+	private static string Message(string firstLine, string error) => $"{firstLine}{Environment.NewLine}{error}";
 
 	private static CodeItem GetCodeItem(string content = "select * from table", string relativePath = "/path-to/some-code-item.sql")
 	{

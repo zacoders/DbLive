@@ -1,8 +1,7 @@
 ﻿namespace DbLive.Testing;
 
 /// <summary>
-/// SQL tests failed in <see cref="IDbLiveTester.RunAllTestsAsync"/>. All tests ran; their results are in the log and in
-/// <c>dblive.unit_test_run</c>.
+/// SQL tests failed in <see cref="IDbLiveTester.RunAllTestsAsync"/>. All tests ran; why each one failed is in the log.
 /// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class UnitTestsFailedException : Exception

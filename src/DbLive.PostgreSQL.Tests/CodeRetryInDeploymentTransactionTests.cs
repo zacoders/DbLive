@@ -63,10 +63,10 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture fixture, IT
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql", codeEx.Message);
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql" + Environment.NewLine, codeEx.Message);
 		Assert.Contains("syntax error at or near \"selec\"", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
-		// neither the migration before it nor the file after it, and no error row.
+		// neither the migration before it nor the file after it, and no row of the file.
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Empty(await ObjectsAsync(da));
 		Assert.Empty(await da.ListAsync("select version::text from dblive.migration"));
@@ -86,7 +86,7 @@ public class CodeRetryInDeploymentTransactionTests(PostgreSqlFixture fixture, IT
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
 		Assert.Equal("57P01: terminating connection due to administrator command", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();

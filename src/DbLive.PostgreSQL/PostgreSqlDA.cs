@@ -633,19 +633,18 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync("""
 				insert into dblive.code (
 					relative_path, item_type, status, content_hash, applied_utc,
-					execution_time_ms, created_utc, error
+					execution_time_ms, created_utc
 				)
 				values (
 					@relative_path, @item_type, @status, @content_hash, @applied_utc,
-					@execution_time_ms, @created_utc, @error
+					@execution_time_ms, @created_utc
 				)
 				on conflict (relative_path) do update set
 					item_type = excluded.item_type,
 					status = excluded.status,
 					content_hash = excluded.content_hash,
 					applied_utc = excluded.applied_utc,
-					execution_time_ms = excluded.execution_time_ms,
-					error = excluded.error;
+					execution_time_ms = excluded.execution_time_ms;
 			""",
 			new
 			{
@@ -655,8 +654,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
-				created_utc = item.CreatedUtc,
-				error = item.ErrorMessage
+				created_utc = item.CreatedUtc
 			}
 		).ConfigureAwait(false);
 	}
@@ -687,7 +685,6 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc as CreatedUtc
 				 , execution_time_ms as ExecutionTimeMs
 				 , verified_utc as VerifiedUtc
-				 , error as ErrorMessage
 				 , status
 			from dblive.code
 			"""
@@ -774,8 +771,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			update dblive.migration
 			set status = @status,
 				applied_utc = @applied_utc,
-				execution_time_ms = @execution_time_ms,
-				error = @error
+				execution_time_ms = @execution_time_ms
 			where version = @version
 			  and item_type = @item_type
 			returning version;
@@ -786,8 +782,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 			status = item.Status.ToString().ToLowerInvariant(),
 			applied_utc = item.AppliedUtc,
-			execution_time_ms = item.ExecutionTimeMs,
-			error = item.ErrorMessage
+			execution_time_ms = item.ExecutionTimeMs
 		}).ConfigureAwait(false);
 
 		if (ver is null)
@@ -796,36 +791,6 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				$"Migration item not found. Version: {item.Version}, Type: {item.ItemType}"
 			);
 		}
-	}
-
-	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
-	{
-		using NpgsqlConnection cnn = CreateConnection();
-		_ = await cnn.ExecuteAsync("""
-			insert into dblive.unit_test_run (
-				relative_path, content_hash, run_utc,
-				execution_time_ms, pass, error
-			)
-			values (
-				@relative_path, @content_hash, @run_utc,
-				@execution_time_ms, @pass, @error
-			)
-			on conflict (relative_path) do update set
-				content_hash = excluded.content_hash,
-				run_utc = excluded.run_utc,
-				execution_time_ms = excluded.execution_time_ms,
-				pass = excluded.pass,
-				error = excluded.error;
-			""",
-		new
-		{
-			relative_path = item.RelativePath.ToStoredPath(),
-			content_hash = item.ContentHash,
-			run_utc = item.StartedUtc,
-			execution_time_ms = item.ExecutionTimeMs,
-			pass = item.IsSuccess,
-			error = item.ErrorMessage
-		}).ConfigureAwait(false);
 	}
 
 	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()

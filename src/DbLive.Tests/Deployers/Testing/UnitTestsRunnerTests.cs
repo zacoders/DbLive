@@ -1,4 +1,3 @@
-using Microsoft.IdentityModel.Tokens;
 using Xunit.Sdk;
 
 namespace DbLive.Tests.Deployers.Testing;
@@ -40,7 +39,7 @@ public class UnitTestsRunnerTests
 
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
-		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
+		await mockSet.UnitTestItemRunner.Received(2).RunTestAsync(Arg.Any<TestItem>());
 	}
 
 
@@ -80,23 +79,8 @@ public class UnitTestsRunnerTests
 		// Assert
 		await mockSet.DbLiveProject.Received().GetTestsAsync();
 
-		await mockSet.DbLiveDA.Received(2).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
-
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
-				dto.RelativePath == testItem1.FileData.RelativePath &&
-				dto.ContentHash == testItem1.FileData.ContentHash &&
-				dto.IsSuccess == true &&
-				dto.ErrorMessage.IsNullOrEmpty()
-			));
-
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
-				dto.RelativePath == testItem2.FileData.RelativePath &&
-				dto.ContentHash == testItem2.FileData.ContentHash &&
-				dto.IsSuccess == true &&
-				dto.ErrorMessage.IsNullOrEmpty()
-			));
+		mockSet.Logger.Received(1).Information("PASSED: {testName}", "test1");
+		mockSet.Logger.Received(1).Information("PASSED: {testName}", "test2");
 
 		mockSet.Logger.Received()
 			.Information(
@@ -108,7 +92,7 @@ public class UnitTestsRunnerTests
 
 
 	[Fact]
-	public async Task RunTest_OneTestFailed_RunsAllTests_AndSavesAllResults()
+	public async Task RunTest_OneTestFailed_RunsAllTests_AndLogsEachResult()
 	{
 		MockSet mockSet = new();
 
@@ -159,31 +143,11 @@ public class UnitTestsRunnerTests
 		Assert.Equal("Unit test run failed. Failed test count 1 of 3.", ex.Message);
 
 		await mockSet.UnitTestItemRunner.Received(3).RunTestAsync(Arg.Any<TestItem>());
-		await mockSet.DbLiveDA.Received(3).SaveUnitTestResultAsync(Arg.Any<UnitTestItemDto>());
 
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
-				dto.RelativePath == testItem1.FileData.RelativePath &&
-				dto.ContentHash == testItem1.FileData.ContentHash &&
-				dto.IsSuccess == true &&
-				dto.ErrorMessage.IsNullOrEmpty()
-			));
-
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
-				dto.RelativePath == testItem2.FileData.RelativePath &&
-				dto.ContentHash == testItem2.FileData.ContentHash &&
-				dto.IsSuccess == false &&
-				dto.ErrorMessage == "failed"
-			));
-
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto =>
-				dto.RelativePath == testItem3.FileData.RelativePath &&
-				dto.ContentHash == testItem3.FileData.ContentHash &&
-				dto.IsSuccess == true &&
-				dto.ErrorMessage.IsNullOrEmpty()
-			));
+		// the log is where a failure is: the tests write nothing to the dblive tables.
+		mockSet.Logger.Received(1).Information("PASSED: {testName}", "test1");
+		mockSet.Logger.Received(1).Error((Exception?)null, "FAILED: {filePath}. Error Message: {errorMessage}", "test2", "failed");
+		mockSet.Logger.Received(1).Information("PASSED: {testName}", "test3");
 
 		mockSet.Logger.Received()
 			.Information(
@@ -200,7 +164,7 @@ public class UnitTestsRunnerTests
 
 		UnitTestsRunner runner = mockSet.CreateUsingMocks<UnitTestsRunner>();
 
-		// the database stores the path in lower case, the exception shows the path of the file.
+		// the exception shows the path of the file, not the lower-case path that DbLive stores.
 		TestItem testItem = new()
 		{
 			Name = "Select-Order.sql",
@@ -215,8 +179,6 @@ public class UnitTestsRunnerTests
 		UnitTestsFailedException ex = await Assert.ThrowsAsync<UnitTestsFailedException>(runner.RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
-		await mockSet.DbLiveDA.Received()
-			.SaveUnitTestResultAsync(Arg.Is<UnitTestItemDto>(dto => dto.RelativePath == "Tests/Orders/Select-Order.sql"));
 	}
 
 	[Fact]

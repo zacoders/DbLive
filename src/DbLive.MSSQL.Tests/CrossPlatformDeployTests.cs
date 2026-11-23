@@ -93,10 +93,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 			     , ( 'Code/dbo/v2.sql', 'applied', 1, '2026-01-02', '2026-01-02', null, 4 ) -- applied last
 			     , ( 'Code\dbo\v3.sql', 'applied', 1, '2026-01-01', '2026-01-01', null, 5 );
 
-			insert into dblive.unit_test_run ( relative_path, content_hash, run_utc, execution_time_ms, pass )
-			values ( 'Tests\t1.sql', 1, '2026-01-02', 1, 1 )
-			     , ( 'Tests/t1.sql', 2, '2026-01-01', 1, 0 );
-
 			insert into dblive.folder_items ( folder_type, relative_path, content_hash, created_utc, started_utc, completed_utc, execution_time_ms )
 			values ( 'AfterDeploy', 'AfterDeploy\a.sql', 1, '2026-01-01', '2026-01-01', '2026-01-01', 1 )
 			     , ( 'AfterDeploy', 'AfterDeploy/a.sql', 2, '2026-01-02', '2026-01-02', '2026-01-02', 1 )
@@ -110,10 +106,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 		Assert.Equal(
 			["code/dbo/v1.sql:1", "code/dbo/v2.sql:4", "code/dbo/v3.sql:5"],
 			await RowsAsync(da, "select relative_path, content_hash from dblive.code order by relative_path")
-		);
-		Assert.Equal(
-			["tests/t1.sql:1"],
-			await RowsAsync(da, "select relative_path, content_hash from dblive.unit_test_run")
 		);
 		Assert.Equal(
 			["afterdeploy/a.sql:2", "afterdeploy/a.sql:3"],
@@ -141,10 +133,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 			     , ( 'code/dbo/v2.sql', 'applied', 1, '2026-01-02', '2026-01-02', null, 4 ) -- applied last
 			     , ( 'Code/dbo/V3.sql', 'applied', 1, '2026-01-01', '2026-01-01', null, 5 );
 
-			insert into dblive.unit_test_run ( relative_path, content_hash, run_utc, execution_time_ms, pass )
-			values ( 'Tests/T1.sql', 1, '2026-01-02', 1, 1 )
-			     , ( 'Tests/t1.sql', 2, '2026-01-01', 1, 0 );
-
 			insert into dblive.folder_items ( folder_type, relative_path, content_hash, created_utc, started_utc, completed_utc, execution_time_ms )
 			values ( 'AfterDeploy', 'AfterDeploy/A.sql', 1, '2026-01-01', '2026-01-01', '2026-01-01', 1 )
 			     , ( 'AfterDeploy', 'afterdeploy/a.sql', 2, '2026-01-02', '2026-01-02', '2026-01-02', 1 )
@@ -162,10 +150,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 			await RowsAsync(da, "select relative_path, content_hash from dblive.code order by relative_path")
 		);
 		Assert.Equal(
-			["tests/t1.sql:1"],
-			await RowsAsync(da, "select relative_path, content_hash from dblive.unit_test_run")
-		);
-		Assert.Equal(
 			["afterdeploy/a.sql:2", "afterdeploy/a.sql:3"],
 			await RowsAsync(da, "select relative_path, content_hash from dblive.folder_items order by content_hash")
 		);
@@ -181,19 +165,16 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );")
 			.AddFile("Code/dbo/V1.sql", Code)
-			.AddFile("Tests/T1.sql", "select 1 as x;")
 			.AddFile("BeforeDeploy/B.sql", "select 1 as x;")
 			.AddFile("AfterDeploy/A.sql", "select 1 as x;");
 
 		DbLiveBuilder builder = CreateBuilder(project);
 
 		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
-		await builder.CreateTester().RunAllTestsAsync();
 
 		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
 		Assert.Equal(["migrations/001.migration.sql:migration"], await RowsAsync(da, "select relative_path, item_type from dblive.migration"));
 		Assert.Equal(["code/dbo/v1.sql:applied"], await RowsAsync(da, "select relative_path, status from dblive.code"));
-		Assert.Equal(["tests/t1.sql:True"], await RowsAsync(da, "select relative_path, pass from dblive.unit_test_run"));
 		Assert.Equal(
 			["afterdeploy/a.sql:AfterDeploy", "beforedeploy/b.sql:BeforeDeploy"],
 			await RowsAsync(da, "select relative_path, folder_type from dblive.folder_items order by relative_path")
@@ -257,7 +238,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 	}
 
 	[Fact]
-	public async Task Failed_test_is_reported_by_the_real_path_and_saved_in_lower_case()
+	public async Task Failed_test_is_reported_by_the_real_path()
 	{
 		using TempProject project = new TempProject()
 			.AddFile("Tests/Orders/Select-Order.sql", "throw 50000, 'Expected failure.', 1;");
@@ -270,10 +251,6 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 			builder.CreateTester().RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
-		Assert.Equal(
-			["tests/orders/select-order.sql:False"],
-			await RowsAsync(builder.GetRequiredService<IDbLiveDA>(), "select relative_path, pass from dblive.unit_test_run")
-		);
 	}
 
 	/// <summary>

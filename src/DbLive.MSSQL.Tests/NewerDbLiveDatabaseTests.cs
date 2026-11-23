@@ -108,7 +108,6 @@ public class NewerDbLiveDatabaseTests(SqlServerIntegrationFixture fixture, ITest
 			select * from dblive.version;
 			select * from dblive.migration order by version, item_type;
 			select * from dblive.code order by relative_path;
-			select * from dblive.unit_test_run order by relative_path;
 			select * from dblive.folder_items order by folder_type, relative_path;
 			""");
 

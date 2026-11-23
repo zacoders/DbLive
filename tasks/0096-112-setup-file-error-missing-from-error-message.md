@@ -25,3 +25,6 @@ The marker is only in `TestRunResult.Output`. `ErrorMessage` gets the raw error 
 ## Done when
 - [ ] Fixed, with a unit test of the runner: a failing setup gives an `ErrorMessage` that names the setup file
 - [ ] Docs updated
+
+## Notes
+- 2026-11-23: 0096-141 dropped `dblive.unit_test_run`: `RunAllTestsAsync` only logs `ErrorMessage` now (`UnitTestsRunner.cs:45`). The marker is needed in the log and in `ErrorMessage`.

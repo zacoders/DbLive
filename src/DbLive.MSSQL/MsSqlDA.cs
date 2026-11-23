@@ -46,31 +46,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	[GeneratedRegex(@"\b(?:native_compilation|memory_optimized)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
 	private static partial Regex InMemoryOltpDdlRegex();
 
-	internal const int ErrorColumnLength = 4000;
-	internal const string TruncatedMark = "... [truncated]";
-
-	/// <summary>
-	/// The column <c>error</c> of the dblive tables is <c>nvarchar(4000)</c>: a longer text would fail the write of the row, and that error
-	/// would replace the one being recorded. The text is cut to fit; the full error is in the exception and in the log.
-	/// </summary>
-	internal static string? FitErrorColumn(string? error)
-	{
-		if (error is null || error.Length <= ErrorColumnLength)
-		{
-			return error;
-		}
-
-		int length = ErrorColumnLength - TruncatedMark.Length;
-
-		// do not split a surrogate pair.
-		if (char.IsHighSurrogate(error[length - 1]))
-		{
-			length--;
-		}
-
-		return string.Concat(error.AsSpan(0, length), TruncatedMark);
-	}
-
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
 	/// <summary>
@@ -826,7 +801,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, content_hash = @content_hash
 					, applied_utc = @applied_utc
 					, execution_time_ms = @execution_time_ms
-					, error = @error
 			when not matched then
 				insert (
 					relative_path
@@ -836,7 +810,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, applied_utc
 					, execution_time_ms
 					, created_utc
-					, error
 				)
 				values (
 					@relative_path
@@ -846,7 +819,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, @applied_utc
 					, @execution_time_ms
 					, @created_utc
-					, @error
 				);
 			""",
 			Parameters(new
@@ -857,8 +829,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
-				created_utc = item.CreatedUtc,
-				error = FitErrorColumn(item.ErrorMessage)
+				created_utc = item.CreatedUtc
 			})
 		).ConfigureAwait(false);
 	}
@@ -938,7 +909,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				 , created_utc as CreatedUtc
 				 , execution_time_ms as ExecutionTimeMs
 				 , verified_utc as VerifiedUtc
-				 , error as ErrorMessage
 				 , status
 			from dblive.code
 			"""
@@ -1023,7 +993,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set status = @status
 			  , applied_utc = @applied_utc
 			  , execution_time_ms = @execution_time_ms
-			  , error = @error
 			output inserted.version
 			where version = @version
 			  and item_type = @item_type
@@ -1034,8 +1003,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				status = item.Status.ToString().ToLowerInvariant(),
 				applied_utc = item.AppliedUtc,
-				execution_time_ms = item.ExecutionTimeMs,
-				error = FitErrorColumn(item.ErrorMessage)
+				execution_time_ms = item.ExecutionTimeMs
 			})
 		).ConfigureAwait(false);
 
@@ -1043,49 +1011,6 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			throw new DbLiveMigrationItemMissedSqlException($"Migration item not found. Version: {item.Version}, Type: {item.ItemType}");
 		}
-	}
-
-	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
-	{
-		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(
-			"""			
-			merge into dblive.unit_test_run as t
-			using ( select 1 ) s(c) on t.relative_path = @relative_path
-			when matched then update 
-				set content_hash = @content_hash
-				  , run_utc = @run_utc
-				  , execution_time_ms = @execution_time_ms
-				  , pass = @pass
-				  , error = @error
-			when not matched then 
-				insert (
-					relative_path
-				  , content_hash
-				  , run_utc
-				  , execution_time_ms
-				  , pass
-				  , error
-				)
-				values (
-					@relative_path
-				  , @content_hash
-				  , @run_utc
-				  , @execution_time_ms
-				  , @pass
-				  , @error
-				);
-			""",
-			Parameters(new
-			{
-				relative_path = item.RelativePath.ToStoredPath(),
-				content_hash = item.ContentHash,
-				run_utc = item.StartedUtc,
-				execution_time_ms = item.ExecutionTimeMs,
-				pass = item.IsSuccess,
-				error = FitErrorColumn(item.ErrorMessage)
-			})
-		).ConfigureAwait(false);
 	}
 
 	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()

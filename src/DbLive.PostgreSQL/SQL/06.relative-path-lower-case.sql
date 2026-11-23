@@ -19,20 +19,6 @@ update dblive.code
 set relative_path = lower(relative_path)
 where relative_path <> lower(relative_path);
 
-delete from dblive.unit_test_run
-where ctid in (
-    select ctid
-    from (
-        select ctid, row_number() over (partition by lower(relative_path) order by run_utc desc) as rn
-        from dblive.unit_test_run
-    ) r
-    where rn > 1
-);
-
-update dblive.unit_test_run
-set relative_path = lower(relative_path)
-where relative_path <> lower(relative_path);
-
 delete from dblive.folder_items
 where ctid in (
     select ctid

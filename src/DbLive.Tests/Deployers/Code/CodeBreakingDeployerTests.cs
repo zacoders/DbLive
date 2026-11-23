@@ -42,7 +42,6 @@ public class CodeBreakingDeployerTests
 			&& d.AppliedUtc == appliedUtc
 			&& d.ExecutionTimeMs == 15
 			&& d.VerifiedUtc == null
-			&& d.ErrorMessage == ""
 		));
 
 		// each script is its own command; no transaction of its own.
@@ -67,7 +66,7 @@ public class CodeBreakingDeployerTests
 	}
 
 	[Fact]
-	public async Task Failed_script_is_recorded_with_its_error_and_stops_the_deployment()
+	public async Task Failed_script_writes_no_row_logs_its_sql_error_and_stops_the_deployment()
 	{
 		MockSet mockSet = new();
 
@@ -79,29 +78,35 @@ public class CodeBreakingDeployerTests
 			]
 		};
 
+		DbLiveSqlException scriptError = new(
+			"Cannot drop the procedure 'dbo.a_v1'.",
+			"SQL Server error:\nMsg 3701, Level 11, State 5, Line 1\nCannot drop the procedure 'dbo.a_v1'.\n",
+			null
+		);
 		mockSet.DbLiveDA
 			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
-			.Returns(Task.FromException(new DbLiveSqlException("Cannot drop the procedure 'dbo.a_v1'.")));
+			.Returns(Task.FromException(scriptError));
 
 		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
 
 		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
 
-		Assert.Contains("Code/a.breaking.sql", ex.Message);
-		_ = Assert.IsType<DbLiveSqlException>(ex.InnerException);
+		// SqlError is a property of the inner exception: without it in the message, the log would have the message of the server only.
+		Assert.Equal(
+			$"Deploy code breaking script error. File path: Code/a.breaking.sql{Environment.NewLine}"
+			+ "SQL Server error:\nMsg 3701, Level 11, State 5, Line 1\nCannot drop the procedure 'dbo.a_v1'.",
+			ex.Message
+		);
+		Assert.Same(scriptError, ex.InnerException);
+		mockSet.Logger.Received(1).Error(ex, "Deploy code breaking script error. File path: {FilePath}", "Code/a.breaking.sql");
 
-		await mockSet.DbLiveDA.Received(1).SaveCodeItemAsync(Arg.Is<CodeItemDto>(d =>
-			d.RelativePath == "Code/a.breaking.sql"
-			&& d.ItemType == CodeItemType.Breaking
-			&& d.Status == CodeItemStatus.Error
-			&& d.ErrorMessage == "Cannot drop the procedure 'dbo.a_v1'."
-		));
-
+		// the row of the script stays its last success.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 		await mockSet.DbLiveDA.DidNotReceive().ExecuteNonQueryAsync("drop proc if exists dbo.b_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
 	}
 
 	[Fact]
-	public async Task Failed_script_in_a_transaction_fails_with_its_own_error_and_saves_no_error_row()
+	public async Task Failed_script_in_a_transaction_fails_with_its_own_error()
 	{
 		MockSet mockSet = new();
 
@@ -120,36 +125,12 @@ public class CodeBreakingDeployerTests
 			ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
 		}
 
-		Assert.Equal("Deploy code breaking script error. File path: Code/a.breaking.sql", ex.Message);
+		Assert.Equal(
+			$"Deploy code breaking script error. File path: Code/a.breaking.sql{Environment.NewLine}Cannot drop the procedure 'dbo.a_v1'.",
+			ex.Message
+		);
 		Assert.Same(scriptError, ex.InnerException);
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
-	}
-
-	[Fact]
-	public async Task Failed_script_keeps_its_error_when_the_error_row_cannot_be_saved()
-	{
-		// the server is unreachable, for one: the deployment fails with the error of the script, with its path.
-		MockSet mockSet = new();
-
-		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc dbo.a_v1")] };
-
-		DbLiveSqlException scriptError = new("Cannot drop the procedure 'dbo.a_v1'.");
-		mockSet.DbLiveDA
-			.ExecuteNonQueryAsync("drop proc dbo.a_v1", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
-			.Returns(Task.FromException(scriptError));
-
-		DbLiveSqlException saveError = new("A network-related or instance-specific error occurred while establishing a connection to SQL Server.");
-		mockSet.DbLiveDA
-			.SaveCodeItemAsync(Arg.Any<CodeItemDto>())
-			.Returns(Task.FromException(saveError));
-
-		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
-
-		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
-
-		Assert.Equal("Deploy code breaking script error. File path: Code/a.breaking.sql", ex.Message);
-		Assert.Same(scriptError, ex.InnerException);
-		mockSet.Logger.Received().Warning(saveError, "The error row of {FilePath} is not saved.", "Code/a.breaking.sql");
 	}
 
 	[Fact]

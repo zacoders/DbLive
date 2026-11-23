@@ -174,8 +174,6 @@ internal interface IDbLiveDA
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
 	Task UpdateMigrationStateAsync(MigrationItemStateDto item);
 
-	Task SaveUnitTestResultAsync(UnitTestItemDto item);
-
 	Task MarkItemAsAppliedAsync(
 		ProjectFolder projectFolder,
 		string relativePath,

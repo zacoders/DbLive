@@ -147,7 +147,8 @@ public class CodeDeployerTests
 			GetCodeRow(changed, CodeItemStatus.Applied, changed.FileData.ContentHash + 123),
 			// the file was deleted by a release, and a later release brought it back (git revert) with the same content.
 			GetCodeRow(removed, CodeItemStatus.Removed, removed.FileData.ContentHash),
-			GetCodeRow(failed, CodeItemStatus.Error, failed.FileData.ContentHash)
+			// Failed.sql failed after a success: a failure writes no row, so its row is the success of its previous content.
+			GetCodeRow(failed, CodeItemStatus.Applied, failed.FileData.ContentHash + 1)
 		]);
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
@@ -537,7 +538,11 @@ public class CodeDeployerTests
 		}
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: /some_path/GetUser.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.Equal(
+			"Deploy code file error. File path: /some_path/GetUser.sql. The error ended the deployment transaction, so the file is not retried."
+			+ Environment.NewLine + "A severe error occurred on the current command.",
+			codeEx.Message
+		);
 		Assert.Same(scriptError, codeEx.InnerException);
 	}
 

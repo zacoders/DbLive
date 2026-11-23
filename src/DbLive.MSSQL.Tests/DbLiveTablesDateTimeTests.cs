@@ -63,15 +63,6 @@ public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture fixture, ITes
 		await da.MarkCodeAsVerifiedAsync(["Code/a.sql"], utc);
 		_ = await da.MarkMissingCodeAsRemovedAsync(["Code/a.sql"], utc);
 
-		await da.SaveUnitTestResultAsync(new UnitTestItemDto
-		{
-			RelativePath = "Tests/t.sql",
-			ContentHash = 1,
-			StartedUtc = utc,
-			ExecutionTimeMs = 1,
-			IsSuccess = true
-		});
-
 		await da.MarkItemAsAppliedAsync(ProjectFolder.AfterDeploy, "AfterDeploy/a.sql", utc, utc, 1, 1);
 
 		List<SqlResult> results = await da.QuerySqlAsync("""
@@ -81,7 +72,6 @@ public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture fixture, ITes
 			union all select concat('code.applied_utc ', relative_path), applied_utc from dblive.code
 			union all select concat('code.created_utc ', relative_path), created_utc from dblive.code
 			union all select concat('code.verified_utc ', relative_path), verified_utc from dblive.code
-			union all select 'unit_test_run.run_utc', run_utc from dblive.unit_test_run
 			union all select 'folder_items.started_utc', started_utc from dblive.folder_items
 			union all select 'folder_items.completed_utc', completed_utc from dblive.folder_items
 			order by 1
@@ -100,7 +90,6 @@ public class DbLiveTablesDateTimeTests(SqlServerIntegrationFixture fixture, ITes
 				$"folder_items.started_utc {Stamp}",
 				$"migration.applied_utc {Stamp}",
 				$"migration.created_utc {Stamp}",
-				$"unit_test_run.run_utc {Stamp}",
 				$"version.applied_utc {Stamp}"
 			],
 			results.Single().Rows.Select(r => $"{r[0]} {(DateTime)r[1]:yyyy-MM-dd HH:mm:ss.fffffff}")

@@ -1,9 +1,11 @@
 ﻿namespace DbLive;
 
 /// <summary>
-/// A file of the Code folder failed; the message names it. Thrown for a breaking script of the Code folder, after which the breaking
-/// scripts that follow do not run; a code file's is an inner exception of <see cref="CodeDeploymentAggregateException"/>.
-/// The inner exception is the error of the file, usually a <see cref="DbLiveSqlException"/>.
+/// A file of the Code folder failed. The message names it on its first line and holds the error of the file on the next lines: the
+/// <see cref="DbLiveSqlException.SqlError"/> of the server, or the message of an error that does not come from the server. Thrown for a
+/// breaking script of the Code folder, after which the breaking scripts that follow do not run; a code file's is an inner exception of
+/// <see cref="CodeDeploymentAggregateException"/>. The inner exception is the error of the file, usually a <see cref="DbLiveSqlException"/>.
+/// No row of the file is written to the <c>dblive</c> tables: the row keeps the last success.
 /// </summary>
 [ExcludeFromCodeCoverage]
 public sealed class CodeDeploymentException : Exception

@@ -190,10 +190,9 @@ public class CodeBreakingTests(SqlServerIntegrationFixture fixture, ITestOutputH
 	}
 
 	[Theory]
-	[InlineData("Migration", "code/dbo/getuser.breaking.sql:breaking:error")]
-	// in a deployment transaction no error row is written, and the deployment is rolled back.
-	[InlineData("Deployment", null)]
-	public async Task Failed_code_breaking_script_fails_with_its_own_error(string transactionWrapLevel, string? breakingRow)
+	[InlineData("Migration")]
+	[InlineData("Deployment")]
+	public async Task Failed_code_breaking_script_fails_with_its_own_error_and_writes_no_row(string transactionWrapLevel)
 	{
 		using TempProject project = new TempProject()
 			.AddFile("settings.json", $$"""{ "TransactionWrapLevel": "{{transactionWrapLevel}}" }""")
@@ -210,13 +209,21 @@ public class CodeBreakingTests(SqlServerIntegrationFixture fixture, ITestOutputH
 			() => builder.CreateDeployer().DeployAsync(DeployParameters.Breaking)
 		);
 
-		Assert.Equal("Deploy code breaking script error. File path: Code/dbo/GetUser.breaking.sql", ex.Message);
+		// the details of the server, which only SqlError of the inner exception has, are in the message and so in the log.
+		string message = ex.Message.ReplaceLineEndings();
+		Assert.StartsWith(
+			"""
+			Deploy code breaking script error. File path: Code/dbo/GetUser.breaking.sql
+			SQL Server error:
+			The batch starts at line 1 of the file.
+			Msg 3701, Level 11,
+			""".ReplaceLineEndings(),
+			message
+		);
+		Assert.Contains("Cannot drop the procedure 'dbo.GetUser_v1'", message);
 		Assert.Contains("Cannot drop the procedure 'dbo.GetUser_v1'", Assert.IsType<DbLiveSqlException>(ex.InnerException).Message);
 
-		Assert.Equal(
-			[.. new[] { breakingRow, "code/dbo/getuser.sql:code:applied" }.OfType<string>()],
-			await CodeRowsAsync(da)
-		);
+		Assert.Equal(["code/dbo/getuser.sql:code:applied"], await CodeRowsAsync(da));
 	}
 
 	[Fact]

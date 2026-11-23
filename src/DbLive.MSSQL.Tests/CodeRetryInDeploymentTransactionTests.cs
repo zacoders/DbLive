@@ -44,7 +44,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture f
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
 		Assert.Equal(error, Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
 		// nothing is committed: neither the migration before the error nor the file after it.
@@ -68,7 +68,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture f
 		);
 
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
 		// the message goes on with "Process ID <n> has raised user error 50000, severity 20. SQL Server is terminating this process."
 		Assert.StartsWith("boom", Assert.IsType<DbLiveSqlException>(codeEx.InnerException).Message);
 
@@ -93,7 +93,7 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture f
 		// the error of the file where the time ran out is inside.
 		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
 		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.Equal("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried.", codeEx.Message);
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
 		// the script is not interrupted: the check of its transaction after it cannot run on the connection of the transaction that timed out.
 		DbLiveSqlException sqlEx = Assert.IsType<DbLiveSqlException>(codeEx.InnerException);
 		Assert.StartsWith("The transaction associated with the current connection has completed but has not been disposed.", sqlEx.Message);

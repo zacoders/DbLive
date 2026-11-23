@@ -15,5 +15,4 @@ internal class CodeItemDto
 	public DateTime CreatedUtc { get; set; }
 	public DateTime? VerifiedUtc { get; set; }
 	public int ExecutionTimeMs { get; set; }
-	public string? ErrorMessage { get; set; }
 }
