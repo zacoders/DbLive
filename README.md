@@ -163,7 +163,7 @@ Naming examples:
 
 - Migrations: `001.migration.sql`, `002.migration.sql`, `002.breaking.sql`
 - Code: `GetUser.sql`, `GetUser.test.sql`
-- Tests: every `.sql` file in `Tests`; in `Code`, files matching `*.test.sql` or `t.*.sql` (patterns configurable)
+- Tests: every `.sql` file in `Tests`; in `Code`, files matching `test.*.sql`, `t.*.sql`, `*.test.sql` or `*.t.sql` (patterns configurable): such a file is a test and is not deployed as code
 
 ---
 
