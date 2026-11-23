@@ -43,6 +43,21 @@ public class InvalidProjectTests(SqlServerIntegrationFixture fixture, ITestOutpu
 		Assert.False(await DbExistsAsync());
 	}
 
+	[Fact]
+	public async Task Path_longer_than_the_dblive_tables_store_fails_the_deployment_before_the_database_is_created()
+	{
+		// dblive.code stores at most 450 characters of a path (RelativePathLengthTests).
+		using TempProject project = new TempProject()
+			.AddFile(ScriptPaths.OfLength("Code", "p1.sql", 451), "create or alter procedure dbo.p1 as select 1;");
+
+		ScriptPathTooLongException ex = await Assert.ThrowsAsync<ScriptPathTooLongException>(
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true })
+		);
+
+		Assert.Equal(451, ex.RelativePath.Length);
+		Assert.False(await DbExistsAsync());
+	}
+
 	private static TempProject CreateProjectWithUndoScript() => new TempProject()
 		.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );")
 		// left in the project after the upgrade to DbLive 2.0, which has no undo scripts.

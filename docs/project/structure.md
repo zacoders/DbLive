@@ -44,6 +44,8 @@ Files with other extensions (`.txt`, `.md`) inside these folders are ignored, so
 
 Two files whose paths differ only by case, such as `Code/dbo/GetUser.sql` and `Code/dbo/getuser.sql`, stop the deployment with `ScriptPathsDifferOnlyByCaseException` before any of your scripts runs, whatever their folder or extension. Such files can exist only on a case-sensitive file system (Linux), and DbLive identifies files ignoring case, so they would be one item. Rename or delete one of them.
 
+On SQL Server, the path of a code file or of a breaking script under `Code`, relative to `Scripts`, can have at most 450 characters, and the path of a `BeforeDeploy` or `AfterDeploy` script at most 444: DbLive keeps the path as a key in its tables, and SQL Server limits a key to 900 bytes. A longer path, possible on Linux or on Windows with long paths enabled, stops the deployment with `ScriptPathTooLongException` before any of your scripts runs. Shorten the folder or file names. PostgreSQL does not limit the paths this way.
+
 !!! warning "Ship applied migrations with every build"
     Once a database has applied migrations, every build you deploy to it must contain them. If they are missing, for example because a migration file was deleted or the deployer was built from an older commit, the deployment fails with `DatabaseAheadOfProjectException` before it changes anything. DbLive does not roll back a database: see [Roll back a release](../deployment/migrations.md#roll-back-a-release).
 

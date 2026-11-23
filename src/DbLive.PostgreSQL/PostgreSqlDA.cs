@@ -33,6 +33,12 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// a file is one command, which runs as one implicit transaction whatever DbLive does.
 	public bool RunsCodeItemWithoutTransaction(string sqlStatement) => false;
 
+	// the path is text, and a b-tree index entry holds about 2700 bytes after compression: how long a path fits depends on its
+	// characters and on how well it compresses, so no length is checked. A path that long is far beyond any real project.
+	public int? MaxCodePathLength => null;
+
+	public int? MaxFolderItemPathLength => null;
+
 	// not a name a user script would take: a script that sets a savepoint of the same name would hide this one.
 	// One name for all files: code in the deployment transaction runs on one thread, and each file releases or rolls back its savepoint.
 	private const string CodeItemSavepoint = "dblive_code_item";

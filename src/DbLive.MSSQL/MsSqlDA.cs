@@ -46,6 +46,15 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	[GeneratedRegex(@"\b(?:native_compilation|memory_optimized)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
 	private static partial Regex InMemoryOltpDdlRegex();
 
+	// the relative path is the clustered primary key of dblive.code, and of dblive.folder_items after folder_type, and a clustered
+	// index key holds at most 900 bytes: two per character of nvarchar, one per character of folder_type (varchar, the name of
+	// ProjectFolder, BeforeDeploy at the longest). A longer path fails with Msg 1946 after its file ran.
+	private const int MaxClusteredKeyBytes = 900;
+
+	public int? MaxCodePathLength => MaxClusteredKeyBytes / 2;
+
+	public int? MaxFolderItemPathLength => (MaxClusteredKeyBytes - Enum.GetNames<ProjectFolder>().Max(name => name.Length)) / 2;
+
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
 	/// <summary>
@@ -852,7 +861,8 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// <c>dblive.code.relative_path</c> would fail with a collation conflict.</item>
 	/// <item>The index is not unique: paths that differ only by accent or width are different files for DbLive and equal
 	/// for an accent- or width-insensitive collation.</item>
-	/// <item><c>nvarchar(450)</c>: a clustered key holds at most 900 bytes, so <c>dblive.code</c> never stores a longer path.</item>
+	/// <item><c>nvarchar(450)</c>: a clustered key holds at most 900 bytes, so <c>dblive.code</c> never stores a longer path
+	/// (<see cref="MaxCodePathLength"/>).</item>
 	/// </list>
 	/// </summary>
 	private const string PathsTableSql = """

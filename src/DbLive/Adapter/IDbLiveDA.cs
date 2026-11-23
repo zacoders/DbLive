@@ -106,6 +106,19 @@ internal interface IDbLiveDA
 	/// </summary>
 	bool RunsCodeItemWithoutTransaction(string sqlStatement);
 
+	/// <summary>
+	/// The longest relative path, in UTF-16 characters, of a code file or a breaking script of the Code folder that
+	/// <see cref="SaveCodeItemAsync"/> stores; null when the provider has no fixed limit. The project load rejects a longer path
+	/// (<see cref="ProjectLoader"/>), so the file does not run and then fail to be recorded. Without a connection.
+	/// </summary>
+	int? MaxCodePathLength { get; }
+
+	/// <summary>
+	/// The longest relative path, in UTF-16 characters, of a BeforeDeploy or AfterDeploy file that <see cref="MarkItemAsAppliedAsync"/>
+	/// stores; null when the provider has no fixed limit. As <see cref="MaxCodePathLength"/>.
+	/// </summary>
+	int? MaxFolderItemPathLength { get; }
+
 	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
 	Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync();

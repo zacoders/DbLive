@@ -50,7 +50,8 @@ public class ProjectLoaderTests
 		ProjectLoader loader = new(
 			mockSet.CreateUsingMocks<DbLiveProject>(),
 			mockSet.SettingsAccessor,
-			new TransactionSettingsValidator(mockSet.DbLiveDA, mockSet.Logger)
+			new TransactionSettingsValidator(mockSet.DbLiveDA, mockSet.Logger),
+			mockSet.DbLiveDA
 		);
 
 		NotSupportedTransactionIsolationLevelException ex = await Assert.ThrowsAsync<NotSupportedTransactionIsolationLevelException>(loader.LoadAsync);
@@ -178,11 +179,70 @@ public class ProjectLoaderTests
 		DbLiveProject dbLiveProject = new(scriptSource, settingsAccessor, mockSet.MigrationVersionValidator, mockSet.Logger);
 
 		// the deployment does not read the tests.
-		_ = await new ProjectLoader(dbLiveProject, settingsAccessor, mockSet.TransactionSettingsValidator).LoadAsync();
+		_ = await new ProjectLoader(dbLiveProject, settingsAccessor, mockSet.TransactionSettingsValidator, mockSet.DbLiveDA).LoadAsync();
 
 		FileNotUtf8Exception ex = await Assert.ThrowsAsync<FileNotUtf8Exception>(dbLiveProject.GetTestsAsync);
 
 		Assert.Equal(relativePath, ex.RelativePath);
+	}
+
+	private const int MaxCodePathLength = 40;
+	private const int MaxFolderItemPathLength = 30;
+
+	[Fact]
+	public async Task Paths_as_long_as_the_provider_stores_load()
+	{
+		MockSet mockSet = CreateMockSetWithMaxPathLengths();
+		mockSet.ScriptSource.AddFiles(
+			ScriptPaths.OfLength("Code", "GetUser.sql", MaxCodePathLength),
+			ScriptPaths.OfLength("Code", "GetUser.breaking.sql", MaxCodePathLength),
+			ScriptPaths.OfLength("BeforeDeploy", "before.sql", MaxFolderItemPathLength),
+			ScriptPaths.OfLength("AfterDeploy", "after.sql", MaxFolderItemPathLength),
+			// not a key of the dblive tables: a migration is a row of its version, and the tests write nothing.
+			ScriptPaths.OfLength("Migrations", "001.migration.sql", 300),
+			ScriptPaths.OfLength("Code", "GetUser.test.sql", 300),
+			ScriptPaths.OfLength("Tests", "t1.sql", 300)
+		);
+
+		_ = await CreateLoaderOfScriptSource(mockSet).LoadAsync();
+	}
+
+	[Theory]
+	[InlineData("Code", "GetUser.sql", MaxCodePathLength)]
+	[InlineData("Code", "GetUser.breaking.sql", MaxCodePathLength)]
+	[InlineData("BeforeDeploy", "before.sql", MaxFolderItemPathLength)]
+	[InlineData("AfterDeploy", "after.sql", MaxFolderItemPathLength)]
+	public async Task Path_longer_than_the_provider_stores_fails_the_load(string folder, string fileName, int maxLength)
+	{
+		MockSet mockSet = CreateMockSetWithMaxPathLengths();
+		string relativePath = ScriptPaths.OfLength(folder, fileName, maxLength + 1);
+		mockSet.ScriptSource.AddFiles(relativePath);
+
+		ScriptPathTooLongException ex = await Assert.ThrowsAsync<ScriptPathTooLongException>(CreateLoaderOfScriptSource(mockSet).LoadAsync);
+
+		Assert.Equal(relativePath, ex.RelativePath);
+		Assert.Contains($"has {maxLength + 1} characters, and the database stores at most {maxLength} for", ex.Message);
+	}
+
+	[Fact]
+	public async Task Provider_without_a_path_limit_loads_any_path()
+	{
+		// PostgreSQL.
+		MockSet mockSet = new();
+		mockSet.ScriptSource.AddFiles(
+			ScriptPaths.OfLength("Code", "GetUser.sql", 1000),
+			ScriptPaths.OfLength("BeforeDeploy", "before.sql", 1000)
+		);
+
+		_ = await CreateLoaderOfScriptSource(mockSet).LoadAsync();
+	}
+
+	private static MockSet CreateMockSetWithMaxPathLengths()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.MaxCodePathLength.Returns(MaxCodePathLength);
+		mockSet.DbLiveDA.MaxFolderItemPathLength.Returns(MaxFolderItemPathLength);
+		return mockSet;
 	}
 
 	private const string NonAsciiText = "Résumé reçu";
@@ -223,7 +283,8 @@ public class ProjectLoaderTests
 		return new(
 			new DbLiveProject(scriptSource, settingsAccessor, mockSet.MigrationVersionValidator, mockSet.Logger),
 			settingsAccessor,
-			mockSet.TransactionSettingsValidator
+			mockSet.TransactionSettingsValidator,
+			mockSet.DbLiveDA
 		);
 	}
 
@@ -231,5 +292,5 @@ public class ProjectLoaderTests
 	/// The loader of the files of <see cref="MockSet.ScriptSource"/>, through the real <see cref="DbLiveProject"/>.
 	/// </summary>
 	private static ProjectLoader CreateLoaderOfScriptSource(MockSet mockSet) =>
-		new(mockSet.CreateUsingMocks<DbLiveProject>(), mockSet.SettingsAccessor, mockSet.TransactionSettingsValidator);
+		new(mockSet.CreateUsingMocks<DbLiveProject>(), mockSet.SettingsAccessor, mockSet.TransactionSettingsValidator, mockSet.DbLiveDA);
 }

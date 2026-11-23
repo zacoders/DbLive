@@ -72,6 +72,8 @@ DbLive.ObsoleteMigrationSettingsFileException.FileName.get -> string!
 DbLive.ProjectIdMismatchException
 DbLive.ScriptPathsDifferOnlyByCaseException
 DbLive.ScriptPathsDifferOnlyByCaseException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DbLive.ScriptPathTooLongException
+DbLive.ScriptPathTooLongException.RelativePath.get -> string!
 DbLive.ScriptsNotEmbeddedException
 DbLive.ScriptsNotEmbeddedException.AssemblyName.get -> string!
 DbLive.Testing.DatabaseNotDeployedException
