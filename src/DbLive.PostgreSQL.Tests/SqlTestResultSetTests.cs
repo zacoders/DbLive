@@ -101,8 +101,8 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 			Columns: v: double precision
 			[Row 1]>
 			Expected values: 1
-			""",
-			nanAgainstNumber.ErrorMessage?.ReplaceLineEndings("\n")
+			""".ReplaceLineEndings(),
+			nanAgainstNumber.ErrorMessage?.ReplaceLineEndings()
 		);
 	}
 }
