@@ -66,7 +66,7 @@ Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymen
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `TransactionWrapLevel` | `Migration` | `Migration`: each migration and breaking script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
-| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a code file in its own transaction and of a command without a transaction (a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. |
+| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a code file in its own transaction and of a command without a transaction (a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction, so `Snapshot` here fails every migration in a transaction that alters a table or an index: set it in the [item settings](#item-settings) of a data migration instead. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
 ### Parallelism
@@ -120,7 +120,7 @@ A settings file applies to its own script only. It follows the same format rules
 | Key | Values | Effect |
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
-| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. `Snapshot` is SQL Server only: on PostgreSQL the deployment fails before anything runs. |
+| `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. `Snapshot` is SQL Server only: on PostgreSQL the deployment fails before anything runs. It fits a script that reads and changes data: SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction (Msg 3964). |
 | `Timeout` | time span | Timeout of the script (all its `GO` batches together, see [Timeouts](#timeouts)) and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.
