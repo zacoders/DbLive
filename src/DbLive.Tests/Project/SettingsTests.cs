@@ -82,6 +82,16 @@ public class SettingsTests
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "Nope" }""", "$.TransactionWrapLevel")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "None", }""", "trailing comma")]
 	[InlineData("Settings.JSON", """{ "TransactionWrapLevel": """, "LineNumber")]
+	// System.Text.Json takes null for a string or a list, and for an item of a list: DbLive checks the values itself.
+	[InlineData("settings.json", """{ "MigrationsFolder": null }""", "'MigrationsFolder'")]
+	[InlineData("settings.json", """{ "CodeFolder": null }""", "'CodeFolder'")]
+	[InlineData("settings.json", """{ "TestsFolder": null }""", "'TestsFolder'")]
+	[InlineData("settings.json", """{ "BeforeDeployFolder": null }""", "'BeforeDeployFolder'")]
+	[InlineData("settings.json", """{ "AfterDeployFolder": null }""", "'AfterDeployFolder'")]
+	[InlineData("settings.json", """{ "TestFilePatterns": null }""", "'TestFilePatterns'")]
+	[InlineData("settings.json", """{ "TestFilePatterns": [ "*.test.sql", null ] }""", "$.TestFilePatterns[1]")]
+	[InlineData("settings.json", """{ "CodeSubFoldersDeploymentOrder": null }""", "'CodeSubFoldersDeploymentOrder'")]
+	[InlineData("settings.json", """{ "CodeSubFoldersDeploymentOrder": [ null ] }""", "$.CodeSubFoldersDeploymentOrder[0]")]
 	public async Task LoadSettings_InvalidFile_ErrorNamesFile(string fileName, string json, string expectedDetail)
 	{
 		MockSet mockSet = new();
