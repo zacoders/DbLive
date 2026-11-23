@@ -44,6 +44,22 @@ public class InvalidProjectTests(PostgreSqlFixture fixture, ITestOutputHelper ou
 		Assert.False(await DbExistsAsync());
 	}
 
+	[Fact]
+	public async Task Project_id_longer_than_128_characters_fails_the_deployment_before_the_database_is_created()
+	{
+		// dblive.version.project_id is varchar(128).
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", $$"""{ "ProjectId": "{{new string('a', 129)}}" }""")
+			.AddFile("Migrations/001.migration.sql", "create table t1 (id int not null);");
+
+		InvalidProjectSettingsException ex = await Assert.ThrowsAsync<InvalidProjectSettingsException>(
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true })
+		);
+
+		Assert.Contains("$.ProjectId", ex.Message);
+		Assert.False(await DbExistsAsync());
+	}
+
 	private static TempProject CreateProjectWithUndoScript() => new TempProject()
 		.AddFile("Migrations/001.migration.sql", "create table t1 (id int not null);")
 		// left in the project after the upgrade to DbLive 2.0, which has no undo scripts.

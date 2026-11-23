@@ -8,8 +8,6 @@ internal class ProjectIdValidator(
 	IDbLiveDA da
 ) : IProjectIdValidator
 {
-	public const int MaxProjectIdLength = 128;
-
 	private const string DeploymentBlocked = "Deployment blocked to prevent deploying to the wrong database.";
 	private const string TestsBlocked = "Tests blocked to prevent running them against the wrong database.";
 
@@ -85,24 +83,13 @@ internal class ProjectIdValidator(
 		ThrowIfMismatch(settingsProjectId, dbProjectId, TestsBlocked);
 	}
 
-	/// <returns>The ProjectId of settings.json, null when it is not set.</returns>
+	/// <returns>The ProjectId of settings.json, null when it is not set. The read of settings.json checks its length.</returns>
 	private async Task<string?> GetSettingsProjectIdAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 		string? settingsProjectId = projectSettings.ProjectId;
 
-		if (string.IsNullOrWhiteSpace(settingsProjectId))
-		{
-			return null;
-		}
-
-		if (settingsProjectId.Length > MaxProjectIdLength)
-		{
-			throw new ProjectIdMismatchException(
-				$"ProjectId exceeds maximum length of {MaxProjectIdLength} characters.");
-		}
-
-		return settingsProjectId;
+		return string.IsNullOrWhiteSpace(settingsProjectId) ? null : settingsProjectId;
 	}
 
 	private void ThrowIfMismatch(string settingsProjectId, string dbProjectId, string blocked)

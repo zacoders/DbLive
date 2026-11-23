@@ -29,6 +29,7 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 - Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"01:00:00"` or `"1.00:00:00"`. **A plain number is days, not seconds**: `"60"` is 60 days, without an error, so write 30 seconds as `"00:00:30"`. Likewise `"02:00"` is 2 hours. A number without quotes (`60`) is an error.
 - A list replaces the default list; it is not merged with it. An empty list is `[]`.
 - **`null` is an error**, for a key (except `ProjectId`, where it means no ID) and for an item of a list. Leave a key out to keep its default.
+- `ProjectId` has at most 128 characters; a longer one is an error.
 
 An error in the file fails the deployment before anything runs, with `InvalidProjectSettingsException`. The message names the file and gives the error, with the key or the position:
 

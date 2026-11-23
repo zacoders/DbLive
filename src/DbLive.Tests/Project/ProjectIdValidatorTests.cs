@@ -38,26 +38,6 @@ public class ProjectIdValidatorTests
 	}
 
 	[Fact]
-	public async Task ValidateAsync_throws_when_project_id_exceeds_max_length()
-	{
-		MockSet mockSet = new();
-		string longProjectId = new('a', ProjectIdValidator.MaxProjectIdLength + 1);
-		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
-		{
-			ProjectId = longProjectId
-		});
-
-		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
-
-		ProjectIdMismatchException ex = await Assert.ThrowsAsync<ProjectIdMismatchException>(
-			validator.ValidateAsync
-		);
-
-		Assert.Contains("128", ex.Message);
-		_ = mockSet.DbLiveDA.DidNotReceive().GetProjectIdAsync();
-	}
-
-	[Fact]
 	public async Task ValidateAsync_passes_a_database_without_the_DbLive_tables()
 	{
 		MockSet mockSet = new();

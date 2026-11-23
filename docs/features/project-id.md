@@ -4,7 +4,7 @@
 
 ## Format
 
-- Unicode string, maximum **128** characters (a longer value fails every deployment with `ProjectIdMismatchException`)
+- Unicode string, maximum **128** characters (a longer value is an error in `settings.json`: every deployment and test run fails with `InvalidProjectSettingsException`, and a deployment fails before it creates or changes the database)
 - Case insensitive
 - Example: `"ProjectId": "my-app"`
 

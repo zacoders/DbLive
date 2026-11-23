@@ -109,6 +109,41 @@ public class SettingsTests
 	}
 
 	[Fact]
+	public async Task LoadSettings_ProjectIdOfMaxLength()
+	{
+		MockSet mockSet = new();
+
+		string projectId = new('a', ProjectIdTools.MaxLength);
+		mockSet.ScriptSource.AddFile("settings.json", $$"""{ "ProjectId": "{{projectId}}" }""");
+
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+
+		DbLiveSettings settings = await settingsAccessor.GetProjectSettingsAsync();
+
+		Assert.Equal(projectId, settings.ProjectId);
+	}
+
+	[Fact]
+	public async Task LoadSettings_ProjectIdTooLong_ErrorNamesFile()
+	{
+		MockSet mockSet = new();
+
+		// dblive.version.project_id is nvarchar(128) on SQL Server and varchar(128) on PostgreSQL.
+		mockSet.ScriptSource.AddFile("settings.json", $$"""{ "ProjectId": "{{new string('a', ProjectIdTools.MaxLength + 1)}}" }""");
+
+		SettingsAccessor settingsAccessor = mockSet.CreateUsingMocks<SettingsAccessor>();
+
+		InvalidProjectSettingsException e = await Assert.ThrowsAsync<InvalidProjectSettingsException>(settingsAccessor.GetProjectSettingsAsync);
+
+		Assert.Equal("settings.json", e.RelativePath);
+		Assert.Equal(
+			"Invalid project settings file settings.json: The value of 'ProjectId' cannot be longer than 128 characters. Path: $.ProjectId.",
+			e.Message
+		);
+		Assert.IsAssignableFrom<System.Text.Json.JsonException>(e.InnerException);
+	}
+
+	[Fact]
 	public async Task LoadSettings_FailedRead_ReadAgain()
 	{
 		MockSet mockSet = new();

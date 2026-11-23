@@ -54,6 +54,7 @@ internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 			// an empty file gives the defaults, as an empty item settings file does.
 			DbLiveSettings settings = SettingsTools.GetSettings<DbLiveSettings>(settingsJson);
 			CheckNoNulls(settings);
+			CheckProjectIdLength(settings.ProjectId);
 			return settings;
 		}
 		catch (JsonException e)
@@ -78,6 +79,22 @@ internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 		CheckNotNull(settings.AfterDeployFolder, nameof(DbLiveSettings.AfterDeployFolder));
 		CheckNoNullItems(settings.TestFilePatterns, nameof(DbLiveSettings.TestFilePatterns));
 		CheckNoNullItems(settings.CodeSubFoldersDeploymentOrder, nameof(DbLiveSettings.CodeSubFoldersDeploymentOrder));
+	}
+
+	/// <summary>
+	/// Here and not in the check of the ProjectId, which runs after the database is created: an error of settings.json creates
+	/// no database.
+	/// </summary>
+	/// <exception cref="JsonException"/>
+	private static void CheckProjectIdLength(string? projectId)
+	{
+		if (projectId?.Length > ProjectIdTools.MaxLength)
+		{
+			const string path = $"$.{nameof(DbLiveSettings.ProjectId)}";
+			throw new JsonException(
+				$"The value of '{nameof(DbLiveSettings.ProjectId)}' cannot be longer than {ProjectIdTools.MaxLength} characters. Path: {path}.",
+				path, null, null);
+		}
 	}
 
 	private static void CheckNotNull(object? value, string key)
