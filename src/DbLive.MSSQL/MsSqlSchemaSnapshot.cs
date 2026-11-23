@@ -4,9 +4,19 @@ using System.Text.RegularExpressions;
 namespace DbLive.MSSQL;
 
 /// <summary>
-/// The schema snapshot of SQL Server, read from the <c>sys.*</c> catalog views (SQL Server 2017 or later: <c>string_agg</c>, <c>concat_ws</c>).
+/// The schema snapshot of SQL Server, read from the <c>sys.*</c> catalog views.
 /// Constraints named by the server (<c>is_system_named</c>) are identified by their table and definition, not by their name;
 /// columns are identified by name, not by position.
+/// <para>
+/// SQL Server 2016 or later (<c>sys.masked_columns</c>, <c>generated_always_type</c>, temporal tables), so no <c>string_agg</c>
+/// and no <c>concat_ws</c> (2017):
+/// <list type="bullet">
+/// <item>A list is <c>stuff((select concat(', ', x) ... order by ... for xml path(''), type).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '')</c>:
+/// <c>type</c> and <c>value</c> return <c>&lt;</c> and <c>&amp;</c> in names as they are; no rows give <c>null</c>, as <c>string_agg</c> does.</item>
+/// <item>A definition of optional parts is <c>concat</c> with the space on the optional part: <c>' ' + x</c> is <c>null</c> when
+/// <c>x</c> is, and <c>concat</c> skips it. The text is the one <c>concat_ws(' ', ...)</c> gives.</item>
+/// </list>
+/// </para>
 /// </summary>
 internal static partial class MsSqlSchemaSnapshot
 {
@@ -29,8 +39,8 @@ internal static partial class MsSqlSchemaSnapshot
 			select c.object_id
 			     , c.column_id
 			     , c.name
-			     , concat_ws(' '
-			         , case
+			     , concat(
+			           case
 			               when cc.object_id is not null then concat('as ', cc.definition, iif(cc.is_persisted = 1, ' persisted', ''))
 			               when t.is_user_defined = 1 then concat(schema_name(t.schema_id), '.', t.name)
 			               when t.name in ('varchar', 'char', 'varbinary', 'binary') then concat(t.name, '(', iif(c.max_length = -1, 'max', cast(c.max_length as varchar(10))), ')')
@@ -39,16 +49,16 @@ internal static partial class MsSqlSchemaSnapshot
 			               when t.name in ('datetime2', 'time', 'datetimeoffset') then concat(t.name, '(', c.scale, ')')
 			               else t.name
 			           end
-			         , iif(c.collation_name is not null, concat('collate ', c.collation_name), null)
-			         , iif(ic.object_id is not null, concat('identity(', cast(ic.seed_value as varchar(40)), ', ', cast(ic.increment_value as varchar(40)), ')'), null)
-			         , iif(c.is_rowguidcol = 1, 'rowguidcol', null)
-			         , iif(c.is_sparse = 1, 'sparse', null)
-			         , iif(c.is_filestream = 1, 'filestream', null)
-			         , iif(c.generated_always_type > 0, concat('generated always ', lower(replace(c.generated_always_type_desc collate database_default, '_', ' '))), null)
-			         , iif(c.is_hidden = 1, 'hidden', null)
-			         , iif(mc.object_id is not null, concat('masked with (function = ''', mc.masking_function, ''')'), null)
-			         , iif(c.is_nullable = 1, 'null', 'not null')
-			         , iif(dc.object_id is not null, concat_ws(' ', iif(dc.is_system_named = 0, concat('constraint ', dc.name), null), concat('default ', dc.definition)), null)
+			         , ' ' + iif(c.collation_name is not null, concat('collate ', c.collation_name), null)
+			         , ' ' + iif(ic.object_id is not null, concat('identity(', cast(ic.seed_value as varchar(40)), ', ', cast(ic.increment_value as varchar(40)), ')'), null)
+			         , ' ' + iif(c.is_rowguidcol = 1, 'rowguidcol', null)
+			         , ' ' + iif(c.is_sparse = 1, 'sparse', null)
+			         , ' ' + iif(c.is_filestream = 1, 'filestream', null)
+			         , ' ' + iif(c.generated_always_type > 0, concat('generated always ', lower(replace(c.generated_always_type_desc collate database_default, '_', ' '))), null)
+			         , ' ' + iif(c.is_hidden = 1, 'hidden', null)
+			         , ' ' + iif(mc.object_id is not null, concat('masked with (function = ''', mc.masking_function, ''')'), null)
+			         , ' ' + iif(c.is_nullable = 1, 'null', 'not null')
+			         , ' ' + iif(dc.object_id is not null, concat(iif(dc.is_system_named = 0, concat('constraint ', dc.name, ' '), null), 'default ', dc.definition), null)
 			       ) as definition
 			from sys.columns c
 			join sys.types t on t.user_type_id = c.user_type_id
@@ -65,46 +75,64 @@ internal static partial class MsSqlSchemaSnapshot
 			     , i.is_primary_key
 			     , i.is_unique_constraint
 			     , k.columns as key_columns
-			     , concat_ws(' '
-			         , iif(i.is_unique = 1 and i.is_primary_key = 0 and i.is_unique_constraint = 0, 'unique', null)
+			     , concat(
+			           iif(i.is_unique = 1 and i.is_primary_key = 0 and i.is_unique_constraint = 0, 'unique ', null)
 			         , lower(i.type_desc collate database_default)
-			         , iif(k.columns is not null, concat('(', k.columns, ')'), null)
-			         , iif(inc.columns is not null, concat('include (', inc.columns, ')'), null)
-			         , iif(i.has_filter = 1, concat('where ', i.filter_definition), null)
-			         , iif(i.ignore_dup_key = 1, 'ignore_dup_key', null)
-			         , iif(i.is_disabled = 1, 'disabled', null)
+			         , ' ' + iif(k.columns is not null, concat('(', k.columns, ')'), null)
+			         , ' ' + iif(inc.columns is not null, concat('include (', inc.columns, ')'), null)
+			         , ' ' + iif(i.has_filter = 1, concat('where ', i.filter_definition), null)
+			         , ' ' + iif(i.ignore_dup_key = 1, 'ignore_dup_key', null)
+			         , ' ' + iif(i.is_disabled = 1, 'disabled', null)
 			       ) as definition
 			from sys.indexes i
-			outer apply (
-				select string_agg(concat(c.name, iif(ic.is_descending_key = 1, ' desc', ' asc')), ', ') within group (order by ic.key_ordinal) as columns
-				from sys.index_columns ic
-				join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id
-				where ic.object_id = i.object_id
-				  and ic.index_id = i.index_id
-				  and ic.key_ordinal > 0
+			cross apply (
+				select stuff((
+					select concat(', ', c.name, iif(ic.is_descending_key = 1, ' desc', ' asc'))
+					from sys.index_columns ic
+					join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id
+					where ic.object_id = i.object_id
+					  and ic.index_id = i.index_id
+					  and ic.key_ordinal > 0
+					order by ic.key_ordinal
+					for xml path(''), type
+				).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '') as columns
 			) k
-			outer apply (
+			cross apply (
 				-- included columns, and the columns of a columnstore index; their order does not matter.
-				select string_agg(c.name, ', ') within group (order by c.name) as columns
-				from sys.index_columns ic
-				join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id
-				where ic.object_id = i.object_id
-				  and ic.index_id = i.index_id
-				  and ic.key_ordinal = 0
-				  and (ic.is_included_column = 1 or i.type in (5, 6))
+				select stuff((
+					select concat(', ', c.name)
+					from sys.index_columns ic
+					join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id
+					where ic.object_id = i.object_id
+					  and ic.index_id = i.index_id
+					  and ic.key_ordinal = 0
+					  and (ic.is_included_column = 1 or i.type in (5, 6))
+					order by c.name
+					for xml path(''), type
+				).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '') as columns
 			) inc
 			where i.type > 0
 			  and i.is_hypothetical = 0
 		),
 		fk as (
 			select f.object_id
-			     , string_agg(pc.name, ', ') within group (order by fc.constraint_column_id) as columns
-			     , string_agg(rc.name, ', ') within group (order by fc.constraint_column_id) as referenced_columns
+			     , stuff((
+			           select concat(', ', pc.name)
+			           from sys.foreign_key_columns fc
+			           join sys.columns pc on pc.object_id = fc.parent_object_id and pc.column_id = fc.parent_column_id
+			           where fc.constraint_object_id = f.object_id
+			           order by fc.constraint_column_id
+			           for xml path(''), type
+			       ).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '') as columns
+			     , stuff((
+			           select concat(', ', rc.name)
+			           from sys.foreign_key_columns fc
+			           join sys.columns rc on rc.object_id = fc.referenced_object_id and rc.column_id = fc.referenced_column_id
+			           where fc.constraint_object_id = f.object_id
+			           order by fc.constraint_column_id
+			           for xml path(''), type
+			       ).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '') as referenced_columns
 			from sys.foreign_keys f
-			join sys.foreign_key_columns fc on fc.constraint_object_id = f.object_id
-			join sys.columns pc on pc.object_id = fc.parent_object_id and pc.column_id = fc.parent_column_id
-			join sys.columns rc on rc.object_id = fc.referenced_object_id and rc.column_id = fc.referenced_column_id
-			group by f.object_id
 		)
 
 		select 'Schema' as ObjectType
@@ -120,13 +148,14 @@ internal static partial class MsSqlSchemaSnapshot
 		select 'Table'
 		     , t.full_name
 		     , t.schema_name
-		     , concat_ws(' '
-		         , iif(st.is_memory_optimized = 1, 'memory optimized', null)
-		         , case st.temporal_type
-		               when 1 then 'history table'
-		               when 2 then concat('system versioned, history table ', schema_name(h.schema_id), '.', h.name)
-		           end
-		       )
+		       -- both parts are optional: ltrim removes the space before the second when the first is null.
+		     , ltrim(concat(
+		           iif(st.is_memory_optimized = 1, 'memory optimized', null)
+		         , ' ' + case st.temporal_type
+		                     when 1 then 'history table'
+		                     when 2 then concat('system versioned, history table ', schema_name(h.schema_id), '.', h.name)
+		                 end
+		       ))
 		from obj t
 		join sys.tables st on st.object_id = t.object_id
 		left join sys.tables h on h.object_id = st.history_table_id
@@ -151,7 +180,7 @@ internal static partial class MsSqlSchemaSnapshot
 		           else concat(t.full_name, ' (', i.key_columns, ')')
 		       end
 		     , t.full_name
-		     , concat_ws(' ', iif(i.is_primary_key = 1 and kc.is_system_named = 0, concat('constraint ', kc.name), null), i.definition)
+		     , concat(iif(i.is_primary_key = 1 and kc.is_system_named = 0, concat('constraint ', kc.name, ' '), null), i.definition)
 		from obj t
 		join idx i on i.object_id = t.object_id
 		join sys.key_constraints kc on kc.parent_object_id = i.object_id and kc.unique_index_id = i.index_id
@@ -177,13 +206,13 @@ internal static partial class MsSqlSchemaSnapshot
 		         , concat(t.full_name, '.', f.name)
 		         , concat(t.full_name, ' (', fk.columns, ') references ', schema_name(r.schema_id), '.', r.name))
 		     , t.full_name
-		     , concat_ws(' '
-		         , concat('(', fk.columns, ') references ', schema_name(r.schema_id), '.', r.name, ' (', fk.referenced_columns, ')')
-		         , iif(f.delete_referential_action > 0, concat('on delete ', lower(replace(f.delete_referential_action_desc collate database_default, '_', ' '))), null)
-		         , iif(f.update_referential_action > 0, concat('on update ', lower(replace(f.update_referential_action_desc collate database_default, '_', ' '))), null)
-		         , iif(f.is_not_for_replication = 1, 'not for replication', null)
-		         , iif(f.is_disabled = 1, 'disabled', null)
-		         , iif(f.is_disabled = 0 and f.is_not_trusted = 1, 'not trusted', null)
+		     , concat(
+		           concat('(', fk.columns, ') references ', schema_name(r.schema_id), '.', r.name, ' (', fk.referenced_columns, ')')
+		         , ' ' + iif(f.delete_referential_action > 0, concat('on delete ', lower(replace(f.delete_referential_action_desc collate database_default, '_', ' '))), null)
+		         , ' ' + iif(f.update_referential_action > 0, concat('on update ', lower(replace(f.update_referential_action_desc collate database_default, '_', ' '))), null)
+		         , ' ' + iif(f.is_not_for_replication = 1, 'not for replication', null)
+		         , ' ' + iif(f.is_disabled = 1, 'disabled', null)
+		         , ' ' + iif(f.is_disabled = 0 and f.is_not_trusted = 1, 'not trusted', null)
 		       )
 		from obj t
 		join sys.foreign_keys f on f.parent_object_id = t.object_id
@@ -196,11 +225,11 @@ internal static partial class MsSqlSchemaSnapshot
 		       -- a check constraint named by the server is identified by its expression.
 		     , iif(ck.is_system_named = 0, concat(t.full_name, '.', ck.name), concat(t.full_name, ' check ', ck.definition))
 		     , t.full_name
-		     , concat_ws(' '
-		         , concat('check ', ck.definition)
-		         , iif(ck.is_not_for_replication = 1, 'not for replication', null)
-		         , iif(ck.is_disabled = 1, 'disabled', null)
-		         , iif(ck.is_disabled = 0 and ck.is_not_trusted = 1, 'not trusted', null)
+		     , concat(
+		           concat('check ', ck.definition)
+		         , ' ' + iif(ck.is_not_for_replication = 1, 'not for replication', null)
+		         , ' ' + iif(ck.is_disabled = 1, 'disabled', null)
+		         , ' ' + iif(ck.is_disabled = 0 and ck.is_not_trusted = 1, 'not trusted', null)
 		       )
 		from obj t
 		join sys.check_constraints ck on ck.parent_object_id = t.object_id
@@ -243,17 +272,29 @@ internal static partial class MsSqlSchemaSnapshot
 		     , case
 		           when t.is_table_type = 1 then concat(
 		               'table ('
-		               , (select string_agg(concat(c.name, ' ', c.definition), ', ') within group (order by c.column_id) from col c where c.object_id = tt.type_table_object_id)
-		               , (select string_agg(concat(', ', iif(i.is_primary_key = 1, 'primary key ', iif(i.is_unique_constraint = 1, 'unique ', 'index ')), i.definition), '') within group (order by i.index_id) from idx i where i.object_id = tt.type_table_object_id)
+		               , stuff((
+		                     select concat(', ', c.name, ' ', c.definition)
+		                     from col c
+		                     where c.object_id = tt.type_table_object_id
+		                     order by c.column_id
+		                     for xml path(''), type
+		                 ).value('(./text())[1]', 'nvarchar(max)'), 1, 2, '')
+		               , (
+		                     select concat(', ', iif(i.is_primary_key = 1, 'primary key ', iif(i.is_unique_constraint = 1, 'unique ', 'index ')), i.definition)
+		                     from idx i
+		                     where i.object_id = tt.type_table_object_id
+		                     order by i.index_id
+		                     for xml path(''), type
+		                 ).value('(./text())[1]', 'nvarchar(max)')
 		               , ')')
-		           else concat_ws(' '
-		               , case
+		           else concat(
+		                 case
 		                     when b.name in ('varchar', 'char', 'varbinary', 'binary') then concat(b.name, '(', iif(t.max_length = -1, 'max', cast(t.max_length as varchar(10))), ')')
 		                     when b.name in ('nvarchar', 'nchar') then concat(b.name, '(', iif(t.max_length = -1, 'max', cast(t.max_length / 2 as varchar(10))), ')')
 		                     when b.name in ('decimal', 'numeric') then concat(b.name, '(', t.precision, ', ', t.scale, ')')
 		                     when b.name in ('datetime2', 'time', 'datetimeoffset') then concat(b.name, '(', t.scale, ')')
 		                     else b.name
-		                 end
+		                 end + ' '
 		               , iif(t.is_nullable = 1, 'null', 'not null'))
 		       end
 		from sys.types t
@@ -267,14 +308,14 @@ internal static partial class MsSqlSchemaSnapshot
 		select 'Sequence'
 		     , o.full_name
 		     , o.schema_name
-		     , concat_ws(' '
-		         , type_name(sq.user_type_id)
+		     , concat(
+		           type_name(sq.user_type_id) + ' '
 		         , concat('start with ', cast(sq.start_value as varchar(40)))
-		         , concat('increment by ', cast(sq.increment as varchar(40)))
-		         , concat('minvalue ', cast(sq.minimum_value as varchar(40)))
-		         , concat('maxvalue ', cast(sq.maximum_value as varchar(40)))
-		         , iif(sq.is_cycling = 1, 'cycle', 'no cycle')
-		         , iif(sq.is_cached = 1, concat('cache', ' ' + cast(sq.cache_size as varchar(20))), 'no cache')
+		         , concat(' increment by ', cast(sq.increment as varchar(40)))
+		         , concat(' minvalue ', cast(sq.minimum_value as varchar(40)))
+		         , concat(' maxvalue ', cast(sq.maximum_value as varchar(40)))
+		         , iif(sq.is_cycling = 1, ' cycle', ' no cycle')
+		         , iif(sq.is_cached = 1, concat(' cache', ' ' + cast(sq.cache_size as varchar(20))), ' no cache')
 		       )
 		from obj o
 		join sys.sequences sq on sq.object_id = o.object_id

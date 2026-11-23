@@ -17,6 +17,8 @@ IDbLive deployer = new DbLiveBuilder()
 await deployer.DeployAsync(DeployParameters.Default);
 ```
 
+Requires SQL Server 2016 SP1 or later, Azure SQL Database or Azure SQL Managed Instance.
+
 Scripts may use `GO` batch separators, except SQL test files. DbLive's own SQL scripts (the `dblive` schema) are embedded in `DbLive.MSSQL.dll`; nothing needs to be copied next to your deployer.
 
 For the SQL tests, `MsSqlFixtureBuilder` gives every test fixture (`DbLive.xunit`) a new database on your server; `DbLive.Testcontainers.MSSQL` runs the server in Docker instead.

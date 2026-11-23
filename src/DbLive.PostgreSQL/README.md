@@ -17,6 +17,8 @@ IDbLive deployer = new DbLiveBuilder()
 await deployer.DeployAsync(DeployParameters.Default);
 ```
 
+Requires PostgreSQL 13 or later.
+
 Each script file is sent as one multi-statement command. `Snapshot` isolation is not supported. DbLive's own SQL scripts (the `dblive` schema) are embedded in `DbLive.PostgreSQL.dll`; nothing needs to be copied next to your deployer.
 
 For the SQL tests, `PostgreSqlFixtureBuilder` gives every test fixture (`DbLive.xunit`) a new database on your server; `DbLive.Testcontainers.PostgreSQL` runs the server in Docker instead.

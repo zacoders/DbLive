@@ -22,7 +22,7 @@ Every release has notes in [GitHub Releases](https://github.com/zacoders/DbLive/
 - **The project layout**: the folders, the file naming rules, the `settings.json` keys and the item settings files ([Project structure](project/structure.md), [Configuration](project/configuration.md)).
 - **SQL test semantics**: the `assert` result set and its values, `setup.test.sql`, the transaction a test runs in ([SQL unit testing](unit-testing/index.md)).
 - **The `dblive` schema**, DbLive's own tables in your database. DbLive creates and upgrades it during a deployment, without manual steps; a new version may add columns and tables and convert the stored data. Removing or renaming what you can query is a breaking change. A release after which older DbLive versions can no longer deploy the database says so in its release notes (see [The DbLive version a database requires](deployment/index.md#the-dblive-version-a-database-requires)). It is not a breaking change: the upgrade needs nothing on your side, but the previous build of your database can no longer be deployed after it, so roll back the application and keep the database.
-- **Supported .NET versions and database engines**: dropping one is a breaking change.
+- **Supported .NET versions, database engines and their versions** ([Requirements](index.md#requirements)): dropping one is a breaking change, also by raising the minimum version of an engine.
 
 The template `DbLive.Templates` (`dotnet new dblive`) creates new projects and does not change existing ones, so a change in what it creates (file names, example scripts) is not a breaking change. A removed or renamed option of the template is.
 

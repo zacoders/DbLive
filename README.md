@@ -28,7 +28,7 @@ Destructive changes run only in a separate breaking deployment (`DeployBreaking 
 
 ## Status
 
-Actively developed. Every merge to `main` is published to NuGet (the current version is on the badge above). Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](docs/versioning.md). Targets .NET 8, 9 and 10; supports SQL Server, Azure SQL and PostgreSQL. License: [MIT](LICENSE).
+Actively developed. Every merge to `main` is published to NuGet (the current version is on the badge above). Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](docs/versioning.md). Targets .NET 8, 9 and 10; supports SQL Server 2016 SP1 or later, Azure SQL and PostgreSQL 13 or later. License: [MIT](LICENSE).
 
 ---
 
@@ -335,8 +335,8 @@ The settings of a production deployment (`ProjectId`, database creation, transac
 
 | Engine | Package | Status |
 |--------|---------|--------|
-| Microsoft SQL Server / Azure SQL | `DbLive.MSSQL` | Supported |
-| PostgreSQL | `DbLive.PostgreSQL` | Supported |
+| Microsoft SQL Server / Azure SQL | `DbLive.MSSQL` | Supported: SQL Server 2016 SP1 or later, Azure SQL Database, Azure SQL Managed Instance |
+| PostgreSQL | `DbLive.PostgreSQL` | Supported: PostgreSQL 13 or later |
 | SQLite | — | Planned |
 | MySQL | — | Planned |
 

@@ -58,6 +58,14 @@ await deployer.DeployAsync(DeployParameters.Default);
 | `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker, for the SQL tests |
 | `DbLive.Templates` | `dotnet new dblive`: a new solution with the SQL project, the deployer and the test project |
 
-Target frameworks: .NET 8, 9 and 10. Source code and issues: [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive).
+Source code and issues: [github.com/zacoders/DbLive](https://github.com/zacoders/DbLive).
+
+## Requirements
+
+- .NET 8, 9 or 10.
+- SQL Server 2016 SP1 or later, Azure SQL Database or Azure SQL Managed Instance.
+- PostgreSQL 13 or later.
+
+DbLive reads the ID of the transaction before and after every script that runs in a transaction, to find a script that ended it: with `current_transaction_id()` on SQL Server (2016) and `pg_current_xact_id()` on PostgreSQL (13). Code files use `create or alter`, which came in SQL Server 2016 SP1. On an older server the first deployment fails; PostgreSQL 12 and older with `42883: function pg_current_xact_id() does not exist`. A release that raises a minimum version is a major one ([versioning policy](versioning.md)).
 
 Every merge to `main` is published to NuGet. Breaking changes come only in a major version, with the upgrade steps in the [release notes](https://github.com/zacoders/DbLive/releases); see the [versioning policy](versioning.md). License: [MIT](https://github.com/zacoders/DbLive/blob/main/LICENSE).

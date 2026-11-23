@@ -338,7 +338,7 @@ await builder.CreateTester().RunAllTestsAsync();
     await builder.CreateTester().RunAllTestsAsync();
     ```
 
-A plain `drop database` fails while the database is in use, also by the connections that DbLive leaves in the connection pool: `set single_user with rollback immediate` on SQL Server and `with (force)` on PostgreSQL (13 or later) close them. `ClearPool` then removes the closed connections from the pool of the test database; without it, a second run in the same process fails on PostgreSQL with `57P01: terminating connection due to administrator command`. Do not call `ClearAllPools`: it clears the pools of the other tests in the process too.
+A plain `drop database` fails while the database is in use, also by the connections that DbLive leaves in the connection pool: `set single_user with rollback immediate` on SQL Server and `with (force)` on PostgreSQL close them. `ClearPool` then removes the closed connections from the pool of the test database; without it, a second run in the same process fails on PostgreSQL with `57P01: terminating connection due to administrator command`. Do not call `ClearAllPools`: it clears the pools of the other tests in the process too.
 
 Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
 

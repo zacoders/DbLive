@@ -54,4 +54,4 @@ Deployment test: a second breaking deployment changed the schema. The breaking s
   missing index dbo.Person.IX_Person_Name: nonclustered (Name asc)
 ```
 
-`missing` objects were in the earlier schema only, `extra` objects are in the later one only, and `changed` objects show the old and the new definition. Data is not compared. The check needs SQL Server 2017 or later (every SQL Server Docker image) or PostgreSQL 12 or later.
+`missing` objects were in the earlier schema only, `extra` objects are in the later one only, and `changed` objects show the old and the new definition. Data is not compared. The check runs on every server version DbLive supports ([Requirements](../index.md#requirements)).

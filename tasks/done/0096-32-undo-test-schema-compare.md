@@ -8,7 +8,7 @@ breaking: true
 # Deployment test: compare the schema after the undo and after a second breaking run
 
 ## Release note
-**The deployment test compares the schema.** `[SqlDeployFact]` checks that a second run of the whole breaking phase changes nothing: the breaking scripts of the `Code` folder and the BeforeDeploy and AfterDeploy scripts run again in it. A difference fails the test with `SchemaChangedException`, which lists the missing, extra and changed objects (`missing index dbo.Person.IX_Person_Name`). Fix the scripts that start failing: their second run must not change the schema. The schema is read from the catalog: SQL Server 2017 or later, PostgreSQL 12 or later. Production deployments do not change.
+**The deployment test compares the schema.** `[SqlDeployFact]` checks that a second run of the whole breaking phase changes nothing: the breaking scripts of the `Code` folder and the BeforeDeploy and AfterDeploy scripts run again in it. A difference fails the test with `SchemaChangedException`, which lists the missing, extra and changed objects (`missing index dbo.Person.IX_Person_Name`). Fix the scripts that start failing: their second run must not change the schema. The schema is read from the catalog. Production deployments do not change.
 
 ## Problem
 The `[SqlDeployFact]` undo modes deploy each version as migration → undo → migration (`MigrationUndoMigration`) or migration → breaking → breaking → undo → migration (`MigrationBreakingUndoMigration`, `MigrationVersionDeployer`). The test fails only when an item throws.
