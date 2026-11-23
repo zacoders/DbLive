@@ -120,7 +120,7 @@ DbLive allows and encourages zero-downtime releases: its defaults (one transacti
 ### DbLive enforces
 
 - Deploy order: migrations → code → (optional) breaking.
-- Breaking only when `DeployBreaking = true`, only after the normal deployment of the same build, and a breaking script never before its migration.
+- Breaking only when `DeployBreaking = true`, only when every code file of the build is deployed with its current content, and a breaking script never before its migration.
 - Checksums of applied migrations, no deployment of a build that lacks applied versions, optional [ProjectId](features/project-id.md) binding.
 
 ### The team must ensure
@@ -129,6 +129,7 @@ DbLive allows and encourages zero-downtime releases: its defaults (one transacti
 - A contract change gets a **new version name**; applications call the right version (`_v2`, not `_v1`).
 - Procedures stay **thin**: data access and atomic database operations, not application business logic.
 - Old application instances are drained before a breaking deploy.
+- The breaking deployment starts only after the `Default` deployment of the same build succeeded, and never for a release that was rolled back or replaced.
 - Breaking scripts drop every superseded object and column.
 
 DbLive provides **rails**; compatibility discipline remains a team responsibility. The release checklist is in [Zero-Downtime Deployment](deployment/zero-downtime.md#pre-flight-checklist).
