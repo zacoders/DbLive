@@ -25,7 +25,9 @@ public sealed record DeployParameters
 
 	/// <summary>
 	/// The breaking phase of the release only, once no old application instance runs. Deploy <see cref="Default"/> of the same build first:
-	/// otherwise the breaking phase fails with <see cref="CodeNotDeployedException"/>. Each access returns a new instance.
+	/// otherwise the breaking phase fails with <see cref="CodeNotDeployedException"/> when a code file of the build is not deployed with its
+	/// current content. Only code files are checked: a failed or skipped <c>Default</c> of a build that added or changed no code file passes.
+	/// Each access returns a new instance.
 	/// </summary>
 	public static DeployParameters Breaking => new()
 	{
@@ -49,7 +51,7 @@ public sealed record DeployParameters
 	public bool DeployMigrations { get; init; } = true;
 
 	/// <summary>
-	/// Runs the breaking phase: the breaking scripts of the Code folder, then the breaking scripts of the migrations not applied yet.
+	/// Runs the breaking phase: the breaking scripts of the Code folder, then the breaking scripts, not applied yet, of the applied migrations.
 	/// It runs only when every code file of the build is deployed with its current content. Off by default.
 	/// </summary>
 	public bool DeployBreaking { get; init; } = false;
