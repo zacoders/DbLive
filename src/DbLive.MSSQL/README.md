@@ -5,6 +5,7 @@ SQL Server and Azure SQL provider for [DbLive](https://github.com/zacoders/DbLiv
 ```csharp
 using DbLive;
 using DbLive.MSSQL;
+using System.Reflection;
 
 IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()

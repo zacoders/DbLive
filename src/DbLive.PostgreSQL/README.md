@@ -5,6 +5,7 @@ PostgreSQL provider for [DbLive](https://github.com/zacoders/DbLive): versioned 
 ```csharp
 using DbLive;
 using DbLive.PostgreSQL;
+using System.Reflection;
 
 IDbLive deployer = new DbLiveBuilder()
     .LogToConsole()
