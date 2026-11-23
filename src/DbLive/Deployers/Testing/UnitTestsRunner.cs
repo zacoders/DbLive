@@ -33,16 +33,17 @@ internal class UnitTestsRunner(
 
 			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test).ConfigureAwait(false);
 
+			// by the relative path, not the file name: tests of different folders may have the same name.
 			if (testResult.IsSuccess)
 			{
 				runResults.IncremenPassed();
-				_logger.Information("PASSED: {testName}", test.Name);
+				_logger.Information("PASSED: {filePath}", test.FileData.RelativePath);
 			}
 			else
 			{
 				runResults.IncremenFailed();
 				failedTests.Add(test.FileData.RelativePath);
-				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
+				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.FileData.RelativePath, testResult.ErrorMessage);
 			}
 		}).ConfigureAwait(false);
 

@@ -251,6 +251,7 @@ public class CrossPlatformDeployTests(SqlServerIntegrationFixture fixture, ITest
 			builder.CreateTester().RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
+		Assert.EndsWith(": 'Tests/Orders/Select-Order.sql'.", ex.Message);
 	}
 
 	/// <summary>

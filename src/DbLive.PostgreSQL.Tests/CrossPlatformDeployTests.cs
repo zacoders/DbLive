@@ -237,6 +237,7 @@ public class CrossPlatformDeployTests(PostgreSqlFixture fixture, ITestOutputHelp
 			builder.CreateTester().RunAllTestsAsync);
 
 		Assert.Equal(["Tests/Orders/Select-Order.sql"], ex.FailedTests);
+		Assert.EndsWith(": 'Tests/Orders/Select-Order.sql'.", ex.Message);
 	}
 
 	/// <summary>
