@@ -76,6 +76,8 @@ public class SettingsTests
 
 	[Theory]
 	[InlineData("settings.json", """{ "MaxCodeDeployRetries": 5 }""", "'MaxCodeDeployRetries'")]
+	// a property of DbLiveSettings, but only the tests set it: not a key of the file.
+	[InlineData("settings.json", """{ "LogSelfDeploy": true }""", "'LogSelfDeploy'")]
 	[InlineData("settings.json", """{ "transactionWrapLevel": "None" }""", "'transactionWrapLevel'")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "Nope" }""", "$.TransactionWrapLevel")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "None", }""", "trailing comma")]

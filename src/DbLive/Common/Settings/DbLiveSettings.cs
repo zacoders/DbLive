@@ -34,7 +34,9 @@ internal class DbLiveSettings
 	public TimeSpan CodeItemTimeout { get; init; } = TimeSpan.FromSeconds(30);
 	public TimeSpan UnitTestItemTimeout { get; init; } = TimeSpan.FromMinutes(1);
 
-	public bool LogSelfDeploy { get; internal set; } = false;
+	// for the tests, not a key of settings.json: System.Text.Json reads only public properties, so the key fails as unknown.
+	// A public getter with an internal setter would accept the key and ignore its value.
+	internal bool LogSelfDeploy { get; set; } = false;
 
 	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
