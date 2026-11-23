@@ -185,7 +185,7 @@ dotnet add MyDb.Tests package DbLive.xunit
 dotnet add MyDb.Tests package DbLive.Testcontainers.MSSQL   # SQL Server in Docker
 ```
 
-- The `xunit` template adds `Microsoft.NET.Test.Sdk`, `xunit` and `xunit.runner.visualstudio`. `DbLive.xunit` works with xUnit v2; if the template created an xUnit v3 project, switch it to the `xunit` 2.x package.
+- The `xunit` template adds `Microsoft.NET.Test.Sdk`, `xunit` and `xunit.runner.visualstudio`. `DbLive.xunit` works with xUnit v2, `xunit` 2.9.2 or later; if the template created an xUnit v3 project, switch it to the `xunit` 2.x package (2.9.3 is the last one). With an older `xunit` 2 the restore fails with `NU1107: Version conflict detected for xunit.extensibility.core`: update the `xunit` package rather than adding `xunit.extensibility.core` as the message suggests.
 - For PostgreSQL in Docker, add `DbLive.Testcontainers.PostgreSQL`. To test against a server you run, add the provider package (`DbLive.MSSQL` or `DbLive.PostgreSQL`) instead and use its builder from the table below.
 
 ### 1. A fixture builder

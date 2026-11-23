@@ -38,6 +38,11 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
         <PackageReference Include="Serilog.Sinks.XUnit" />
+		<!-- The xunit v2 types the code uses (XunitTestCase, ExecutionErrorTestCase, XunitTestCaseDiscoverer), and the
+		     minimum xunit of the users: 2.9.2, the first version that reports an exception of the discoverer as a failing
+		     test ("Exception during discovery"). Declared here, not taken from Serilog.Sinks.XUnit. xunit.core pins the
+		     extensibility packages to its own version, so a test project on xunit 2.9.1 or older fails to restore (NU1107). -->
+		<PackageReference Include="xunit.extensibility.execution" />
     </ItemGroup>
 
 	<ItemGroup>

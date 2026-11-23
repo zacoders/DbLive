@@ -30,6 +30,8 @@
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.analyzers" Version="1.27.0" />
+    <!-- The minimum xunit version for users of DbLive.xunit, not the latest one: see DbLive.xunit.csproj. -->
+    <PackageVersion Include="xunit.extensibility.execution" Version="2.9.2" />
     <PackageVersion Include="Xunit.Extensions.AssemblyFixture" Version="2.6.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>

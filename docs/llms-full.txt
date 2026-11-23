@@ -65,7 +65,7 @@ SQL tests, checksums and ProjectId are available in every way.
 | `DbLive` | Core engine. Pulled in automatically by the other packages. Embeds the scripts folder that the `.csproj` names in `DbLiveScriptsFolder` in the assembly (Section 3.1). | `DbLiveBuilder`, `DeployParameters`, `IDbLive`, `IDbLiveFixtureBuilder` |
 | `DbLive.MSSQL` | SQL Server / Azure SQL provider (Microsoft.Data.SqlClient + SMO). | `.SqlServer()`, `MsSqlFixtureBuilder` |
 | `DbLive.PostgreSQL` | PostgreSQL provider (Npgsql). | `.PostgreSQL()`, `PostgreSqlFixtureBuilder` |
-| `DbLive.xunit` | xUnit **v2** integration: SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTest` |
+| `DbLive.xunit` | xUnit **v2** integration (`xunit` 2.9.2 or later): SQL tests as test cases, deployment tests. | `[SqlFact]`, `[SqlDeployFact]`, `DbLiveTestFixture`, `DeploymentTest` |
 | `DbLive.Testcontainers.MSSQL` | Test database: SQL Server in Docker (Testcontainers). Brings `DbLive.MSSQL` and `Testcontainers.MsSql`; no xUnit dependency. | `MsSqlContainerFixtureBuilder` |
 | `DbLive.Testcontainers.PostgreSQL` | Test database: PostgreSQL in Docker (Testcontainers). Brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; no xUnit dependency. | `PostgreSqlContainerFixtureBuilder` |
 | `DbLive.Templates` | `dotnet new` template; installed with `dotnet new install`, never referenced by a project. Creates a new solution (Section 18.1). | `dotnet new dblive` |
@@ -882,7 +882,7 @@ Two deployments of one database at the same time would read the same applied ver
 
 SQL tests run like ordinary C# unit tests: the fixture builds a temporary database from the project scripts (in a Docker container or on a local server, with a random name), the tests run against it, and the database is dropped at the end. No shared test database is needed, and every developer machine and CI run starts from the same database.
 
-Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.x), `xunit.runner.visualstudio`, `DbLive.xunit`, and `DbLive.Testcontainers.MSSQL` or `DbLive.Testcontainers.PostgreSQL` (a test database in Docker; brings the provider and Testcontainers). Without Docker: the provider package instead. Reference the SQL project.
+Test project packages: `Microsoft.NET.Test.Sdk`, `xunit` (2.9.2 or later, v2), `xunit.runner.visualstudio`, `DbLive.xunit`, and `DbLive.Testcontainers.MSSQL` or `DbLive.Testcontainers.PostgreSQL` (a test database in Docker; brings the provider and Testcontainers). Without Docker: the provider package instead. Reference the SQL project. With an older `xunit` the restore fails with `NU1107: Version conflict detected for xunit.extensibility.core`: update the `xunit` package. Do not add `xunit.extensibility.core` as NuGet suggests: it mixes two xunit versions.
 
 ### 13.1 Fixture builder
 
@@ -1229,7 +1229,7 @@ Run the xUnit tests: each `[SqlFact]` test can be run and debugged from Test Exp
 
 - No CLI tool; deployments are started from your own C# code.
 - With `SetProject`, scripts are read from the dll, so a changed script takes effect only after a build. Use `SetScriptsFolder` to deploy a folder without building.
-- xUnit v2 only (`DbLive.xunit`).
+- xUnit v2 only, 2.9.2 or later (`DbLive.xunit`).
 - Code objects are never dropped automatically; drift made directly in the database is not detected.
 - A script that runs in a transaction can end it with `COMMIT` or `ROLLBACK`: no server lets DbLive forbid it. DbLive fails the script and rolls back what it ran after the end, but what its `COMMIT` committed stays (Section 10).
 - Supported engines: SQL Server 2016 SP1 or later / Azure SQL and PostgreSQL 13 or later (Section 2). SQLite and MySQL are planned.
