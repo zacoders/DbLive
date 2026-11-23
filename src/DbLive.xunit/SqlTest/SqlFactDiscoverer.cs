@@ -21,29 +21,37 @@ internal class SqlFactDiscoverer(IMessageSink diagnosticMessageSink) : IXunitTes
 			nameof(SqlFactAttribute.TestFixture)
 		);
 
-		if (!typeof(DbLiveTestFixture).IsAssignableFrom(fixtureType))
+		// Activator.CreateInstance and the cast below need all three: without the check an abstract type or one without
+		// a public parameterless constructor throws MissingMethodException, "Exception during discovery" without the fix.
+		string? problem =
+			!typeof(DbLiveTestFixture).IsAssignableFrom(fixtureType) ? $"does not derive from {nameof(DbLiveTestFixture)}"
+			: fixtureType.IsAbstract ? "is abstract"
+			: fixtureType.GetConstructor(Type.EmptyTypes) is null ? "has no public parameterless constructor"
+			: null;
+
+		if (problem is not null)
 		{
 			string attributeName = nameof(SqlFactAttribute).Replace("Attribute", "");
 			string paramName = nameof(SqlFactAttribute.TestFixture);
-			string spaces = new(' ', paramName.Length + attributeName.Length);
 
 			string errorMessage = $$"""
-				Invalid type specified for {{paramName}} in {{attributeName}} attribute.
+				Invalid type specified for {{paramName}} in {{attributeName}} attribute: {{fixtureType.FullName}} {{problem}}.
 
-				The type must inherit from: {{nameof(DbLiveTestFixture)}}.
-				Actual type: {{fixtureType.FullName}}.
+				The type must be a public class that derives from {{nameof(DbLiveTestFixture)}}, is not abstract and has a public parameterless constructor.
 
 				Example:
 
-				class MyTestFixture : {{nameof(DbLiveTestFixture)}}
+				public class MyTestFixture()
+					: {{nameof(DbLiveTestFixture)}}(new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly), dropDatabaseOnComplete: true);
+
+				public class SqlTests(ITestOutputHelper output, MyTestFixture fixture)
+					: IClassFixture<MyTestFixture>
 				{
-					...
-				}
-				{{spaces}}            🡳🡳🡳
-				[{{attributeName}}({{paramName}} = typeof(MyTestFixture))]
-				public async Task Sql(string testRelativePath)
-				{
-					...
+					[{{attributeName}}({{paramName}} = typeof(MyTestFixture))]
+					public async Task Sql(string testFileRelativePath)
+					{
+						...
+					}
 				}
 				""";
 			yield return new ExecutionErrorTestCase(

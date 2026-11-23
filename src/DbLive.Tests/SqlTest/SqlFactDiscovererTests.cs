@@ -1,5 +1,6 @@
 using DbLive.xunit;
 using DbLive.xunit.SqlTest;
+using NSubstitute.ReturnsExtensions;
 using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -43,6 +44,30 @@ public class SqlFactDiscovererTests
 		);
 
 		Assert.Equal("DbLive", ex.AssemblyName);
+	}
+
+	[Theory]
+	[InlineData(nameof(SqlTestsHost.SqlWithNotFixtureAsync), typeof(string), "does not derive from DbLiveTestFixture")]
+	[InlineData(nameof(SqlTestsHost.SqlWithAbstractFixtureAsync), typeof(AbstractFixture), "is abstract")]
+	[InlineData(nameof(SqlTestsHost.SqlWithBaseFixtureAsync), typeof(DbLiveTestFixture), "has no public parameterless constructor")]
+	[InlineData(nameof(SqlTestsHost.SqlWithParameterFixtureAsync), typeof(ParameterFixture), "has no public parameterless constructor")]
+	[InlineData(nameof(SqlTestsHost.SqlWithInternalConstructorFixtureAsync), typeof(InternalConstructorFixture), "has no public parameterless constructor")]
+	public void Discover_InvalidFixtureType_FailingTestCaseExplainsTheFix(string methodName, Type fixtureType, string problem)
+	{
+		IXunitTestCase testCase = Assert.Single(Discover(methodName));
+
+		ExecutionErrorTestCase error = Assert.IsType<ExecutionErrorTestCase>(testCase);
+		Assert.StartsWith(
+			$"Invalid type specified for TestFixture in SqlFact attribute: {fixtureType.FullName} {problem}.",
+			error.ErrorMessage
+		);
+		Assert.Contains(
+			"""
+			public class MyTestFixture()
+				: DbLiveTestFixture(new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly), dropDatabaseOnComplete: true);
+			""",
+			error.ErrorMessage
+		);
 	}
 
 	[Fact]
@@ -109,9 +134,13 @@ public class SqlFactDiscovererTests
 			method
 		);
 
+		// null gives the defaults of xUnit: NSubstitute returns "", which the method display options cannot parse.
+		ITestFrameworkDiscoveryOptions discoveryOptions = Substitute.For<ITestFrameworkDiscoveryOptions>();
+		discoveryOptions.GetValue<string>(Arg.Any<string>()).ReturnsNull();
+
 		SqlFactDiscoverer discoverer = new(Substitute.For<IMessageSink>());
 
-		return discoverer.Discover(Substitute.For<ITestFrameworkDiscoveryOptions>(), testMethod, sqlFact);
+		return discoverer.Discover(discoveryOptions, testMethod, sqlFact);
 	}
 
 	/// <summary>
@@ -127,6 +156,21 @@ public class SqlFactDiscovererTests
 
 		[SqlFact(TestFixture = typeof(WithoutScriptsFixture))]
 		public Task SqlWithoutScriptsAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(string))]
+		public Task SqlWithNotFixtureAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(AbstractFixture))]
+		public Task SqlWithAbstractFixtureAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(DbLiveTestFixture))]
+		public Task SqlWithBaseFixtureAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(ParameterFixture))]
+		public Task SqlWithParameterFixtureAsync(string testFileRelativePath) => Task.CompletedTask;
+
+		[SqlFact(TestFixture = typeof(InternalConstructorFixture))]
+		public Task SqlWithInternalConstructorFixtureAsync(string testFileRelativePath) => Task.CompletedTask;
 	}
 
 	public class EmbeddedScriptsFixture() : DbLiveTestFixture(new FixtureBuilder(typeof(EmbeddedScriptsFixture).Assembly), dropDatabaseOnComplete: false);
@@ -134,6 +178,17 @@ public class SqlFactDiscovererTests
 	public class ProjectDirFixture() : DbLiveTestFixture(new FixtureBuilder(Assembly.Load("DemoMSSQLEmpty")), dropDatabaseOnComplete: false);
 
 	public class WithoutScriptsFixture() : DbLiveTestFixture(new FixtureBuilder(typeof(DbLiveBuilder).Assembly), dropDatabaseOnComplete: false);
+
+	public abstract class AbstractFixture() : DbLiveTestFixture(new FixtureBuilder(typeof(AbstractFixture).Assembly), dropDatabaseOnComplete: false);
+
+	public class ParameterFixture(Assembly projectAssembly) : DbLiveTestFixture(new FixtureBuilder(projectAssembly), dropDatabaseOnComplete: false);
+
+	public class InternalConstructorFixture : DbLiveTestFixture
+	{
+		internal InternalConstructorFixture() : base(new FixtureBuilder(typeof(InternalConstructorFixture).Assembly), dropDatabaseOnComplete: false)
+		{
+		}
+	}
 
 	/// <param name="projectAssembly">This assembly, which has no ProjectDir metadata, a demo with it, or an assembly without scripts.</param>
 	private sealed class FixtureBuilder(Assembly projectAssembly) : IDbLiveFixtureBuilder

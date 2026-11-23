@@ -238,7 +238,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 }
 ```
 
-- The fixture class must derive from `DbLiveTestFixture` and have a public parameterless constructor.
+- The fixture class must derive from `DbLiveTestFixture`, not be abstract and have a public parameterless constructor. Otherwise one failing test named after the test method says what is wrong and shows an example of a fixture.
 - The fixture deploys the project once per test class (migrations, code and breaking changes, no tests) into a fresh database and drops it at the end if `dropDatabaseOnComplete` is true. The drop ends the sessions still open in the database, also the idle connections of the pool. On SQL Server it kills them first when the login may (`VIEW SERVER STATE` and `ALTER ANY CONNECTION`, as `sa` of a container); otherwise `single_user with rollback immediate` ends them, and the drop takes about 3 seconds longer.
 - Each SQL file appears in Test Explorer under its relative path; "Go to source" opens the `.sql` file (it needs the project folder that the [DbLive package](../project/index.md#embedding-the-scripts) records in the SQL project's assembly).
 - The tests read the scripts embedded in the SQL project's dll. Test Explorer and `dotnet test` build before running, so changed scripts are picked up; new test files appear after a build.

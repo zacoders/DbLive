@@ -942,7 +942,7 @@ public class SqlTests(ITestOutputHelper output, MyDbTestFixture fixture)
 - Discovery reads tests from the SQL project's dll (`SetProject`), so a new test file appears after a build; Test Explorer and `dotnet test` build before running.
 - The fixture deploys once per test class (migrations, code and breaking; no tests) into a fresh database, then drops it if `dropDatabaseOnComplete`.
 - The drop of the fixtures (`DbLiveTestFixture`, `DeploymentTest`) ends the sessions still open in the database, also the idle connections of the pool. On SQL Server it kills them first when the login may (`VIEW SERVER STATE` and `ALTER ANY CONNECTION`, as `sa` of a container); otherwise `single_user with rollback immediate` ends them, and the drop takes about 3 seconds longer.
-- An invalid `TestFixture` type produces a failing test case that explains the fix.
+- A `TestFixture` type that does not derive from `DbLiveTestFixture`, is abstract or has no public parameterless constructor (as `DbLiveTestFixture` itself) produces one failing test case named after the test method, with the reason and an example of a fixture: `Invalid type specified for TestFixture in SqlFact attribute: MyTests.MyDbTestFixture has no public parameterless constructor.`
 - An error of the project found while discovery reads the tests (`ScriptsNotEmbeddedException`, `FilesOutsideProjectFoldersException` and the other checks of Section 4, an invalid `settings.json`) produces one failing test case named after the test method: xUnit reports "Exception during discovery" with the exception, and `dotnet test` fails.
 
 ### 13.3 Deployment test: `[SqlDeployFact]`
