@@ -22,29 +22,109 @@ Follow these six steps for any change you want to ship without downtime.
 
 ### Step 1 - Write a backward-compatible migration
 
-Migrations may only **expand**. Add tables, columns (nullable or with a default), and indexes. When reshaping storage, add the new structure alongside the old and keep them in sync with a temporary trigger. Do **not** drop or rename anything a running application still reads.
+Migrations may only **expand**. Add tables, columns (nullable or with a default), and indexes. When reshaping storage, add the new structure alongside the old, keep them in sync with a temporary trigger, and copy the existing rows. Do **not** drop or rename anything a running application still reads.
+
+The example moves phone numbers from `dbo.Person.PhoneNumber` to a new table `dbo.PersonPhones`. The table and the trigger are migration 007 of DemoMSSQL ([007.migration.sql](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Migrations/007.migration.sql)); the index is added here for a large table.
 
 ```sql
+-- Migrations/007.migration.sql
 -- Expand: add the new table, keep the legacy column in place for now
 create table dbo.PersonPhones
 (
-    PersonPhoneId int not null identity(1,1),
-    PersonId int not null,
-    PhoneNumber nvarchar(30) not null,
-    constraint PK_PersonPhones primary key (PersonPhoneId)
-);
+    PersonPhoneId int identity not null
+  , PersonId int not null
+  , PhoneNumber varchar(32) null
+  , IsPrimary bit not null constraint DEF_PersonPhones_IsPrimary default 0
+  , CreatedUtc datetime2(2) not null
+  , ModifiedUtc datetime2(2) not null
+  , constraint PK_PersonPhones primary key clustered ( PersonPhoneId )
+)
 go
+
+-- The sync trigger and the new application find the phones of a person by PersonId
+create index IX_PersonPhones_PersonId on dbo.PersonPhones ( PersonId )
+go
+
 -- Temporary sync so old and new storage stay consistent during the transition
-create trigger dbo.TR_Person_SyncPhone on dbo.Person
+create trigger dbo.TMP_DataMigration_Person_To_PersonPhones
+on dbo.Person
 after insert, update
 as
+    set nocount on;
+
+    -- only the primary phone is synced: Person.PhoneNumber knows nothing about
+    -- other phones, they are added by the new application and must not be touched.
+    with cteSource
+    as (
+        select *
+        from Inserted
+        where PhoneNumber is not null
+    ),
+    cteTarget
+    as (
+        select pp.*
+        from dbo.PersonPhones pp
+        where pp.IsPrimary = 1
+          and pp.PersonId in ( select PersonId from Inserted )
+    )
+    merge into cteTarget as t
+    using cteSource s on s.PersonId = t.PersonId
+    when matched then
+        update set
+            PhoneNumber = s.PhoneNumber
+          , ModifiedUtc = sysutcdatetime()
+    when not matched then
+        insert ( PersonId, PhoneNumber, IsPrimary, CreatedUtc, ModifiedUtc )
+        values ( s.PersonId, s.PhoneNumber, 1, sysutcdatetime(), sysutcdatetime() )
+    when not matched by source then
+        -- the phone number was removed from dbo.Person
+        delete;
+go
+```
+
+Then copy the existing rows. One `update` of a large table, in the transaction of its migration, would lock the table until the whole copy is committed. So the copy is a migration of its own that runs without a transaction and updates the rows in small batches, each committed on its own:
+
+```json
+// Migrations/008.migration.settings.json
+{
+  "TransactionWrapLevel": "None"
+}
+```
+
+```sql
+-- Migrations/008.migration.sql
+-- Copies the existing phones, 1000 persons per batch.
+-- No transaction: each batch commits on its own and locks only its rows.
+declare @PersonId int = 0
+      , @ToPersonId int;
+
+while 1 = 1
 begin
-    -- keep dbo.PersonPhones in sync with dbo.Person.PhoneNumber
+    -- the last person of the next batch
+    select @ToPersonId = max(PersonId)
+    from ( select top ( 1000 ) PersonId 
+           from dbo.Person 
+           where PersonId > @PersonId 
+           order by PersonId 
+         ) b;
+
+    if @ToPersonId is null break;
+
+    -- A no-op update: it changes no data, but fires the sync trigger,
+    -- which copies the phones of the batch to dbo.PersonPhones
+    update dbo.Person
+    set ModifiedUtc = ModifiedUtc
+    where PersonId > @PersonId
+      and PersonId <= @ToPersonId;
+
+    set @PersonId = @ToPersonId;
 end
 go
 ```
 
-Building an index or moving data in a large, live table? Run the script without a transaction so writers are not blocked - see [Transactions](#transactions) below.
+If the copy fails halfway, the next deployment runs it again from the first row: the no-op update is safe to repeat. DemoMSSQL has few rows and copies them with one `update` at the end of migration 007.
+
+An index on a large, live table is built the same way: in a migration of its own without a transaction - see [Transactions](#transactions) below.
 
 ### Step 2 - Add a new procedure version, do not mutate the old one
 
