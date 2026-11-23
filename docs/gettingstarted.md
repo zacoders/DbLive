@@ -138,8 +138,8 @@ You will see deployment process in the console app output:
 
 ```
 [23:09:42 INF] Starting deployment.
-[23:09:42 INF] Starting project deploy from MyDb.dll.
 [23:09:42 INF] ProjectId bound to database: my-app-db.
+[23:09:42 INF] Starting project deploy from MyDb.dll.
 [23:09:43 INF] Saving migration items.
 [23:09:43 INF] Deploying folder BeforeDeploy.
 [23:09:43 INF] Folder BeforeDeploy is empty.
