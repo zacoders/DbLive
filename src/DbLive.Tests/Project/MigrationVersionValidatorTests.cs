@@ -25,6 +25,22 @@ public class MigrationVersionValidatorTests
 			validator.Validate(version, $"{version}.migration.sql"));
 	}
 
+	[Fact]
+	public void Validate_Exception_Has_The_Relative_Path_And_The_File_Name()
+	{
+		MockSet mockSet = new();
+		mockSet.TimeProvider.UtcNow().Returns(new DateTime(2025, 6, 21));
+		MigrationVersionValidator validator = mockSet.CreateUsingMocks<MigrationVersionValidator>();
+
+		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(() =>
+			validator.Validate(1, "Migrations/_Old/001.migration.sql"));
+
+		// the same values as the parser gives (MigrationFileNameParserTests).
+		Assert.Equal("Migrations/_Old/001.migration.sql", ex.RelativePath);
+		Assert.Equal("001.migration.sql", ex.FileName);
+		Assert.StartsWith("Invalid migration version in file 'Migrations/_Old/001.migration.sql'. ", ex.Message);
+	}
+
 	[Theory]
 	[InlineData(20251301120000)]
 	[InlineData(20250230010101)]

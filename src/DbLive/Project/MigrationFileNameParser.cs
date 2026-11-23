@@ -35,8 +35,10 @@ internal static class MigrationFileNameParser
 		// digits only, in any culture: no sign, no spaces, no culture's minus sign.
 		if (!long.TryParse(migrationVersionStr, NumberStyles.None, CultureInfo.InvariantCulture, out long version))
 		{
-			string errorMessage = $"The version part '{migrationVersionStr}' must be digits only.";
-			throw new InvalidMigrationVersionException(fileName, errorMessage);
+			string errorMessage = migrationVersionStr.Length > 0 && migrationVersionStr.All(char.IsAsciiDigit)
+				? $"The version '{migrationVersionStr}' is larger than {long.MaxValue.ToString(CultureInfo.InvariantCulture)}."
+				: $"The version part '{migrationVersionStr}' must be digits only.";
+			throw new InvalidMigrationVersionException(relativePath, errorMessage);
 		}
 
 		if (IsExtension(fileExtension, ".json"))

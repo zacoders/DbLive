@@ -59,6 +59,7 @@ DbLive.InvalidMigrationItemSettingsException
 DbLive.InvalidMigrationItemSettingsException.RelativePath.get -> string!
 DbLive.InvalidMigrationVersionException
 DbLive.InvalidMigrationVersionException.FileName.get -> string!
+DbLive.InvalidMigrationVersionException.RelativePath.get -> string!
 DbLive.InvalidProjectSettingsException
 DbLive.InvalidProjectSettingsException.RelativePath.get -> string!
 DbLive.MigrationChecksumMismatchException

@@ -7,7 +7,7 @@ closed: 2026-11-07
 # The version of a migration accepts a sign and spaces
 
 ## Release note
-A migration file whose version has a sign or a space (`+001.migration.sql`, `-5.migration.sql`, ` 001.migration.sql`) fails with `InvalidMigrationVersionException`; it was read as a number, so `+001.migration.sql` was version 1 next to `001.migration.sql`. The version is read the same way in every culture. The message of `InvalidMigrationVersionException` now names the file and the reason: `Invalid migration version in file '+001.migration.sql'. The version part '+001' must be digits only.`
+A migration file whose version has a sign or a space (`+001.migration.sql`, `-5.migration.sql`, ` 001.migration.sql`) fails with `InvalidMigrationVersionException`; it was read as a number, so `+001.migration.sql` was version 1 next to `001.migration.sql`. The version is read the same way in every culture. The message of `InvalidMigrationVersionException` now names the file and the reason: `Invalid migration version in file 'Migrations/+001.migration.sql'. The version part '+001' must be digits only.`
 
 ## Problem
 `MigrationFileNameParser` read the version with `long.TryParse(string, out long)`: the current culture and `NumberStyles.Integer`, which allow a sign and leading and trailing spaces, and take the minus sign of the culture. The docs say that file names are read the same way in every culture (0096-50 fixed only the lower-casing).

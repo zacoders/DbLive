@@ -2,5 +2,5 @@
 
 internal interface IMigrationVersionValidator
 {
-	void Validate(long versionPrefix, string fileName);
+	void Validate(long versionPrefix, string relativePath);
 }

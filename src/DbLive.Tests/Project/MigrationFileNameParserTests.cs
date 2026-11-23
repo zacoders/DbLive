@@ -25,9 +25,44 @@ public class MigrationFileNameParserTests
 	public void Invalid_Version_Message_Names_The_File_And_The_Version_Part()
 	{
 		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(
-			() => MigrationFileNameParser.GetMigrationInfo("Migrations/+001.migration.sql"));
+			() => MigrationFileNameParser.GetMigrationInfo("Migrations/_Old/+001.migration.sql"));
 
-		Assert.Equal("Invalid migration version in file '+001.migration.sql'. The version part '+001' must be digits only.", ex.Message);
+		Assert.Equal("Invalid migration version in file 'Migrations/_Old/+001.migration.sql'. The version part '+001' must be digits only.", ex.Message);
+		// the same values as the timestamp check gives (MigrationVersionValidatorTests).
+		Assert.Equal("Migrations/_Old/+001.migration.sql", ex.RelativePath);
+		Assert.Equal("+001.migration.sql", ex.FileName);
+	}
+
+	[Theory]
+	[InlineData("12345678901234567890")] // 20 digits
+	[InlineData("9223372036854775808")] // long.MaxValue + 1
+	public void Version_Larger_Than_Long_Is_Not_Called_Not_Digits(string version)
+	{
+		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(
+			() => MigrationFileNameParser.GetMigrationInfo($"Migrations/{version}.migration.sql"));
+
+		Assert.Equal(
+			$"Invalid migration version in file 'Migrations/{version}.migration.sql'. The version '{version}' is larger than 9223372036854775807.",
+			ex.Message
+		);
+	}
+
+	[Fact]
+	public void Version_Of_Long_MaxValue_And_Leading_Zeros_Is_Parsed()
+	{
+		Assert.Equal(long.MaxValue, MigrationFileNameParser.GetMigrationInfo("9223372036854775807.migration.sql").Version);
+		Assert.Equal(1, MigrationFileNameParser.GetMigrationInfo("000000000000000000001.migration.sql").Version);
+	}
+
+	[Theory]
+	[InlineData(".migration.sql", "")]
+	[InlineData("１２.migration.sql", "１２")] // full-width digits are not digits of a version
+	public void Empty_Or_Non_Ascii_Version_Is_Not_Digits(string file, string versionPart)
+	{
+		InvalidMigrationVersionException ex = Assert.Throws<InvalidMigrationVersionException>(
+			() => MigrationFileNameParser.GetMigrationInfo(file));
+
+		Assert.EndsWith($"The version part '{versionPart}' must be digits only.", ex.Message);
 	}
 
 	[Theory]

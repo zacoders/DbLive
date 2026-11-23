@@ -5,7 +5,7 @@ namespace DbLive.Project;
 internal class MigrationVersionValidator(ITimeProvider timeProvider) : IMigrationVersionValidator
 {
 	// Validates the timestamp string and returns the parsed value
-	public void Validate(long versionPrefixLong, string fileName)
+	public void Validate(long versionPrefixLong, string relativePath)
 	{
 		string versionPrefix = versionPrefixLong.ToString(CultureInfo.InvariantCulture);
 
@@ -13,7 +13,7 @@ internal class MigrationVersionValidator(ITimeProvider timeProvider) : IMigratio
 		if (string.IsNullOrWhiteSpace(versionPrefix) || versionPrefix.Length != 14)
 		{
 			string errorMessage = $"Bad version {versionPrefix}. Version prefix must be exactly 14 characters long.";
-			throw new InvalidMigrationVersionException(fileName, errorMessage);
+			throw new InvalidMigrationVersionException(relativePath, errorMessage);
 		}
 
 		// 2. Calendar and format check
@@ -28,7 +28,7 @@ internal class MigrationVersionValidator(ITimeProvider timeProvider) : IMigratio
 		if (!isValidDate)
 		{
 			string errorMessage = "Version prefix must match 'yyyyMMddHHmmss' format.";
-			throw new InvalidMigrationVersionException(fileName, errorMessage);
+			throw new InvalidMigrationVersionException(relativePath, errorMessage);
 		}
 
 		// 3. Logical boundary check (protects against fat-finger year typos)
@@ -37,7 +37,7 @@ internal class MigrationVersionValidator(ITimeProvider timeProvider) : IMigratio
 		if (parsedDate.Year < minYear || parsedDate.Year > maxYear)
 		{
 			string errorMessage = $"Year {parsedDate.Year} is out of bounds ({minYear} to {maxYear}).";
-			throw new InvalidMigrationVersionException(fileName, errorMessage);
+			throw new InvalidMigrationVersionException(relativePath, errorMessage);
 		}
 	}
 }

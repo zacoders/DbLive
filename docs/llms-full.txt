@@ -237,7 +237,7 @@ A file of `Code/` named like a breaking script (`breaking.sql`, `b.sql`, `*.brea
 <version>.<type>.<settings>[.<name>].json      settings of the <type> script of that version
 ```
 
-- `<version>`: the first dot-separated part, digits only, parsed as a 64-bit integer (`long`) the same way in every culture. `001`, `1`, `20260808104925` are valid; a sign or a space (`+001`, `-5`, ` 001`) is not. `001` and `1` are the **same** version.
+- `<version>`: the first dot-separated part, digits only, parsed as a 64-bit integer (`long`) the same way in every culture. `001`, `1`, `20260808104925` are valid; a sign or a space (`+001`, `-5`, ` 001`) is not, nor a number larger than 9223372036854775807 (`long.MaxValue`). `001` and `1` are the **same** version.
 - `<type>` (case-insensitive):
 
 | Type token | Item type | `.sql` file | `.json` file (`<settings>` = `settings` or `s`) |
@@ -267,7 +267,8 @@ Errors raised while reading the project:
 
 | Situation | Exception |
 |---|---|
-| Version part is not digits only (also `+001.migration.sql`, `config.json`, `readme.sql`, a macOS `._001.migration.sql`) | `InvalidMigrationVersionException` |
+| Version part is not digits only (also `+001.migration.sql`, `config.json`, `readme.sql`, a macOS `._001.migration.sql`) | `InvalidMigrationVersionException` (message names the file and the version part) |
+| Version larger than 9223372036854775807 (`12345678901234567890.migration.sql`) | `InvalidMigrationVersionException` (`The version '...' is larger than 9223372036854775807.`) |
 | Old per-version settings file `<version>.settings.json` / `<version>.s.json` | `ObsoleteMigrationSettingsFileException` (message names the new file) |
 | Other `.json` file in Migrations (`004.custom.json`, `004.migration.json`) | `UnknownMigrationSettingsException` |
 | An undo script or its settings file (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`) | `UndoNotSupportedException` (message names the file) |
@@ -1100,7 +1101,7 @@ select relative_path, item_type, status, applied_utc, verified_utc from dblive.c
 | `ObsoleteMigrationSettingsFileException` | Old per-version `<version>.settings.json` / `<version>.s.json` | Rename to `<version>.migration.settings.json` (the message names it); add `.breaking.settings.json` if the breaking script needs settings too; rename the key `MigrationTimeout` to `Timeout` |
 | `MigrationSettingsWithoutScriptException` | `<version>.breaking.settings.json` without its script | Add the script or delete the settings file |
 | `InvalidMigrationItemSettingsException` | Item settings file with an unknown key (also `MigrationTimeout`), invalid JSON, or `"TransactionWrapLevel": "Deployment"` | Section 9.3: keys `TransactionWrapLevel` (`Migration`/`None`), `TransactionIsolationLevel`, `Timeout` |
-| `InvalidMigrationVersionException` | Version is not digits only (also a file such as `config.json` or a macOS `._001.migration.sql` in Migrations), or not `yyyyMMddHHmmss` with `EnforceTimestampVersion` | Rename or move the file |
+| `InvalidMigrationVersionException: Invalid migration version in file '<path>'. ...` | Version is not digits only (also a file such as `config.json` or a macOS `._001.migration.sql` in Migrations), is larger than 9223372036854775807, or is not `yyyyMMddHHmmss` with `EnforceTimestampVersion`. Nothing ran | Rename or move the file (`RelativePath`; `FileName` is its name without the folder) |
 | `UnknownMigrationSettingsException` | Unexpected `.json` file in Migrations | Rename to `<version>.<item>.settings.json` (`migration`/`breaking`) or move it |
 | `NotSupportedTransactionIsolationLevelException` | `Snapshot` on PostgreSQL, in `settings.json` as `TransactionIsolationLevel` or `TestsTransactionIsolationLevel` (at the start of the deployment and of `RunAllTestsAsync`) or in an item settings file (at the start of the deployment; the message names the file) | Choose another level |
 | `ExecutionTimeoutException: Execution Timeout Expired. The deployment ran longer than its timeout of <timeout> (DeploymentTimeout).`, also `The transaction of the migration ...`, `The transaction of the breaking script ...`, `The transaction of the test ...`, `The self-deployment of DbLive ...` | A transaction of DbLive ran longer than its timeout, and the step after its end failed (Section 10). That error is the inner exception: on SQL Server `TransactionException` with `TimeoutException` inside, or `InvalidOperationException` "The transaction associated with the current connection has completed but has not been disposed"; on PostgreSQL the cancel of the running command. The deployment: the outer exception, with the error of the file inside. A migration or breaking script: inside its `MigrationDeploymentException`. A test: its `ErrorMessage`. DbLive 1.5 and older gave the error of the step itself, also `TransactionAbortedException` | Raise the setting the message names (for one migration: `Timeout` in its item settings file). `TransactionWrapLevel: None` removes the transaction timeout of a migration, not the timeout of the script |
