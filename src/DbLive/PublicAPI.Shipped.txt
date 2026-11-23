@@ -41,6 +41,7 @@ DbLive.DeployParameters.Equals(DbLive.DeployParameters? other) -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.get -> bool
 DbLive.DeployParameters.RepairMigrationChecksums.init -> void
 DbLive.DuplicateMigrationItemException
+DbLive.DuplicateMigrationItemException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DbLive.ExecutionTimeoutException
 DbLive.ExecutionTimeoutException.Timeout.get -> System.TimeSpan
 DbLive.FileNotUtf8Exception
@@ -65,6 +66,7 @@ DbLive.InvalidProjectSettingsException.RelativePath.get -> string!
 DbLive.MigrationChecksumMismatchException
 DbLive.MigrationDeploymentException
 DbLive.MigrationItemMustExistsException
+DbLive.MigrationItemMustExistsException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DbLive.MigrationSettingsWithoutScriptException
 DbLive.MigrationSettingsWithoutScriptException.RelativePath.get -> string!
 DbLive.NotSupportedTransactionIsolationLevelException

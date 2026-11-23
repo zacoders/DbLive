@@ -155,9 +155,14 @@ internal class DbLiveProject(
 			Dictionary<MigrationItemType, MigrationItem> items = [];
 			foreach (MigrationItemInfo item in migrationGroup)
 			{
-				if (items.ContainsKey(item.MigrationItemType))
+				if (items.TryGetValue(item.MigrationItemType, out MigrationItem? definedItem))
 				{
-					throw new DuplicateMigrationItemException(migrationVersion, item.MigrationItemType);
+					throw new DuplicateMigrationItemException(
+						migrationVersion,
+						item.MigrationItemType,
+						definedItem.FileData.RelativePath,
+						item.RelativePath
+					);
 				}
 				MigrationItem migrationItem = new()
 				{
@@ -170,7 +175,7 @@ internal class DbLiveProject(
 
 			if (!items.ContainsKey(MigrationItemType.Migration))
 			{
-				throw new MigrationItemMustExistsException(migrationVersion);
+				throw new MigrationItemMustExistsException(migrationVersion, [.. migrationGroup.Select(i => i.RelativePath)]);
 			}
 
 			foreach (MigrationItem settingsItem in items.Values.Where(i => MigrationItemTypeMapper.IsSettings(i.MigrationItemType)))

@@ -33,14 +33,44 @@ public class MigrationsTests
 	{
 		MockSet mockSet = new();
 
+		// 001 and 1 are the same version, in any folder.
 		mockSet.ScriptSource.AddFiles(
-			"Migrations/_Old/001.migration.dup1.sql",
-			"Migrations/001.migration.dup2.sql"
+			"Migrations/Old/1.m.sql",
+			"Migrations/001.migration.sql"
 		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		await Assert.ThrowsAsync<DuplicateMigrationItemException>(sqlProject.GetMigrationsAsync);
+		DuplicateMigrationItemException ex = await Assert.ThrowsAsync<DuplicateMigrationItemException>(sqlProject.GetMigrationsAsync);
+
+		Assert.Equal(["Migrations/001.migration.sql", "Migrations/Old/1.m.sql"], ex.RelativePaths);
+		Assert.Equal(
+			"Files 'Migrations/001.migration.sql' and 'Migrations/Old/1.m.sql' are both the Migration item of migration version 1: "
+			+ "a version has one file of each type. Rename or delete one of them.",
+			ex.Message
+		);
+	}
+
+	[Fact]
+	public async Task TestReadingOfMigrations_Duplicate_Settings()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFiles(
+			"Migrations/004.migration.sql",
+			"Migrations/004.migration.settings.json",
+			"Migrations/004.m.s.json"
+		);
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		DuplicateMigrationItemException ex = await Assert.ThrowsAsync<DuplicateMigrationItemException>(sqlProject.GetMigrationsAsync);
+
+		Assert.Equal(["Migrations/004.m.s.json", "Migrations/004.migration.settings.json"], ex.RelativePaths);
+		Assert.StartsWith(
+			"Files 'Migrations/004.m.s.json' and 'Migrations/004.migration.settings.json' are both the MigrationSettings item of migration version 4: ",
+			ex.Message
+		);
 	}
 
 	[Fact]
@@ -228,15 +258,24 @@ public class MigrationsTests
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
 		mockSet.ScriptSource.AddFiles(
-			"Migrations/005.breaking.settings.json",
-			"Migrations/005.breaking.sql"
+			"Migrations/005.breaking.sql",
+			"Migrations/Old/5.breaking.settings.json",
+			"Migrations/006.migration.sql"
 		);
 
 		// Act
 		Task act() => sqlProject.GetMigrationsAsync();
 
 		// assert
-		await Assert.ThrowsAsync<MigrationItemMustExistsException>(act);
+		MigrationItemMustExistsException ex = await Assert.ThrowsAsync<MigrationItemMustExistsException>(act);
+
+		Assert.Equal(["Migrations/005.breaking.sql", "Migrations/Old/5.breaking.settings.json"], ex.RelativePaths);
+		Assert.Equal(
+			"Migration version 5 has no migration script, only 'Migrations/005.breaking.sql', 'Migrations/Old/5.breaking.settings.json'. "
+			+ "Add the migration script of this version, or fix the version in the names of these files. "
+			+ "To drop an old version of a code object, use a breaking script of the Code folder instead.",
+			ex.Message
+		);
 	}
 
 	[Fact]
