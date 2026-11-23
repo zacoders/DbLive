@@ -35,12 +35,20 @@ internal class CodeDeployer(
 	/// <summary>
 	/// The code items left to execute, by group. A deployment where nothing changed reads <c>dblive.code</c> with one query and sets
 	/// <c>verified_utc</c> of the files it skips with one command, instead of two round trips per file.
+	/// Before any file runs, the applied rows of the files left to execute become <see cref="CodeItemStatus.Applying"/>, with one command:
+	/// a file whose run is not confirmed by its applied row runs again on the next deployment, also when its content comes back to the
+	/// hash of the row. A run can change the database and not confirm it: the batches of an In-Memory OLTP file commit one by one, and a
+	/// file commits before its row is written, so a broken connection or a stopped process leaves the old row. Nothing is written on
+	/// failure, so an error of a write in <c>catch</c> cannot hide the error of the file. In the deployment transaction the mark is
+	/// rolled back with the files, or replaced by the applied rows. The files of all groups are marked at once: a file of a later group
+	/// that never started stays applying and runs once more, which is harmless for code.
 	/// </summary>
 	private async Task<List<IReadOnlyCollection<CodeItem>>> SkipDeployedAsync(IReadOnlyList<CodeGroup> codeGroups)
 	{
 		CodeRows rows = new(await _da.GetCodeItemsAsync().ConfigureAwait(false));
 
 		List<string> deployedFiles = [];
+		List<string> rerunFiles = [];
 		List<IReadOnlyCollection<CodeItem>> groupsToDeploy = [];
 
 		foreach (CodeGroup group in codeGroups)
@@ -57,6 +65,11 @@ internal class CodeDeployer(
 				else
 				{
 					codeItems.Add(codeItem);
+
+					if (rows.HasAppliedRow(codeItem.FileData))
+					{
+						rerunFiles.Add(codeItem.FileData.RelativePath);
+					}
 				}
 			}
 
@@ -66,6 +79,11 @@ internal class CodeDeployer(
 		if (deployedFiles.Count > 0)
 		{
 			await _da.MarkCodeAsVerifiedAsync(deployedFiles, _timeProvider.UtcNow()).ConfigureAwait(false);
+		}
+
+		if (rerunFiles.Count > 0)
+		{
+			await _da.MarkCodeAsApplyingAsync(rerunFiles).ConfigureAwait(false);
 		}
 
 		return groupsToDeploy;

@@ -545,11 +545,12 @@ public class BreakingChangesDeployerTests
 			Migrations = [migration1]
 		};
 
-		// no rows for f2, f6 and f7. f4 failed on its first deployment, which writes no row; the row of a file that failed after
-		// a success is its last success, like f3.
+		// no rows for f2, f6 and f7. f4 failed after a success: its row is applying, with the hash of its last success, which is its
+		// content again (git revert); the failed run may have changed its object.
 		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
 			GetCodeRow(applied, CodeItemStatus.Applied),
 			GetCodeRow(GetCodeItem("Code/f3.sql", "f3 of the previous build"), CodeItemStatus.Applied),
+			GetCodeRow(failed, CodeItemStatus.Applying),
 			GetCodeRow(removed, CodeItemStatus.Removed)
 		]);
 

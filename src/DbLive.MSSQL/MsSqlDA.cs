@@ -890,6 +890,21 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
+	public async Task MarkCodeAsApplyingAsync(IReadOnlyCollection<string> relativePaths)
+	{
+		using var cnn = GetConnection();
+		_ = await cnn.ExecuteAsync(
+			PathsTableSql + """
+			update c
+			set status = 'applying'
+			from dblive.code as c
+			join #paths as p on p.value = c.relative_path
+			where c.status = 'applied';
+			""",
+			Parameters(new { paths = ToPathList(relativePaths) })
+		).ConfigureAwait(false);
+	}
+
 	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();

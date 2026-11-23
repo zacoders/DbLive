@@ -90,10 +90,7 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture fixture, ITest
 			.AddFile("Migrations/001.migration.sql", MemoryOptimizedFilegroup)
 			// ALTER DATABASE is not allowed in a transaction either.
 			.AddFile("Migrations/001.migration.settings.json", """{ "TransactionWrapLevel": "None" }""")
-			.AddFile("Code/types/Ids.sql", """
-				if type_id('dbo.Ids') is null
-					create type dbo.Ids as table ( id int not null primary key nonclustered ) with ( memory_optimized = on );
-				""")
+			.AddFile("Code/types/Ids.sql", IdsType)
 			.AddFile("Code/CountIds.sql", CountIdsProcedure("count(*)"));
 
 		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
@@ -111,6 +108,46 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture fixture, ITest
 		);
 		Assert.Equal(["20"], await da.ListAsync("declare @ids dbo.Ids; insert into @ids values (1), (2); exec dbo.CountIds @ids;"));
 	}
+
+	// the batches of such a file commit one by one: the drop commits, the create fails, and the procedure is missing. The row of the file
+	// is applying, so the content of its last success runs when it comes back (git revert, the previous release) and restores it.
+	[Fact]
+	public async Task In_memory_oltp_file_that_failed_in_part_is_restored_by_the_content_of_its_last_success()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", MemoryOptimizedFilegroup)
+			.AddFile("Migrations/001.migration.settings.json", """{ "TransactionWrapLevel": "None" }""")
+			.AddFile("Code/types/Ids.sql", IdsType)
+			.AddFile("Code/CountIds.sql", CountIdsProcedure("count(*)"));
+
+		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		_ = project.AddFile("Code/CountIds.sql", "drop procedure if exists dbo.CountIds;\ngo\n" + CountIdsProcedure("count(no_such_column)"));
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		_ = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(() => builder.CreateDeployer().DeployAsync(DeployParameters.Default));
+
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from sys.procedures where object_id = object_id('dbo.CountIds')"));
+		Assert.Equal(
+			["code/countids.sql:applying", "code/types/ids.sql:applied"],
+			await da.ListAsync("select concat(relative_path, ':', status) from dblive.code")
+		);
+
+		_ = project.AddFile("Code/CountIds.sql", CountIdsProcedure("count(*)"));
+		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		Assert.Equal(["2"], await da.ListAsync("declare @ids dbo.Ids; insert into @ids values (1), (2); exec dbo.CountIds @ids;"));
+		Assert.Equal(
+			["code/countids.sql:applied", "code/types/ids.sql:applied"],
+			await da.ListAsync("select concat(relative_path, ':', status) from dblive.code")
+		);
+	}
+
+	private const string IdsType = """
+		if type_id('dbo.Ids') is null
+			create type dbo.Ids as table ( id int not null primary key nonclustered ) with ( memory_optimized = on );
+		""";
 
 	// In-Memory OLTP needs a filegroup for its data, also for natively compiled modules and memory-optimized table types.
 	private const string MemoryOptimizedFilegroup = """

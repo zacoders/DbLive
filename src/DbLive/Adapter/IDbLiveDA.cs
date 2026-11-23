@@ -166,6 +166,12 @@ internal interface IDbLiveDA
 	Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc);
 
 	/// <summary>
+	/// Sets <c>status = 'applying'</c> on the <c>applied</c> rows of <c>dblive.code</c> of <paramref name="relativePaths"/>, with one
+	/// command, before these code files run (<see cref="CodeItemStatus.Applying"/>). Other rows and the other columns are not changed.
+	/// </summary>
+	Task MarkCodeAsApplyingAsync(IReadOnlyCollection<string> relativePaths);
+
+	/// <summary>
 	/// Marks the rows of <c>dblive.code</c> whose file is not one of <paramref name="projectRelativePaths"/> as removed,
 	/// with <paramref name="verifiedUtc"/> as the time the file was found missing. Rows already removed are not changed.
 	/// </summary>

@@ -188,7 +188,7 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 |-------|---------|
 | `dblive.version` | DbLive's own schema version, the bound `project_id`, and the oldest DbLive version that can deploy the database (`min_dblive_lib_version`) |
 | `dblive.migration` | One row per migration file: version, type, status (`none`, `applied`), checksum, applied time |
-| `dblive.code` | One row per code file and per breaking script of the Code folder: status (`applied`, `removed`), checksum, last successful run |
+| `dblive.code` | One row per code file and per breaking script of the Code folder: status (`applied`, `applying` while a run of new content is not confirmed, `removed`), checksum, last successful run |
 | `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
 
 The tables keep what the next deployment needs and the history of successful runs. A failure is not written there: the error is in the exception and the log.

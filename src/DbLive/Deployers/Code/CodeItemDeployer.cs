@@ -51,8 +51,8 @@ internal class CodeItemDeployer(
 		}
 		catch (Exception ex)
 		{
-			// no row is written: the row of the file stays its last success, and the error is in the exception and the log. The file runs
-			// again on the next deployment, since its row, if any, is not an applied row of this content.
+			// no row is written: the error is in the exception and the log. The file runs again on the next deployment, whatever its
+			// content: CodeDeployer marked its applied row applying before the run, and a file without an applied row runs anyway.
 			string errorMessage = $"Deploy code file error. File path: {codeItem.FileData.RelativePath}";
 
 			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run. In the deployment transaction

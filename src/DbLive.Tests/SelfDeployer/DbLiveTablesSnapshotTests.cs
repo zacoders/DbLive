@@ -48,6 +48,7 @@ public class DbLiveTablesSnapshotTests
 		"dblive.code.item_type code",
 		"dblive.code.item_type breaking",
 		"dblive.code.status applied",
+		"dblive.code.status applying",
 		"dblive.code.status removed",
 		"dblive.folder_items.folder_type BeforeDeploy",
 		"dblive.folder_items.folder_type AfterDeploy",

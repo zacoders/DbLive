@@ -679,6 +679,21 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		).ConfigureAwait(false);
 	}
 
+	// the paths are sent as one text[] parameter.
+	public async Task MarkCodeAsApplyingAsync(IReadOnlyCollection<string> relativePaths)
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		_ = await cnn.ExecuteAsync(
+			"""
+			update dblive.code
+			set status = 'applying'
+			where status = 'applied'
+			  and relative_path in ( select p from unnest(@paths) as p )
+			""",
+			new { paths = relativePaths.Select(p => p.ToStoredPath()).ToArray() }
+		).ConfigureAwait(false);
+	}
+
 	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
 	{
 		using NpgsqlConnection cnn = CreateConnection();

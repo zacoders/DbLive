@@ -4,8 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 namespace DbLive.MSSQL.Tests;
 
 /// <summary>
-/// A failed code file writes no row to <c>dblive.code</c>: its row stays its last success. The error is in the log and in the message
-/// of its <see cref="CodeDeploymentException"/>, with the details of the server that <see cref="DbLiveSqlException.SqlError"/> holds.
+/// A failed code file writes no row to <c>dblive.code</c>: its row stays applying, with the hash of its last success, as it was marked
+/// before the run. The error is in the log and in the message of its <see cref="CodeDeploymentException"/>, with the details of the
+/// server that <see cref="DbLiveSqlException.SqlError"/> holds.
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class CodeFileFailureTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
@@ -57,8 +58,10 @@ public class CodeFileFailureTests(SqlServerIntegrationFixture fixture, ITestOutp
 		Assert.Contains("Invalid column name 'missing_column_100'.", message);
 	}
 
+	// the row is applying, with the hash and the time of the last success: the failed content runs again, and so does the content of the
+	// last success when it comes back (git revert, the previous release), since the failed run may have changed the database.
 	[Fact]
-	public async Task Failed_code_file_keeps_the_row_of_its_last_success_and_runs_again_on_the_next_deployment()
+	public async Task Failed_code_file_runs_again_on_the_next_deployment_also_with_the_content_of_its_last_success()
 	{
 		const string V1 = "create or alter view dbo.v1 as select 1 as x;";
 
@@ -80,10 +83,57 @@ public class CodeFileFailureTests(SqlServerIntegrationFixture fixture, ITestOutp
 			);
 
 			CodeItemDto row = Assert.Single(await da.GetCodeItemsAsync());
-			Assert.Equal(CodeItemStatus.Applied, row.Status);
+			Assert.Equal(CodeItemStatus.Applying, row.Status);
 			Assert.Equal(success.ContentHash, row.ContentHash);
 			Assert.Equal(success.AppliedUtc, row.AppliedUtc);
 		}
+
+		_ = project.AddFile("Code/dbo/v1.sql", V1);
+		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		// it ran: not skipped as [hash match].
+		CodeItemDto restored = Assert.Single(await da.GetCodeItemsAsync());
+		Assert.Equal(CodeItemStatus.Applied, restored.Status);
+		Assert.Equal(success.ContentHash, restored.ContentHash);
+		Assert.True(restored.AppliedUtc > success.AppliedUtc);
+	}
+
+	// a code file commits in a transaction of its own, and its applied row is written after it. When the write fails (here a trigger,
+	// in production a broken connection, a failover, a stopped process), the object is the new content and the row the old one.
+	// The row is applying, so the old content runs when it comes back, and restores the object.
+	[Fact]
+	public async Task Code_file_that_committed_without_its_row_runs_again_when_its_previous_content_comes_back()
+	{
+		const string V1 = "create or alter view dbo.v1 as select 1 as x;";
+
+		using TempProject project = new TempProject().AddFile("Code/dbo/v1.sql", V1);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		await da.ExecuteSqlAsync("""
+			create trigger dblive.tr_lose_the_applied_row on dblive.code after update as
+			if exists ( select 1 from inserted where status = 'applied' )
+				throw 50000, 'The applied row is lost.', 1;
+			""");
+
+		_ = project.AddFile("Code/dbo/v1.sql", "create or alter view dbo.v1 as select 2 as x;");
+
+		_ = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal(["2"], await da.ListAsync("select x from dbo.v1"));
+		Assert.Equal(CodeItemStatus.Applying, Assert.Single(await da.GetCodeItemsAsync()).Status);
+
+		await da.ExecuteSqlAsync("drop trigger dblive.tr_lose_the_applied_row;");
+
+		_ = project.AddFile("Code/dbo/v1.sql", V1);
+		await CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		Assert.Equal(["1"], await da.ListAsync("select x from dbo.v1"));
+		Assert.Equal(CodeItemStatus.Applied, Assert.Single(await da.GetCodeItemsAsync()).Status);
 	}
 
 	[Fact]

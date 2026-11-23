@@ -117,10 +117,12 @@ public class CodeDeployerTests
 
 		await mockSet.CodeItemDeployer.Received(5).DeployAsync(Arg.Any<CodeItem>());
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkCodeAsVerifiedAsync(default!, default);
+		// a first deployment: no file has a row to mark.
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().MarkCodeAsApplyingAsync(default!);
 	}
 
 	[Fact]
-	public async Task DeployCode_Skips_Deployed_Files_And_Verifies_Them_With_One_Command()
+	public async Task DeployCode_Verifies_Skipped_Files_And_Marks_The_Applied_Rows_Of_The_Files_To_Run_As_Applying()
 	{
 		MockSet mockSet = new();
 
@@ -147,8 +149,9 @@ public class CodeDeployerTests
 			GetCodeRow(changed, CodeItemStatus.Applied, changed.FileData.ContentHash + 123),
 			// the file was deleted by a release, and a later release brought it back (git revert) with the same content.
 			GetCodeRow(removed, CodeItemStatus.Removed, removed.FileData.ContentHash),
-			// Failed.sql failed after a success: a failure writes no row, so its row is the success of its previous content.
-			GetCodeRow(failed, CodeItemStatus.Applied, failed.FileData.ContentHash + 1)
+			// Failed.sql failed after a success, and its content came back to that success (git revert): its row is applying, with the
+			// hash of the success. It runs, and it is not marked again.
+			GetCodeRow(failed, CodeItemStatus.Applying, failed.FileData.ContentHash)
 		]);
 
 		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(CodeItemDeployResult.Success());
@@ -173,6 +176,78 @@ public class CodeDeployerTests
 		);
 
 		mockSet.Logger.Received(1).Information("Deploying code file: {filePath} [hash match]", "/some_path/dbo.sql");
+
+		// the files that run and have an applied row; not a removed row, not a file without a row.
+		await mockSet.DbLiveDA.Received(1).MarkCodeAsApplyingAsync(
+			Arg.Is<IReadOnlyCollection<string>>(paths => paths.SequenceEqual(new[] { "/some_path/GetUser.sql", "/some_path/GetOrder.sql" }))
+		);
+	}
+
+	[Fact]
+	public async Task DeployCode_Marks_The_Files_Of_All_Groups_As_Applying_Before_The_First_File_Runs()
+	{
+		MockSet mockSet = new();
+
+		CodeItem schema = GetCodeItem("dbo.sql");
+		CodeItem view = GetCodeItem("v1.sql");
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [
+				new CodeGroup { Path = "Code/schemas", CodeItems = [schema] },
+				new CodeGroup { Path = "Code", CodeItems = [view] }
+			]
+		};
+
+		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([
+			GetCodeRow(schema, CodeItemStatus.Applied, schema.FileData.ContentHash + 1),
+			GetCodeRow(view, CodeItemStatus.Applied, view.FileData.ContentHash + 1)
+		]);
+
+		List<string> calls = [];
+
+		mockSet.DbLiveDA.MarkCodeAsApplyingAsync(Arg.Any<IReadOnlyCollection<string>>()).Returns(callInfo =>
+		{
+			calls.Add($"mark {string.Join(", ", callInfo.Arg<IReadOnlyCollection<string>>())}");
+			return Task.CompletedTask;
+		});
+
+		mockSet.CodeItemDeployer.DeployAsync(Arg.Any<CodeItem>()).Returns(callInfo =>
+		{
+			calls.Add($"run {callInfo.Arg<CodeItem>().FileData.RelativePath}");
+			return CodeItemDeployResult.Success();
+		});
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		await deployer.DeployAsync(project, DeployParameters.Default);
+
+		Assert.Equal(["mark /some_path/dbo.sql, /some_path/v1.sql", "run /some_path/dbo.sql", "run /some_path/v1.sql"], calls);
+	}
+
+	[Fact]
+	public async Task DeployCode_Fails_Before_Any_File_Runs_When_The_Mark_Fails()
+	{
+		MockSet mockSet = new();
+
+		CodeItem view = GetCodeItem("v1.sql");
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with
+		{
+			CodeGroups = [new CodeGroup { Path = "Code", CodeItems = [view] }]
+		};
+
+		mockSet.DbLiveDA.GetCodeItemsAsync().Returns([GetCodeRow(view, CodeItemStatus.Applied, view.FileData.ContentHash + 1)]);
+
+		DbLiveSqlException markError = new("A network-related or instance-specific error occurred.");
+		mockSet.DbLiveDA.MarkCodeAsApplyingAsync(Arg.Any<IReadOnlyCollection<string>>()).Returns(Task.FromException(markError));
+
+		CodeDeployer deployer = mockSet.CreateUsingMocks<CodeDeployer>();
+
+		DbLiveSqlException ex = await Assert.ThrowsAsync<DbLiveSqlException>(() => deployer.DeployAsync(project, DeployParameters.Default));
+
+		Assert.Same(markError, ex);
+		await mockSet.CodeItemDeployer.DidNotReceiveWithAnyArgs().DeployAsync(default!);
 	}
 
 	[Fact]
