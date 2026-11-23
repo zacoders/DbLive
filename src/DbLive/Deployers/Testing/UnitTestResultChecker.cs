@@ -240,22 +240,10 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 
 		for (int i = 0; i < expected.Rows.Count; i++)
 		{
-			SqlRow expectedRow = expected.Rows[i];
-			SqlRow actualRow = actual.Rows[i];
-
-			ValidationResult rowCompareResult = CompareRows(expectedRow, actualRow);
+			ValidationResult rowCompareResult = CompareRows(expected.Columns, expected.Rows[i], actual.Rows[i], rowNumber: i + 1);
 			if (!rowCompareResult.IsValid)
 			{
-				return new ValidationResult
-				{
-					IsValid = false,
-					Output = $"""
-					Data for one or more rows does not match:
-					Columns: {string.Join(",", expected.Columns)}
-					[Row {i + 1}]>
-					{rowCompareResult.Output}
-					"""
-				};
+				return rowCompareResult;
 			}
 		}
 
@@ -307,49 +295,54 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		return new ValidationResult { IsValid = true };
 	}
 
-	// NaN and infinity as the strings "NaN", "Infinity" and "-Infinity", also inside an array: by default System.Text.Json throws on
-	// them. NaN then equals NaN, and in rows equals the text 'NaN' too, as rows compares no types.
-	private static readonly JsonSerializerOptions ValueJsonOptions = new()
+	/// <summary>
+	/// Compares the values by their text (<see cref="RowValueText"/>), and prints that text when they differ.
+	/// The columns of both rows are the same: <see cref="CompareColumns"/> has checked them.
+	/// </summary>
+	private static ValidationResult CompareRows(List<SqlColumn> columns, SqlRow expected, SqlRow actual, int rowNumber)
 	{
-		DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-		PropertyNamingPolicy = null,
-		WriteIndented = false,
-		NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
-	};
-
-	private ValidationResult CompareRows(SqlRow expected, SqlRow actual)
-	{
-		bool match = true;
+		string[] expectedValues = new string[expected.Count];
+		string[] actualValues = new string[actual.Count];
 
 		for (int i = 0; i < expected.Count; i++)
 		{
-			var expectedJson = JsonSerializer.Serialize(expected[i], ValueJsonOptions);
-			var actualJson = JsonSerializer.Serialize(actual[i], ValueJsonOptions);
-
-			if (expectedJson != actualJson)
+			if (RowValueText.Write(expected[i], out string? expectedError) is not string expectedValue)
 			{
-				match = false;
+				return NotComparable("expected", columns[i], rowNumber, expected[i], expectedError);
 			}
-		}
-
-		if (!match)
-		{
-			return new ValidationResult
+			if (RowValueText.Write(actual[i], out string? actualError) is not string actualValue)
 			{
-				IsValid = false,
-				Output =
-				$"""
-				Expected values: {ListToSring(expected)}
-				Actual values:   {ListToSring(actual)}
-				"""
-			};
+				return NotComparable("actual", columns[i], rowNumber, actual[i], actualError);
+			}
+
+			expectedValues[i] = expectedValue;
+			actualValues[i] = actualValue;
 		}
 
-		return new ValidationResult { IsValid = true };
+		if (expectedValues.SequenceEqual(actualValues, StringComparer.Ordinal))
+		{
+			return new ValidationResult { IsValid = true };
+		}
+
+		return new ValidationResult
+		{
+			IsValid = false,
+			Output = $"""
+			Data for one or more rows does not match:
+			Columns: {string.Join(",", columns)}
+			[Row {rowNumber}]>
+			Expected values: {string.Join(", ", expectedValues)}
+			Actual values:   {string.Join(", ", actualValues)}
+			"""
+		};
 	}
 
-	private string ListToSring(SqlRow row)
+	private static ValidationResult NotComparable(string side, SqlColumn column, int rowNumber, object value, string? error) => new()
 	{
-		return string.Join(", ", row.Select(i => i is string ? $"'{i}'" : i.ToString()));
-	}
+		IsValid = false,
+		Output = $"""
+		Cannot compare the {side} value of the column '{column.ColumnName}' in row {rowNumber}, of the type {value.GetType()}: {error}
+		Select the value as text in the test.
+		"""
+	};
 }

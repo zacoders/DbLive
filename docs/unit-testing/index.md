@@ -76,13 +76,15 @@ end $$;
 
 ### How values are compared
 
-`rows` compares each value by its JSON representation:
+`rows` compares each value by its JSON representation, and a failed test prints that text: `Expected values: null, 150.00, "test-user"`.
 
 - `int` 10 and `bigint` 10 are equal.
 - `decimal` values must have the same scale: `150.00` is not `150` and not `150.0`. Cast the expected value, for example `cast(150 as decimal(10,2))`.
 - Strings are compared exactly, including case and trailing spaces.
 - Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
-- `NULL` equals `NULL`.
+- `NULL` equals `NULL` and nothing else.
+- PostgreSQL `macaddr`, `macaddr8`, `inet` and `pg_lsn`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The netmask of an `inet` value is not compared: `'192.168.0.1/24'::inet` equals `'192.168.0.1/16'::inet`; select the values as `text` to compare it.
+- A value that cannot be compared fails the test with `Cannot compare the actual value of the column ...`: select it as text in the test.
 - `NaN` and infinity of PostgreSQL `real` and `double precision` equal themselves. A `numeric` `NaN` or infinity cannot be read: cast it to `float8` or `text` in the test.
 - SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: select `.ToString()` of the value instead.
 - Row order matters; use `order by` in the act.

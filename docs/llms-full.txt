@@ -545,11 +545,13 @@ The test script returns result sets. One of them may be the **assert result set*
 
 Assert values are case-insensitive, and spaces around them and around `=` are ignored (`Row-Count = 3` works). An unknown value fails the test with a list of supported values; `row-count` without a number (`row-count`, `row-count=abc`) fails with `Please use row-count=[Number] to assert row count. Example: row-count=10.`
 
-Value comparison in `rows`: each value is serialized to JSON and the strings are compared.
+Value comparison in `rows`: each value is written as JSON (`System.Text.Json`) and the texts are compared. A failed test prints these texts, whatever the culture of the machine: `Expected values: null, 150.00, "test-user", "2026-01-01T00:00:00"` (a string in double quotes, `NULL` as `null`).
 - `int` 10 equals `bigint` 10. `decimal` 150.00 does **not** equal `int` 150 or `decimal` 150.0; the scale must match. Cast expected values: `cast(150 as decimal(10,2))`.
 - Strings are compared exactly (case- and whitespace-sensitive).
 - Dates: compare dates with dates of the same type. A date serializes as `"2026-01-01T00:00:00"`, so `'2026-01-01'` never equals it; cast the expected value to the column's type: `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` value is read as UTC (`...Z`), so it equals only a `timestamptz`: `cast('2026-01-01 00:00:00+00' as timestamptz)`.
-- `NULL` equals `NULL`.
+- `NULL` equals `NULL` and nothing else.
+- Values whose JSON would not show the value are compared by their .NET text (`ToString()`): PostgreSQL `macaddr` and `macaddr8` (`"08002B010203"`), `inet` (`"192.168.0.1"`) and `pg_lsn` (`"16/B374D848"`); SQL Server `geography`, `geometry` and `hierarchyid` read with `Microsoft.SqlServer.Types` (the text of `.ToString()` in T-SQL: `"/1/"`, `"POINT (2 1)"`, which has no SRID). As `rows` compares no types, such a value also equals a string with that text. The netmask of a PostgreSQL `inet` value is not compared: Npgsql reads `inet` without it, so `'192.168.0.1/24'::inet` equals `'192.168.0.1/16'::inet`; select the values as `text` to compare it. `cidr` keeps its prefix.
+- A value that `rows` can write neither as JSON nor as text fails the test: `Cannot compare the actual value of the column 'v' in row 1, of the type <type>: <reason>`, then `Select the value as text in the test.`
 - `NaN`, `Infinity` and `-Infinity` (PostgreSQL `real` and `double precision`, also inside arrays) each equal themselves. They serialize as the strings `"NaN"`, `"Infinity"`, `"-Infinity"`, so in `rows` a `float8` `NaN` also equals the text `'NaN'`; `rows-with-schema` tells them apart. A `numeric` `NaN` or infinity cannot be read: the test fails with `Numeric NaN not supported by System.Decimal` or `Numeric value does not fit in a System.Decimal`; cast the value to `float8` or `text` in the test.
 - SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: the test fails with `Could not load file or assembly 'Microsoft.SqlServer.Types ...'`. Select `.ToString()` of the value instead.
 - Column names must match exactly. SQL Server gives unnamed expressions an empty name, so `select dbo.F(1)` against `select cast('x' as nvarchar(10))` compares fine. PostgreSQL names them (`?column?`, or the function name), so alias both sides explicitly.
@@ -1115,6 +1117,7 @@ select relative_path, item_type, status, applied_utc, verified_utc from dblive.c
 | Test: `Expected N result set(s), but M received.` | A `rows` / `rows-with-schema` test returns more or fewer result sets than it expects, often extra output in Arrange | Remove the extra output, or add the missing expected result set (Section 8.3) |
 | Test: `Numeric NaN not supported by System.Decimal` or `Numeric value does not fit in a System.Decimal` | PostgreSQL: the test reads a `numeric` value that is `NaN` or infinite | Cast the value to `float8` or `text` in the test (Section 8.3) |
 | Test: `Could not load file or assembly 'Microsoft.SqlServer.Types ...'` | SQL Server: the test reads a `geography`, `geometry` or `hierarchyid` value | Select `.ToString()` of the value (Section 8.3) |
+| Test: `Cannot compare the actual value of the column '<column>' in row N, of the type <type>: ...` | `rows` reads a value of a type that it can write neither as JSON nor as text | Select the value as text in the test (Section 8.3) |
 
 ---
 

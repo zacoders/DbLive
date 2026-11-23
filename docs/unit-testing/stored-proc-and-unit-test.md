@@ -77,8 +77,8 @@ Run the tests again. You do not need to run the console app: Test Explorer build
 Data for one or more rows does not match:
 Columns: UserId: int,Name: varchar(9)
 [Row 1]>
-Expected values: 1000, 'test-user'
-Actual values:   1000, 'TEST-USER'
+Expected values: 1000, "test-user"
+Actual values:   1000, "TEST-USER"
 ```
 
 `rows` compares strings exactly, including case ([How values are compared](index.md#how-values-are-compared)). Change it back, and the test passes again.
