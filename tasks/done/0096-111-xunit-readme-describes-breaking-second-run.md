@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-11-23
+closed: 2026-11-23
 ---
 # The README of `DbLive.xunit` describes the removed second run of the breaking scripts
+
+## Release note
+None. A correction of the README of `DbLive.xunit` on NuGet; DbLive behaves as before.
 
 ## Problem
 `src/DbLive.xunit/README.md:6`, the page of the package on NuGet, says of `[SqlDeployFact]`: "It runs every breaking script a second time and compares the schema: a second run must not change it."
@@ -19,5 +23,11 @@ The README tells users that every migration breaking script must survive a secon
 - `src/DbLive.xunit/README.md`
 
 ## Done when
-- [ ] README fixed
-- [ ] The other package READMEs searched for "second time" and "breaking script"
+- [x] README fixed
+- [x] The other package READMEs searched for "second time" and "breaking script"
+
+## Notes
+- The search also covered "second", "twice" and "again" in `src/*/README.md` and the root `README.md`. The README of `DbLive.Templates` says "the release, then the breaking phase twice", which is right. The root `README.md:310` mentions breaking scripts only in the order of the deployment phases.
+
+## Result
+`src/DbLive.xunit/README.md`: the line of `[SqlDeployFact]` says that the second breaking phase runs the breaking scripts of the Code folder, BeforeDeploy and AfterDeploy again, that the migration breaking scripts are applied by then and do not run, and that the schema must not change. The first sentence already names the three deployments, so the fix does not repeat "a second time". No other README changed. No code change, no tests.
