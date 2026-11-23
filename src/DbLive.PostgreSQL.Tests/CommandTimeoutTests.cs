@@ -58,6 +58,24 @@ public class CommandTimeoutTests(PostgreSqlFixture fixture, ITestOutputHelper ou
 	}
 
 	[Fact]
+	public async Task Command_timeout_of_a_setup_file_names_the_setup_file()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "UnitTestItemTimeout": "00:00:01" }""")
+			.AddFile("Tests/Orders/setup.test.sql", "select pg_sleep(10);")
+			.AddFile("Tests/Orders/select.sql", "select 1;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/Orders/select.sql");
+
+		Assert.False(result.IsSuccess);
+		Assert.StartsWith($"Setup file error (Tests/Orders/setup.test.sql): {TimeoutMessage} 00:00:01.", result.ErrorMessage);
+		_ = Assert.IsType<ExecutionTimeoutException>(result.Exception);
+	}
+
+	[Fact]
 	public async Task Code_file_whose_statements_together_run_longer_than_its_timeout_fails()
 	{
 		using TempProject project = new TempProject()

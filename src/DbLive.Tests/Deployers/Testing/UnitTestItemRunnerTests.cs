@@ -338,6 +338,52 @@ public class UnitTestItemRunnerTests
 		Assert.Equal("test error", result.ErrorMessage);
 	}
 
+	[Fact]
+	public async Task RunTest_SetupFileFails_ErrorMessageNamesTheSetupFile()
+	{
+		MockSet mockSet = CreateMockSet();
+		InvalidOperationException setupError = new("setup error");
+		mockSet.DbLiveDA.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(setupError));
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "select-orders.test.sql",
+			FileData = GetFileData("Tests/Orders/select-orders.test.sql"),
+			SetupFileData = GetFileData("Tests/Orders/setup.test.sql")
+		});
+
+		// [SqlFact] fails with ErrorMessage and RunAllTestsAsync logs it: both say that the setup file failed, not the test.
+		Assert.False(result.IsSuccess);
+		Assert.Equal("Setup file error (Tests/Orders/setup.test.sql): setup error", result.ErrorMessage);
+		Assert.StartsWith("ERROR: Setup file error (Tests/Orders/setup.test.sql): setup error", result.Output);
+		Assert.Same(setupError, result.Exception);
+		_ = await mockSet.DbLiveDA.DidNotReceive().ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+	}
+
+	[Fact]
+	public async Task RunTest_TestFileFailsAfterSetup_ErrorMessageIsTheErrorOfTheTest()
+	{
+		MockSet mockSet = CreateMockSet();
+		mockSet.DbLiveDA.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException<List<SqlResult>>(new InvalidOperationException("test error")));
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "select-orders.test.sql",
+			FileData = GetFileData("Tests/Orders/select-orders.test.sql"),
+			SetupFileData = GetFileData("Tests/Orders/setup.test.sql")
+		});
+
+		Assert.False(result.IsSuccess);
+		Assert.Equal("test error", result.ErrorMessage);
+		Assert.StartsWith("ERROR: test error", result.Output);
+	}
+
 	/// <summary>
 	/// The transaction of the test is still open after the test unless a test sets otherwise.
 	/// </summary>

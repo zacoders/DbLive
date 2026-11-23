@@ -95,18 +95,15 @@ internal class UnitTestItemRunner(
 		}
 		catch (Exception ex)
 		{
-			if (test.SetupFileData is not null && !setupFileDeployed)
-			{
-				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR: Setup file error. " + ex.Message + Environment.NewLine + result.Output;
-				result.Exception = ex;
-			}
-			else
-			{
-				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR:" + ex.Message + Environment.NewLine + result.Output;
-				result.Exception = ex;
-			}
+			// ErrorMessage is what [SqlFact] fails with and RunAllTestsAsync logs: it names setup.test.sql when that failed,
+			// also when it ran out of time, otherwise the error reads as one of the test file.
+			string errorMessage = test.SetupFileData is not null && !setupFileDeployed
+				? $"Setup file error ({test.SetupFileData.RelativePath}): {ex.Message}"
+				: ex.Message;
+
+			result.ErrorMessage = errorMessage;
+			result.Output = "ERROR: " + errorMessage + Environment.NewLine + result.Output;
+			result.Exception = ex;
 		}
 		finally
 		{
