@@ -26,7 +26,7 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 - **Unknown properties are rejected**, so a typo fails the deployment instead of being silently ignored.
 - **Trailing commas are not allowed.**
 - Enum values are case-insensitive: `"none"` and `"None"` both work.
-- Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"01:00:00"` or `"1.00:00:00"`.
+- Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"01:00:00"` or `"1.00:00:00"`. **A plain number is days, not seconds**: `"60"` is 60 days, without an error, so write 30 seconds as `"00:00:30"`. Likewise `"02:00"` is 2 hours. A number without quotes (`60`) is an error.
 - A list replaces the default list; it is not merged with it.
 
 An error in the file fails the deployment before anything runs, with `InvalidProjectSettingsException`. The message names the file and gives the error, with the key or the position:
@@ -121,7 +121,7 @@ A settings file applies to its own script only. It follows the same format rules
 |-----|--------|--------|
 | `TransactionWrapLevel` | `Migration`, `None` | `Migration` runs the script in its own transaction; `None` runs it without one. `Deployment` is a project-level value and is rejected here. |
 | `TransactionIsolationLevel` | `ReadCommitted`, `RepeatableRead`, `Serializable`, `Snapshot` | Isolation level of the script's transaction. Without a transaction, DbLive sets it on the connection, and the script's statements run at this level. `Snapshot` is SQL Server only: on PostgreSQL the deployment fails before anything runs. It fits a script that reads and changes data: SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction (Msg 3964). |
-| `Timeout` | time span | Timeout of the script (all its `GO` batches together, see [Timeouts](#timeouts)) and of its transaction. Default: the project `MigrationTimeout`. |
+| `Timeout` | [time span](#file-format) | Timeout of the script (all its `GO` batches together, see [Timeouts](#timeouts)) and of its transaction. Default: the project `MigrationTimeout`. |
 
 Typical use: the migration builds an index online without holding a long transaction on a busy table, while its breaking script, which drops an old column, keeps the default transaction.
 
