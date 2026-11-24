@@ -28,7 +28,7 @@ The `count(*)` example in `README.md` is already fixed. If the log hint is added
 - [x] Docs updated, if the log hint is added
 
 ## Notes
-Making `assert` mandatory was considered and rejected: tests that check with `throw` and smoke tests (`t.select-from-new-tables.sql`, `root.test.sql`) return no assert by design, so every such test would need a dummy assert, and existing user tests would break on upgrade.
+Making `assert` mandatory was considered and rejected: tests that check with `throw` and smoke tests (`t.select-from-new-tables.sql`, `root.test.sql`) return no assert by design, so every such test would need a dummy assert, and existing user tests would break on upgrade. Withdrawn by the maintainer on 2026-11-24: the assert becomes mandatory after 2.0.0, see "Mandatory assert" in `tasks/0099-unit-testing-improvements.md`.
 
 Verified by an experiment before the fix: `asstert` and `Assert` (the column name was compared case-sensitively) both passed with no assertion.
 

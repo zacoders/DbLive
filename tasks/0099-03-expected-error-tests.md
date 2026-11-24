@@ -41,3 +41,4 @@ Not verified yet:
   end catch
   ```
   Still open here: an error that dooms the transaction, PostgreSQL, the docs of the test side.
+- 2026-11-24, decision of the maintainer: the assert becomes mandatory after 2.0.0 ("Mandatory assert" in `0099-unit-testing-improvements.md`). Then a pattern that checks with `throw` ends with the new assert value, or checks the error message with `rows` as the pattern above does.

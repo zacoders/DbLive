@@ -25,3 +25,4 @@ People evaluating DbLive compare it with "Flyway / DbUp / grate for migrations +
 
 ## Notes
 - 2026-11-08: moved from #96 (0096-21) to #99, decision of the maintainer: the page is mostly about tests, and its tSQLt rows follow 0099-01 and 0099-03.
+- 2026-11-24: the assert becomes mandatory after 2.0.0 ("Mandatory assert" in `0099-unit-testing-improvements.md`). If the page is published after that, the assertions row says that every test states its check; check in the tSQLt docs what tSQLt does with a test without an assertion.
