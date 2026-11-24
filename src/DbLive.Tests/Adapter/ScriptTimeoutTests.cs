@@ -50,7 +50,7 @@ public class ScriptTimeoutTests
 	// a timeout of 00:00:00 is no limit.
 	[InlineData("00:00:00", "00:00:00")]
 	[InlineData("00:00:00", "01:00:00")]
-	// longer than the timer of .NET takes: "Timeout": "60" of the item settings is 60 days.
+	// longer than the timer of .NET takes: "Timeout": "60.00:00:00" of the item settings.
 	[InlineData("60.00:00:00", "00:00:00")]
 	public void No_cancel_delay_for_no_limit(string timeout, string elapsed)
 	{

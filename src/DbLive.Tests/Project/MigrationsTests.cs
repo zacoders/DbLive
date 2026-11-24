@@ -367,6 +367,11 @@ public class MigrationsTests
 	[Theory]
 	[InlineData("""{ "TransactionWrapLevel": "Deployment" }""", "Deployment")]
 	[InlineData("""{ "MigrationTimeout": "01:00:00" }""", "MigrationTimeout")]
+	// null is an error for every key: the project value is a missing key.
+	[InlineData("""{ "TransactionWrapLevel": null }""", "The value of 'TransactionWrapLevel' cannot be null. Path: $.TransactionWrapLevel.")]
+	[InlineData("""{ "TransactionIsolationLevel": null }""", "The value of 'TransactionIsolationLevel' cannot be null. Path: $.TransactionIsolationLevel.")]
+	[InlineData("""{ "Timeout": null }""", "The value of 'Timeout' cannot be null. Path: $.Timeout.")]
+	[InlineData("null", "The file cannot be null. Path: $.")]
 	public async Task GetMigrations_throws_when_settings_file_is_invalid(string json, string expectedInMessage)
 	{
 		// Arrange

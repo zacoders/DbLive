@@ -82,6 +82,8 @@ public class SettingsTests
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "Nope" }""", "$.TransactionWrapLevel")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "None", }""", "trailing comma")]
 	[InlineData("Settings.JSON", """{ "TransactionWrapLevel": """, "LineNumber")]
+	// a short form of the .NET TimeSpan format (TimeSpanSettingConverterTests).
+	[InlineData("settings.json", """{ "CodeItemTimeout": "02:00" }""", "'CodeItemTimeout'")]
 	// System.Text.Json takes null for a string or a list, and for an item of a list: DbLive checks the values itself.
 	[InlineData("settings.json", """{ "MigrationsFolder": null }""", "'MigrationsFolder'")]
 	[InlineData("settings.json", """{ "CodeFolder": null }""", "'CodeFolder'")]
@@ -92,6 +94,13 @@ public class SettingsTests
 	[InlineData("settings.json", """{ "TestFilePatterns": [ "*.test.sql", null ] }""", "$.TestFilePatterns[1]")]
 	[InlineData("settings.json", """{ "CodeSubFoldersDeploymentOrder": null }""", "'CodeSubFoldersDeploymentOrder'")]
 	[InlineData("settings.json", """{ "CodeSubFoldersDeploymentOrder": [ null ] }""", "$.CodeSubFoldersDeploymentOrder[0]")]
+	// null is an error for every key: no ID is a missing key.
+	[InlineData("settings.json", """{ "ProjectId": null }""", "The value of 'ProjectId' cannot be null. Path: $.ProjectId.")]
+	// an enum, a number and true/false: the error of System.Text.Json.
+	[InlineData("settings.json", """{ "TransactionWrapLevel": null }""", "$.TransactionWrapLevel")]
+	[InlineData("settings.json", "null", "The file cannot be null. Path: $.")]
+	// an unknown key first: the error of System.Text.Json.
+	[InlineData("settings.json", """{ "MaxCodeDeployRetries": null }""", "could not be mapped")]
 	public async Task LoadSettings_InvalidFile_ErrorNamesFile(string fileName, string json, string expectedDetail)
 	{
 		MockSet mockSet = new();

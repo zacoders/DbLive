@@ -25,7 +25,7 @@ Add `ProjectId` to `settings.json` next to your scripts:
 
 ### ProjectId not set
 
-If `ProjectId` is absent, null, or whitespace, validation is skipped entirely, and every deployment logs a warning:
+If `ProjectId` is absent, empty or whitespace, validation is skipped entirely, and every deployment logs a warning (`"ProjectId": null` is an error of `settings.json`: leave the key out instead):
 
 ```
 [WRN] ProjectId is not set in settings.json, so nothing stops this project from being deployed to the database of another project. Set ProjectId in settings.json, for example "ProjectId": "billing-api-db".

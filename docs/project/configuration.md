@@ -26,9 +26,9 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 - **Unknown properties are rejected**, so a typo fails the deployment instead of being silently ignored.
 - **Trailing commas are not allowed.**
 - Enum values are case-insensitive: `"none"` and `"None"` both work.
-- Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"01:00:00"` or `"1.00:00:00"`. **A plain number is days, not seconds**: `"60"` is 60 days, without an error, so write 30 seconds as `"00:00:30"`. Likewise `"02:00"` is 2 hours. A number without quotes (`60`) is an error.
+- Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"00:00:30"`, `"01:00:00"` or `"1.00:00:00"`; a fraction of a second is allowed (`"00:00:00.5"`), and `"00:00:00"` is no limit. **Every other form is an error**: `"60"` (seconds or days?) and `"02:00"` (hours or minutes?) as well as a number without quotes (`60`), `"24:00:00"` (write `"1.00:00:00"`) and a negative value.
 - A list replaces the default list; it is not merged with it. An empty list is `[]`.
-- **`null` is an error**, for a key (except `ProjectId`, where it means no ID) and for an item of a list. Leave a key out to keep its default.
+- **`null` is an error**, for every key (also `ProjectId`: leave it out for no ID) and for an item of a list. Leave a key out to keep its default.
 - `ProjectId` has at most 128 characters; a longer one is an error.
 
 An error in the file fails the deployment before anything runs, with `InvalidProjectSettingsException`. The message names the file and gives the error, with the key or the position:
@@ -119,7 +119,7 @@ Each migration and breaking script can have its own settings file next to it:
 | `<version>.migration.settings.json` | `<version>.m.s.json`, `<version>.m.settings.json`, `<version>.migration.s.json` | the migration script of that version, whatever its file name |
 | `<version>.breaking.settings.json` | `<version>.b.s.json`, ... | the breaking script of that version |
 
-A settings file applies to its own script only. It follows the same format rules as `settings.json` and accepts three keys; a missing key falls back to the project `settings.json` (or its default), never to another item's file:
+A settings file applies to its own script only. It follows the same format rules as `settings.json` and accepts three keys; a missing key falls back to the project `settings.json` (or its default), never to another item's file. `null` is an error here too: leave the key out for the project value.
 
 | Key | Values | Effect |
 |-----|--------|--------|
@@ -189,5 +189,5 @@ Errors:
 |-----------|-----------|
 | Old name `<version>.settings.json` or `<version>.s.json` | `ObsoleteMigrationSettingsFileException` (the message names the new file) |
 | Settings file without its script, for example `004.breaking.settings.json` without a breaking script | `MigrationSettingsWithoutScriptException` |
-| Unknown key (also the old `MigrationTimeout`), or `"TransactionWrapLevel": "Deployment"` | `InvalidMigrationItemSettingsException` |
+| Unknown key (also the old `MigrationTimeout`), `null`, a `Timeout` that is not a [time span](#file-format) `"hh:mm:ss"` or `"d.hh:mm:ss"`, or `"TransactionWrapLevel": "Deployment"` | `InvalidMigrationItemSettingsException` |
 | Any other `.json` file in `Migrations` | `UnknownMigrationSettingsException` |
