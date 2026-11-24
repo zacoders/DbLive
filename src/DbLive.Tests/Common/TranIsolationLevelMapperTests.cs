@@ -15,6 +15,26 @@ public class TranIsolationLevelMapperTests
 	}
 
 	[Theory]
+	[InlineData(nameof(TranIsolationLevel.ReadCommitted))]
+	[InlineData(nameof(TranIsolationLevel.RepeatableRead))]
+	[InlineData(nameof(TranIsolationLevel.Serializable))]
+	[InlineData(nameof(TranIsolationLevel.Snapshot))]
+	public void FromSystemTransaction_GivesBackTheLevel(string levelName)
+	{
+		TranIsolationLevel level = Enum.Parse<TranIsolationLevel>(levelName);
+		Assert.Equal(level, TranIsolationLevelMapper.FromSystemTransaction(TranIsolationLevelMapper.ToSystemTransaction(level)));
+	}
+
+	[Theory]
+	[InlineData(IsolationLevel.ReadUncommitted)]
+	[InlineData(IsolationLevel.Chaos)]
+	[InlineData(IsolationLevel.Unspecified)]
+	public void FromSystemTransaction_LevelNotOfDbLive_Throws(IsolationLevel level)
+	{
+		_ = Assert.Throws<ArgumentOutOfRangeException>(() => TranIsolationLevelMapper.FromSystemTransaction(level));
+	}
+
+	[Theory]
 	[InlineData(nameof(TranIsolationLevel.ReadCommitted), "read committed")]
 	[InlineData(nameof(TranIsolationLevel.RepeatableRead), "repeatable read")]
 	[InlineData(nameof(TranIsolationLevel.Serializable), "serializable")]

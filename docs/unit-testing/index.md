@@ -118,7 +118,7 @@ Code/
 ```
 
 - It applies to tests in its own folder only, not to subfolders.
-- It runs in the same transaction as the test, before it. Rows it inserts are visible to the test. Session state (temporary tables, variables, `SET` options) is not on SQL Server, where the test runs on a reset session; on PostgreSQL the transaction is one session, and the test sees the temporary tables and settings of the setup. Use permanent tables: they work the same on both providers.
+- It runs in the same transaction as the test, before it. Rows it inserts are visible to the test. Session state (temporary tables, variables, `SET` options) is not on SQL Server, where the test runs on a reset session and DbLive sets the isolation level of the test transaction before the test; on PostgreSQL the transaction is one session, and the test sees the temporary tables and settings of the setup. Use permanent tables: they work the same on both providers.
 - It is never a test itself and never deployed as code, whatever `TestFilePatterns` contains.
 - If it fails, the test does not run and fails with an error that names the setup file: `Setup file error (Tests/Orders/setup.test.sql): <error>`.
 
@@ -342,6 +342,8 @@ await builder.CreateTester().RunAllTestsAsync();
     ```
 
 A plain `drop database` fails while the database is in use, also by the connections that DbLive leaves in the connection pool: `set single_user with rollback immediate` on SQL Server and `with (force)` on PostgreSQL close them. `ClearPool` then removes the closed connections from the pool of the test database; without it, a second run in the same process fails on PostgreSQL with `57P01: terminating connection due to administrator command`. Do not call `ClearAllPools`: it clears the pools of the other tests in the process too.
+
+On SQL Server, C# tests in the same process that connect with the same connection string can get a connection of DbLive from the pool at the isolation level of the last SQL test (`Serializable` by default): SQL Server does not reset the level of a pooled connection. Give DbLive another `Application Name` (see [A deployer](../deployment/index.md#a-deployer)).
 
 Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
 

@@ -12,6 +12,17 @@ internal static class TranIsolationLevelMapper
 			_ => throw new NotSupportedTransactionIsolationLevelException(level)
 		};
 
+	/// <summary>The level of a transaction of DbLive: one that <see cref="ToSystemTransaction"/> gave.</summary>
+	public static TranIsolationLevel FromSystemTransaction(IsolationLevel level)
+		=> level switch
+		{
+			IsolationLevel.ReadCommitted => TranIsolationLevel.ReadCommitted,
+			IsolationLevel.RepeatableRead => TranIsolationLevel.RepeatableRead,
+			IsolationLevel.Serializable => TranIsolationLevel.Serializable,
+			IsolationLevel.Snapshot => TranIsolationLevel.Snapshot,
+			_ => throw new ArgumentOutOfRangeException(nameof(level), level, "Not the isolation level of a transaction of DbLive.")
+		};
+
 	public static string ToSql(TranIsolationLevel level, DbProvider provider)
 	{
 		ValidateForProvider(level, provider);

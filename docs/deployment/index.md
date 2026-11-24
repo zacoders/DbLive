@@ -35,6 +35,9 @@ It reads the scripts embedded in the SQL project assembly, so it deploys exactly
 
 `DeployParameters.Default` does not create the database: create it before the first deployment, or, for a local or test database, deploy with `DeployParameters.Default with { CreateDbIfNotExists = true }`. The settings of a production deployment are collected in [Production](#production).
 
+!!! warning "DbLive in the process of your application (SQL Server)"
+    Run the deployer as a process of its own. When your application deploys its database at startup, or the SQL tests run in the process of C# tests, and both use the same connection string, give DbLive another `Application Name` (`...;Application Name=MyApp.DbLive`). DbLive passes the connection string to SqlClient as it is, so with the same string its connections and the application's share one connection pool, and SQL Server does not reset the transaction isolation level of a connection taken from the pool. A connection that DbLive used last at `Serializable` (the SQL tests by default, a `TransactionIsolationLevel` other than `ReadCommitted`, a script that sets a level of its own) goes back to the pool at that level, and the application's statements and transactions without a level then run at `Serializable` on it: more blocking, more deadlocks. Another `Application Name` is another pool. PostgreSQL is not affected: Npgsql resets the session when a connection goes back to the pool.
+
 ## What a deployment does
 
 Every `DeployAsync` call runs these steps in this order:

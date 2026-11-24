@@ -202,10 +202,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
-			if (Transaction.Current is null)
-			{
-				await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
-			}
+			await SetScriptIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
 			if (ownTransaction)
 			{
 				await ExecuteInOwnTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
@@ -417,9 +414,20 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	private static async Task SetTransactionIsolationLevelAsync(SqlConnection cnn, TranIsolationLevel isolationLevel)
+	/// <summary>
+	/// Sets the isolation level before a script: in a transaction the level of the transaction, without one <paramref name="isolationLevel"/>.
+	/// SQL Server keeps the level of a session when a pooled connection is reused (<c>sp_reset_connection</c> resets the <c>SET</c> options
+	/// and the temporary tables, not the level), also when the next connection of a <c>TransactionScope</c> gets the session of its
+	/// transaction back: without it a script would run at the level a script before it set, <c>setup.test.sql</c> for its test.
+	/// A transaction that began in snapshot goes back to it after a script changed the level.
+	/// </summary>
+	private static async Task SetScriptIsolationLevelAsync(SqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
-		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.MsSql);
+		TranIsolationLevel level = Transaction.Current is { } transaction
+			? TranIsolationLevelMapper.FromSystemTransaction(transaction.IsolationLevel)
+			: isolationLevel;
+
+		string isolationLevelSql = TranIsolationLevelMapper.ToSql(level, DbProvider.MsSql);
 		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
 	}
 
@@ -434,10 +442,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using SqlConnection cnn = GetConnection();
 
 			await cnn.OpenAsync().ConfigureAwait(false);
-			if (Transaction.Current is null)
-			{
-				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
-			}
+			await SetScriptIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 
 			// a SQL test runs in a transaction of DbLive, which it must not end.
 			return Transaction.Current is null
