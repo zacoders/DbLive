@@ -487,14 +487,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e) when (e is not NpgsqlException)
 		{
-			throw new DbLiveSqlException(
-				$"""
-				Cannot read the value of the column '{column.ColumnName}' in row {rowNumber} of result set {resultSetNumber}, of the type {column.DataType}: {e.Message}
-				Select the value as text in the test.
-				""",
-				"",
-				e
-			);
+			throw DbLiveSqlException.CannotReadValue(column, rowNumber, resultSetNumber, e);
 		}
 	}
 

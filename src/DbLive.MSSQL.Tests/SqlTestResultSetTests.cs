@@ -179,4 +179,89 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture fixture, ITestOut
 		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/item.sql");
 		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
+
+	/// <summary>
+	/// DbLive reads every value of every result set, and SqlClient cannot read some of them: a CLR type whose assembly the process cannot
+	/// load (this test project has no Microsoft.SqlServer.Types), a decimal beyond the .NET decimal. The test failed with the error of
+	/// SqlClient alone, which names neither the column nor what to do (0096-170, as 0096-166 on PostgreSQL).
+	/// </summary>
+	[Fact]
+	public async Task Test_that_cannot_read_a_value_names_the_column_and_says_to_select_it_as_text()
+	{
+		const string BeyondDecimal = "cast(99999999999999999999999999999999999999 as decimal(38, 0))";
+		const string BeyondDecimalScale = "cast(0.12345678901234567890123456789012345678 as decimal(38, 38))";
+
+		Dictionary<string, (string Value, string Type)> unreadable = new()
+		{
+			["geography"] = ("geography::Point(1, 2, 4326)", "geography"),
+			["geometry"] = ("geometry::Point(1, 2, 0)", "geometry"),
+			["hierarchyid"] = ("hierarchyid::GetRoot()", "hierarchyid"),
+			["decimal-beyond-decimal"] = (BeyondDecimal, "decimal(38, 0)"),
+			["decimal-beyond-decimal-scale"] = (BeyondDecimalScale, "decimal(38, 38)"),
+			["decimal-beyond-decimal-in-sql-variant"] = ($"cast({BeyondDecimal} as sql_variant)", "sql_variant"),
+		};
+
+		using TempProject project = new TempProject()
+			.AddFile("Tests/second-row.sql", $"""
+				select v from ( values ( cast(1 as decimal(38, 0)) ), ( {BeyondDecimal} ) ) t ( v );
+				""")
+			.AddFile("Tests/expected.sql", """
+				select hierarchyid::GetRoot().ToString() as h;
+
+				select assert = 'rows';
+				select hierarchyid::GetRoot() as h;
+				""")
+			.AddFile("Tests/as-text.sql", $"""
+				select geography::Point(1, 2, 4326).ToString() as geo
+				     , geometry::Point(1, 2, 0).ToString() as geom
+				     , hierarchyid::GetRoot().ToString() as h
+				     , cast({BeyondDecimal} as varchar(40)) as d
+				     , cast({BeyondDecimalScale} as varchar(40)) as ds;
+
+				select assert = 'rows';
+				select 'POINT (2 1)' as geo
+				     , 'POINT (1 2)' as geom
+				     , '/' as h
+				     , '99999999999999999999999999999999999999' as d
+				     , '0.12345678901234567890123456789012345678' as ds;
+				""");
+		foreach ((string name, (string value, _)) in unreadable)
+		{
+			_ = project.AddFile($"Tests/{name}.sql", $"select {value} as v;");
+		}
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		TestRunResult second = await tester.RunTestAsync(Output.WriteLine, "Tests/second-row.sql");
+		Assert.False(second.IsSuccess);
+		Assert.Equal(
+			"""
+			Cannot read the value of the column 'v' in row 2 of result set 1, of the type decimal(38, 0): Conversion overflows.
+			Select the value as text in the test.
+			""".ReplaceLineEndings(),
+			second.ErrorMessage?.ReplaceLineEndings()
+		);
+
+		foreach ((string name, (_, string type)) in unreadable)
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, $"Tests/{name}.sql");
+			Assert.False(result.IsSuccess, name);
+			Assert.StartsWith($"Cannot read the value of the column 'v' in row 1 of result set 1, of the type {type}: ", result.ErrorMessage);
+			Assert.EndsWith("Select the value as text in the test.", result.ErrorMessage?.ReplaceLineEndings());
+		}
+
+		// the error of SqlClient names the assembly to add.
+		TestRunResult geography = await tester.RunTestAsync(Output.WriteLine, "Tests/geography.sql");
+		Assert.Contains(": Could not load file or assembly 'Microsoft.SqlServer.Types, ", geography.ErrorMessage);
+
+		// the result sets of the script are counted, the assert result set too.
+		TestRunResult expected = await tester.RunTestAsync(Output.WriteLine, "Tests/expected.sql");
+		Assert.False(expected.IsSuccess);
+		Assert.StartsWith("Cannot read the value of the column 'h' in row 1 of result set 3, of the type hierarchyid: ", expected.ErrorMessage);
+
+		TestRunResult asText = await tester.RunTestAsync(Output.WriteLine, "Tests/as-text.sql");
+		Assert.True(asText.IsSuccess, asText.ErrorMessage);
+	}
 }

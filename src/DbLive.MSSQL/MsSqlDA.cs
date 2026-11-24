@@ -485,7 +485,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			List<SqlResult> multipleResults = [];
 			do
 			{
-				SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
+				SqlResult? sqlResult = await ReadResultAsync(reader, multipleResults.Count + 1).ConfigureAwait(false);
 				if (sqlResult is not null)
 				{
 					multipleResults.Add(sqlResult);
@@ -501,7 +501,8 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	private static async Task<SqlResult?> ReadResultAsync(SqlDataReader reader)
+	// resultSetNumber: the number of the result set among those of the script, from 1, for the error of a value.
+	private static async Task<SqlResult?> ReadResultAsync(SqlDataReader reader, int resultSetNumber)
 	{
 		DataTable? schemaTable = await reader.GetSchemaTableAsync().ConfigureAwait(false);
 
@@ -522,12 +523,29 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlRow row = [];
 			for (int i = 0; i < reader.FieldCount; i++)
 			{
-				row.Add(reader.GetValue(i));
+				row.Add(ReadValue(reader, i, sqlColumns[i], rows.Count + 1, resultSetNumber));
 			}
 			rows.Add(row);
 		}
 
 		return new SqlResult(sqlColumns, rows);
+	}
+
+	// ReadAsync reads the row whole before its values (no CommandBehavior.SequentialAccess): GetValue of a varchar(max) of 50 MB returned
+	// it after the session was killed, and failed with a SqlException with SequentialAccess or after a synchronous Read (verified with
+	// Microsoft.Data.SqlClient 6.1.4, 0096-170). So an error here is one of the value: a CLR type (geography, geometry, hierarchyid, a type
+	// of the user) whose assembly the process cannot load (FileNotFoundException), a decimal beyond the .NET decimal, also in a sql_variant
+	// (OverflowException). The error of SqlClient names neither the column nor what to do.
+	private static object ReadValue(SqlDataReader reader, int ordinal, SqlColumn column, int rowNumber, int resultSetNumber)
+	{
+		try
+		{
+			return reader.GetValue(ordinal);
+		}
+		catch (Exception e) when (e is not SqlException)
+		{
+			throw DbLiveSqlException.CannotReadValue(column, rowNumber, resultSetNumber, e);
+		}
 	}
 
 	private static SqlColumn GetSqlColumn(DataRow row)
