@@ -465,6 +465,94 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// DbLive reads every value of every result set, and Npgsql cannot read some of them: a composite type, regclass, a numeric NaN.
+	/// The test failed with the error of Npgsql alone, which names neither the column nor what to do (0096-166, 0096-168).
+	/// </summary>
+	[Fact]
+	public async Task Test_that_cannot_read_a_value_names_the_column_and_says_to_select_it_as_text()
+	{
+		Dictionary<string, (string Value, string Type)> unreadable = new()
+		{
+			["composite"] = ("p", "public.pair"),
+			["composite-array"] = ("array[p]", "public.pair[]"),
+			["composite-in-record"] = ("row(1, p)", "record"),
+			["function"] = ("f_pair()", "public.pair"),
+			["table-row"] = ("t", "-.-"),
+			["regclass"] = ("'pg_class'::regclass", "regclass"),
+			["pg-snapshot"] = ("'10:20:10,14'::pg_snapshot", "pg_snapshot"),
+			["numeric-nan"] = ("'NaN'::numeric", "numeric"),
+			["numeric-beyond-decimal"] = ("1e40::numeric", "numeric"),
+			["interval-with-months"] = ("interval '1 month'", "interval"),
+			["date-after-9999"] = ("'10000-01-01'::date", "date"),
+		};
+
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create type pair as (a int, b text);
+				create table t (p pair);
+				insert into t values (row(1, 'x'));
+				create function f_pair() returns pair language sql as $$ select row(1, 'x')::pair $$;
+				""")
+			.AddFile("Tests/expected.sql", """
+				select p::text as p from t;
+				select 'rows' as assert;
+				select row(1, 'x')::pair as p;
+				""")
+			.AddFile("Tests/as-text.sql", """
+				select p::text as p, 'pg_class'::regclass::text as c from t;
+				select 'rows-with-schema' as assert;
+				select '(1,x)' as p, 'pg_class' as c;
+				""")
+			.AddFile("Tests/fields.sql", """
+				select (p).* from t;
+				select 'rows-with-schema' as assert;
+				select 1 as a, 'x' as b;
+				""")
+			.AddFile("Tests/record.sql", """
+				select row((p).*) as p from t;
+				select 'rows-with-schema' as assert;
+				select row(1, 'x') as p;
+				""");
+		foreach ((string name, (string value, _)) in unreadable)
+		{
+			_ = project.AddFile($"Tests/{name}.sql", $"select {value} as v from t;");
+		}
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		TestRunResult composite = await tester.RunTestAsync(Output.WriteLine, "Tests/composite.sql");
+		Assert.False(composite.IsSuccess);
+		Assert.Equal(
+			"""
+			Cannot read the value of the column 'v' in row 1 of result set 1, of the type public.pair: Reading as 'System.Object' is not supported for fields having DataTypeName 'public.pair'
+			Select the value as text in the test.
+			""".ReplaceLineEndings(),
+			composite.ErrorMessage?.ReplaceLineEndings()
+		);
+
+		foreach ((string name, (_, string type)) in unreadable)
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, $"Tests/{name}.sql");
+			Assert.False(result.IsSuccess, name);
+			Assert.StartsWith($"Cannot read the value of the column 'v' in row 1 of result set 1, of the type {type}: ", result.ErrorMessage);
+			Assert.EndsWith("Select the value as text in the test.", result.ErrorMessage?.ReplaceLineEndings());
+		}
+
+		// the result sets of the script are counted, the assert result set too.
+		TestRunResult expected = await tester.RunTestAsync(Output.WriteLine, "Tests/expected.sql");
+		Assert.False(expected.IsSuccess);
+		Assert.StartsWith("Cannot read the value of the column 'p' in row 1 of result set 3, of the type public.pair: ", expected.ErrorMessage);
+
+		foreach (string test in new[] { "Tests/as-text.sql", "Tests/fields.sql", "Tests/record.sql" })
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.True(result.IsSuccess, $"{test}: {result.ErrorMessage}");
+		}
+	}
+
+	/// <summary>
 	/// Npgsql loads the types of the database once for a connection string, when its first connection opens: in a deployment before the
 	/// migrations. Without the reload at the end of the deployment the SQL tests in the process of the deployment failed on an enum, a
 	/// domain and an array of an enum that a migration created, with KeyNotFoundException or InvalidCastException, and so did a read of

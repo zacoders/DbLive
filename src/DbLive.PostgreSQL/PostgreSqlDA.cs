@@ -424,7 +424,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 			do
 			{
-				SqlResult? r = await ReadResultAsync(reader, cancellation.Token).ConfigureAwait(false);
+				SqlResult? r = await ReadResultAsync(reader, results.Count + 1, cancellation.Token).ConfigureAwait(false);
 				if (r is not null)
 				{
 					results.Add(r);
@@ -440,7 +440,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+	// resultSetNumber: the number of the result set among those of the script, from 1, for the error of a value.
+	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader, int resultSetNumber, CancellationToken cancellationToken)
 	{
 		if (!reader.HasRows && reader.FieldCount == 0) return null;
 
@@ -461,12 +462,36 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlRow r = [];
 			for (int i = 0; i < reader.FieldCount; i++)
 			{
-				r.Add(ReadValue(reader, i));
+				r.Add(ReadValue(reader, i, sqlColumns[i], rows.Count + 1, resultSetNumber));
 			}
 			rows.Add(r);
 		}
 
 		return new SqlResult(sqlColumns, rows);
+	}
+
+	// the row is read whole before its values (no CommandBehavior.SequentialAccess), so an error here is one of the value: Npgsql cannot
+	// read its type (a composite type, the row of a table, regclass, pg_snapshot: InvalidCastException; a composite type inside a record:
+	// NotSupportedException), or the value does not fit its .NET type (a numeric NaN, an interval with months, a timestamp after the year
+	// 9999: InvalidCastException; a numeric beyond decimal: OverflowException; a date beyond the years 1 to 9999:
+	// ArgumentOutOfRangeException). The error of Npgsql names neither the column nor what to do (all verified with Npgsql 10.0.1).
+	private static object ReadValue(NpgsqlDataReader reader, int ordinal, SqlColumn column, int rowNumber, int resultSetNumber)
+	{
+		try
+		{
+			return ReadValue(reader, ordinal);
+		}
+		catch (Exception e) when (e is not NpgsqlException)
+		{
+			throw new DbLiveSqlException(
+				$"""
+				Cannot read the value of the column '{column.ColumnName}' in row {rowNumber} of result set {resultSetNumber}, of the type {column.DataType}: {e.Message}
+				Select the value as text in the test.
+				""",
+				"",
+				e
+			);
+		}
 	}
 
 	// Values whose JSON, which rows compares, loses a part of the value are stored as their text:

@@ -7,7 +7,7 @@ closed: 2026-11-24
 # PostgreSQL SQL tests: an `interval` with months, and a `void` function called with `select`
 
 ## Release note
-The docs cover two cases of PostgreSQL SQL tests. An `interval` with months or years cannot be read: the test fails with `Cannot read interval values with non-zero months as TimeSpan ...`, whatever it asserts; cast the value to `text` in the test. A function called with `select` in the Arrange part returns a result set, also a `void` one: `rows`, `row-count=N`, `empty` and `single-row` fail on it, and `has-rows` checks its row and always passes. Call such a function with `perform` in a `do` block: `do $$ begin perform add_user('x'); end $$;`. DbLive behaves as before; nothing to change on upgrade.
+The docs cover two cases of PostgreSQL SQL tests. An `interval` with months or years cannot be read: the test fails with `Cannot read the value of the column ...`, whatever it asserts; cast the value to `text` in the test. A function called with `select` in the Arrange part returns a result set, also a `void` one: `rows`, `row-count=N`, `empty` and `single-row` fail on it, and `has-rows` checks its row and always passes. Call such a function with `perform` in a `do` block: `do $$ begin perform add_user('x'); end $$;`. DbLive behaves as before; nothing to change on upgrade.
 
 ## Problem
 Two cases of PostgreSQL tests that the docs do not cover. Both verified by the review on 2026-11-24 (Npgsql 10.0.1, `postgres:18`).

@@ -34,3 +34,4 @@ Verified on 2026-11-24 with Npgsql 10.0.1 and `postgres:18` (0096-154): `array[1
 
 ## Notes
 - Found in 0096-154: a `path[]` with a NULL element failed the read before `ReadValue` got to it.
+- Since 0096-166 (2026-11-24) the error names the column and ends with `Select the value as text in the test.`: `Cannot read the value of the column 'v' in row 1 of result set 1, of the type integer[]: Cannot read a non-nullable collection ...`. `docs/llms-full.txt` §8.3 and §17 list such an array among the values that cannot be read: take it out there when it is read.
