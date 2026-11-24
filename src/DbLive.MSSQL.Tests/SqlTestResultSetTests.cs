@@ -151,4 +151,32 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture fixture, ITestOut
 			ignoreLineEndingDifferences: true
 		);
 	}
+
+	/// <summary>
+	/// SqlClient keeps no types of the database, so a type that the deployment created needs no reload (0096-165, as on PostgreSQL):
+	/// SQL Server sends an alias type as its base type.
+	/// </summary>
+	[Fact]
+	public async Task Tests_in_the_process_of_the_deployment_read_the_types_it_created()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create type dbo.Code from nvarchar(20) not null;
+				go
+				create table dbo.Item ( Code dbo.Code );
+				insert into dbo.Item ( Code ) values ( N'A1' );
+				""")
+			.AddFile("Tests/item.sql", """
+				select Code from dbo.Item;
+
+				select assert = 'rows-with-schema';
+				select cast(N'A1' as nvarchar(20)) as Code;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/item.sql");
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+	}
 }

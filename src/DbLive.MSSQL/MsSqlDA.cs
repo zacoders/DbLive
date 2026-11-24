@@ -65,6 +65,10 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
+	// nothing to update: SqlClient keeps no types of the database, it takes the types of a result set from the server with each
+	// result set (an alias type comes as its base type).
+	public Task OnDeployedAsync() => Task.CompletedTask;
+
 	/// <summary>
 	/// The parameters of a query from the properties of <paramref name="values"/>, a <see cref="DateTime"/> as <c>datetime2</c>: Dapper
 	/// sends it as <c>datetime</c>, rounded to 1/300 of a second, and the dates of the dblive tables are <c>datetime2(7)</c>. Every query

@@ -105,6 +105,18 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	private NpgsqlConnection CreateConnection() => new(_cnn.ConnectionString);
 
+	// Npgsql loads the types of the database when the first connection of the connection string opens, in a deployment before the
+	// migrations, and keeps them for the process, also with Pooling=false. A column or a value of an enum, a domain or an array of them
+	// that the deployment created then failed to read: KeyNotFoundException from the column schema of a SQL test, InvalidCastException
+	// from the value. The reload on one connection reaches every later connection of the connection string, also a pooled one opened
+	// before it (all verified with Npgsql 10.0.1).
+	public async Task OnDeployedAsync()
+	{
+		using NpgsqlConnection cnn = CreateConnection();
+		await cnn.OpenAsync().ConfigureAwait(false);
+		await cnn.ReloadTypesAsync().ConfigureAwait(false);
+	}
+
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
 		const string query = """

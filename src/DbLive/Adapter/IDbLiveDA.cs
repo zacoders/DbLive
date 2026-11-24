@@ -42,6 +42,14 @@ internal interface IDbLiveDA
 	Task<IAsyncDisposable> AcquireDeploymentLockAsync();
 
 	/// <summary>
+	/// Called after a deployment that succeeded: the deployment changed the schema, and the provider updates what it keeps of it for
+	/// the connections of the process with the connection string. PostgreSQL: Npgsql loads the types of the database once for a
+	/// connection string, when its first connection opens, and does not know a type created after that; this reloads them.
+	/// SQL Server: nothing, SqlClient keeps no types of the database.
+	/// </summary>
+	Task OnDeployedAsync();
+
+	/// <summary>
 	/// Executes a script. In an ambient transaction it fails with <see cref="DbLiveTransactionEndedException"/> when the script ended that
 	/// transaction with COMMIT or ROLLBACK, and what the script ran after the end is rolled back; so do <see cref="ExecuteCodeItemAsync"/>
 	/// and <see cref="ExecuteQueryMultipleAsync"/>, and a code file in a transaction of its own.

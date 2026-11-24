@@ -140,6 +140,42 @@ public class DbLiveTests
 	}
 
 	[Fact]
+	public async Task Data_access_is_told_after_the_project_is_deployed()
+	{
+		// on PostgreSQL it reloads the types: without it the SQL tests in the process of the deployment could not read the enums and
+		// domains that the deployment created (0096-165).
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		await dbLive.DeployAsync(DeployParameters.Breaking);
+
+		Received.InOrder(() =>
+		{
+			mockSet.DbLiveInternalDeployer.DeployAsync(Arg.Any<ProjectSnapshot>(), DeployParameters.Breaking);
+			mockSet.DbLiveDA.OnDeployedAsync();
+			deploymentLock.DisposeAsync();
+		});
+		await mockSet.DbLiveDA.Received(1).OnDeployedAsync();
+	}
+
+	[Fact]
+	public async Task Data_access_is_not_told_when_the_deployment_fails()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveInternalDeployer.DeployAsync(Arg.Any<ProjectSnapshot>(), Arg.Any<DeployParameters>())
+			.Returns(Task.FromException(new InvalidOperationException("migration failed")));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		_ = await Assert.ThrowsAsync<InvalidOperationException>(() => dbLive.DeployAsync(DeployParameters.Default));
+
+		await mockSet.DbLiveDA.DidNotReceive().OnDeployedAsync();
+	}
+
+	[Fact]
 	public async Task Deployment_lock_is_released_when_the_deployment_fails()
 	{
 		MockSet mockSet = new();

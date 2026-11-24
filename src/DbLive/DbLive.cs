@@ -58,6 +58,9 @@ internal class DbLive(
 
 			// Deploy actual project
 			await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
+
+			// for the connections of this process: the SQL tests after the deployment (DbLive.xunit), an application that deploys at its startup.
+			await _da.OnDeployedAsync().ConfigureAwait(false);
 		}
 		finally
 		{

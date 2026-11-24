@@ -1,5 +1,6 @@
 using DbLive.Adapter;
 using DbLive.Testing;
+using Npgsql;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbLive.PostgreSQL.Tests;
@@ -355,5 +356,39 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 			""".ReplaceLineEndings(),
 			otherNetmask.ErrorMessage?.ReplaceLineEndings()
 		);
+	}
+
+	/// <summary>
+	/// Npgsql loads the types of the database once for a connection string, when its first connection opens: in a deployment before the
+	/// migrations. Without the reload at the end of the deployment the SQL tests in the process of the deployment failed on an enum, a
+	/// domain and an array of an enum that a migration created, with KeyNotFoundException or InvalidCastException, and so did a read of
+	/// the application with the same connection string (0096-165).
+	/// </summary>
+	[Fact]
+	public async Task Tests_in_the_process_of_the_deployment_read_the_types_it_created()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create type mood as enum ('sad', 'happy');
+				create domain ts0 as timestamp(0);
+				create table diary (m mood not null, at ts0 not null, past mood[] not null);
+				insert into diary values ('happy', '2026-01-01 10:00:00', array['sad', 'happy']::mood[]);
+				""")
+			.AddFile("Tests/diary.sql", """
+				select m, at, past from diary;
+				select 'rows' as assert;
+				select cast('happy' as mood) as m, cast('2026-01-01 10:00:00' as timestamp) as at, array['sad', 'happy']::mood[] as past;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/diary.sql");
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+
+		await using NpgsqlConnection cnn = new(DbCnnString);
+		await cnn.OpenAsync();
+		await using NpgsqlCommand read = new("select m from diary;", cnn);
+		Assert.Equal("happy", await read.ExecuteScalarAsync());
 	}
 }
