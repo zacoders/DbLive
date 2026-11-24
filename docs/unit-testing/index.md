@@ -83,7 +83,7 @@ end $$;
 - Strings are compared exactly, including case and trailing spaces.
 - Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. The text of a `date` differs by provider: `"2026-01-01T00:00:00"` on SQL Server, `"2026-01-01"` on PostgreSQL, where a `date` therefore never equals a `timestamp` at midnight. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
 - `NULL` equals `NULL` and nothing else.
-- PostgreSQL `macaddr`, `macaddr8`, `inet` and `pg_lsn`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The text of an `inet` value has its netmask: `'192.168.0.1/24'::inet` differs from `'192.168.0.1/16'::inet`.
+- PostgreSQL `macaddr`, `macaddr8`, `inet`, `pg_lsn`, `tsquery`, `tsvector` and `path`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The text of an `inet` value has its netmask: `'192.168.0.1/24'::inet` differs from `'192.168.0.1/16'::inet`. A `tsvector` keeps its positions and weights, and an open `path` differs from the closed one.
 - A value that cannot be compared fails the test with `Cannot compare the actual value of the column ...`: select it as text in the test.
 - `NaN` and infinity of PostgreSQL `real` and `double precision` equal themselves. A `numeric` `NaN` or infinity cannot be read: cast it to `float8` or `text` in the test.
 - A PostgreSQL `interval` with months or years cannot be read: the test fails with `Cannot read interval values with non-zero months as TimeSpan ...`, whatever it asserts. Cast it to `text` in the test.

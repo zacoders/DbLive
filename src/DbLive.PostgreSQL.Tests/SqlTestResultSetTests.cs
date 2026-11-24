@@ -359,6 +359,112 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// The JSON of NpgsqlTsQuery, NpgsqlTsVector and NpgsqlPath loses a part of the value: the operands of a tsquery operator and the
+	/// elements of a tsquery[], the positions and weights of a tsvector, whether a path is open. PostgreSqlDA reads them as their text,
+	/// also in an array (0096-154).
+	/// </summary>
+	[Fact]
+	public async Task Rows_test_compares_text_search_values_and_paths()
+	{
+		const string Values = """
+			select 'a & (b | !c)'::tsquery as q, 'a:*A <2> b'::tsquery as qp, null::tsquery as nq, array['a'::tsquery, 'b & c', null] as qa
+			     , 'a:1A,2B b:3'::tsvector as v, ''::tsvector as ve, null::tsvector as nv, array['a:1'::tsvector, null] as va
+			     , '((0,0),(1,1))'::path as p, '[(0.5,-1),(1e20,2)]'::path as po, null::path as np, array['((0,0),(1,1))'::path] as pa;
+			""";
+
+		using TempProject project = new TempProject()
+			.AddFile("Tests/same.sql", $"""
+				{Values}
+				select 'rows-with-schema' as assert;
+				{Values}
+				""")
+			.AddFile("Tests/other-tsquery.sql", """
+				select 'a & b'::tsquery as q;
+				select 'rows' as assert;
+				select 'a & c'::tsquery as q;
+				""")
+			.AddFile("Tests/other-tsquery-operand.sql", """
+				select 'a <-> (b | c)'::tsquery as q;
+				select 'rows' as assert;
+				select 'a <-> (b | d)'::tsquery as q;
+				""")
+			.AddFile("Tests/other-tsquery-in-array.sql", """
+				select array['b'::tsquery] as qa;
+				select 'rows' as assert;
+				select array['c'::tsquery] as qa;
+				""")
+			.AddFile("Tests/other-tsvector-positions.sql", """
+				select 'a:1 b:2'::tsvector as v;
+				select 'rows' as assert;
+				select 'a:1 b:3'::tsvector as v;
+				""")
+			.AddFile("Tests/other-tsvector-weights.sql", """
+				select 'a:1A'::tsvector as v;
+				select 'rows' as assert;
+				select 'a:1B'::tsvector as v;
+				""")
+			.AddFile("Tests/other-tsvector-in-array.sql", """
+				select array['a:1A'::tsvector] as va;
+				select 'rows' as assert;
+				select array['a:1B'::tsvector] as va;
+				""")
+			.AddFile("Tests/open-against-closed-path.sql", """
+				select '((0,0),(1,1))'::path as p;
+				select 'rows' as assert;
+				select '[(0,0),(1,1)]'::path as p;
+				""")
+			.AddFile("Tests/open-against-closed-path-in-array.sql", """
+				select array['((0,0),(1,1))'::path] as pa;
+				select 'rows' as assert;
+				select array['[(0,0),(1,1)]'::path] as pa;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		TestRunResult same = await tester.RunTestAsync(Output.WriteLine, "Tests/same.sql");
+		Assert.True(same.IsSuccess, same.ErrorMessage);
+
+		foreach (string test in new[]
+		{
+			"Tests/other-tsquery-operand.sql", "Tests/other-tsquery-in-array.sql", "Tests/other-tsvector-positions.sql",
+			"Tests/other-tsvector-weights.sql", "Tests/other-tsvector-in-array.sql", "Tests/open-against-closed-path-in-array.sql"
+		})
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.False(result.IsSuccess, test);
+			Assert.StartsWith("Data for one or more rows does not match:", result.ErrorMessage);
+		}
+
+		TestRunResult otherTsQuery = await tester.RunTestAsync(Output.WriteLine, "Tests/other-tsquery.sql");
+		Assert.False(otherTsQuery.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: q: tsquery
+			[Row 1]>
+			Expected values: "'a' & 'c'"
+			Actual values:   "'a' & 'b'"
+			""".ReplaceLineEndings(),
+			otherTsQuery.ErrorMessage?.ReplaceLineEndings()
+		);
+
+		TestRunResult openAgainstClosed = await tester.RunTestAsync(Output.WriteLine, "Tests/open-against-closed-path.sql");
+		Assert.False(openAgainstClosed.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: p: path
+			[Row 1]>
+			Expected values: "[(0,0),(1,1)]"
+			Actual values:   "((0,0),(1,1))"
+			""".ReplaceLineEndings(),
+			openAgainstClosed.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
 	/// Npgsql loads the types of the database once for a connection string, when its first connection opens: in a deployment before the
 	/// migrations. Without the reload at the end of the deployment the SQL tests in the process of the deployment failed on an enum, a
 	/// domain and an array of an enum that a migration created, with KeyNotFoundException or InvalidCastException, and so did a read of

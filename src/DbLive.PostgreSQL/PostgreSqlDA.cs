@@ -469,14 +469,21 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return new SqlResult(sqlColumns, rows);
 	}
 
-	// Npgsql reads inet as IPAddress, which has no netmask, so rows took '192.168.0.1/24'::inet for '192.168.0.1/16'::inet. NpgsqlInet
-	// keeps it, and its text is the one PostgreSQL shows: '192.168.0.1/24', and '192.168.0.1' for a single host (/32 or /128).
-	// A multidimensional inet[] stays as Npgsql reads it.
+	// Values whose JSON, which rows compares, loses a part of the value are stored as their text:
+	// - Npgsql reads inet as IPAddress, which has no netmask, so rows took '192.168.0.1/24'::inet for '192.168.0.1/16'::inet. NpgsqlInet
+	//   keeps it, and its text is the one PostgreSQL shows: '192.168.0.1/24', and '192.168.0.1' for a single host (/32 or /128).
+	// - tsquery: the JSON writes the operands of an operator, and the elements of tsquery[], by the declared type NpgsqlTsQuery, which
+	//   has only Kind, so 'a & b' equaled 'a & c'. tsvector: the JSON of a lexeme has no positions and weights, so 'a:1A' equaled 'a:2B'.
+	//   path: the JSON is the array of points, without Open, so an open path equaled the closed one (0096-154). The text of Npgsql is the
+	//   one PostgreSQL shows, except the parentheses of a tsquery with nested operators and the exponent of a path point (1E+20).
+	// A multidimensional array stays as Npgsql reads it.
 	private static object ReadValue(NpgsqlDataReader reader, int ordinal) =>
 		reader.GetValue(ordinal) switch
 		{
 			IPAddress => reader.GetFieldValue<NpgsqlInet>(ordinal).ToString(),
 			IPAddress[] => reader.GetFieldValue<NpgsqlInet?[]>(ordinal).Select(inet => inet?.ToString()).ToArray(),
+			(NpgsqlTsQuery or NpgsqlTsVector or NpgsqlPath) and object value => value.ToString()!,
+			(NpgsqlTsQuery[] or NpgsqlTsVector[] or NpgsqlPath[]) and Array values => values.Cast<object?>().Select(v => v?.ToString()).ToArray(),
 			object value => value
 		};
 
