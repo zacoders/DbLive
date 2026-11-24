@@ -45,7 +45,7 @@ A misspelled column (`select asstert = 'rows'`) or a missing alias (`select 'row
 | Assert | Passes when |
 |--------|-------------|
 | `rows` | There are as many actual result sets as expected ones, and each expected result set matches the actual result set at the same position: same column names (case-sensitive, character by character) in the same order, same number of rows, same values row by row. |
-| `rows-with-schema` | Like `rows`, and the SQL column types match as well (for example `nvarchar(255)` vs `nvarchar(100)` fails, and `time(3)` vs `time(7)`; on PostgreSQL `timestamp(0)` vs `timestamp`). PostgreSQL returns the columns of a function without their length and precision (`varchar(50)` as `text`, `timestamp(0)` as `timestamp`), so cast the expected values of a function without them. |
+| `rows-with-schema` | Like `rows`, and the SQL column types match as well (for example `nvarchar(255)` vs `nvarchar(100)` fails, and `time(3)` vs `time(7)`; on PostgreSQL `timestamp(0)` vs `timestamp`). PostgreSQL returns the columns of a function without their length and precision (`varchar(50)` as `text`, `timestamp(0)` as `timestamp`), so cast the expected values of a function without them. A PostgreSQL domain is compared as its base type with the length or precision of the domain (a column of `create domain ts0 as timestamp(0)` is `timestamp(0)`), a SQL Server alias type as its base type. |
 | `has-rows` | The first actual result set has at least one row. |
 | `row-count=N` | There is exactly one actual result set, with exactly N rows. |
 | `empty` | Shortcut for `row-count=0`. |

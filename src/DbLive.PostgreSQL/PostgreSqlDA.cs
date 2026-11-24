@@ -5,7 +5,6 @@ using DbLive.Schema;
 using Npgsql.Schema;
 using NpgsqlTypes;
 using System.Collections.ObjectModel;
-using System.Data;
 using System.Data.Common;
 using System.Net;
 
@@ -106,10 +105,9 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	private NpgsqlConnection CreateConnection() => new(_cnn.ConnectionString);
 
 	// Npgsql loads the types of the database when the first connection of the connection string opens, in a deployment before the
-	// migrations, and keeps them for the process, also with Pooling=false. A column or a value of an enum, a domain or an array of them
-	// that the deployment created then failed to read: KeyNotFoundException from the column schema of a SQL test, InvalidCastException
-	// from the value. The reload on one connection reaches every later connection of the connection string, also a pooled one opened
-	// before it (all verified with Npgsql 10.0.1).
+	// migrations, and keeps them for the process, also with Pooling=false. A value of an enum or an array of them that the deployment
+	// created then failed to read with InvalidCastException (a domain comes as its base type). The reload on one connection reaches every
+	// later connection of the connection string, also a pooled one opened before it (all verified with Npgsql 10.0.1).
 	public async Task OnDeployedAsync()
 	{
 		using NpgsqlConnection cnn = CreateConnection();
@@ -418,7 +416,11 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		try
 		{
-			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo, cancellation.Token).ConfigureAwait(false);
+			// no CommandBehavior.KeyInfo: with it Npgsql reads the type of a table column from pg_attribute, on a connection of its own.
+			// A domain was then named by itself (public.ts0d), while an expression of it, the expected value, has the base type
+			// (timestamp(0)), and a table that the test created or changed had its committed type or none (all verified with Npgsql 10.0.1).
+			// The row description of the server names a domain by its base type and the modifier of the domain, for every column.
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellation.Token).ConfigureAwait(false);
 
 			List<SqlResult> results = [];
 

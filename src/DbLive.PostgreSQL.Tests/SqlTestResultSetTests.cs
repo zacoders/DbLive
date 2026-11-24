@@ -7,8 +7,8 @@ namespace DbLive.PostgreSQL.Tests;
 
 
 /// <summary>
-/// The result sets of a SQL test hold the selected columns only. PostgreSqlDA reads with CommandBehavior.KeyInfo,
-/// and Npgsql does not add key columns to the result set (unlike SqlClient on SQL Server).
+/// The result sets of a SQL test hold the selected columns only. PostgreSqlDA reads without CommandBehavior.KeyInfo, as MsSqlDA does
+/// (with it SqlClient adds the key columns of the table on SQL Server; Npgsql did not, 0096-167).
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper output)
@@ -257,6 +257,97 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 			""".ReplaceLineEndings(),
 			result.ErrorMessage?.ReplaceLineEndings()
 		);
+	}
+
+	/// <summary>
+	/// The server names a domain by its base type and the modifier of the domain, also in an expression of the domain. A table column
+	/// of a domain was named by the domain (public.ts0), so it never passed against an expected value (0096-167).
+	/// </summary>
+	[Fact]
+	public async Task Rows_with_schema_test_compares_a_domain_as_its_base_type()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create type mood as enum ('sad', 'happy');
+				create domain ts0 as timestamp(0);
+				create domain ts0_inner as ts0;
+				create domain code as varchar(10);
+				create domain amount as numeric(10,2);
+				create domain day_mood as mood;
+				create domain ids as int[];
+				create table entries (
+					at ts0 not null, at_inner ts0_inner not null, c code not null, a amount not null, m day_mood not null, i ids not null
+				  , ats ts0[] not null
+				);
+				insert into entries values ('2026-01-01 10:00:00', '2026-01-01 10:00:00', 'A1', 1.5, 'happy', array[1, 2]
+				  , array['2026-01-01 10:00:00'::ts0]);
+				""")
+			.AddFile("Tests/against-the-domains.sql", """
+				select at, at_inner, c, a, m, i, ats from entries;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as ts0) as at, cast('2026-01-01 10:00:00' as ts0_inner) as at_inner
+				     , cast('A1' as code) as c, cast(1.5 as amount) as a, cast('happy' as day_mood) as m, cast(array[1, 2] as ids) as i
+				     , array[cast('2026-01-01 10:00:00' as ts0)] as ats;
+				""")
+			.AddFile("Tests/against-the-base-types.sql", """
+				select at, at_inner, c, a, m, i, ats from entries;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp(0)) as at, cast('2026-01-01 10:00:00' as timestamp(0)) as at_inner
+				     , cast('A1' as varchar(10)) as c, cast(1.5 as numeric(10,2)) as a, cast('happy' as mood) as m, array[1, 2] as i
+				     , array[cast('2026-01-01 10:00:00' as timestamp)] as ats;
+				""")
+			.AddFile("Tests/against-other-types.sql", """
+				select at, c from entries;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp) as at, cast('A1' as text) as c;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		foreach (string test in new[] { "Tests/against-the-domains.sql", "Tests/against-the-base-types.sql" })
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.True(result.IsSuccess, $"{test}: {result.ErrorMessage}");
+		}
+
+		TestRunResult otherTypes = await tester.RunTestAsync(Output.WriteLine, "Tests/against-other-types.sql");
+		Assert.False(otherTypes.IsSuccess);
+		Assert.Equal(
+			"""
+			Columns does not match:
+			Expected columns: at: timestamp, c: text
+			Actual columns:   at: timestamp(0), c: varchar(10)
+			""".ReplaceLineEndings(),
+			otherTypes.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
+	/// The column types are those of the transaction of the test. With CommandBehavior.KeyInfo Npgsql read them on a connection of its
+	/// own, from the committed catalog: a column whose type the test changed to varchar(20) was varchar(10) (0096-167).
+	/// </summary>
+	[Fact]
+	public async Task Rows_with_schema_test_takes_the_column_type_the_test_changed()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table notes (body varchar(10) not null);
+				insert into notes values ('a');
+				""")
+			.AddFile("Tests/changed.sql", """
+				alter table notes alter column body type varchar(20);
+				select body from notes;
+				select 'rows-with-schema' as assert;
+				select cast('a' as varchar(20)) as body;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/changed.sql");
+		Assert.True(result.IsSuccess, result.ErrorMessage);
 	}
 
 	/// <summary>
