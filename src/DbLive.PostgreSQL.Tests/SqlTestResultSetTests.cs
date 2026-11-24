@@ -1,6 +1,8 @@
 using DbLive.Adapter;
+using DbLive.Deployers.Testing;
 using DbLive.Testing;
 using Npgsql;
+using Npgsql.PostgresTypes;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbLive.PostgreSQL.Tests;
@@ -556,6 +558,256 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// Npgsql reads an array of a .NET value type as T[] and failed it when an element was NULL, as array_agg of a nullable column gives:
+	/// "Cannot read a non-nullable collection of elements because the returned array contains nulls." PostgreSqlDA reads it as T?[],
+	/// with null for a NULL element (0096-169).
+	/// </summary>
+	[Fact]
+	public async Task Rows_test_compares_arrays_with_a_NULL_element()
+	{
+		const string Values = """
+			select array[1, null]::int2[] as i2, array[1, null]::int4[] as i4, array[1, null]::int8[] as i8
+			     , array[1.50, null]::numeric[] as n, array[1.5, null, 'NaN', 'Infinity']::float8[] as f8, array[1.5, null]::float4[] as f4
+			     , array[true, null] as b, array[1.5, null]::money[] as m, array[1, null]::oid[] as o, array['int4'::regtype, null] as rt
+			     , array['a', null]::"char"[] as c, array['2026-01-01'::date, null] as d, array['10:00:00.5'::time, null] as t
+			     , array['10:00+03'::timetz, null] as ttz, array['2026-01-01 10:00'::timestamp, null] as ts
+			     , array['2026-01-01 10:00+03'::timestamptz, null] as tstz, array['1 day 02:00'::interval, null] as iv
+			     , array['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid, null] as u, array['(1,2)'::point, null] as pt
+			     , array['((0,0),(1,1))'::box, null] as bx, array['((0,0),(1,1),(1,0))'::polygon, null] as pg
+			     , array['((0,0),(1,1))'::path, null] as pa, array['[1,2)'::int4range, null, 'empty'] as r4
+			     , array['[1.5,2)'::numrange, null] as nr, array['[2026-01-01,2026-02-01)'::daterange, null] as dr
+			     , array['[2026-01-01+00,2026-02-01+00)'::tstzrange, null] as tr, array['192.168.0.0/24'::cidr, null] as ci
+			     , array[null, 1]::int4[] as first_null, array[null]::int4[] as only_null, '[0:1]={1,NULL}'::int4[] as other_bounds;
+			""";
+
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table t (id int not null, m int);
+				insert into t values (1, 10), (2, null), (3, 30);
+				""")
+			.AddFile("Tests/same.sql", $"""
+				{Values}
+				select 'rows-with-schema' as assert;
+				{Values}
+				""")
+			.AddFile("Tests/array-agg.sql", """
+				select array_agg(m order by id) as v from t;
+				select 'rows-with-schema' as assert;
+				select array[10, null, 30] as v;
+				""")
+			.AddFile("Tests/other-element.sql", """
+				select array_agg(m order by id) as v from t;
+				select 'rows' as assert;
+				select array[10, 20, 30] as v;
+				""")
+			.AddFile("Tests/other-null-position.sql", """
+				select array[1, null]::int4[] as v;
+				select 'rows' as assert;
+				select array[null, 1]::int4[] as v;
+				""")
+			.AddFile("Tests/other-numeric-scale.sql", """
+				select array[1.50, null]::numeric[] as v;
+				select 'rows' as assert;
+				select array[1.5, null]::numeric[] as v;
+				""")
+			.AddFile("Tests/other-date.sql", """
+				select array['2026-01-01'::date, null] as v;
+				select 'rows' as assert;
+				select array['2026-01-02'::date, null] as v;
+				""")
+			.AddFile("Tests/other-range.sql", """
+				select array['[1,2)'::int4range, null] as v;
+				select 'rows' as assert;
+				select array['[1,3)'::int4range, null] as v;
+				""")
+			.AddFile("Tests/open-against-closed-path-in-array-with-null.sql", """
+				select array['((0,0),(1,1))'::path, null] as v;
+				select 'rows' as assert;
+				select array['[(0,0),(1,1)]'::path, null] as v;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		foreach (string test in new[] { "Tests/same.sql", "Tests/array-agg.sql" })
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.True(result.IsSuccess, $"{test}: {result.ErrorMessage}");
+		}
+
+		foreach (string test in new[] { "Tests/other-null-position.sql", "Tests/other-numeric-scale.sql", "Tests/other-date.sql", "Tests/other-range.sql" })
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.False(result.IsSuccess, test);
+			Assert.StartsWith("Data for one or more rows does not match:", result.ErrorMessage);
+		}
+
+		TestRunResult otherElement = await tester.RunTestAsync(Output.WriteLine, "Tests/other-element.sql");
+		Assert.False(otherElement.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: v: integer[]
+			[Row 1]>
+			Expected values: [10,20,30]
+			Actual values:   [10,null,30]
+			""".ReplaceLineEndings(),
+			otherElement.ErrorMessage?.ReplaceLineEndings()
+		);
+
+		TestRunResult openAgainstClosed = await tester.RunTestAsync(Output.WriteLine, "Tests/open-against-closed-path-in-array-with-null.sql");
+		Assert.False(openAgainstClosed.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: v: path[]
+			[Row 1]>
+			Expected values: ["[(0,0),(1,1)]",null]
+			Actual values:   ["((0,0),(1,1))",null]
+			""".ReplaceLineEndings(),
+			openAgainstClosed.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
+	/// With Array Nullability Mode=Always in the connection string of the user, Npgsql reads every array of a .NET value type as T?[]: an
+	/// array of path came as NpgsqlPath?[], which PostgreSqlDA did not write as text, so an open path equaled the closed one (0096-169).
+	/// With PerInstance Npgsql cannot read an array of timestamp at all, which the docs say (Npgsql 10.0.1).
+	/// </summary>
+	[Fact]
+	public async Task Rows_test_compares_arrays_with_the_array_nullability_mode_of_the_connection_string()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/same.sql", """
+				select array[1, null]::int4[] as i, array[1, 2]::int4[] as i2, array['((0,0),(1,1))'::path] as p, array['[1,2)'::int4range, null] as r;
+				select 'rows-with-schema' as assert;
+				select array[1, null]::int4[] as i, array[1, 2]::int4[] as i2, array['((0,0),(1,1))'::path] as p, array['[1,2)'::int4range, null] as r;
+				""")
+			.AddFile("Tests/open-against-closed-path-in-array.sql", """
+				select array['((0,0),(1,1))'::path] as v;
+				select 'rows' as assert;
+				select array['[(0,0),(1,1)]'::path] as v;
+				""")
+			.AddFile("Tests/timestamp-array.sql", """
+				select array['2026-01-01 10:00'::timestamp] as v;
+				select 'rows' as assert;
+				select array['2026-01-01 10:00'::timestamp] as v;
+				""");
+
+		foreach (string mode in new[] { "Always", "PerInstance" })
+		{
+			DbLiveBuilder builder = new DbLiveBuilder()
+				.ConfigureServices(s => s.AddXUnitLogger(Output))
+				.PostgreSQL()
+				.SetDbConnection($"{DbCnnString};Array Nullability Mode={mode}")
+				.SetScriptsFolder(project.Path);
+			await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+			IDbLiveTester tester = builder.CreateTester();
+
+			TestRunResult same = await tester.RunTestAsync(Output.WriteLine, "Tests/same.sql");
+			Assert.True(same.IsSuccess, $"{mode}: {same.ErrorMessage}");
+
+			TestRunResult openAgainstClosed = await tester.RunTestAsync(Output.WriteLine, "Tests/open-against-closed-path-in-array.sql");
+			Assert.False(openAgainstClosed.IsSuccess, mode);
+			Assert.EndsWith(
+				"""
+				Expected values: ["[(0,0),(1,1)]"]
+				Actual values:   ["((0,0),(1,1))"]
+				""".ReplaceLineEndings(),
+				openAgainstClosed.ErrorMessage?.ReplaceLineEndings()
+			);
+
+			TestRunResult timestampArray = await tester.RunTestAsync(Output.WriteLine, "Tests/timestamp-array.sql");
+			if (mode == "Always")
+			{
+				Assert.True(timestampArray.IsSuccess, timestampArray.ErrorMessage);
+			}
+			else
+			{
+				// GetColumnSchemaAsync fails, before the values: the error names no column.
+				Assert.False(timestampArray.IsSuccess);
+				Assert.Equal(
+					"A CLR type 'System.Object' was passed but the resolved PgTypeInfo does not have an equal Type: System.Array.",
+					timestampArray.ErrorMessage
+				);
+			}
+		}
+	}
+
+	/// <summary>
+	/// PostgreSqlDA reads an array with a NULL element by a map of the element type to a .NET type (0096-169). The map must give the
+	/// type that Npgsql gives the array without NULL, or an array would have another text with a NULL element than without one: a newer
+	/// Npgsql that reads a type as another .NET type fails this test. Each element type of the map is read here with a NULL element too.
+	/// </summary>
+	[Fact]
+	public async Task Nullable_array_readers_read_the_element_types_of_GetValue()
+	{
+		Dictionary<string, string> elements = new()
+		{
+			["int2"] = "1::int2",
+			["int4"] = "1::int4",
+			["int8"] = "1::int8",
+			["numeric"] = "1.50::numeric",
+			["money"] = "1.5::money",
+			["float4"] = "1.5::float4",
+			["float8"] = "'NaN'::float8",
+			["bool"] = "true",
+			["oid"] = "1::oid",
+			["xid"] = "'1'::xid",
+			["cid"] = "'1'::cid",
+			["regtype"] = "'int4'::regtype",
+			["regconfig"] = "'english'::regconfig",
+			["xid8"] = "'1'::xid8",
+			["char"] = "'a'::\"char\"",
+			["date"] = "'2026-01-01'::date",
+			["time"] = "'10:00:00.5'::time",
+			["timetz"] = "'10:00+03'::timetz",
+			["timestamp"] = "'2026-01-01 10:00'::timestamp",
+			["timestamptz"] = "'2026-01-01 10:00+03'::timestamptz",
+			["interval"] = "'1 day 02:00'::interval",
+			["uuid"] = "'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid",
+			["point"] = "'(1,2)'::point",
+			["lseg"] = "'[(0,0),(1,1)]'::lseg",
+			["box"] = "'((0,0),(1,1))'::box",
+			["line"] = "'{1,2,3}'::line",
+			["circle"] = "'<(0,0),1>'::circle",
+			["path"] = "'[(0,0),(1,1)]'::path",
+			["polygon"] = "'((0,0),(1,1),(1,0))'::polygon",
+			["int4range"] = "'[1,2)'::int4range",
+			["int8range"] = "'[1,2)'::int8range",
+			["numrange"] = "'[1.5,2)'::numrange",
+			["daterange"] = "'[2026-01-01,2026-02-01)'::daterange",
+			["tsrange"] = "'[2026-01-01,infinity)'::tsrange",
+			["tstzrange"] = "'[2026-01-01+00,2026-02-01+00)'::tstzrange",
+			["cidr"] = "'192.168.0.0/24'::cidr",
+		};
+
+		Assert.Equal(elements.Keys.Order(StringComparer.Ordinal), PostgreSqlDA.NullableArrayReaders.Keys.Order(StringComparer.Ordinal));
+
+		await using NpgsqlConnection cnn = new(DbCnnString);
+		await cnn.OpenAsync();
+
+		foreach ((string element, string value) in elements)
+		{
+			await using NpgsqlCommand cmd = new($"select array[{value}] as v, array[{value}, null] as n", cnn);
+			await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
+			Assert.True(await reader.ReadAsync());
+
+			Assert.Equal(element, ((PostgresArrayType)reader.GetPostgresType(0)).Element.InternalName);
+
+			Array withoutNull = (Array)reader.GetValue(0);
+			Array readByMap = PostgreSqlDA.NullableArrayReaders[element](reader, 0);
+			Assert.Equal(withoutNull.GetType().GetElementType(), Nullable.GetUnderlyingType(readByMap.GetType().GetElementType()!));
+			Assert.Equal(RowValueText.Write(withoutNull, out _), RowValueText.Write(readByMap, out _));
+
+			Array withNull = PostgreSqlDA.NullableArrayReaders[element](reader, 1);
+			Assert.Equal(2, withNull.Length);
+			Assert.Null(withNull.GetValue(1));
+		}
+	}
+
+	/// <summary>
 	/// DbLive reads every value of every result set, and Npgsql cannot read some of them: a composite type, regclass, a numeric NaN.
 	/// The test failed with the error of Npgsql alone, which names neither the column nor what to do (0096-166, 0096-168).
 	/// </summary>
@@ -575,11 +827,16 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 			["numeric-beyond-decimal"] = ("1e40::numeric", "numeric"),
 			["interval-with-months"] = ("interval '1 month'", "interval"),
 			["date-after-9999"] = ("'10000-01-01'::date", "date"),
+			["two-dimensional-array-with-null"] = ("array[[1, null], [3, 4]]", "integer[]"),
+			["own-range-array-with-null"] = ("array['[1,2)'::floatrange, null]", "public.floatrange[]"),
+			["tid-array"] = ("array['(0,1)'::tid]", "tid[]"),
+			["pg-lsn-array"] = ("array['16/B374D848'::pg_lsn]", "pg_lsn[]"),
 		};
 
 		using TempProject project = new TempProject()
 			.AddFile("Migrations/001.migration.sql", """
 				create type pair as (a int, b text);
+				create type floatrange as range (subtype = float8);
 				create table t (p pair);
 				insert into t values (row(1, 'x'));
 				create function f_pair() returns pair language sql as $$ select row(1, 'x')::pair $$;

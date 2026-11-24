@@ -2,11 +2,13 @@ using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
+using Npgsql.PostgresTypes;
 using Npgsql.Schema;
 using NpgsqlTypes;
 using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Net;
+using System.Runtime.ExceptionServices;
 
 namespace DbLive.PostgreSQL;
 
@@ -503,16 +505,92 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	//   has only Kind, so 'a & b' equaled 'a & c'. tsvector: the JSON of a lexeme has no positions and weights, so 'a:1A' equaled 'a:2B'.
 	//   path: the JSON is the array of points, without Open, so an open path equaled the closed one (0096-154). The text of Npgsql is the
 	//   one PostgreSQL shows, except the parentheses of a tsquery with nested operators and the exponent of a path point (1E+20).
-	// A multidimensional array stays as Npgsql reads it.
+	// A multidimensional array stays as Npgsql reads it. An array of path is NpgsqlPath?[] when it has a NULL element (GetValue) or when
+	// the connection string of the user has Array Nullability Mode=Always or PerInstance.
 	private static object ReadValue(NpgsqlDataReader reader, int ordinal) =>
-		reader.GetValue(ordinal) switch
+		GetValue(reader, ordinal) switch
 		{
 			IPAddress => reader.GetFieldValue<NpgsqlInet>(ordinal).ToString(),
 			IPAddress[] => reader.GetFieldValue<NpgsqlInet?[]>(ordinal).Select(inet => inet?.ToString()).ToArray(),
 			(NpgsqlTsQuery or NpgsqlTsVector or NpgsqlPath) and object value => value.ToString()!,
-			(NpgsqlTsQuery[] or NpgsqlTsVector[] or NpgsqlPath[]) and Array values => values.Cast<object?>().Select(v => v?.ToString()).ToArray(),
+			(NpgsqlTsQuery[] or NpgsqlTsVector[] or NpgsqlPath[] or NpgsqlPath?[]) and Array values =>
+				values.Cast<object?>().Select(v => v?.ToString()).ToArray(),
 			object value => value
 		};
+
+	// Npgsql reads an array of a .NET value type as T[], and fails it when an element is NULL: "Cannot read a non-nullable collection
+	// of elements because the returned array contains nulls." (array_agg of a nullable column). Such an array is read as T?[]: the text of
+	// rows is the same as of T[], with null for a NULL element ([1,null]). Npgsql names no element type (GetFieldType of an array is
+	// System.Array), so T comes from the name of the element. A multidimensional array fails GetFieldValue<T?[]>, also without NULL,
+	// so GetValue goes first, and its error stays when the second read fails too (all verified with Npgsql 10.0.1, 0096-169).
+	private static object GetValue(NpgsqlDataReader reader, int ordinal)
+	{
+		try
+		{
+			return reader.GetValue(ordinal);
+		}
+		catch (InvalidCastException e) when (reader.GetPostgresType(ordinal) is PostgresArrayType arrayType
+			&& NullableArrayReaders.TryGetValue(arrayType.Element.InternalName, out Func<NpgsqlDataReader, int, Array>? read))
+		{
+			try
+			{
+				return read(reader, ordinal);
+			}
+			catch (InvalidCastException)
+			{
+				ExceptionDispatchInfo.Throw(e); // the error of GetValue, with its stack trace
+				throw; // not reached
+			}
+		}
+	}
+
+	/// <summary>
+	/// The readers of an array with NULL elements by the internal name of its element: the built-in PostgreSQL types that Npgsql reads as
+	/// a .NET value type, each as the type that <c>GetValue</c> gives its array without NULL. A test checks it for each element.
+	/// </summary>
+	internal static readonly IReadOnlyDictionary<string, Func<NpgsqlDataReader, int, Array>> NullableArrayReaders =
+		new Dictionary<string, Func<NpgsqlDataReader, int, Array>>
+		{
+			["int2"] = ReadNullableArray<short>,
+			["int4"] = ReadNullableArray<int>,
+			["int8"] = ReadNullableArray<long>,
+			["numeric"] = ReadNullableArray<decimal>,
+			["money"] = ReadNullableArray<decimal>,
+			["float4"] = ReadNullableArray<float>,
+			["float8"] = ReadNullableArray<double>,
+			["bool"] = ReadNullableArray<bool>,
+			["oid"] = ReadNullableArray<uint>,
+			["xid"] = ReadNullableArray<uint>,
+			["cid"] = ReadNullableArray<uint>,
+			["regtype"] = ReadNullableArray<uint>,
+			["regconfig"] = ReadNullableArray<uint>,
+			["xid8"] = ReadNullableArray<ulong>,
+			["char"] = ReadNullableArray<char>,
+			["date"] = ReadNullableArray<DateOnly>,
+			["time"] = ReadNullableArray<TimeOnly>,
+			["timetz"] = ReadNullableArray<DateTimeOffset>,
+			["timestamp"] = ReadNullableArray<DateTime>,
+			["timestamptz"] = ReadNullableArray<DateTime>,
+			["interval"] = ReadNullableArray<TimeSpan>,
+			["uuid"] = ReadNullableArray<Guid>,
+			["point"] = ReadNullableArray<NpgsqlPoint>,
+			["lseg"] = ReadNullableArray<NpgsqlLSeg>,
+			["box"] = ReadNullableArray<NpgsqlBox>,
+			["line"] = ReadNullableArray<NpgsqlLine>,
+			["circle"] = ReadNullableArray<NpgsqlCircle>,
+			["path"] = ReadNullableArray<NpgsqlPath>,
+			["polygon"] = ReadNullableArray<NpgsqlPolygon>,
+			["int4range"] = ReadNullableArray<NpgsqlRange<int>>,
+			["int8range"] = ReadNullableArray<NpgsqlRange<long>>,
+			["numrange"] = ReadNullableArray<NpgsqlRange<decimal>>,
+			["daterange"] = ReadNullableArray<NpgsqlRange<DateOnly>>,
+			["tsrange"] = ReadNullableArray<NpgsqlRange<DateTime>>,
+			["tstzrange"] = ReadNullableArray<NpgsqlRange<DateTime>>,
+			["cidr"] = ReadNullableArray<IPNetwork>,
+		};
+
+	private static Array ReadNullableArray<T>(NpgsqlDataReader reader, int ordinal) where T : struct =>
+		reader.GetFieldValue<T?[]>(ordinal);
 
 	private static string GetPostgresTypeName(DbColumn colraw)
 	{
