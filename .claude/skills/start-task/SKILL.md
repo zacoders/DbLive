@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Start work on a task from tasks/ - read it with its context, summarize it, check with an experiment that the problem is real, and propose ways to solve it, without changing the code. Use when the maintainer starts a task or asks to look at one, and no approach is chosen yet.
+description: Start work on a task from tasks/ - read it with its context, summarize it, check that the problem is real (with an experiment, unless the task already records one), and propose ways to solve it, without changing the code. Use when the maintainer starts a task or asks to look at one, and no approach is chosen yet.
 argument-hint: <task number or file, e.g. 0096-165>
 ---
 
@@ -22,8 +22,9 @@ Five sentences at most, in your own words: what is wrong or missing, who meets i
 
 ## 3. Check that the problem is real
 
-- Reproduce a bug or a claim about behavior on a real server, not from reading the code, unless the task already marks it verified and the code did not change since. For SQL behavior: a temporary test class in `DbLive.MSSQL.Tests` or `DbLive.PostgreSQL.Tests` (Docker), removed after. For anything else: a scratch script or project outside the repo.
-- Write the result to `## Notes`: what you ran, on which versions (server, Npgsql or SqlClient), the outcome, marked verified with the date. Also what you ruled out.
+- First look for a reproduction in the task: a claim marked verified, with its date and what was run (often in `## Problem`, written when the task was filed). Do not run it again. Check only that the code it rests on did not change since that date (`git log --since=<date> -- <the files under ## Where>`), and say in the summary that the reproduction comes from the task. Reproduce only what it does not cover: a claim not marked verified, or code changed since.
+- Otherwise reproduce a bug or a claim about behavior on a real server, not from reading the code. For SQL behavior: a temporary test class in `DbLive.MSSQL.Tests` or `DbLive.PostgreSQL.Tests` (Docker), removed after. For anything else: a scratch script or project outside the repo.
+- Write what you ran to `## Notes`: on which versions (server, Npgsql or SqlClient), the outcome, marked verified with the date. Also what you ruled out.
 - When it does not reproduce, say so and ask whether to close or reject the task: only the maintainer rejects.
 - Say how often a user meets it and how bad it is. When it needs an operator mistake, say that first.
 
