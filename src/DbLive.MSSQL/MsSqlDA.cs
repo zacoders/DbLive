@@ -55,6 +55,14 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	public int? MaxFolderItemPathLength => (MaxClusteredKeyBytes - Enum.GetNames<ProjectFolder>().Max(name => name.Length)) / 2;
 
+	public void CheckConnectionString()
+	{
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+
+		if (!builder.Pooling) throw ConnectionStringNotSupported.Pooling();
+		if (!builder.Enlist) throw ConnectionStringNotSupported.Enlist();
+	}
+
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
 
 	/// <summary>

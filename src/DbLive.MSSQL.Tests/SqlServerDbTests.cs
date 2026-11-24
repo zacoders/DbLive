@@ -59,6 +59,34 @@ public abstract class SqlServerDbTests(
 
 	protected DbLiveBuilder CreateBuilder(TempProject project) => CreateBuilder().SetScriptsFolder(project.Path);
 
+	/// <summary>
+	/// Drops a login of the test, whose pooled connections are idle in the pools of its connection strings: an open connection of the
+	/// login blocks <c>drop login</c>, so its sessions are killed first. Not <c>SqlConnection.ClearAllPools()</c>: it also clears the pools
+	/// of the tests running in parallel, and the next connection of their transactions is promoted to a distributed transaction.
+	/// <c>kill</c> does not wait for the session to end: a killed session can stay in <c>sys.dm_exec_sessions</c> for a moment, and
+	/// <c>drop login</c> then fails with "Could not drop login ... as the user is currently logged in".
+	/// </summary>
+	protected async Task DropLoginAsync(string login)
+	{
+		await using SqlConnection cnn = new(Fixture.MasterDbConnectionString);
+		await cnn.OpenAsync();
+		await using SqlCommand cmd = new($"""
+			declare @sql nvarchar(max) = (
+				select string_agg(concat('kill ', session_id, ';'), ' ')
+				from sys.dm_exec_sessions
+				where login_name = '{login}'
+			);
+			exec sys.sp_executesql @sql;
+
+			declare @deadline datetime2 = dateadd(second, 10, sysutcdatetime());
+			while exists (select * from sys.dm_exec_sessions where login_name = '{login}') and sysutcdatetime() < @deadline
+				waitfor delay '00:00:00.100';
+
+			drop login [{login}];
+			""", cnn);
+		_ = await cmd.ExecuteNonQueryAsync();
+	}
+
 	protected async Task<bool> DbExistsAsync()
 	{
 		await using SqlConnection cnn = new(Fixture.MasterDbConnectionString);

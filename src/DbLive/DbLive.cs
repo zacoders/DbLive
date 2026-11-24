@@ -18,8 +18,11 @@ internal class DbLive(
 	{
 		_logger.Information("Starting deployment.");
 
-		// first: an error of the project leaves the server as it was. The self-migrations below cannot be undone, and after them
-		// an older DbLive may no longer deploy the database; a database created here would stay empty.
+		// Pooling=False (SQL Server) or Enlist=False: every deployment would fail, under an error of the provider that does not name it.
+		_da.CheckConnectionString();
+
+		// before the server: an error of the project leaves the server as it was. The self-migrations below cannot be undone, and
+		// after them an older DbLive may no longer deploy the database; a database created here would stay empty.
 		ProjectSnapshot project = await _projectLoader.LoadAsync().ConfigureAwait(false);
 
 		if (parameters.RecreateDatabase)

@@ -235,10 +235,27 @@ public class DbLiveTests
 		_ = await Assert.ThrowsAsync<UndoNotSupportedException>(() => dbLive.DeployAsync(parameters));
 
 		// no database is created or recreated, and the self-migrations do not run: an older DbLive can still deploy the database.
-		Assert.Empty(mockSet.DbLiveDA.ReceivedCalls());
+		// Only the check of the connection string ran, which does not connect.
+		Assert.Equal([nameof(IDbLiveDA.CheckConnectionString)], mockSet.DbLiveDA.ReceivedCalls().Select(call => call.GetMethodInfo().Name));
 		Assert.Empty(mockSet.ProjectIdValidator.ReceivedCalls());
 		Assert.Empty(mockSet.DbLiveSelfDeployer.ReceivedCalls());
 		Assert.Empty(mockSet.DbLiveInternalDeployer.ReceivedCalls());
+	}
+
+	[Fact]
+	public async Task Unsupported_connection_string_stops_the_deployment_before_anything_else()
+	{
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.When(da => da.CheckConnectionString()).Do(_ => throw ConnectionStringNotSupported.Pooling());
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		NotSupportedException ex = await Assert.ThrowsAsync<NotSupportedException>(() => dbLive.DeployAsync(DeployParameters.Default));
+
+		Assert.Equal(ConnectionStringNotSupported.Pooling().Message, ex.Message);
+		Assert.Equal([nameof(IDbLiveDA.CheckConnectionString)], mockSet.DbLiveDA.ReceivedCalls().Select(call => call.GetMethodInfo().Name));
+		Assert.Empty(mockSet.ProjectLoader.ReceivedCalls());
+		Assert.Empty(mockSet.DbLiveSelfDeployer.ReceivedCalls());
 	}
 
 	public static TheoryData<DeployParameters> AllDeployParameters() =>

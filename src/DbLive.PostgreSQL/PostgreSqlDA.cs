@@ -97,6 +97,12 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(sql).ConfigureAwait(false);
 	}
 
+	// Pooling=false works: Npgsql keeps the connection of a transaction for the next connection opened in it (verified).
+	public void CheckConnectionString()
+	{
+		if (!new NpgsqlConnectionStringBuilder(_cnn.ConnectionString).Enlist) throw ConnectionStringNotSupported.Enlist();
+	}
+
 	private NpgsqlConnection CreateConnection() => new(_cnn.ConnectionString);
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()

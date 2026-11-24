@@ -104,32 +104,10 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture fixture
 		return login;
 	}
 
-	// pooled: without pooling every connection in a TransactionScope of DbLive is a new one, and the transaction is promoted
-	// to a distributed one. The pools of the login are never used again, so DropLoginAsync kills their connections.
+	// pooled: DbLive does not support Pooling=False on SQL Server (ConnectionStringNotSupported). The pools of the login are never
+	// used again, so DropLoginAsync kills their connections.
 	private string LoginCnnString(string login) =>
 		new SqlConnectionStringBuilder(DbCnnString) { UserID = login, Password = Password }.ConnectionString;
-
-	// an open connection of the login blocks 'drop login'. SqlConnection.ClearAllPools() would also clear the pools
-	// of tests running in parallel (see MissingDatabaseTests).
-	// kill does not wait for the session to end: a killed session can stay in sys.dm_exec_sessions for a moment, and
-	// 'drop login' then fails with "Could not drop login ... as the user is currently logged in".
-	private async Task DropLoginAsync(string login)
-	{
-		await ExecuteAsync(Fixture.MasterDbConnectionString, $"""
-			declare @sql nvarchar(max) = (
-				select string_agg(concat('kill ', session_id, ';'), ' ')
-				from sys.dm_exec_sessions
-				where login_name = '{login}'
-			);
-			exec sys.sp_executesql @sql;
-
-			declare @deadline datetime2 = dateadd(second, 10, sysutcdatetime());
-			while exists (select * from sys.dm_exec_sessions where login_name = '{login}') and sysutcdatetime() < @deadline
-				waitfor delay '00:00:00.100';
-
-			drop login [{login}];
-			""");
-	}
 
 	private static async Task ExecuteAsync(string cnnString, string sql)
 	{

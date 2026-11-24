@@ -345,8 +345,9 @@ A plain `drop database` fails while the database is in use, also by the connecti
 
 On SQL Server, C# tests in the same process that connect with the same connection string can get a connection of DbLive from the pool at the isolation level of the last SQL test (`Serializable` by default): SQL Server does not reset the level of a pooled connection. Give DbLive another `Application Name` (see [A deployer](../deployment/index.md#a-deployer)).
 
-Before the first test, `RunAllTestsAsync` checks the database and runs no test if a check fails:
+Before the first test, `RunAllTestsAsync` checks the connection string and the database, and runs no test if a check fails:
 
+- Connection pooling and enlistment are on, as by default. Otherwise `NotSupportedException` before any connection (see [A deployer](../deployment/index.md#a-deployer)).
 - The database exists. Otherwise `DatabaseNotFoundException`, which names the database and the server.
 - The DbLive tables exist. Otherwise `DatabaseNotDeployedException`: the project was never deployed there, or the connection string points to another database.
 - The database does not require a newer DbLive. Otherwise `DatabaseRequiresNewerDbLiveException`: a newer DbLive has deployed it (see [The DbLive version a database requires](../deployment/index.md#the-dblive-version-a-database-requires)).

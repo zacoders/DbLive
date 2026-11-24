@@ -21,6 +21,9 @@ internal class DbLiveTester(
 
 	public async Task RunAllTestsAsync()
 	{
+		// Pooling=False (SQL Server) or Enlist=False: every test would fail, under an error of the provider that does not name it.
+		_da.CheckConnectionString();
+
 		await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);
 
 		// a database without the DbLive tables was never deployed, and the check of the ProjectId reads dblive.version.
