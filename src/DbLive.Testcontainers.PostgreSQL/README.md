@@ -1,6 +1,6 @@
 # DbLive.Testcontainers.PostgreSQL
 
-Runs the SQL tests of a [DbLive](https://github.com/zacoders/DbLive) project against PostgreSQL in Docker. `PostgreSqlContainerFixtureBuilder` starts one container per test run with [Testcontainers](https://dotnet.testcontainers.org/) and gives every test fixture a new database with a random name. It brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; Docker must be running.
+Runs the SQL tests of a [DbLive](https://github.com/zacoders/DbLive) project against PostgreSQL in Docker. `PostgreSqlContainerFixtureBuilder` starts one container per test process with [Testcontainers](https://dotnet.testcontainers.org/) and gives every test fixture a new database with a random name. It brings `DbLive.PostgreSQL` and `Testcontainers.PostgreSql`; Docker must be running.
 
 ```csharp
 using DbLive.PostgreSQL;
@@ -12,7 +12,7 @@ public class MyDbTestFixture()
 ```
 
 - The image is `postgres:18` unless you pass another one: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`.
-- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
+- The fixtures of a test process share its container; the ones that start at the same time wait for its start. `dotnet test` runs each test project in a process of its own, with a container of its own. Testcontainers removes the container when the process ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
 - Without Docker, use `PostgreSqlFixtureBuilder` from `DbLive.PostgreSQL` with a connection string to your server.
 
 - Unit testing guide: https://zacoders.github.io/DbLive/unit-testing/

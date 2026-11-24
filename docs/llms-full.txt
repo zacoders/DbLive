@@ -857,7 +857,7 @@ Ready-made implementations; each takes the SQL project assembly and gives every 
 
 The default image is not a public constant. A new major version of the database engine in it is a breaking change and comes only in a major DbLive release; an update within the same major version is not ([Versioning](https://zacoders.github.io/DbLive/versioning/)). Pass the image to stay on one version.
 
-Container builders: one container per image per test process, started by the first `GetBuilderAsync` call; concurrent calls wait for that start and share the container. A failed start is not retried: every fixture of the run fails with its exception (Docker not running, image not found). The container is not stopped by DbLive; the Testcontainers resource reaper (Ryuk) removes it when the test process ends. With `TESTCONTAINERS_RYUK_DISABLED=true`, which some CI runners set, nothing removes it: it runs until the runner or a script removes it.
+Container builders: one container per image per test process, started by the first `GetBuilderAsync` call; concurrent calls wait for that start and share the container. `dotnet test` runs each test project in a process of its own, so two test projects start two containers. A failed start is not retried: every fixture of the process fails with its exception (Docker not running, image not found). The container is not stopped by DbLive; the Testcontainers resource reaper (Ryuk) removes it when the test process ends. With `TESTCONTAINERS_RYUK_DISABLED=true`, which some CI runners set, nothing removes it: it runs until the runner or a script removes it.
 
 ---
 

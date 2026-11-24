@@ -5,8 +5,9 @@ namespace DbLive.PostgreSQL;
 
 /// <summary>
 /// Gives every test fixture a new database with a random name (<c>dblive--&lt;guid&gt;</c>) on PostgreSQL in Docker.
-/// One container per image per test run: the first fixture starts it, the others wait for that start and share the
-/// container. Testcontainers removes the container when the test run ends.
+/// One container per image per test process: the first fixture starts it, the others wait for that start and share the
+/// container. <c>dotnet test</c> runs each test project in a process of its own, with a container of its own. Testcontainers
+/// removes the container when the test process ends.
 /// </summary>
 /// <param name="project">The SQL project assembly.</param>
 /// <param name="image">The PostgreSQL image.</param>
@@ -33,7 +34,7 @@ public sealed class PostgreSqlContainerFixtureBuilder(Assembly project, string i
 	/// <summary>
 	/// A new builder for a new database in the container of the image. The first call starts the container; concurrent calls wait
 	/// for that start. A failed start, such as Docker not running or an image not found, is not retried: every call of the
-	/// test run gets its exception.
+	/// test process gets its exception.
 	/// </summary>
 	public async Task<DbLiveBuilder> GetBuilderAsync()
 	{

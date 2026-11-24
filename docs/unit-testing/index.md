@@ -215,7 +215,7 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 ```
 
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
-- The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`, set on some CI runners). Docker must be running.
+- The container builders start one container per test process with [Testcontainers](https://dotnet.testcontainers.org/): `dotnet test` runs each test project in a process of its own, with a container of its own. The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the process ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`, set on some CI runners). Docker must be running.
 - The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`. A new major version of the database engine in them comes only in a major DbLive release (see [Versioning](../versioning.md)). Pass another image as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
 - For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture or the deployment test disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 
@@ -276,7 +276,7 @@ await builder.CreateTester().RunAllTestsAsync();
 
 DbLive does not drop a test database without xUnit: only the xUnit fixtures do.
 
-**In Docker.** A container [fixture builder](#1-a-fixture-builder) gives the test a new database; it does not exist yet, so the deployment creates it. There is nothing to drop: Testcontainers removes the container when the test run ends.
+**In Docker.** A container [fixture builder](#1-a-fixture-builder) gives the test a new database; it does not exist yet, so the deployment creates it. There is nothing to drop: Testcontainers removes the container when the process ends.
 
 ```csharp
 await using DbLiveBuilder builder = await new MsSqlContainerFixtureBuilder(typeof(MyDbMarker).Assembly).GetBuilderAsync();

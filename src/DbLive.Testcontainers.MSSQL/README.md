@@ -1,6 +1,6 @@
 # DbLive.Testcontainers.MSSQL
 
-Runs the SQL tests of a [DbLive](https://github.com/zacoders/DbLive) project against SQL Server in Docker. `MsSqlContainerFixtureBuilder` starts one container per test run with [Testcontainers](https://dotnet.testcontainers.org/) and gives every test fixture a new database with a random name. It brings `DbLive.MSSQL` and `Testcontainers.MsSql`; Docker must be running.
+Runs the SQL tests of a [DbLive](https://github.com/zacoders/DbLive) project against SQL Server in Docker. `MsSqlContainerFixtureBuilder` starts one container per test process with [Testcontainers](https://dotnet.testcontainers.org/) and gives every test fixture a new database with a random name. It brings `DbLive.MSSQL` and `Testcontainers.MsSql`; Docker must be running.
 
 ```csharp
 using DbLive.MSSQL;
@@ -12,7 +12,7 @@ public class MyDbTestFixture()
 ```
 
 - The image is `mcr.microsoft.com/mssql/server:2025-latest` unless you pass another one: `new MsSqlContainerFixtureBuilder(project, "mcr.microsoft.com/mssql/server:2022-latest")`.
-- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
+- The fixtures of a test process share its container; the ones that start at the same time wait for its start. `dotnet test` runs each test project in a process of its own, with a container of its own. Testcontainers removes the container when the process ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
 - Without Docker, use `MsSqlFixtureBuilder` from `DbLive.MSSQL` with a connection string to your server.
 
 - Unit testing guide: https://zacoders.github.io/DbLive/unit-testing/

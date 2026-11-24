@@ -16,6 +16,8 @@ public interface IDbLive
 	/// </summary>
 	/// <param name="parameters">What to deploy: <see cref="DeployParameters.Default"/> for the release, then
 	/// <see cref="DeployParameters.Breaking"/> for its breaking changes once no old application instance runs.</param>
+	/// <exception cref="NotSupportedException">The connection string sets <c>Pooling=False</c> on SQL Server or <c>Enlist=False</c>.
+	/// Checked before connecting.</exception>
 	/// <exception cref="DatabaseNotFoundException">The database does not exist, and <see cref="DeployParameters.CreateDbIfNotExists"/> is off.</exception>
 	/// <exception cref="DeploymentInProgressException">Another deployment of the database is running.</exception>
 	/// <exception cref="ProjectIdMismatchException">The database belongs to another project.</exception>
