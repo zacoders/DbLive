@@ -83,7 +83,7 @@ end $$;
 - Strings are compared exactly, including case and trailing spaces.
 - Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
 - `NULL` equals `NULL` and nothing else.
-- PostgreSQL `macaddr`, `macaddr8`, `inet` and `pg_lsn`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The netmask of an `inet` value is not compared: `'192.168.0.1/24'::inet` equals `'192.168.0.1/16'::inet`; select the values as `text` to compare it.
+- PostgreSQL `macaddr`, `macaddr8`, `inet` and `pg_lsn`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The text of an `inet` value has its netmask: `'192.168.0.1/24'::inet` differs from `'192.168.0.1/16'::inet`.
 - A value that cannot be compared fails the test with `Cannot compare the actual value of the column ...`: select it as text in the test.
 - `NaN` and infinity of PostgreSQL `real` and `double precision` equal themselves. A `numeric` `NaN` or infinity cannot be read: cast it to `float8` or `text` in the test.
 - SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: select `.ToString()` of the value instead.

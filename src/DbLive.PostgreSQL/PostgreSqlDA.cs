@@ -3,9 +3,11 @@ using DbLive.Common;
 using DbLive.Project;
 using DbLive.Schema;
 using Npgsql.Schema;
+using NpgsqlTypes;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
+using System.Net;
 
 namespace DbLive.PostgreSQL;
 
@@ -441,13 +443,24 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlRow r = [];
 			for (int i = 0; i < reader.FieldCount; i++)
 			{
-				r.Add(reader.GetValue(i));
+				r.Add(ReadValue(reader, i));
 			}
 			rows.Add(r);
 		}
 
 		return new SqlResult(sqlColumns, rows);
 	}
+
+	// Npgsql reads inet as IPAddress, which has no netmask, so rows took '192.168.0.1/24'::inet for '192.168.0.1/16'::inet. NpgsqlInet
+	// keeps it, and its text is the one PostgreSQL shows: '192.168.0.1/24', and '192.168.0.1' for a single host (/32 or /128).
+	// A multidimensional inet[] stays as Npgsql reads it.
+	private static object ReadValue(NpgsqlDataReader reader, int ordinal) =>
+		reader.GetValue(ordinal) switch
+		{
+			IPAddress => reader.GetFieldValue<NpgsqlInet>(ordinal).ToString(),
+			IPAddress[] => reader.GetFieldValue<NpgsqlInet?[]>(ordinal).Select(inet => inet?.ToString()).ToArray(),
+			object value => value
+		};
 
 	private static string GetPostgresTypeName(DbColumn colraw)
 	{

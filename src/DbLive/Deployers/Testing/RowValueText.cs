@@ -54,7 +54,8 @@ internal static class RowValueText
 	/// <item><see cref="DBNull"/> as <c>null</c>. By default it is <c>{}</c>, so NULL equaled every value written as <c>{}</c>.</item>
 	/// <item>A type without public properties by its <c>ToString()</c>: PostgreSQL <c>macaddr</c> and <c>macaddr8</c>
 	/// (<c>PhysicalAddress</c>), <c>pg_lsn</c> (<c>NpgsqlLogSequenceNumber</c>). By default all its values are <c>{}</c> and equal.</item>
-	/// <item><see cref="IPAddress"/>, PostgreSQL <c>inet</c>, by its <c>ToString()</c>. By default its getters throw.</item>
+	/// <item><see cref="IPAddress"/> by its <c>ToString()</c>. By default its getters throw. PostgreSQL <c>inet</c> does not come as one:
+	/// <c>PostgreSqlDA</c> reads it as text with the netmask, which <see cref="IPAddress"/> does not have.</item>
 	/// <item>A SQL Server CLR type (<c>geography</c>, <c>geometry</c>, <c>hierarchyid</c>: <see cref="INullable"/>) by its <c>ToString()</c>,
 	/// the text that <c>.ToString()</c> returns in T-SQL. By default every <c>hierarchyid</c> is <c>{"IsNull":false}</c>, and <c>geography</c> throws.</item>
 	/// </list>

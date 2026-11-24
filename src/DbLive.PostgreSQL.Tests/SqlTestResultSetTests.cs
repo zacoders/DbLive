@@ -108,15 +108,15 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 
 	/// <summary>
 	/// Npgsql reads macaddr as PhysicalAddress and pg_lsn as NpgsqlLogSequenceNumber, which have no public properties, and inet as
-	/// IPAddress, whose getters throw. rows compares them by their text.
+	/// IPAddress, which has no netmask: PostgreSqlDA reads inet as NpgsqlInet. rows compares them by their text.
 	/// </summary>
 	[Fact]
 	public async Task Rows_test_compares_network_addresses_and_pg_lsn()
 	{
 		const string Values = """
 			select '08:00:2b:01:02:03'::macaddr as m, '08:00:2b:01:02:03:04:05'::macaddr8 as m8
-			     , '192.168.0.1'::inet as i, '192.168.0.1/24'::inet as n, '::1'::inet as i6, '192.168.0.0/24'::cidr as c
-			     , '16/B374D848'::pg_lsn as l, array['10.0.0.1'::inet] as a;
+			     , '192.168.0.1'::inet as i, '192.168.0.1/24'::inet as n, '::1'::inet as i6, null::inet as ni, '192.168.0.0/24'::cidr as c
+			     , '16/B374D848'::pg_lsn as l, array['10.0.0.1'::inet, '10.0.0.1/8', null] as a;
 			""";
 
 		using TempProject project = new TempProject()
@@ -144,6 +144,11 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 				select '192.168.0.1/24'::inet as n;
 				select 'rows' as assert;
 				select '192.168.0.1/16'::inet as n;
+				""")
+			.AddFile("Tests/other-netmask-in-array.sql", """
+				select array['10.0.0.1/24'::inet] as a;
+				select 'rows' as assert;
+				select array['10.0.0.1/16'::inet] as a;
 				""")
 			.AddFile("Tests/other-cidr.sql", """
 				select '192.168.0.0/24'::cidr as c;
@@ -176,15 +181,27 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 			nullAgainstMacaddr.ErrorMessage?.ReplaceLineEndings()
 		);
 
-		foreach (string test in new[] { "Tests/other-macaddr.sql", "Tests/other-inet.sql", "Tests/other-cidr.sql", "Tests/other-pg-lsn.sql" })
+		foreach (string test in new[]
+		{
+			"Tests/other-macaddr.sql", "Tests/other-inet.sql", "Tests/other-netmask-in-array.sql", "Tests/other-cidr.sql", "Tests/other-pg-lsn.sql"
+		})
 		{
 			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
 			Assert.False(result.IsSuccess, test);
 			Assert.StartsWith("Data for one or more rows does not match:", result.ErrorMessage);
 		}
 
-		// Npgsql reads inet as IPAddress, without the netmask, so two inet values that differ only by it are equal (0096-145).
 		TestRunResult otherNetmask = await tester.RunTestAsync(Output.WriteLine, "Tests/other-netmask.sql");
-		Assert.True(otherNetmask.IsSuccess, otherNetmask.ErrorMessage);
+		Assert.False(otherNetmask.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: n: inet
+			[Row 1]>
+			Expected values: "192.168.0.1/16"
+			Actual values:   "192.168.0.1/24"
+			""".ReplaceLineEndings(),
+			otherNetmask.ErrorMessage?.ReplaceLineEndings()
+		);
 	}
 }
