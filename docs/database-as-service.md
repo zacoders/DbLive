@@ -64,7 +64,7 @@ DbLive never drops code objects, so after the deployment the database has both v
 drop proc if exists dbo.MyStoredProc_v1;
 ```
 
-The breaking script runs on every breaking deployment, so it is written with `if exists`. Rolling back to the previous build redeploys `my-stored-proc.sql` with `_v1`; `_v2` stays and does not disturb the old application.
+The breaking script runs on every breaking deployment, so it is written with `if exists`. To roll back the release, roll back the application: `_v1` is still in the database, and `_v2` does not disturb the old application. See [Roll back a release](deployment/migrations.md#roll-back-a-release).
 
 In DemoMSSQL, [`GetUser.sql`](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Code/dbo/stored-procedures/GetUser.sql) deploys `GetUser2`, and [`GetUser.breaking.sql`](https://github.com/zacoders/DbLive/blob/main/src/Demo/DemoMSSQL/Scripts/Code/dbo/stored-procedures/GetUser.breaking.sql) next to it drops the old `GetUser`.
 
