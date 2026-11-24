@@ -6,7 +6,8 @@ namespace DbLive.MSSQL.Tests;
 
 /// <summary>
 /// A deployment login that is not db_owner: db_ddladmin, db_datareader and db_datawriter are enough for what DbLive does
-/// itself, also when the schema dblive belongs to dbo (an administrator deployed the database first, or DbLive 1.5 did).
+/// itself, also when the schema dblive belongs to dbo (an administrator deployed the database first, or DbLive 1.5 did, or an
+/// administrator created the empty schema).
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
@@ -88,6 +89,37 @@ public class DeploymentLoginPermissionsTests(SqlServerIntegrationFixture fixture
 		Assert.Equal(["code/v1.sql applied verified"], await QueryAsync("""
 			select concat(relative_path, ' ', status, ' ', iif(verified_utc is null, 'not verified', 'verified'))
 			from dblive.code
+			"""));
+	}
+
+	[Fact]
+	public async Task Login_with_ddladmin_datareader_datawriter_deploys_a_database_with_an_empty_dblive_schema()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", "create table dbo.t1 ( id int not null );")
+			.AddFile("Code/v1.sql", "create or alter view dbo.v1 as select 1 as one;");
+
+		await ExecuteAsync(Fixture.MasterDbConnectionString, $"create database [{DbName}];");
+
+		// an administrator created the schema for DbLive, without its tables.
+		await ExecuteAsync(DbCnnString, "create schema dblive authorization dbo;");
+
+		string login = await CreateLoginAsync();
+		try
+		{
+			await CreateLoginBuilder(project, LoginCnnString(login)).CreateDeployer().DeployAsync(DeployParameters.Default);
+		}
+		finally
+		{
+			await DropLoginAsync(login);
+		}
+
+		// the schema of the administrator is kept: it still belongs to dbo.
+		Assert.Equal(["code/v1.sql applied not verified dbo"], await QueryAsync("""
+			select concat(c.relative_path, ' ', c.status, ' ', iif(c.verified_utc is null, 'not verified', 'verified'), ' ', user_name(s.principal_id))
+			from dblive.code c
+			cross join sys.schemas s
+			where s.name = 'dblive'
 			"""));
 	}
 

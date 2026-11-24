@@ -16,7 +16,7 @@ public class DbLiveTablesSnapshotTests
 	// update after the decision the failure message asks for.
 	private static readonly string[] _snapshot = [
 		"MinCompatibleVersion 2.0.0",
-		"self-migration mssql 01.migrations.sql 4726503564446519789",
+		"self-migration mssql 01.migrations.sql 6458770339821770728",
 		"self-migration mssql 02.code.sql -2717960315347916332",
 		"self-migration mssql 03.unit-tests.sql -4198994666110651958",
 		"self-migration mssql 04.folder-items.sql -5546103530288288273",
