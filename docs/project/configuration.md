@@ -63,6 +63,8 @@ Invalid project settings file settings.json: The JSON property 'TransactionWrapl
 
 Folder settings are relative to the scripts folder, and `CodeSubFoldersDeploymentOrder` entries are relative to `Code`. Both can be nested paths written with either separator: `"dbo/functions"` and `"dbo\\functions"` work the same on Windows and Linux. An entry in `CodeSubFoldersDeploymentOrder` that matches no code files is logged as a warning.
 
+No project folder may be inside another one. A file that is in two of them, such as `Code/Tests/GetUser.sql` with `"TestsFolder": "Code/Tests"`, stops the deployment with `FilesInSeveralProjectFoldersException` before any of your scripts runs: DbLive would read it twice, here as a test and as code. `"CodeFolder": ""` makes the whole `Scripts` folder the Code folder, so it fits only a project of code files: a migration next to it would run a second time as code.
+
 ### Transactions
 
 | Setting | Default | Description |

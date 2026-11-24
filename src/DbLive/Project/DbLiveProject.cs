@@ -20,9 +20,9 @@ internal class DbLiveProject(
 	internal static readonly IReadOnlyList<string> CodeBreakingFilePatterns = ["breaking.sql", "b.sql", "*.breaking.sql", "*.b.sql"];
 
 	/// <summary>
-	/// How many of the files outside the project folders <see cref="FilesOutsideProjectFoldersException"/> names.
+	/// How many files <see cref="FilesOutsideProjectFoldersException"/> and <see cref="FilesInSeveralProjectFoldersException"/> name.
 	/// </summary>
-	internal const int NamedOutsideFiles = 5;
+	internal const int NamedFiles = 5;
 
 	private readonly ILogger _logger = logger.ForContext(typeof(DbLiveProject));
 
@@ -316,6 +316,10 @@ internal class DbLiveProject(
 	/// <exception cref="FilesOutsideProjectFoldersException">
 	/// A file is outside the project folders and is not the root settings.json, so DbLive would never read it.
 	/// </exception>
+	/// <exception cref="FilesInSeveralProjectFoldersException">
+	/// A file is in more than one project folder (CodeFolder "" or a project folder inside another one), so DbLive would read it
+	/// more than once.
+	/// </exception>
 	/// <exception cref="BreakingScriptMatchesTestPatternException">
 	/// A file of the Code folder is named as a breaking script and matches TestFilePatterns (test.breaking.sql),
 	/// so it would be both.
@@ -335,13 +339,33 @@ internal class DbLiveProject(
 			}
 		}
 
-		IReadOnlyList<string> projectFolders = GetProjectFolders(projectSettings);
+		IReadOnlyList<(string Setting, string Folder)> projectFolders = GetProjectFolders(projectSettings);
 
 		List<string> outsideFiles = [.. files.Where(f => IsOutsideProjectFolders(f, projectFolders)).Order(StringComparer.OrdinalIgnoreCase)];
 
 		if (outsideFiles.Count > 0)
 		{
-			throw new FilesOutsideProjectFoldersException(outsideFiles.Count, [.. outsideFiles.Take(NamedOutsideFiles)], projectFolders);
+			throw new FilesOutsideProjectFoldersException(
+				outsideFiles.Count,
+				[.. outsideFiles.Take(NamedFiles)],
+				[.. projectFolders.Select(f => f.Folder)]
+			);
+		}
+
+		// a check of the files, not of the settings: CodeFolder "" holds the other project folders, which is fine while they have no files.
+		List<string> filesInSeveralFolders =
+		[
+			.. files
+				.Where(f => !IsHidden(f) && GetProjectFoldersOf(f, projectFolders).Count > 1)
+				.Order(StringComparer.OrdinalIgnoreCase)
+		];
+
+		if (filesInSeveralFolders.Count > 0)
+		{
+			throw new FilesInSeveralProjectFoldersException(
+				filesInSeveralFolders.Count,
+				[.. filesInSeveralFolders.Take(NamedFiles).Select(f => (f, GetProjectFoldersOf(f, projectFolders)))]
+			);
 		}
 
 		string? breakingTestFile = GetFolderFiles(files, ToFolder(projectSettings.CodeFolder), CodeBreakingFilePatterns, [])
@@ -375,25 +399,40 @@ internal class DbLiveProject(
 	}
 
 	/// <summary>
-	/// The folders DbLive reads scripts from, as relative paths.
+	/// The folders DbLive reads scripts from, as relative paths, with the names of their settings.
 	/// </summary>
-	private static IReadOnlyList<string> GetProjectFolders(DbLiveSettings projectSettings) =>
+	private static IReadOnlyList<(string Setting, string Folder)> GetProjectFolders(DbLiveSettings projectSettings) =>
 	[
-		ToFolder(projectSettings.MigrationsFolder),
-		ToFolder(projectSettings.CodeFolder),
-		ToFolder(projectSettings.TestsFolder),
-		ToFolder(projectSettings.BeforeDeployFolder),
-		ToFolder(projectSettings.AfterDeployFolder)
+		(nameof(DbLiveSettings.MigrationsFolder), ToFolder(projectSettings.MigrationsFolder)),
+		(nameof(DbLiveSettings.CodeFolder), ToFolder(projectSettings.CodeFolder)),
+		(nameof(DbLiveSettings.TestsFolder), ToFolder(projectSettings.TestsFolder)),
+		(nameof(DbLiveSettings.BeforeDeployFolder), ToFolder(projectSettings.BeforeDeployFolder)),
+		(nameof(DbLiveSettings.AfterDeployFolder), ToFolder(projectSettings.AfterDeployFolder))
+	];
+
+	/// <summary>
+	/// The project folders the file is in, as settings: <c>CodeFolder: "Code"</c>.
+	/// </summary>
+	private static IReadOnlyList<string> GetProjectFoldersOf(string relativePath, IReadOnlyList<(string Setting, string Folder)> projectFolders) =>
+	[
+		.. projectFolders
+			.Where(folder => IsInFolder(relativePath, folder.Folder))
+			.Select(folder => $"{folder.Setting}: \"{folder.Folder}\"")
 	];
 
 	/// <summary>
 	/// A file DbLive never reads: outside the project folders and not the root settings.json.
-	/// Hidden files and folders (.DS_Store, .gitkeep, .vs/) are skipped: tools create them without asking.
 	/// </summary>
-	private static bool IsOutsideProjectFolders(string relativePath, IReadOnlyList<string> projectFolders) =>
-		!projectFolders.Any(folder => IsInFolder(relativePath, folder))
+	private static bool IsOutsideProjectFolders(string relativePath, IReadOnlyList<(string Setting, string Folder)> projectFolders) =>
+		!projectFolders.Any(folder => IsInFolder(relativePath, folder.Folder))
 		&& !relativePath.Equals(SettingsAccessor.SettingsFileName, StringComparison.OrdinalIgnoreCase)
-		&& !relativePath.Split('/').Any(name => name.StartsWith('.'));
+		&& !IsHidden(relativePath);
+
+	/// <summary>
+	/// A hidden file or a file of a hidden folder (.DS_Store, .gitkeep, .vs/): tools create them without asking, so the checks of
+	/// the project folders skip them.
+	/// </summary>
+	private static bool IsHidden(string relativePath) => relativePath.Split('/').Any(name => name.StartsWith('.'));
 
 	/// <summary>
 	/// A folder from the settings ("Code", "db\Code", "/Code/") as a relative path: "Code", "db/Code".

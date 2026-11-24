@@ -46,6 +46,9 @@ DbLive.ExecutionTimeoutException
 DbLive.ExecutionTimeoutException.Timeout.get -> System.TimeSpan
 DbLive.FileNotUtf8Exception
 DbLive.FileNotUtf8Exception.RelativePath.get -> string!
+DbLive.FilesInSeveralProjectFoldersException
+DbLive.FilesInSeveralProjectFoldersException.Count.get -> int
+DbLive.FilesInSeveralProjectFoldersException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 DbLive.FilesOutsideProjectFoldersException
 DbLive.FilesOutsideProjectFoldersException.Count.get -> int
 DbLive.FilesOutsideProjectFoldersException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
