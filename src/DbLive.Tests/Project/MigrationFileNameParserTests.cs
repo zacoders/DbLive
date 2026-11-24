@@ -152,6 +152,17 @@ public class MigrationFileNameParserTests
 		Assert.Contains("001.migration.settings.json", ex.Message);
 	}
 
+	[Fact]
+	public void Old_Version_Settings_File_In_Subfolder_Is_Named_By_Relative_Path()
+	{
+		ObsoleteMigrationSettingsFileException ex = Assert.Throws<ObsoleteMigrationSettingsFileException>(() =>
+			MigrationFileNameParser.GetMigrationInfo("Migrations/Old/004.settings.json"));
+
+		Assert.StartsWith("Migration settings file Migrations/Old/004.settings.json has the old name.", ex.Message);
+		Assert.Equal("Migrations/Old/004.settings.json", ex.RelativePath);
+		Assert.Equal("004.settings.json", ex.FileName);
+	}
+
 	[Theory]
 	[InlineData("001.migration.json")]
 	[InlineData("001.breaking.json")]
@@ -200,6 +211,16 @@ public class MigrationFileNameParserTests
 	{
 		Assert.Throws<UnknownMigrationSettingsException>(() =>
 			MigrationFileNameParser.GetMigrationInfo("004.custom.json"));
+	}
+
+	[Fact]
+	public void Unknown_Json_In_Subfolder_Is_Named_By_Relative_Path()
+	{
+		UnknownMigrationSettingsException ex = Assert.Throws<UnknownMigrationSettingsException>(() =>
+			MigrationFileNameParser.GetMigrationInfo("Migrations/Old/004.custom.json"));
+
+		Assert.StartsWith("Unknown migration settings file Migrations/Old/004.custom.json.", ex.Message);
+		Assert.Equal("Migrations/Old/004.custom.json", ex.RelativePath);
 	}
 
 	[Fact]

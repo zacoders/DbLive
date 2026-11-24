@@ -8,8 +8,14 @@
 [ExcludeFromCodeCoverage]
 public sealed class UnknownMigrationSettingsException : Exception
 {
-	internal UnknownMigrationSettingsException(string fileName)
-		: base($"Unknown migration settings file {fileName}. Expected <version>.migration.settings.json or <version>.breaking.settings.json; short forms combine m or b with s, for example <version>.m.s.json.")
+	internal UnknownMigrationSettingsException(string relativePath)
+		: base($"Unknown migration settings file {relativePath}. Expected <version>.migration.settings.json or <version>.breaking.settings.json; short forms combine m or b with s, for example <version>.m.s.json.")
 	{
+		RelativePath = relativePath;
 	}
+
+	/// <summary>
+	/// The relative path of the file.
+	/// </summary>
+	public string RelativePath { get; private set; }
 }

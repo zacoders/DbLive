@@ -46,12 +46,12 @@ internal static class MigrationFileNameParser
 			// <version>.settings.json was one settings file for the whole version.
 			if (IsSettingsPart(migrationFilePart2))
 			{
-				throw new ObsoleteMigrationSettingsFileException(fileName, migrationVersionStr);
+				throw new ObsoleteMigrationSettingsFileException(relativePath, migrationVersionStr);
 			}
 
 			if (!migrationType.HasValue || !IsSettingsPart(migrationFilePart3))
 			{
-				throw new UnknownMigrationSettingsException(fileName);
+				throw new UnknownMigrationSettingsException(relativePath);
 			}
 
 			return new MigrationItemInfo()

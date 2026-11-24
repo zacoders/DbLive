@@ -96,8 +96,8 @@ A migration that runs inside a transaction is limited by `MigrationTimeout`, 12 
 | `DuplicateMigrationItemException` | Two files with the same version and type, in any subfolders (`001.migration.sql` and `Old/1.m.sql` count). The message names both files. |
 | `MigrationItemMustExistsException` | A breaking or settings file without a migration file of the same version. The message names the files of the version. |
 | `UndoNotSupportedException` | An undo script or its settings file (`005.undo.sql`, `005.u.sql`, `005.undo.settings.json`): DbLive has no undo scripts. Delete the file. |
-| `UnknownMigrationSettingsException` | A `.json` file in `Migrations` that is not `<version>.<item>.settings.json`. |
-| `ObsoleteMigrationSettingsFileException` | The old `<version>.settings.json`; the message names the new file. |
+| `UnknownMigrationSettingsException` | A `.json` file in `Migrations` that is not `<version>.<item>.settings.json`. The message names the file by its relative path. |
+| `ObsoleteMigrationSettingsFileException` | The old `<version>.settings.json`; the message names the file by its relative path and the new name. |
 | `MigrationSettingsWithoutScriptException` | A settings file without its script, for example `004.breaking.settings.json` without `004.breaking.sql`. |
 | `InvalidMigrationItemSettingsException` | An item settings file with an unknown key (also the old `MigrationTimeout`) or `"TransactionWrapLevel": "Deployment"`. |
 | `MigrationChecksumMismatchException` | An applied file was changed. |

@@ -75,6 +75,7 @@ DbLive.MigrationSettingsWithoutScriptException.RelativePath.get -> string!
 DbLive.NotSupportedTransactionIsolationLevelException
 DbLive.ObsoleteMigrationSettingsFileException
 DbLive.ObsoleteMigrationSettingsFileException.FileName.get -> string!
+DbLive.ObsoleteMigrationSettingsFileException.RelativePath.get -> string!
 DbLive.ProjectIdMismatchException
 DbLive.ScriptPathsDifferOnlyByCaseException
 DbLive.ScriptPathsDifferOnlyByCaseException.RelativePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -98,6 +99,7 @@ DbLive.Testing.UnitTestsFailedException.TotalCount.get -> int
 DbLive.UndoNotSupportedException
 DbLive.UndoNotSupportedException.RelativePath.get -> string!
 DbLive.UnknownMigrationSettingsException
+DbLive.UnknownMigrationSettingsException.RelativePath.get -> string!
 override DbLive.DeployParameters.Equals(object? obj) -> bool
 override DbLive.DeployParameters.GetHashCode() -> int
 override DbLive.DeployParameters.ToString() -> string!
