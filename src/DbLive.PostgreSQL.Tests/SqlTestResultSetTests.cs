@@ -148,6 +148,117 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// Npgsql gives the precision of timestamp, timestamptz, time, timetz and interval in NumericPrecision, not in NumericScale:
+	/// rows-with-schema took timestamp(0) for timestamp (0096-153). Precision 6 is named without it: it is the largest one, and a type
+	/// without a precision keeps microseconds too. PostgreSQL drops the precision of the columns a function returns, so a test of a
+	/// function casts the expected values without it. An upgrade of Npgsql that gives the precision elsewhere fails this test.
+	/// </summary>
+	[Fact]
+	public async Task Rows_with_schema_test_compares_the_precision_of_date_and_time_types()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table events ( at timestamp(0) not null, starts time(2) not null );
+				insert into events ( at, starts ) values ( '2026-01-01 10:00:00', '10:00' );
+				create function get_events() returns table ( at timestamp(0), starts time(2) ) language sql
+				as $$ select at, starts from events $$;
+				""")
+			.AddFile("Tests/table-against-no-precision.sql", """
+				select at, starts from events;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp) as at, cast('10:00' as time) as starts;
+				""")
+			.AddFile("Tests/table-against-same-precision.sql", """
+				select at, starts from events;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp(0)) as at, cast('10:00' as time(2)) as starts;
+				""")
+			.AddFile("Tests/function-against-no-precision.sql", """
+				select * from get_events();
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp) as at, cast('10:00' as time) as starts;
+				""")
+			.AddFile("Tests/other-precision.sql", """
+				select cast('2026-01-01 10:00:00+00' as timestamptz(3)) as tz, cast('10:00+02' as timetz(2)) as ttz
+				     , cast('00:00:01' as interval(3)) as i;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00+00' as timestamptz) as tz, cast('10:00+02' as timetz) as ttz
+				     , cast('00:00:01' as interval) as i;
+				""")
+			.AddFile("Tests/precision-6-against-no-precision.sql", """
+				select cast('2026-01-01 10:00:00' as timestamp(6)) as ts, cast('2026-01-01 10:00:00+00' as timestamptz(6)) as tz
+				     , cast('10:00' as time(6)) as t, cast('10:00+02' as timetz(6)) as ttz, cast('01:02' as interval hour to minute) as i;
+				select 'rows-with-schema' as assert;
+				select cast('2026-01-01 10:00:00' as timestamp) as ts, cast('2026-01-01 10:00:00+00' as timestamptz) as tz
+				     , cast('10:00' as time) as t, cast('10:00+02' as timetz) as ttz, cast('01:02' as interval) as i;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		foreach (string test in new[]
+		{
+			"Tests/table-against-same-precision.sql", "Tests/function-against-no-precision.sql", "Tests/precision-6-against-no-precision.sql"
+		})
+		{
+			TestRunResult result = await tester.RunTestAsync(Output.WriteLine, test);
+			Assert.True(result.IsSuccess, $"{test}: {result.ErrorMessage}");
+		}
+
+		TestRunResult tableAgainstNoPrecision = await tester.RunTestAsync(Output.WriteLine, "Tests/table-against-no-precision.sql");
+		Assert.False(tableAgainstNoPrecision.IsSuccess);
+		Assert.Equal(
+			"""
+			Columns does not match:
+			Expected columns: at: timestamp, starts: time
+			Actual columns:   at: timestamp(0), starts: time(2)
+			""".ReplaceLineEndings(),
+			tableAgainstNoPrecision.ErrorMessage?.ReplaceLineEndings()
+		);
+
+		TestRunResult otherPrecision = await tester.RunTestAsync(Output.WriteLine, "Tests/other-precision.sql");
+		Assert.False(otherPrecision.IsSuccess);
+		Assert.Equal(
+			"""
+			Columns does not match:
+			Expected columns: tz: timestamptz, ttz: timetz, i: interval
+			Actual columns:   tz: timestamptz(3), ttz: timetz(2), i: interval(3)
+			""".ReplaceLineEndings(),
+			otherPrecision.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
+	/// An unbounded bpchar keeps the whole string and is not char(1); an unbounded varbit was named varbit() (0096-153).
+	/// </summary>
+	[Fact]
+	public async Task Rows_with_schema_test_names_unbounded_bpchar_and_varbit()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/unbounded.sql", """
+				select cast('a' as bpchar) as c, cast(B'101' as varbit) as b;
+				select 'rows-with-schema' as assert;
+				select cast('a' as char(1)) as c, cast(B'101' as varbit(5)) as b;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/unbounded.sql");
+
+		Assert.False(result.IsSuccess);
+		Assert.Equal(
+			"""
+			Columns does not match:
+			Expected columns: c: char(1), b: varbit(5)
+			Actual columns:   c: bpchar, b: varbit
+			""".ReplaceLineEndings(),
+			result.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
 	/// Npgsql reads macaddr as PhysicalAddress and pg_lsn as NpgsqlLogSequenceNumber, which have no public properties, and inet as
 	/// IPAddress, which has no netmask: PostgreSqlDA reads inet as NpgsqlInet. rows compares them by their text.
 	/// </summary>

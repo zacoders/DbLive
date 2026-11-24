@@ -482,26 +482,21 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				? $"varchar({col.ColumnSize})"
 				: "text",
 
-			"bpchar" or "character" => $"char({col.ColumnSize ?? 1})",
+			// an unbounded bpchar keeps the whole string, char is char(1)
+			"bpchar" or "character" => col.ColumnSize.HasValue ? $"char({col.ColumnSize})" : "bpchar",
 
 			"numeric" or "decimal" => col.NumericPrecision.HasValue
 				? (col.NumericScale.HasValue ? $"numeric({col.NumericPrecision},{col.NumericScale})" : $"numeric({col.NumericPrecision})")
 				: "numeric",
 
-			"timestamp" or "timestamp without time zone" => col.NumericScale.HasValue
-				? $"timestamp({col.NumericScale})"
-				: "timestamp",
-
-			"timestamptz" or "timestamp with time zone" => col.NumericScale.HasValue
-				? $"timestamptz({col.NumericScale})"
-				: "timestamptz",
-
-			"time" or "time without time zone" => col.NumericScale.HasValue
-				? $"time({col.NumericScale})"
-				: "time",
+			"timestamp" or "timestamp without time zone" => WithSecondsPrecision("timestamp", col),
+			"timestamptz" or "timestamp with time zone" => WithSecondsPrecision("timestamptz", col),
+			"time" or "time without time zone" => WithSecondsPrecision("time", col),
+			"timetz" or "time with time zone" => WithSecondsPrecision("timetz", col),
+			"interval" => WithSecondsPrecision("interval", col),
 
 			"bit" => col.ColumnSize > 1 ? $"bit({col.ColumnSize})" : "bit",
-			"varbit" or "bit varying" => $"varbit({col.ColumnSize})",
+			"varbit" or "bit varying" => col.ColumnSize.HasValue ? $"varbit({col.ColumnSize})" : "varbit",
 
 			"int4" => "integer",
 			"int8" => "bigint",
@@ -513,6 +508,12 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			_ => typeName
 		};
 	}
+
+	// Npgsql gives the precision of the fractional seconds in NumericPrecision: null without one, 65535 for an interval with fields
+	// (interval year) and without a precision. The fields themselves it does not give. 6 is the largest precision, and a type without
+	// one keeps microseconds too, so timestamp(6) is named timestamp, as datetime2(7) and datetime2 are one type on SQL Server.
+	private static string WithSecondsPrecision(string typeName, NpgsqlDbColumn col) =>
+		col.NumericPrecision is int precision and < 6 ? $"{typeName}({precision})" : typeName;
 
 	public async Task CreateDBAsync(bool skipIfExists = true)
 	{
