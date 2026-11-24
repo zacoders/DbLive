@@ -758,7 +758,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 			else
 			{
-				throw new Exception($"Database '{databaseToDrop}' does not exists.");
+				throw new InvalidOperationException($"Database '{databaseToDrop}' does not exist.");
 			}
 		}
 

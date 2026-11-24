@@ -67,7 +67,7 @@ public class UnitTestResultCheckerAssertColumnTests
 		);
 
 		// Act
-		Exception ex = Assert.Throws<Exception>(() => checker.ValidateTestResult([ThreeRows, misnamedAssertMark]));
+		InvalidAssertException ex = Assert.Throws<InvalidAssertException>(() => checker.ValidateTestResult([ThreeRows, misnamedAssertMark]));
 
 		// Assert
 		Assert.Equal(
@@ -110,7 +110,7 @@ public class UnitTestResultCheckerAssertColumnTests
 		);
 
 		// Act
-		Exception ex = Assert.Throws<Exception>(() => checker.ValidateTestResult([ThreeRows, assertMark]));
+		InvalidAssertException ex = Assert.Throws<InvalidAssertException>(() => checker.ValidateTestResult([ThreeRows, assertMark]));
 
 		// Assert
 		Assert.Equal("The 'assert' result set has no rows. Example: select 'rows' as assert.", ex.Message);
@@ -130,9 +130,27 @@ public class UnitTestResultCheckerAssertColumnTests
 		);
 
 		// Act
-		Exception ex = Assert.Throws<Exception>(() => checker.ValidateTestResult([ThreeRows, assertMark]));
+		InvalidAssertException ex = Assert.Throws<InvalidAssertException>(() => checker.ValidateTestResult([ThreeRows, assertMark]));
 
 		// Assert
 		Assert.Equal("Please use row-count=[Number] to assert row count. Example: row-count=10.", ex.Message);
+	}
+
+	[Fact]
+	public void AssertValue_Unknown_Throws_With_The_Supported_Values()
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult assertMark = new(
+			sqlColumns: [new SqlColumn("assert", "...")],
+			resultRows: [new SqlRow("row-cnt")]
+		);
+
+		// Act
+		InvalidAssertException ex = Assert.Throws<InvalidAssertException>(() => checker.ValidateTestResult([ThreeRows, assertMark]));
+
+		// Assert: row-count only with its number.
+		Assert.Equal("Unknown assert type row-cnt. Supported values: rows, rows-with-schema, has-rows, row-count=N, empty, single-row", ex.Message);
 	}
 }

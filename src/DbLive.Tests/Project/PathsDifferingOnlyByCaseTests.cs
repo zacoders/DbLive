@@ -126,4 +126,32 @@ public class PathsDifferingOnlyByCaseTests
 
 		Assert.Equal(["Code/dbo/GetUser.sql", "Code/dbo/getuser.sql"], ex.RelativePaths);
 	}
+
+	/// <summary>
+	/// Pairs that one comparison finds equal and the other does not. The first ones are one stored path (ToLowerInvariant), but
+	/// different for OrdinalIgnoreCase: without the check they would share one row of dblive.code. σ and ς go the other way: equal
+	/// for OrdinalIgnoreCase and for a case-insensitive collation of SQL Server, different stored paths.
+	/// </summary>
+	[Theory]
+	[InlineData("Code/STRAẞE.sql", "Code/straße.sql")] // ẞ and ß
+	[InlineData("Code/Key.sql", "Code/key.sql")]            // Kelvin sign and k
+	[InlineData("Code/Ångstrom.sql", "Code/Ångstrom.sql")] // Angstrom sign and Å
+	[InlineData("Code/Ω.sql", "Code/ω.sql")]           // Ohm sign and ω
+	[InlineData("Code/ϴ.sql", "Code/θ.sql")]           // ϴ and θ
+	[InlineData("Code/σ.sql", "Code/ς.sql")]           // σ and ς
+	public async Task GetCodeGroups_throws_when_paths_are_equal_for_one_of_the_comparisons(string path, string otherPath)
+	{
+		// arrange
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFiles(path, otherPath);
+
+		DbLiveProject project = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		// act
+		ScriptPathsDifferOnlyByCaseException ex = await Assert.ThrowsAsync<ScriptPathsDifferOnlyByCaseException>(project.GetCodeGroupsAsync);
+
+		// assert
+		Assert.Equal([path, otherPath], ex.RelativePaths);
+	}
 }

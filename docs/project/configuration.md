@@ -46,7 +46,7 @@ Invalid project settings file settings.json: The JSON property 'TransactionWrapl
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `ProjectId` | none | Binds the project to the target database on the first deployment and blocks deployment to a database bound to another project. Recommended: without it every deployment logs a warning. See [ProjectId](../features/project-id.md). |
-| `EnforceTimestampVersion` | `false` | Require migration versions in `yyyyMMddHHmmss` format (14 digits, valid date, the year is from 2000 to the year of next month). |
+| `EnforceTimestampVersion` | `false` | Require migration versions in `yyyyMMddHHmmss` format (14 digits as written, so a leading zero fails; valid date, the year is from 2000 to the year of next month). |
 | `MigrationChecksumMode` | `Strict` | `Strict` stops the deployment when an applied migration file was changed; `Warn` logs a warning and continues. See [Checksums](../deployment/migrations.md#checksums). |
 
 ### Folders

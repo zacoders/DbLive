@@ -130,4 +130,34 @@ public class DbLiveBuilderExtensionsTests
 
 		_ = Assert.Throws<ArgumentNullException>(() => builder.LogTo(null!));
 	}
+
+	[Fact]
+	public void SetProject_Null_Throws()
+	{
+		using DbLiveBuilder builder = new();
+
+		ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() => builder.SetProject(null!));
+
+		Assert.Equal("projectAssembly", ex.ParamName);
+	}
+
+	[Fact]
+	public void SetScriptsFolder_Null_Throws()
+	{
+		using DbLiveBuilder builder = new();
+
+		ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() => builder.SetScriptsFolder(null!));
+
+		Assert.Equal("scriptsPath", ex.ParamName);
+	}
+
+	[Fact]
+	public void SetDbConnection_Null_Throws()
+	{
+		using DbLiveBuilder builder = new();
+
+		ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() => builder.SetDbConnection(null!));
+
+		Assert.Equal("sqlDbConnectionString", ex.ParamName);
+	}
 }

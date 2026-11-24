@@ -176,16 +176,6 @@ public class MigrationFileNameParserTests
 	}
 
 	[Theory]
-	[InlineData("001.migration.txt")]
-	[InlineData("001.breaking.txt")]
-	[InlineData("001.b.txt")]
-	public void Throws_When_Sql_Type_Is_Not_Sql_Extension(string file)
-	{
-		Assert.Throws<InvalidMigrationItemTypeException>(() =>
-			MigrationFileNameParser.GetMigrationInfo(file));
-	}
-
-	[Theory]
 	[InlineData("005.settings.sql", "settings")]
 	[InlineData("005.m.settings.sql", "settings")]
 	public void Settings_Word_In_Sql_File_Is_A_Name(string file, string expectedName)
@@ -241,11 +231,13 @@ public class MigrationFileNameParserTests
 		Assert.Equal(MigrationItemType.Migration, result.MigrationItemType);
 	}
 
-	[Fact]
-	public void Throws_When_Extension_Is_Unknown()
+	[Theory]
+	[InlineData("Migrations/_Old/020260808104925.migration.sql", "020260808104925")]
+	[InlineData("001.m.s.json", "001")]
+	[InlineData("Migrations/001.sql", "001")]
+	public void Version_Part_Keeps_Leading_Zeros(string file, string expectedVersionPart)
 	{
-		Assert.Throws<UnknownMigrationItemTypeException>(() =>
-			MigrationFileNameParser.GetMigrationInfo("001.whatever.txt"));
+		Assert.Equal(expectedVersionPart, MigrationFileNameParser.GetVersionPart(file));
 	}
 
 	[Theory]

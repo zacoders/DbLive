@@ -4,13 +4,13 @@ namespace DbLive.Project;
 
 internal class MigrationVersionValidator(ITimeProvider timeProvider) : IMigrationVersionValidator
 {
-	// Validates the timestamp string and returns the parsed value
-	public void Validate(long versionPrefixLong, string relativePath)
+	public void Validate(string relativePath)
 	{
-		string versionPrefix = versionPrefixLong.ToString(CultureInfo.InvariantCulture);
+		// the version as written, not the parsed number: the number loses leading zeros, and 020260808104925 would pass as 14 digits.
+		string versionPrefix = MigrationFileNameParser.GetVersionPart(relativePath);
 
 		// 1. Length check for exactly 14 characters
-		if (string.IsNullOrWhiteSpace(versionPrefix) || versionPrefix.Length != 14)
+		if (versionPrefix.Length != 14)
 		{
 			string errorMessage = $"Bad version {versionPrefix}. Version prefix must be exactly 14 characters long.";
 			throw new InvalidMigrationVersionException(relativePath, errorMessage);

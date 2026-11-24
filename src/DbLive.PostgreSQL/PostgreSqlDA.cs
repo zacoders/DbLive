@@ -664,7 +664,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		if (!exists)
 		{
 			if (skipIfNotExists) return;
-			throw new Exception($"Database '{dbName}' does not exist.");
+			throw new InvalidOperationException($"Database '{dbName}' does not exist.");
 		}
 
 		string quotedName = QuoteDbName(dbName!);

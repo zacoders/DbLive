@@ -22,6 +22,7 @@ internal interface IDbLiveDA
 	/// login may, then sets it to <c>single_user with rollback immediate</c>; PostgreSQL terminates its sessions. For the fixtures of <c>DbLive.xunit</c>
 	/// and the internal option <see cref="DeployParameters.RecreateDatabase"/>.
 	/// </summary>
+	/// <exception cref="InvalidOperationException">The database does not exist, and <paramref name="skipIfNotExists"/> is false.</exception>
 	Task DropDbAsync(bool skipIfNotExists = true);
 
 	/// <summary>

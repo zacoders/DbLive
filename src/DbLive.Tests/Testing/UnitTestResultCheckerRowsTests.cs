@@ -38,6 +38,44 @@ public class UnitTestResultCheckerRowsTests
 		Assert.True(validationResult.IsValid);
 	}
 
+	/// <summary>
+	/// Column names are compared ordinal, as by rows-with-schema: a linguistic comparison ignores a zero-width space, a soft hyphen
+	/// or \0, and finds a precomposed é equal to e and a combining accent, unless .NET runs with invariant globalization.
+	/// </summary>
+	[Theory]
+	[InlineData("ab", "a​b")]
+	[InlineData("ab", "a­b")]
+	[InlineData("a", "a\0")]
+	[InlineData("café", "café")]
+	[InlineData("Name", "name")]
+	public void Rows_Column_Names_Are_Compared_Ordinal(string actualName, string expectedName)
+	{
+		// Arrange
+		UnitTestResultChecker checker = new();
+
+		SqlResult mainResult = new(
+			sqlColumns: [new SqlColumn(actualName, "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		SqlResult assertMark = new(
+			sqlColumns: [new SqlColumn("assert", "...")],
+			resultRows: [new SqlRow("rows")]
+		);
+
+		SqlResult expectedResult = new(
+			sqlColumns: [new SqlColumn(expectedName, "int")],
+			resultRows: [new SqlRow(1)]
+		);
+
+		// Act
+		ValidationResult validationResult = checker.ValidateTestResult([mainResult, assertMark, expectedResult]);
+
+		// Assert
+		Assert.False(validationResult.IsValid);
+		Assert.StartsWith("Columns does not match:", validationResult.Output);
+	}
+
 	[Fact]
 	public void RowsWithSchema_Columns_DoesNotMatch_Fail()
 	{

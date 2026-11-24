@@ -11,7 +11,7 @@ internal static class MigrationFileNameParser
 		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 		string[] fileParts = fileNameWithoutExtension.Split('.');
 
-		string migrationVersionStr = fileParts[0];
+		string migrationVersionStr = GetVersionPart(relativePath);
 		string migrationFilePart2 = fileParts.Length > 1 ? fileParts[1] : "";
 		string migrationFilePart3 = fileParts.Length > 2 ? fileParts[2] : "";
 		string migrationFilePart4 = fileParts.Length > 3 ? fileParts[3] : "";
@@ -63,35 +63,21 @@ internal static class MigrationFileNameParser
 			};
 		}
 
-		if (migrationType.HasValue)
+		// a .sql file: only .sql and .json files reach the parser (GetMigrationsAsync reads only them, the providers embed only
+		// SQL\**\*.sql). Without a type it is a migration, and its second part is the name: "003.create-users.sql".
+		return new MigrationItemInfo()
 		{
-			if (!IsExtension(fileExtension, ".sql"))
-			{
-				throw new InvalidMigrationItemTypeException(fileName, migrationType.Value, fileExtension, ".sql");
-			}
-
-			return new MigrationItemInfo()
-			{
-				Version = version,
-				MigrationItemType = migrationType.Value,
-				Name = migrationFilePart3,
-				RelativePath = relativePath
-			};
-		}
-
-		if (IsExtension(fileExtension, ".sql"))
-		{
-			return new MigrationItemInfo()
-			{
-				Version = version,
-				MigrationItemType = MigrationItemType.Migration,
-				Name = migrationFilePart2,
-				RelativePath = relativePath
-			};
-		}
-
-		throw new UnknownMigrationItemTypeException(migrationFilePart2, fileName);
+			Version = version,
+			MigrationItemType = migrationType ?? MigrationItemType.Migration,
+			Name = migrationType.HasValue ? migrationFilePart3 : migrationFilePart2,
+			RelativePath = relativePath
+		};
 	}
+
+	/// <summary>
+	/// The version part of the file name as written, leading zeros included: the text before the first dot ("001" of "001.migration.sql").
+	/// </summary>
+	public static string GetVersionPart(string relativePath) => Path.GetFileName(relativePath).Split('.')[0];
 
 	private static bool IsSettingsPart(string filePart)
 		=> filePart.ToLowerInvariant() is "settings" or "s";

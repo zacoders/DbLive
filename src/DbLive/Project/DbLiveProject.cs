@@ -142,7 +142,7 @@ internal class DbLiveProject(
 
 			if (projectSettings.EnforceTimestampVersion)
 			{
-				migrationVersionValidator.Validate(migrationItemInfo.Version, migrationItemInfo.RelativePath);
+				migrationVersionValidator.Validate(migrationItemInfo.RelativePath);
 			}
 
 			migrationItems.Add(migrationItemInfo);
@@ -261,7 +261,7 @@ internal class DbLiveProject(
 		{
 			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolder,
 			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolder,
-			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolder.")
 		};
 
 		List<GenericItem> items = [];
@@ -328,7 +328,11 @@ internal class DbLiveProject(
 	{
 		IReadOnlyList<string> files = scriptSource.GetFiles();
 
+		// a pair fails when either comparison finds it equal: DbLive finds files with OrdinalIgnoreCase and identifies them in the
+		// database by the stored path. They differ for a few letters: the Kelvin sign and k, or ẞ and ß, are one stored path but
+		// different for OrdinalIgnoreCase; σ and ς are equal for OrdinalIgnoreCase, and for a case-insensitive collation of SQL Server.
 		HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, string> storedPaths = new(StringComparer.Ordinal);
 
 		foreach (string file in files)
 		{
@@ -336,6 +340,12 @@ internal class DbLiveProject(
 			{
 				_ = paths.TryGetValue(file, out string? otherFile);
 				throw new ScriptPathsDifferOnlyByCaseException(otherFile!, file);
+			}
+
+			string storedPath = file.ToStoredPath();
+			if (!storedPaths.TryAdd(storedPath, file))
+			{
+				throw new ScriptPathsDifferOnlyByCaseException(storedPaths[storedPath], file);
 			}
 		}
 

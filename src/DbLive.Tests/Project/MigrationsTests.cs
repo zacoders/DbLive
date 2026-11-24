@@ -101,7 +101,7 @@ public class MigrationsTests
 
 		_ = await sqlProject.GetMigrationsAsync();
 
-		mockSet.MigrationVersionValidator.Received(1).Validate(20240101000000, "Migrations/20240101000000.migration.sql");
+		mockSet.MigrationVersionValidator.Received(1).Validate("Migrations/20240101000000.migration.sql");
 	}
 
 	[Fact]

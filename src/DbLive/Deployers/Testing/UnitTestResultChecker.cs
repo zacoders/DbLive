@@ -77,7 +77,8 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			};
 		}
 
-		throw new Exception($"Not supported assert {testRunResults.AssertInfo.AssertType}.");
+		// every AssertType that ToAssertInfo gives has its branch above.
+		throw new InternalException($"Not supported assert {testRunResults.AssertInfo.AssertType}.");
 	}
 
 	private TestRunSqlResults GetTestRunResults(List<SqlResult> multiResult)
@@ -98,7 +99,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 		SqlResult expectedResult = multiResult[assertResultIndex.Value];
 		if (expectedResult.Rows.Count == 0)
 		{
-			throw new Exception("The 'assert' result set has no rows. Example: select 'rows' as assert.");
+			throw new InvalidAssertException("The 'assert' result set has no rows. Example: select 'rows' as assert.");
 		}
 		string assertTypeStr = Convert.ToString(expectedResult.Rows[0][0]) ?? "";
 
@@ -116,7 +117,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 	{
 		if (multiResult.Count(IsAssertResult) > 1)
 		{
-			throw new Exception("Just one 'assert' result set is allowed.");
+			throw new InvalidAssertException("Just one 'assert' result set is allowed.");
 		}
 
 		int index = multiResult.FindIndex(IsAssertResult);
@@ -143,7 +144,7 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 			if (!unnamed && EditDistance(columnName.ToLowerInvariant(), "assert") > 2) continue;
 
 			string columnDescription = unnamed ? "has no name" : $"is named '{columnName}'";
-			throw new Exception(
+			throw new InvalidAssertException(
 				$"A result set with the value '{value}' looks like an assert result set, but its first column {columnDescription} "
 				+ $"instead of 'assert', so the test has no assertion. Rename the column, for example: select '{value}' as assert."
 			);
@@ -271,7 +272,9 @@ internal class UnitTestResultChecker : IUnitTestResultChecker
 				}
 				else
 				{
-					if (!expected[i].ColumnName.Equals(actual[i].ColumnName, StringComparison.InvariantCulture))
+					// ordinal, as the record comparison above: a linguistic comparison ignores zero-width characters, and depends on
+					// the globalization mode of the machine.
+					if (!expected[i].ColumnName.Equals(actual[i].ColumnName, StringComparison.Ordinal))
 					{
 						match = false;
 					}

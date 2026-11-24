@@ -25,10 +25,10 @@ internal static class AssertTypeExtensions
 
 		if (assertDefinition.Contains("row-count", StringComparison.OrdinalIgnoreCase))
 		{
-			throw new Exception($"Please use row-count=[Number] to assert row count. Example: row-count=10.");
+			throw new InvalidAssertException("Please use row-count=[Number] to assert row count. Example: row-count=10.");
 		}
 
-		throw new Exception($"Unknown assert type {assertDefinition}. Supported values: {SupportedAssertTypes()}");
+		throw new InvalidAssertException($"Unknown assert type {assertDefinition}. Supported values: {SupportedAssertTypes()}");
 	}
 
 	public static bool TryParseAssertInfo(this string assertDefinition, [NotNullWhen(true)] out AssertInfo? assertInfo)
@@ -60,6 +60,7 @@ internal static class AssertTypeExtensions
 		return false;
 	}
 
+	// row-count only with its number.
 	private static string SupportedAssertTypes() =>
-		string.Join(", ", reverseAssertTypesMap.Keys);
+		string.Join(", ", assertTypesMap.Select(i => i.Key == AssertType.RowCount ? "row-count=N" : i.Value));
 }

@@ -32,7 +32,7 @@ internal class FolderDeployer(
 			await DeployItemAsync(projectFolder, item).ConfigureAwait(false);
 		}
 
-		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed..", projectFolder);
+		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed.", projectFolder);
 	}
 
 	private async Task DeployItemAsync(ProjectFolder projectFolder, GenericItem item)
@@ -47,7 +47,7 @@ internal class FolderDeployer(
 		{
 			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
 			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
-			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolder.")
 		};
 
 		try
