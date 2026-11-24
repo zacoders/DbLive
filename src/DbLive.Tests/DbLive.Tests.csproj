@@ -37,7 +37,8 @@
     <ProjectReference Include="..\Demo\DemoMSSQLEmpty\DemoMSSQLEmpty.csproj" />
   </ItemGroup>
 
-  <!-- InternalScriptsTests compare DbLive's own scripts embedded in the providers with their SQL folders. -->
+  <!-- InternalScriptsTests compare DbLive's own scripts embedded in the providers with their SQL folders.
+       SrcDir: those SQL folders, and the PublicAPI files that PublicApiFilesTests checks. -->
   <ItemGroup>
     <ProjectReference Include="..\DbLive.MSSQL\DbLive.MSSQL.csproj" />
     <ProjectReference Include="..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />

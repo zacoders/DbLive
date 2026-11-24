@@ -5,8 +5,9 @@
 //
 // For every package with a C# API (src/<project>/PublicAPI.Shipped.txt): the lines of PublicAPI.Unshipped.txt go to
 // PublicAPI.Shipped.txt, where the code fix of RS0016 would sort them, and a '*REMOVED*' line deletes its symbol.
-// PublicAPI.Unshipped.txt keeps only its header. A pull request runs it before the merge: the "Release notes" check
-// fails while a PublicAPI.Unshipped.txt has lines.
+// PublicAPI.Unshipped.txt keeps only its header. Run it after the code fix of RS0016, which writes to
+// PublicAPI.Unshipped.txt: the public API goes to PublicAPI.Shipped.txt in the commit that adds it, and
+// PublicApiFilesTests and the "Release notes" check fail while a PublicAPI.Unshipped.txt has lines.
 //
 // This file is the outline. The step is public-api/ApiFile.cs, which release-notes.cs includes too.
 

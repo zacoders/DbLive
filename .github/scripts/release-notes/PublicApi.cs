@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// The public API of the packages ("The public API" in Development.md): PublicAPI.Shipped.txt is the API on main, so a
-/// pull request moves its PublicAPI.Unshipped.txt there, and a symbol that leaves it is a breaking change.
+/// The public API of the packages ("The public API" in Development.md): PublicAPI.Shipped.txt is the API of the branch,
+/// PublicAPI.Unshipped.txt stays empty, and a symbol that leaves PublicAPI.Shipped.txt is a breaking change.
 /// </summary>
 static class PublicApi
 {
