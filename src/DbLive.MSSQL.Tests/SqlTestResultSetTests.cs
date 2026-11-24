@@ -153,6 +153,26 @@ public class SqlTestResultSetTests(SqlServerIntegrationFixture fixture, ITestOut
 	}
 
 	/// <summary>
+	/// A test without an assert result set passes when it runs without an error, also an empty one. An empty file and a file of only
+	/// a UTF-8 BOM failed with the error of SqlClient, "CommandText property has not been initialized" (0096-171).
+	/// </summary>
+	[Theory]
+	[InlineData("")]
+	[InlineData("﻿")]
+	[InlineData("\r\n")]
+	public async Task Empty_test_passes(string content)
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/empty.sql", content);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/empty.sql");
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+	}
+
+	/// <summary>
 	/// SqlClient keeps no types of the database, so a type that the deployment created needs no reload (0096-165, as on PostgreSQL):
 	/// SQL Server sends an alias type as its base type.
 	/// </summary>

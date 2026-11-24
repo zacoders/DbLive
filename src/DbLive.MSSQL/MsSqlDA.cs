@@ -471,6 +471,12 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// the reader is closed when it returns: the connection takes no other command while a reader is open.
 	private static async Task<List<SqlResult>> QueryMultipleAsync(SqlConnection cnn, string sqlStatement, TimeSpan timeout)
 	{
+		// SqlCommand fails on an empty text, as in ExecuteBatchesAsync: a test of white space returns no result sets, as on PostgreSQL.
+		if (string.IsNullOrWhiteSpace(sqlStatement))
+		{
+			return [];
+		}
+
 		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
 
 		using SqlCommand cmd = cnn.CreateCommand();

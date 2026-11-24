@@ -233,6 +233,25 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// A test without an assert result set passes when it runs without an error, also an empty one, as on SQL Server (0096-171).
+	/// </summary>
+	[Theory]
+	[InlineData("")]
+	[InlineData("﻿")]
+	[InlineData("\r\n")]
+	public async Task Empty_test_passes(string content)
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/empty.sql", content);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/empty.sql");
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+	}
+
+	/// <summary>
 	/// An unbounded bpchar keeps the whole string and is not char(1); an unbounded varbit was named varbit() (0096-153).
 	/// </summary>
 	[Fact]
