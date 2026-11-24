@@ -16,10 +16,14 @@ a transition in steps, without downtime:
 3. **New Applications:** Upgrade to `GetPerson_v2` for core person data and use a new 
    `GetPersonPhones_v1` procedure to retrieve the list of multiple phone numbers.
 4. **Breaking Phase (Cleanup):** Once all old applications are decommissioned, you can 
-   safely run breaking migrations to clean up the legacy state:
-   - The legacy `GetPerson_v1` procedure is dropped.
-   - The temporary migration trigger is removed, as it is no longer needed.
-   - The redundant `PhoneNumber` column is dropped from the `dbo.Person` table.
+   safely run the breaking phase to clean up the legacy state, in this order:
+   - The legacy `GetPerson_v1` procedure is dropped by a
+     [breaking script of the Code folder](../deployment/breaking-changes.md#dropping-an-old-procedure-version)
+     next to its file (`Code/dbo/GetPerson.breaking.sql`). These scripts run first, before
+     the breaking scripts of migrations.
+   - The breaking script of the migration (`007.breaking.sql`) removes the temporary trigger,
+     as it is no longer needed, and drops the redundant `PhoneNumber` column from the
+     `dbo.Person` table.
 
 ```mermaid
 flowchart LR

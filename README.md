@@ -128,7 +128,7 @@ using DbLive;
 using DbLive.MSSQL;
 using System.Reflection;
 
-string dbCnnString = "Server=localhost;Database=MyDb;Trusted_Connection=True;";
+string dbCnnString = "Server=localhost;Database=MyDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
 var builder = new DbLiveBuilder()
 	.LogToConsole()

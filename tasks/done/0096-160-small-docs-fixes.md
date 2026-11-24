@@ -2,8 +2,12 @@
 type: docs
 priority: low
 created: 2026-11-24
+closed: 2026-11-24
 ---
 # Small docs fixes from the review of 2026-11-24
+
+## Release note
+None. Corrections of `docs/llms-full.txt`, of the docs pages, of the XML doc of `DbLiveSqlException.SqlError` and of a release note of this release; DbLive behaves as before.
 
 ## Problem
 Statements of the docs that the code does not match, each small.
@@ -21,7 +25,22 @@ Statements of the docs that the code does not match, each small.
 - `tasks/done/0096-37-postgresql-isolation-level-without-transaction.md` (`## Release note`)
 
 ## Done when
-- [ ] 1–6 fixed
+- [x] 1–6 fixed
 
 ## Notes
 - Found by the code review of 2026-11-24.
+- 1: nothing to do. 0096-163, closed the same day after the review, made `null` an error in the item settings files too (maintainer's decision of 2026-11-24), and updated §9.1, §9.3 and `docs/project/configuration.md`: the docs and the code agree.
+- 2: confirmed from the code: `MsSqlDA.ExecuteBatchesAsync` passes every `SqlException` but a command timeout to `GetSqlServerError`, which writes all its errors. Not run. No error number in the docs: the number of a transport error depends on the OS.
+- 4: `TransactionSettingsValidator.ValidateAsync` runs in `ProjectLoader` (every deployment) and in `DbLiveTester.RunAllTestsAsync`, not in `RunTestAsync`.
+- 5: the READMEs of `DbLive.Testcontainers.MSSQL` and `DbLive.Testcontainers.PostgreSQL` and `docs/unit-testing/index.md` say "Testcontainers removes it when the test run ends" too: they got the same condition.
+
+## Result
+Docs only, no change in behavior.
+1. Already done by 0096-163.
+2. `docs/llms-full.txt` §11.2 and the XML doc of `DbLiveSqlException.SqlError`: empty for a timeout, and on PostgreSQL for a lost connection; on SQL Server a lost connection or a killed session is a `SqlException` like any other error, and `SqlError` holds its errors.
+3. §5.1: an undo file "with the extension `.sql` or `.json`"; other extensions are not read (`005.undo.txt` is ignored).
+4. §9.2, row `TransactionIsolationLevel`, and the same row of `docs/project/configuration.md`: on SQL Server `Snapshot` in `settings.json` logs a warning, on every deployment and before `RunAllTestsAsync`.
+5. §11.5: with `TESTCONTAINERS_RYUK_DISABLED=true` nothing removes the container. The same condition in `docs/unit-testing/index.md` and in the READMEs of both Testcontainers packages.
+6. The release note of 0096-37: code files are no longer called scripts without a transaction; they run in a transaction of their own, at the configured level too.
+
+`mkdocs build --strict` passes.

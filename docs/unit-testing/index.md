@@ -81,17 +81,20 @@ end $$;
 - `int` 10 and `bigint` 10 are equal.
 - `decimal` values must have the same scale: `150.00` is not `150` and not `150.0`. Cast the expected value, for example `cast(150 as decimal(10,2))`.
 - Strings are compared exactly, including case and trailing spaces.
-- Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
+- Compare a date or time value with a value of the same type, not with a string: cast the expected value, `cast('2026-01-01' as date)`. The text of a `date` differs by provider: `"2026-01-01T00:00:00"` on SQL Server, `"2026-01-01"` on PostgreSQL, where a `date` therefore never equals a `timestamp` at midnight. On PostgreSQL a `timestamptz` column equals only a `timestamptz` value.
 - `NULL` equals `NULL` and nothing else.
 - PostgreSQL `macaddr`, `macaddr8`, `inet` and `pg_lsn`, and SQL Server `geography`, `geometry` and `hierarchyid` (read with `Microsoft.SqlServer.Types`) are compared by their text. The text of an `inet` value has its netmask: `'192.168.0.1/24'::inet` differs from `'192.168.0.1/16'::inet`.
 - A value that cannot be compared fails the test with `Cannot compare the actual value of the column ...`: select it as text in the test.
 - `NaN` and infinity of PostgreSQL `real` and `double precision` equal themselves. A `numeric` `NaN` or infinity cannot be read: cast it to `float8` or `text` in the test.
+- A PostgreSQL `interval` with months or years cannot be read: the test fails with `Cannot read interval values with non-zero months as TimeSpan ...`, whatever it asserts. Cast it to `text` in the test.
 - SQL Server `geography`, `geometry` and `hierarchyid` values cannot be read without the `Microsoft.SqlServer.Types` package in the test project: select `.ToString()` of the value instead.
 - Row order matters; use `order by` in the act.
 - Column names must match exactly. SQL Server gives an unnamed expression an empty name, so `select dbo.GetFullName('a', 'b')` can be compared with `select cast('a b' as nvarchar(255))`. PostgreSQL names such columns (`?column?` or the function name), so give both sides an alias.
 
 !!! note "`rows` compares all actual output"
     `rows` fails on extra or missing result sets and rows, for example `Expected 1 row(s), but 3 received.` Every result set returned before the assert counts as actual, including output from the Arrange part (`update ... output`, a debugging `select`). Remove such output, or move the setup into `setup.test.sql`.
+
+    On PostgreSQL a function called with `select` in the Arrange part returns a result set too, also a `void` function: `select add_user('x');` returns one row with `NULL`. `rows`, `row-count=N`, `empty` and `single-row` then fail on the extra result set, and `has-rows` checks that row and always passes. Call the function with `perform` in a `do` block, which returns nothing: `do $$ begin perform add_user('x'); end $$;`.
 
 `row-count` counts rows of the actual result set: `select count(*) from dbo.Orders` returns **one** row. To check that there are three orders, select the orders themselves:
 
@@ -211,7 +214,7 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 ```
 
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
-- The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends. Docker must be running.
+- The container builders start one container per test run with [Testcontainers](https://dotnet.testcontainers.org/). The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`, set on some CI runners). Docker must be running.
 - The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`. A new major version of the database engine in them comes only in a major DbLive release (see [Versioning](../versioning.md)). Pass another image as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
 - For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture or the deployment test disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 

@@ -12,7 +12,7 @@ public class MyDbTestFixture()
 ```
 
 - The image is `mcr.microsoft.com/mssql/server:2025-latest` unless you pass another one: `new MsSqlContainerFixtureBuilder(project, "mcr.microsoft.com/mssql/server:2022-latest")`.
-- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends.
+- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
 - Without Docker, use `MsSqlFixtureBuilder` from `DbLive.MSSQL` with a connection string to your server.
 
 - Unit testing guide: https://zacoders.github.io/DbLive/unit-testing/

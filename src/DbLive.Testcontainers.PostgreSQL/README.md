@@ -12,7 +12,7 @@ public class MyDbTestFixture()
 ```
 
 - The image is `postgres:18` unless you pass another one: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`.
-- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends.
+- Fixtures that start at the same time share one container; Testcontainers removes it when the test run ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`).
 - Without Docker, use `PostgreSqlFixtureBuilder` from `DbLive.PostgreSQL` with a connection string to your server.
 
 - Unit testing guide: https://zacoders.github.io/DbLive/unit-testing/

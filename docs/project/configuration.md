@@ -69,8 +69,8 @@ No project folder may be inside another one. A file that is in two of them, such
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `TransactionWrapLevel` | `Migration` | `Migration`: each migration and breaking script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: no transactions. |
-| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a code file in its own transaction and of a command without a transaction (a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction, so `Snapshot` here fails every migration in a transaction that alters a table or an index: set it in the [item settings](#item-settings) of a data migration instead. |
+| `TransactionWrapLevel` | `Migration` | `Migration`: each migration and breaking script in its own transaction. `Deployment`: the whole deployment in one transaction. `None`: migration and breaking scripts without a transaction; each [code file](../deployment/code.md#transactions-and-timeouts) still runs in a transaction of its own, and so does each SQL test. |
+| `TransactionIsolationLevel` | `ReadCommitted` | Isolation level of deployment transactions and commands, also of a code file in its own transaction and of a command without a transaction (a BeforeDeploy or AfterDeploy script, a script with `None`). `Snapshot` is SQL Server only and requires `ALLOW_SNAPSHOT_ISOLATION ON`. SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction, so `Snapshot` here fails every migration in a transaction that alters a table or an index: set it in the [item settings](#item-settings) of a data migration instead. DbLive logs a warning that says so. |
 | `TestsTransactionIsolationLevel` | `Serializable` | Isolation level of the transaction each SQL test runs in. |
 
 ### Parallelism
@@ -106,7 +106,7 @@ DbLive does not wrap a deployment in one transaction by default, and that is int
 
 - **`Migration`** (default): each migration and breaking script commits or rolls back on its own, together with its bookkeeping. If version 5 fails, versions 1 to 4 stay applied and the next deployment continues with version 5. The database stays consistent between scripts, which is what a 24/7 system needs.
 - **`Deployment`**: all or nothing, including breaking scripts. Simple for small databases and test environments, but it holds locks for the whole deployment and runs code deployment single-threaded. On PostgreSQL the deployment transaction is one session: a `SET` of one script (`search_path`, `role`, `lock_timeout`), also `SET LOCAL`, stays for the scripts after it, so a script that changes a setting restores it at its end (`reset search_path;`). On SQL Server each script gets a reset session, and DbLive sets the isolation level of the deployment transaction before each script: a `set transaction isolation level` of one script does not reach the next either.
-- **`None`**: no transactions, except for a script whose item settings file sets `"TransactionWrapLevel": "Migration"`. Use `None` for single scripts through an [item settings file](#item-settings) rather than for the whole project.
+- **`None`**: migration and breaking scripts run without a transaction, except for a script whose item settings file sets `"TransactionWrapLevel": "Migration"`. Each code file still runs in a transaction of its own, as with `Migration`. Use `None` for single scripts through an [item settings file](#item-settings) rather than for the whole project.
 
 Each SQL test always runs in its own transaction that is rolled back.
 

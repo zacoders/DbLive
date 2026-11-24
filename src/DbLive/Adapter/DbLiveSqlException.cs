@@ -11,8 +11,8 @@ public class DbLiveSqlException : Exception
 {
 	/// <summary>
 	/// The details of the server's error: number, severity, line; on SQL Server also the line of the file where the failed
-	/// <c>GO</c> batch starts. Empty when the error does not come from the server, such as a timeout or a lost connection:
-	/// the message has the cause then.
+	/// <c>GO</c> batch starts. Empty for a timeout, and on PostgreSQL for a lost connection: the message has the cause then.
+	/// On SQL Server a lost connection or a killed session is a <c>SqlException</c> like any other error, and this holds its errors.
 	/// </summary>
 	public string SqlError { get; internal set; }
 

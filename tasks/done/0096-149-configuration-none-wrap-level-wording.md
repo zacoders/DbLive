@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-11-24
+closed: 2026-11-24
 ---
 # `docs/project/configuration.md`: `TransactionWrapLevel: None` is "no transactions"
+
+## Release note
+None. A correction of `docs/project/configuration.md`; DbLive behaves as before.
 
 ## Problem
 `docs/project/configuration.md:72` (table "Transactions"): "`None`: no transactions." and `:109`: "**`None`**: no transactions, except for a script whose item settings file sets `"TransactionWrapLevel": "Migration"`."
@@ -16,7 +20,14 @@ Probably left over when code files got their own transaction: the page was updat
 - `docs/project/configuration.md:72` and `:109`, as §10 says
 
 ## Done when
-- [ ] Docs updated
+- [x] Docs updated
 
 ## Notes
 - Found by the code review of 2026-11-24.
+
+## Result
+Docs only, no change in behavior.
+- `docs/project/configuration.md`, table "Transactions": `None` runs migration and breaking scripts without a transaction; each code file (link to "Transactions and timeouts" of `docs/deployment/code.md`) and each SQL test still run in a transaction of their own.
+- `docs/project/configuration.md`, "Choosing a transaction level": `None` is about migration and breaking scripts, with the item settings exception as before; each code file still runs in a transaction of its own, as with `Migration`.
+- The XML doc of the internal `TransactionWrapLevel.None` (`src/DbLive/Common/TransactionLevel.cs`) said "No transaction will be used": now the same as the docs.
+- `mkdocs build --strict` passes.

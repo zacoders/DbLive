@@ -13,7 +13,8 @@ internal enum TransactionWrapLevel
 	Migration,
 
 	/// <summary>
-	/// No transaction will be used.
+	/// Migration and breaking scripts run without a transaction, unless their item settings say <see cref="Migration"/>.
+	/// Each code file, each test and the self-deployment still run in a transaction of their own.
 	/// </summary>
 	None
 }

@@ -107,6 +107,47 @@ public class SqlTestResultSetTests(PostgreSqlFixture fixture, ITestOutputHelper 
 	}
 
 	/// <summary>
+	/// Npgsql reads date as DateOnly and time as TimeOnly, so rows writes a date without a time of day: "2026-01-01", not
+	/// "2026-01-01T00:00:00" as on SQL Server, where SqlClient reads date as DateTime. A date then equals the string '2026-01-01',
+	/// and never a timestamp at midnight. An upgrade of Npgsql that reads them as other types fails this test.
+	/// </summary>
+	[Fact]
+	public async Task Rows_test_writes_date_and_time_as_PostgreSQL_shows_them()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Tests/date-and-time-against-text.sql", """
+				select cast('2026-01-01' as date) as d, cast('10:00' as time(2)) as t;
+				select 'rows' as assert;
+				select '2026-01-01' as d, '10:00:00' as t;
+				""")
+			.AddFile("Tests/date-against-timestamp.sql", """
+				select cast('2026-01-01' as date) as d;
+				select 'rows' as assert;
+				select cast('2026-01-01' as timestamp) as d;
+				""");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+		IDbLiveTester tester = builder.CreateTester();
+
+		TestRunResult againstText = await tester.RunTestAsync(Output.WriteLine, "Tests/date-and-time-against-text.sql");
+		TestRunResult againstTimestamp = await tester.RunTestAsync(Output.WriteLine, "Tests/date-against-timestamp.sql");
+
+		Assert.True(againstText.IsSuccess, againstText.ErrorMessage);
+		Assert.False(againstTimestamp.IsSuccess);
+		Assert.Equal(
+			"""
+			Data for one or more rows does not match:
+			Columns: d: timestamp
+			[Row 1]>
+			Expected values: "2026-01-01T00:00:00"
+			Actual values:   "2026-01-01"
+			""".ReplaceLineEndings(),
+			againstTimestamp.ErrorMessage?.ReplaceLineEndings()
+		);
+	}
+
+	/// <summary>
 	/// Npgsql reads macaddr as PhysicalAddress and pg_lsn as NpgsqlLogSequenceNumber, which have no public properties, and inet as
 	/// IPAddress, which has no netmask: PostgreSqlDA reads inet as NpgsqlInet. rows compares them by their text.
 	/// </summary>
