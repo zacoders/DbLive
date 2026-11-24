@@ -35,7 +35,7 @@ select 10 as UserId, 'TestUser10' as Name;
 
 The **assert result set** is a result set whose first column is named `assert` (in any case). Its value chooses the assertion. Result sets returned **before** it are the actual results; result sets **after** it are the expected results. Statements that return no result set (`insert`, `set`, `declare`) are ignored.
 
-A misspelled column (`select asstert = 'rows'`) or a missing alias (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column.
+A misspelled column (`select asstert = 'rows'`) or a missing alias of a literal (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column. On PostgreSQL a cast or a function call without an alias is not caught: PostgreSQL names the column after the type or the function (`select 'rows'::text` returns a column `text`), and the test has no assertion. Always write `as assert`.
 
 !!! warning "No `GO` in SQL Server test files"
     A test file is executed as a single batch, so `GO` is a syntax error there. `setup.test.sql`, migrations and code files may use `GO`.
