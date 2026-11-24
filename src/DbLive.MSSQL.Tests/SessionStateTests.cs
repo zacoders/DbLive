@@ -2,7 +2,6 @@ using DbLive.Adapter;
 using DbLive.Testing;
 using Microsoft.Data.SqlClient;
 using System.Diagnostics.CodeAnalysis;
-using System.Transactions;
 
 namespace DbLive.MSSQL.Tests;
 
@@ -22,15 +21,19 @@ public class SessionStateTests(SqlServerIntegrationFixture fixture, ITestOutputH
 		$"insert into dbo.T select '{script}', transaction_isolation_level from sys.dm_exec_sessions where session_id = @@spid;";
 
 	[Theory]
-	// 2: read committed, 4: serializable; the level of the deployment transaction.
+	// 2: read committed, 4: serializable, 5: snapshot; the level of the deployment transaction. A transaction that began in snapshot
+	// goes back to it.
 	[InlineData("ReadCommitted", "serializable", 2)]
 	[InlineData("Serializable", "read committed", 4)]
+	[InlineData("Snapshot", "read committed", 5)]
 	public async Task Isolation_level_of_a_migration_does_not_reach_the_next_scripts_in_the_deployment_transaction(
 		string transactionIsolationLevel,
 		string levelOfMigration,
 		int expectedLevel
 	)
 	{
+		await CreateBuilder().GetRequiredService<IDbLiveDA>().ExecuteSqlAsync($"alter database [{DbName}] set allow_snapshot_isolation on;");
+
 		using TempProject project = new TempProject()
 			.AddFile("settings.json", $$"""{ "TransactionWrapLevel": "Deployment", "TransactionIsolationLevel": "{{transactionIsolationLevel}}" }""")
 			.AddFile("Migrations/001.migration.sql", $"""
@@ -47,22 +50,6 @@ public class SessionStateTests(SqlServerIntegrationFixture fixture, ITestOutputH
 			[$"code:{expectedLevel}", $"migration:{expectedLevel}"],
 			await builder.GetRequiredService<IDbLiveDA>().ListAsync("select concat(script, ':', level) from dbo.T")
 		);
-	}
-
-	// a transaction that began in snapshot goes back to it after a script changed its level. Through the data access: a deployment with
-	// Snapshot in the deployment transaction fails for another reason (0096-164).
-	[Fact]
-	public async Task Isolation_level_of_a_script_does_not_reach_the_next_script_in_a_snapshot_transaction()
-	{
-		IDbLiveDA da = CreateBuilder().GetRequiredService<IDbLiveDA>();
-		await da.ExecuteSqlAsync($"alter database [{DbName}] set allow_snapshot_isolation on;");
-
-		using TransactionScope scope = TransactionScopeManager.Create(TranIsolationLevel.Snapshot, TimeSpan.FromMinutes(1));
-
-		await da.ExecuteSqlAsync("set transaction isolation level read committed;");
-
-		// 5: snapshot.
-		Assert.Equal(5, await da.ScalarAsync(SessionLevel));
 	}
 
 	[Fact]

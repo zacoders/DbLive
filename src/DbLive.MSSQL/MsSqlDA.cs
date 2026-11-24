@@ -874,18 +874,22 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// <c>dblive.code.relative_path</c> would fail with a collation conflict.</item>
 	/// <item>The index is not unique: paths that differ only by accent or width are different files for DbLive and equal
 	/// for an accent- or width-insensitive collation.</item>
+	/// <item>The index is part of <c>create table</c>: with <c>TransactionWrapLevel</c> <c>Deployment</c> and
+	/// <c>TransactionIsolationLevel</c> <c>Snapshot</c> the command runs in a snapshot transaction, where SQL Server does not allow
+	/// <c>create index</c> (Msg 3964), also on a temporary table. An index inside <c>create table</c> is allowed there (verified).</item>
 	/// <item><c>nvarchar(450)</c>: a clustered key holds at most 900 bytes, so <c>dblive.code</c> never stores a longer path
 	/// (<see cref="MaxCodePathLength"/>).</item>
 	/// </list>
 	/// </summary>
 	private const string PathsTableSql = """
-		create table #paths ( value nvarchar(450) collate database_default not null );
+		create table #paths (
+			value nvarchar(450) collate database_default not null,
+			index ix_paths clustered ( value )
+		);
 
 		insert into #paths ( value )
 		select x.p.value('text()[1]', 'nvarchar(450)')
 		from @paths.nodes('/paths/p') as x(p);
-
-		create clustered index ix_paths on #paths ( value );
 
 		""";
 
