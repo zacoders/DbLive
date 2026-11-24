@@ -883,7 +883,10 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// do not give when the schema dblive belongs to dbo. A temporary table and xml need no permission and work with any
 	/// compatibility level (openjson needs 130).</item>
 	/// <item><c>collate database_default</c>: a temporary table takes the collation of tempdb, and the comparison with
-	/// <c>dblive.code.relative_path</c> would fail with a collation conflict.</item>
+	/// <c>dblive.code.relative_path</c> would fail with a collation conflict. The queries compare with
+	/// <c>c.relative_path collate database_default</c> too: after <c>alter database ... collate</c> the column keeps the collation
+	/// it was created with. Both indexes are scanned with or without it (verified); the paths are in lower case, so a change from a
+	/// case-insensitive collation to a case-sensitive one changes nothing.</item>
 	/// <item>The index is not unique: paths that differ only by accent or width are different files for DbLive and equal
 	/// for an accent- or width-insensitive collation.</item>
 	/// <item>The index is part of <c>create table</c>: with <c>TransactionWrapLevel</c> <c>Deployment</c> and
@@ -913,7 +916,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			update c
 			set verified_utc = @verified_utc
 			from dblive.code as c
-			join #paths as p on p.value = c.relative_path;
+			join #paths as p on p.value = c.relative_path collate database_default;
 			""",
 			Parameters(new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc })
 		).ConfigureAwait(false);
@@ -927,7 +930,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			update c
 			set status = 'applying'
 			from dblive.code as c
-			join #paths as p on p.value = c.relative_path
+			join #paths as p on p.value = c.relative_path collate database_default
 			where c.status = 'applied';
 			""",
 			Parameters(new { paths = ToPathList(relativePaths) })
@@ -945,7 +948,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			output inserted.relative_path
 			from dblive.code as c
 			where c.status <> 'removed'
-			  and not exists ( select 1 from #paths as p where p.value = c.relative_path );
+			  and not exists ( select 1 from #paths as p where p.value = c.relative_path collate database_default );
 			""",
 			Parameters(new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc })
 		).ConfigureAwait(false)).ToList();
