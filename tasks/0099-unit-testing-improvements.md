@@ -53,7 +53,7 @@ Open questions:
 - [ ] It is breaking, so by the PR title rule (`BREAKING CHANGE:`, "Releases" in `Development.md`) the release that brings it is 3.0.0. Straight there, or first a 2.x release that only logs a warning for a test without an assert?
 
 What it changes:
-- 0099-03 (expected errors): the `throw` patterns end with the new value, or check the message with `rows` as the verified pattern in its Notes does. The question of a built-in `error` assert stays.
+- 0099-03 (expected errors): the `throw` patterns end with the new value, or check the message with `rows` as the verified pattern in its Notes does. A built-in `error` assert, placed before the act, is proposed there (2026-11-24).
 - 0099-01 (helpers) and 0099-04 (several assertions): no change of the design; their examples and demo tests have an assert.
 - 0099-05 (comparison page): the assertions row says that every test states its check; check what tSQLt does with a test without an assertion in its docs.
 - Tests without an assert in the repository: the template `Tests/user-name-is-required.sql` (SQL Server and PostgreSQL, its comment says "Without an assert, the test passes ..."), `src/Demo/DemoMSSQL` (`Code/root.test.sql`, `Tests/root.test.sql`, `Tests/Common/admin-must-exists.test.sql`, `Tests/Common/t.select-from-new-tables.sql`, `Tests/Common/unique-user-name.test.sql`), `src/DbLive.Tests/Scripts/Tests/example.sql`, integration tests such as `SqlTestResultSetTests.Empty_test_passes`.
