@@ -3,8 +3,9 @@ namespace DbLive;
 /// <summary>
 /// A script ran longer than its timeout: <c>CodeItemTimeout</c>, <c>MigrationTimeout</c> or the <c>Timeout</c> of a migration,
 /// <c>BeforeDeployFolderTimeout</c>, <c>AfterDeployFolderTimeout</c>, <c>UnitTestItemTimeout</c>. The timeout is the timeout of the whole
-/// file, on both providers. The timeout error of the provider is the inner exception; there is none when on SQL Server the time of the
-/// file ran out between two <c>GO</c> batches.
+/// file, on both providers. The error of the provider is the inner exception: its timeout on SQL Server, the cancel of the command on
+/// PostgreSQL (<see cref="OperationCanceledException"/>); there is none when on SQL Server the time of the file ran out between two
+/// <c>GO</c> batches.
 /// <para>
 /// Or a transaction of DbLive ran longer than its timeout: the deployment (<c>DeploymentTimeout</c>), a migration or breaking script in
 /// its own transaction, a test (twice <c>UnitTestItemTimeout</c>), the self-deployment of DbLive. The message says which, and the inner

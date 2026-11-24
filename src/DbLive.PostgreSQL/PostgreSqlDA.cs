@@ -254,19 +254,24 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	private static async Task<int> ExecuteCommandAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
 	{
 		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
-
-		using NpgsqlCommand cmd = new(sqlStatement, cnn);
-		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+		using CancellationTokenSource cancellation = scriptTimeout.CreateCancellation();
+		using NpgsqlCommand cmd = CreateScriptCommand(cnn, sqlStatement);
 
 		try
 		{
-			return await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+			return await cmd.ExecuteNonQueryAsync(cancellation.Token).ConfigureAwait(false);
 		}
-		catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
+		catch (OperationCanceledException e) when (cancellation.IsCancellationRequested && !IsTransactionAborted())
 		{
 			throw scriptTimeout.Expired(e);
 		}
 	}
+
+	// the timeout of a script is the cancellation of ScriptTimeout, not CommandTimeout: Npgsql starts its command timeout again on every
+	// notice of the server, so a script with 'raise notice' in a loop, or a 'drop ... if exists' before a long statement, ran past it
+	// (verified with Npgsql 10.0.1). 0 is no command timeout, also not the default of the connection string, 30 seconds.
+	// When the time runs out, Npgsql cancels the statement on the server and throws OperationCanceledException.
+	private static NpgsqlCommand CreateScriptCommand(NpgsqlConnection cnn, string sqlStatement) => new(sqlStatement, cnn) { CommandTimeout = 0 };
 
 	// raw begin and commit on the connection, not NpgsqlTransaction: it refuses every command after a COMMIT or ROLLBACK of the script,
 	// and the check of ExecuteGuardedAsync is what finds those.
@@ -340,14 +345,9 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		end $dblive$;
 		""";
 
-	// Npgsql reports a command timeout as NpgsqlException "Exception while reading from stream" with TimeoutException "Timeout during
-	// reading attempt" inside, also when it has cancelled the statement on the server. A connection timeout has a TimeoutException
-	// inside too, so only the command of a script is checked for it.
-	private static bool IsCommandTimeout(NpgsqlException e) => e.InnerException is TimeoutException;
-
-	// when System.Transactions aborts the transaction at its timeout while a command runs, Npgsql cancels the command to roll back, and
-	// the cancelled command has the shape of a command timeout. It is not the timeout of the script then: it stays the error of the
-	// provider, and the scope of DbLive makes it the timeout of the transaction (TransactionTimeout).
+	// when System.Transactions aborts the transaction at its timeout while a command runs, Npgsql cancels the command to roll back. When
+	// the time of the script runs out at the same moment (a migration has the same timeout as its transaction), it is not the timeout of
+	// the script: it stays the error of the provider, and the scope of DbLive makes it the timeout of the transaction (TransactionTimeout).
 	private static bool IsTransactionAborted() =>
 		System.Transactions.Transaction.Current?.TransactionInformation.Status == System.Transactions.TransactionStatus.Aborted;
 
@@ -391,42 +391,42 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	}
 
 	// the reader is closed when it returns: the connection takes no other command while a reader is open.
+	// Every call of the reader takes the token: the server runs the statements after the first result set while the reader moves on.
 	private static async Task<List<SqlResult>> QueryMultipleAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
 	{
 		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
-
-		using NpgsqlCommand cmd = new(sqlStatement, cnn);
-		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+		using CancellationTokenSource cancellation = scriptTimeout.CreateCancellation();
+		using NpgsqlCommand cmd = CreateScriptCommand(cnn, sqlStatement);
 
 		try
 		{
-			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
+			using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo, cancellation.Token).ConfigureAwait(false);
 
 			List<SqlResult> results = [];
 
 			do
 			{
-				SqlResult? r = await ReadResultAsync(reader).ConfigureAwait(false);
+				SqlResult? r = await ReadResultAsync(reader, cancellation.Token).ConfigureAwait(false);
 				if (r is not null)
 				{
 					results.Add(r);
 				}
 			}
-			while (await reader.NextResultAsync().ConfigureAwait(false));
+			while (await reader.NextResultAsync(cancellation.Token).ConfigureAwait(false));
 
 			return results;
 		}
-		catch (NpgsqlException e) when (IsCommandTimeout(e) && !IsTransactionAborted())
+		catch (OperationCanceledException e) when (cancellation.IsCancellationRequested && !IsTransactionAborted())
 		{
 			throw scriptTimeout.Expired(e);
 		}
 	}
 
-	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader)
+	private static async Task<SqlResult?> ReadResultAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
 	{
 		if (!reader.HasRows && reader.FieldCount == 0) return null;
 
-		ReadOnlyCollection<DbColumn> columnSchema = await reader.GetColumnSchemaAsync().ConfigureAwait(false);
+		ReadOnlyCollection<DbColumn> columnSchema = await reader.GetColumnSchemaAsync(cancellationToken).ConfigureAwait(false);
 
 		List<SqlColumn> sqlColumns = [];
 		foreach (DbColumn col in columnSchema)
@@ -438,7 +438,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 
 		List<SqlRow> rows = [];
-		while (await reader.ReadAsync().ConfigureAwait(false))
+		while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
 		{
 			SqlRow r = [];
 			for (int i = 0; i < reader.FieldCount; i++)
@@ -886,8 +886,8 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// <summary>
 	/// The message of an error of the server, or the distinct messages of the exception chain, one per line.
 	/// Npgsql reports a lost connection as <see cref="NpgsqlException"/> "Exception while reading from stream", and the cause is in its
-	/// inner exception. A command timeout has the same shape, but it becomes <see cref="ExecutionTimeoutException"/>; the cancel of a
-	/// command when its transaction timed out stays this error.
+	/// inner exception. The cancel of a command when its transaction timed out stays this error; the cancel at the timeout of the script
+	/// becomes <see cref="ExecutionTimeoutException"/>.
 	/// </summary>
 	internal static string GetMessage(Exception ex)
 	{

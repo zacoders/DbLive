@@ -34,6 +34,54 @@ public class ScriptTimeoutTests
 		Assert.Equal(int.MaxValue, ScriptTimeout.GetCommandTimeoutSeconds(TimeSpan.MaxValue, TimeSpan.Zero));
 	}
 
+	[Theory]
+	[InlineData("00:00:03", "00:00:00", "00:00:03")]
+	[InlineData("00:00:03", "00:00:02.1", "00:00:00.9")]
+	[InlineData("00:00:00.5", "00:00:00", "00:00:00.5")]
+	// no time left: cancel at once.
+	[InlineData("00:00:03", "00:00:03", "00:00:00")]
+	[InlineData("00:00:03", "00:00:03.5", "00:00:00")]
+	public void Cancel_delay_is_the_time_left(string timeout, string elapsed, string expected)
+	{
+		Assert.Equal(TimeSpan.Parse(expected), ScriptTimeout.GetCancelDelay(TimeSpan.Parse(timeout), TimeSpan.Parse(elapsed)));
+	}
+
+	[Theory]
+	// a timeout of 00:00:00 is no limit.
+	[InlineData("00:00:00", "00:00:00")]
+	[InlineData("00:00:00", "01:00:00")]
+	// longer than the timer of .NET takes: "Timeout": "60" of the item settings is 60 days.
+	[InlineData("60.00:00:00", "00:00:00")]
+	public void No_cancel_delay_for_no_limit(string timeout, string elapsed)
+	{
+		Assert.Null(ScriptTimeout.GetCancelDelay(TimeSpan.Parse(timeout), TimeSpan.Parse(elapsed)));
+	}
+
+	[Fact]
+	public void Max_cancel_delay_is_the_longest_that_CancelAfter_takes()
+	{
+		using CancellationTokenSource cancellation = new();
+
+		cancellation.CancelAfter(ScriptTimeout.MaxCancelDelay);
+		_ = Assert.Throws<ArgumentOutOfRangeException>(() => cancellation.CancelAfter(ScriptTimeout.MaxCancelDelay + TimeSpan.FromMilliseconds(1)));
+	}
+
+	[Fact]
+	public void Cancellation_of_a_timeout_of_60_days_is_created()
+	{
+		using CancellationTokenSource cancellation = ScriptTimeout.Start(TimeSpan.FromDays(60)).CreateCancellation();
+
+		Assert.False(cancellation.IsCancellationRequested);
+	}
+
+	[Fact]
+	public async Task Cancellation_is_cancelled_when_the_time_of_the_script_runs_out()
+	{
+		using CancellationTokenSource cancellation = ScriptTimeout.Start(TimeSpan.FromMilliseconds(50)).CreateCancellation();
+
+		_ = await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(Timeout.Infinite, cancellation.Token));
+	}
+
 	[Fact]
 	public void Script_that_just_started_gets_its_whole_timeout()
 	{
