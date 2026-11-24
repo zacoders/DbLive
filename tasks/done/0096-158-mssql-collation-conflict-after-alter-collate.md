@@ -2,8 +2,12 @@
 type: bug
 priority: low
 created: 2026-11-24
+closed: 2026-11-24
 ---
 # SQL Server: the code deployment fails with a collation conflict after `ALTER DATABASE ... COLLATE`
+
+## Release note
+None. The temporary table of the code commands came with 0096-69 and was never released; DbLive 1.5 had no such conflict.
 
 ## Problem
 `#paths.value` is `collate database_default`, the collation of the database now. `dblive.code.relative_path` keeps the collation the column was created with. After `ALTER DATABASE ... COLLATE` (the columns of existing tables keep theirs) the joins of `#paths` with `dblive.code` fail with Msg 468 `Cannot resolve the collation conflict between "SQL_Latin1_General_CP1_CI_AS" and "Latin1_General_100_CI_AS" in the equal to operation`, and every deployment with code fails in `MarkCodeAsVerifiedAsync`, `MarkCodeAsApplyingAsync` or `MarkMissingCodeAsRemovedAsync`. Verified by the review on 2026-11-24 on SQL Server 2025 with the SQL of these methods.
@@ -31,3 +35,8 @@ Compare with the collation of the column: `#paths` created with the collation of
 - In 1.5 the code commands compared `dblive.code.relative_path` with parameters, which take the collation of the column: no conflict. `#paths` came with 0096-69, not released, so this is a regression of 2.0 before its release.
 - Decision of the maintainer, 2026-11-24: `c.relative_path collate database_default` in the three queries. `one_row_lock` stays as it is: whoever changes the collation of a database removes the dependencies of their own objects anyway (computed columns, `check` constraints, schema-bound modules), and `dblive.version` is one more of them. Not chosen: `#paths` by `select into` (no index, against 0096-69 and 0096-164), a plain `one_row_lock` column (little gain), no fix.
 - Test: `DatabaseCollationChangeTests` (SQL Server): a database created with `Latin1_General_100_CI_AS`, deployed, changed to `SQL_Latin1_General_CP1_CI_AS` the way the message of SQL Server asks (`one_row_lock` dropped and created again), deployed with an unchanged, a changed and a removed code file. Verified: without the fix it fails with Msg 468 in `MarkCodeAsVerifiedAsync`.
+
+## Result
+- `MsSqlDA.MarkCodeAsVerifiedAsync`, `MarkCodeAsApplyingAsync` and `MarkMissingCodeAsRemovedAsync` compare `#paths.value` with `c.relative_path collate database_default`, so a column that kept an older collation of the database no longer fails the deployment. The comment of `PathsTableSql` says why.
+- Not changed: `dblive.version.one_row_lock`, which blocks `ALTER DATABASE ... COLLATE` (Msg 5075) until the operator drops it and creates it again (decision of 2026-11-24, Notes).
+- Test: `DatabaseCollationChangeTests` (SQL Server). All 175 tests of `DbLive.MSSQL.Tests` pass.
