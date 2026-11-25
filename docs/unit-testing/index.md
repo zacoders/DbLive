@@ -181,6 +181,16 @@ An error that dooms the transaction (any run-time error with `XACT_ABORT ON`, a 
 
 On PostgreSQL a procedure cannot end the transaction of its caller: `ROLLBACK` or `COMMIT` in it fails with `invalid transaction termination`, and so does the test.
 
+### Code that leaves a transaction open
+
+On SQL Server a procedure that returns between `begin transaction` and `commit` on some path leaves `@@trancount` higher than it found it. Called by an application, SQL Server fails it with Msg 266. In a test it does not, because DbLive runs the test with `IMPLICIT_TRANSACTIONS` on to find the code that ends the transaction. So DbLive compares `@@trancount` before and after `setup.test.sql` and the test, and the test fails:
+
+```text
+The test left a transaction open: the test, its setup.test.sql or the code they call ran BEGIN TRANSACTION without COMMIT, ...
+```
+
+A `begin transaction` without `commit` in the test itself fails it the same way. A balanced `begin transaction ... commit` is fine: the transaction of the test is rolled back as usual. On PostgreSQL `BEGIN` inside the transaction of a test is only a warning.
+
 ## Running tests in Visual Studio and CI (xUnit)
 
 `DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. For a new solution, `dotnet new dblive` creates the SQL project together with this test project, its fixture and both test classes ([Getting Started](../gettingstarted.md#with-the-template)). To add the tests to an existing SQL project, create a test project next to it (here `MyDb`) and reference it:

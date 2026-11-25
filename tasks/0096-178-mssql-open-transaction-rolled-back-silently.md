@@ -28,17 +28,27 @@ It is a bug of a script, of the same kind as the `COMMIT` or `ROLLBACK` that DbL
 ## Fix
 - In a transaction: read `@@trancount` together with the ID before the script, and fail in the end guard when it is higher after the script: roll back, throw an error that says the script left a transaction open (`BEGIN TRANSACTION` without `COMMIT`). A nested transaction cannot be rolled back alone, so the whole transaction goes, as for a script that ended it.
 - Without a transaction: after the script, `@@trancount > 0` → roll back and fail the script.
-- The SQL test: the same check by `@@trancount` before and after the test.
-- [ ] PostgreSQL: a script without a transaction (`None`, BeforeDeploy) that runs `begin;` without `commit` leaves the session in a transaction block, and Npgsql rolls it back when the connection goes back to the pool? In a transaction of DbLive `begin` is only a warning, nothing to do. Not run.
+- The SQL test: the same check by `@@trancount` before and after the test. It runs through the same guard as a script in a transaction (`ExecuteGuardedAsync`), so it comes with the first item.
+- [x] PostgreSQL: a script without a transaction (`None`, BeforeDeploy) that runs `begin;` without `commit` leaves the session in a transaction block, and Npgsql rolls it back when the connection goes back to the pool? In a transaction of DbLive `begin` is only a warning, nothing to do. Yes, verified 2026-11-25 (Notes): the deployment succeeds, and nothing of the file stays.
+- [ ] PostgreSQL: fix it the same way in this task, or keep it a documented limitation (§10, §16, §19 say so now)? The fix: after a script without a transaction, `select pg_current_xact_id_if_assigned() is not null` on its connection; true → `rollback;` and `DbLiveTransactionLeftOpenException`. One round trip per script without a transaction; a block that wrote nothing is not found, and it loses nothing.
 
 ## Docs to update
-- `docs/llms-full.txt` §0 rule 21, §10 ("A script must not end the transaction it runs in"), §16, §17 (the new error)
-- `docs/deployment/migrations.md` ("No COMMIT or ROLLBACK in a script")
+- `docs/llms-full.txt` §0 rule 22 (new), §8.2 ("A test must not leave a transaction open"), §10 ("A script must not leave a transaction open"), §13.3, §16, §17 (the two new errors), §19
+- `docs/deployment/migrations.md` ("No transaction left open", new), `docs/deployment/index.md`, `docs/deployment/code.md` ("Order, parallelism and retries")
+- `docs/unit-testing/index.md` ("Code that leaves a transaction open", new), `docs/unit-testing/deployment-tests.md`
 
 ## Done when
-- [ ] Fixed for scripts in a transaction, without one and for SQL tests, with integration tests on SQL Server (E1, E2, E3, E7)
-- [ ] PostgreSQL checked
-- [ ] Docs updated
+- [x] Fixed for scripts in a transaction, without one and for SQL tests, with integration tests on SQL Server (E1, E2, E3, E7)
+- [x] PostgreSQL checked
+- [x] Docs updated
 
 ## Notes
 - Found by the code review of 2026-11-25. The experiments: `scratchpad/mssql/exp/Program.cs` of the review session (`e1`, `e2`, `e3`, `e266`, `e7`), not kept in the repository.
+- 2026-11-25, PostgreSQL (verified, PostgreSQL 18 of the integration tests, a temporary test, not kept). The table `t` is empty before the script; rows read on a connection with `Pooling=false`:
+  - Npgsql alone, one command on a pooled connection: `insert 1; begin; insert 2;` leaves no row after `Close()`, also not row 1: `BEGIN` turns the implicit transaction of the command into a transaction block, and the statements before it are in it. `begin; insert 1;` the same. Npgsql rolls the block back when the connection goes back to the pool, before the connection is reused. On the same connection after the script `pg_current_xact_id_if_assigned()` is the ID of the block when it wrote (755, 769), null after `begin; select 1;` and after `insert 1;` alone. `now() = statement_timestamp()` is false in every case, also without a block: no use for the check.
+  - Through DbLive, `TransactionWrapLevel: Migration`: the migration `002` with `"TransactionWrapLevel": "None"` (`begin; insert 1;`, and `insert 1; begin; insert 2;`), then `003` `insert 3`. The deployment succeeds, `002` is `applied`, the rows are `3` only.
+  - A BeforeDeploy or AfterDeploy script `begin; insert 10 ...;` without the deployment transaction: the deployment succeeds, no row.
+- The fix (SQL Server): `StartTransactionGuardSql` reads `current_transaction_id()` and `@@trancount`; `EndTransactionGuardSql` returns 0 (kept), 1 (ended, the ID differs) or 2 (left open, the same ID and a higher `@@trancount`), and rolls back on 1 and 2. A script without a transaction runs through `ExecuteWithoutTransactionAsync`: after it `if @@trancount = 0 select 0; else begin rollback; select 1; end;`. The new `DbLiveTransactionLeftOpenException` (internal, `DbLiveSqlException`) takes what DbLive rolled back, which differs with and without a transaction. `CodeItemDeployer` does not retry it ("The file left a transaction open, so it is not retried."); `UnitTestItemRunner` fails the test with `TransactionLeftOpenMessage`. A second exception type, not `DbLiveTransactionEndedException` with another text: the messages of the deployers and of the test speak of COMMIT or ROLLBACK for that one.
+- Also after an error of a script without a transaction DbLive rolls back a transaction it left open, at once (`TryRollbackAsync`, as for the own transaction of a code file). Before, the pooled session kept the transaction and its locks until it was reused: `begin tran; insert 1; select 1 / 0;` through `ExecuteNonQueryAsync`, then `set lock_timeout 0; select count(*) from dbo.T` on a connection outside the pool failed with the lock timeout (verified with the fix turned off). A code file with In-Memory OLTP DDL that fails is retried on another session of the pool, which those locks would block.
+- In a transaction an error of the script with a transaction left open now rolls back the whole transaction too (the end guard runs after the error as before). Before, a code file in the deployment transaction that failed with `@@trancount` 2 was retried in it, and the commit of the deployment only lowered the count: the whole deployment was rolled back when the session was reused. Not run before the fix; it follows from E1.
+- Tests (verified): `src/DbLive.MSSQL.Tests/ScriptLeavesTransactionOpenTests.cs`, 17 cases. With the check turned off (the end guard returns 0 for a higher `@@trancount`, no check and no rollback without a transaction) all fail but `Test_whose_transactions_are_balanced_passes`. Unit tests of `CodeItemDeployer` and `UnitTestItemRunner` for the new exception. The whole SQL Server suite (196) and `DbLive.Tests` (705) pass.

@@ -225,7 +225,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 			else
 			{
-				await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
+				await ExecuteWithoutTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			}
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
@@ -346,18 +346,63 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	internal const string TransactionEndedExample = "for example 'if @@trancount > 0 rollback' in a CATCH block that does not rethrow the error";
 
-	// the ID before the script, then IMPLICIT_TRANSACTIONS: with the setting on, the read itself would open a transaction when the one
-	// of DbLive is gone already, and the script would run in it unnoticed.
-	private const string StartTransactionGuardSql = "select current_transaction_id(); set implicit_transactions on;";
+	internal const string LeftOpenInTransaction = "DbLive rolled back the transaction that it runs the script in: nothing of the script stays.";
+
+	internal const string LeftOpenWithoutTransaction =
+		"DbLive rolled it back: what the script ran after BEGIN TRANSACTION is gone, what it ran before stays.";
+
+	// a transaction that the script left open would go back to the pool with the connection: SQL Server rolls it back when the session
+	// is reused (sp_reset_connection), and until then it keeps its locks. Neither statement opens a transaction when the script turned
+	// IMPLICIT_TRANSACTIONS on: a select without a table does not.
+	private const string RollbackOpenTransactionSql = "if @@trancount = 0 select 0; else begin rollback; select 1; end;";
+
+	/// <summary>
+	/// Runs a script without a transaction of DbLive, and fails when the script left a transaction of its own open: <c>BEGIN TRANSACTION</c>
+	/// without <c>COMMIT</c>, or <c>IMPLICIT_TRANSACTIONS ON</c>. The transaction is rolled back, also after an error of the script, which
+	/// is the error to throw then: what the script ran before it began the transaction stays, committed in autocommit mode.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open.</exception>
+	private static async Task ExecuteWithoutTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
+	{
+		try
+		{
+			await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(sqlConnection).ConfigureAwait(false);
+			throw;
+		}
+
+		if (await sqlConnection.ExecuteScalarAsync<int>(RollbackOpenTransactionSql).ConfigureAwait(false) == 1)
+		{
+			throw new DbLiveTransactionLeftOpenException(LeftOpenWithoutTransaction);
+		}
+	}
+
+	// the ID and the count of open transactions before the script, then IMPLICIT_TRANSACTIONS: with the setting on, the read itself
+	// would open a transaction when the one of DbLive is gone already, and the script would run in it unnoticed.
+	private const string StartTransactionGuardSql = "select current_transaction_id() as Id, @@trancount as TranCount; set implicit_transactions on;";
+
+	private sealed record TransactionGuardStart(long Id, int TranCount);
+
+	private enum TransactionGuardResult
+	{
+		Kept = 0,
+		Ended = 1,
+		LeftOpen = 2
+	}
 
 	// another ID: the script ended the transaction of DbLive, and IMPLICIT_TRANSACTIONS made its statements after the end open a new one
-	// instead of committing at once. It is rolled back, so that nothing of it stays and the caller finds no transaction on the connection.
-	// None of these statements opens a transaction of its own with the setting on: a select without a table does not.
+	// instead of committing at once. The same ID and more open transactions: the script began one and did not commit it, and the commit
+	// of DbLive would only lower the count. Either is rolled back, the whole transaction: SQL Server cannot roll back a nested one alone.
+	// So nothing of it stays, and the caller finds no transaction on the connection. None of these statements opens a transaction of its
+	// own with the setting on: a select without a table does not.
 	private const string EndTransactionGuardSql = """
-		declare @ended bit = iif(current_transaction_id() = @before, 0, 1);
-		if @ended = 1 and @@trancount > 0 rollback;
+		declare @result int = iif(current_transaction_id() = @id, iif(@@trancount > @tranCount, 2, 0), 1);
+		if @result <> 0 and @@trancount > 0 rollback;
 		set implicit_transactions off;
-		select @ended;
+		select @result;
 		""";
 
 	/// <summary>
@@ -367,11 +412,14 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	/// With <c>IMPLICIT_TRANSACTIONS ON</c> the statements after the end open a new transaction instead, which is rolled back: what the
 	/// script committed with its <c>COMMIT</c> stays, nothing else. While the transaction of DbLive is open, the setting changes nothing.
 	/// Only for a script in a transaction: without one, every statement would open a transaction that nothing commits.
+	/// It also fails when the script left a transaction of its own open (<c>BEGIN TRANSACTION</c> without <c>COMMIT</c>), by
+	/// <c>@@trancount</c>: SQL Server raises no Msg 266 for a procedure that does it while <c>IMPLICIT_TRANSACTIONS</c> is on.
 	/// </summary>
 	/// <exception cref="DbLiveTransactionEndedException">The script ended the transaction.</exception>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open.</exception>
 	private static async Task<T> ExecuteGuardedAsync<T>(SqlConnection sqlConnection, Func<Task<T>> script)
 	{
-		long before = await sqlConnection.ExecuteScalarAsync<long>(StartTransactionGuardSql).ConfigureAwait(false);
+		TransactionGuardStart start = await sqlConnection.QuerySingleAsync<TransactionGuardStart>(StartTransactionGuardSql).ConfigureAwait(false);
 
 		T result;
 		try
@@ -381,18 +429,27 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		catch
 		{
 			// the error of the script is the one to throw, also when the script ended the transaction before it: an error can end it too
-			// (XACT_ABORT ON, a failed conversion, a deadlock), and the two cannot be told apart.
-			await TryEndTransactionGuardAsync(sqlConnection, before).ConfigureAwait(false);
+			// (XACT_ABORT ON, a failed conversion, a deadlock), and the two cannot be told apart. A transaction that the script left open
+			// is rolled back with the transaction of DbLive: a code file is not retried in it then.
+			await TryEndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
 			throw;
 		}
 
-		if (await sqlConnection.ExecuteScalarAsync<bool>(EndTransactionGuardSql, new { before }).ConfigureAwait(false))
+		switch (await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false))
 		{
-			throw new DbLiveTransactionEndedException(TransactionEndedExample);
+			case TransactionGuardResult.Ended:
+				throw new DbLiveTransactionEndedException(TransactionEndedExample);
+			case TransactionGuardResult.LeftOpen:
+				throw new DbLiveTransactionLeftOpenException(LeftOpenInTransaction);
 		}
 
 		return result;
 	}
+
+	private static async Task<TransactionGuardResult> EndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start) =>
+		(TransactionGuardResult)await sqlConnection
+			.ExecuteScalarAsync<int>(EndTransactionGuardSql, new { id = start.Id, tranCount = start.TranCount })
+			.ConfigureAwait(false);
 
 	private static Task<bool> ExecuteGuardedAsync(SqlConnection sqlConnection, Func<Task> script) =>
 		ExecuteGuardedAsync(sqlConnection, async () =>
@@ -402,11 +459,11 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		});
 
 	// the connection may be broken by the error of the script, which is the error to throw.
-	private static async Task TryEndTransactionGuardAsync(SqlConnection sqlConnection, long before)
+	private static async Task TryEndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start)
 	{
 		try
 		{
-			_ = await sqlConnection.ExecuteScalarAsync<bool>(EndTransactionGuardSql, new { before }).ConfigureAwait(false);
+			_ = await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{

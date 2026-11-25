@@ -37,6 +37,12 @@ The usual causes:
 
 A migration that must commit by itself, for example to commit a large data change in batches, gets `"TransactionWrapLevel": "None"` in its [item settings file](../project/configuration.md#item-settings), and must be re-runnable. The [deployment test](../unit-testing/deployment-tests.md) finds a script that ends its transaction before the release.
 
+### No transaction left open
+
+On SQL Server a script must commit every transaction it begins, and so must every procedure it calls, also a script with `TransactionWrapLevel: None`. A `BEGIN TRANSACTION` without `COMMIT` raises no error by itself: the connection goes back to the pool with the transaction open, and SQL Server rolls it back later, when the session is reused. The deployment would succeed and lose what the script did. DbLive compares `@@trancount` before and after every script and fails it with `The script left a transaction open: ...`; it rolls the transaction back at once. In a transaction of DbLive nothing of the script stays, since SQL Server cannot roll back a nested transaction alone; a script without a transaction keeps what it ran before `BEGIN TRANSACTION`. The migration is not marked as applied, and the next deployment runs it again. Remove `BEGIN TRANSACTION` from a script that runs in a transaction of DbLive, and give every path of a procedure its `COMMIT`.
+
+On PostgreSQL `BEGIN` inside a transaction of DbLive is only a warning. A script without a transaction (`TransactionWrapLevel: None`) that runs `BEGIN` without `COMMIT` is not checked: Npgsql rolls the transaction back when the connection goes back to the pool, and the deployment succeeds without what the file ran. End such a `BEGIN` with `COMMIT` in the same file.
+
 ## Checksums
 
 Before deploying, DbLive compares every **applied** migration and breaking script with the file in the project. The checksum covers the text, including whitespace and comments, but not line endings: a Windows checkout (CRLF) and a Linux checkout (LF) of the same file have the same checksum.

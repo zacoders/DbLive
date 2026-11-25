@@ -255,6 +255,41 @@ public class UnitTestItemRunnerTests
 		_ = mockSet.UnitTestResultChecker.DidNotReceive().ValidateTestResult(Arg.Any<List<SqlResult>>());
 	}
 
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public async Task RunTest_ScriptLeftATransactionOpen_FailsWithTheMessageOfTheTest(bool inSetup)
+	{
+		// the data access fails the script that left a transaction open; its message speaks of a script, not of the test.
+		MockSet mockSet = CreateMockSet();
+		DbLiveTransactionLeftOpenException scriptError = new("DbLive rolled back ...");
+		if (inSetup)
+		{
+			mockSet.DbLiveDA.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+				.Returns(Task.FromException(scriptError));
+		}
+		else
+		{
+			mockSet.DbLiveDA.ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+				.Returns(Task.FromException<List<SqlResult>>(scriptError));
+		}
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "test1",
+			FileData = GetFileData("/test/folder/test1.sql"),
+			SetupFileData = GetFileData("/test/folder/setup.test.sql")
+		});
+
+		Assert.False(result.IsSuccess);
+		Assert.Equal(UnitTestItemRunner.TransactionLeftOpenMessage, result.ErrorMessage);
+		Assert.Equal(UnitTestItemRunner.TransactionLeftOpenMessage, result.Output);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+		_ = mockSet.UnitTestResultChecker.DidNotReceive().ValidateTestResult(Arg.Any<List<SqlResult>>());
+	}
+
 	[Fact]
 	public async Task RunTest_TransactionCheckThrows_Fails()
 	{

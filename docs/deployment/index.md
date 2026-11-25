@@ -61,7 +61,7 @@ Every `DeployAsync` call runs these steps in this order:
 
 With `TransactionWrapLevel: Deployment`, steps 5 to 11 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
 
-A script that runs in a transaction, also a BeforeDeploy or AfterDeploy script inside the deployment transaction, must not end it with `COMMIT` or `ROLLBACK`: the deployment fails with the file, and only what the script committed stays (see [No COMMIT or ROLLBACK in a script](migrations.md#no-commit-or-rollback-in-a-script)).
+A script that runs in a transaction, also a BeforeDeploy or AfterDeploy script inside the deployment transaction, must not end it with `COMMIT` or `ROLLBACK`: the deployment fails with the file, and only what the script committed stays (see [No COMMIT or ROLLBACK in a script](migrations.md#no-commit-or-rollback-in-a-script)). On SQL Server no script, with a transaction or without one, may leave a transaction of its own open: the deployment fails with the file, and DbLive rolls that transaction back (see [No transaction left open](migrations.md#no-transaction-left-open)).
 
 Steps 1, 3 to 7 and 11 run whatever the flags say. A breaking-only deployment therefore still reads the whole project, validates, records migrations and runs BeforeDeploy and AfterDeploy.
 

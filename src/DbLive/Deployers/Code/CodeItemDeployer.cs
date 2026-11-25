@@ -55,27 +55,36 @@ internal class CodeItemDeployer(
 			// content: CodeDeployer marked its applied row applying before the run, and a file without an applied row runs anyway.
 			string errorMessage = $"Deploy code file error. File path: {codeItem.FileData.RelativePath}";
 
-			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run. In the deployment transaction
-			// nothing is left to retry it in; in a transaction of its own a retry would run on top of what its COMMIT committed.
-			bool endedTransaction = ex is DbLiveTransactionEndedException;
+			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run, and a file that left a transaction
+			// open leaves it open on every run. In the deployment transaction nothing is left to retry it in (the data access rolled back
+			// the transaction that the file left open); in a transaction of its own a retry would run on top of what its COMMIT committed,
+			// or fail the same way.
+			string? notRetried = ex switch
+			{
+				DbLiveTransactionEndedException when Transaction.Current is not null => "The file ended the deployment transaction",
+				DbLiveTransactionEndedException => "The file ended its transaction",
+				DbLiveTransactionLeftOpenException => "The file left a transaction open",
+				_ => null
+			};
 
 			bool canRetry;
 
-			if (Transaction.Current is not null)
+			if (notRetried is not null)
+			{
+				canRetry = false;
+				errorMessage = $"{errorMessage}. {notRetried}, so it is not retried.";
+			}
+			else if (Transaction.Current is not null)
 			{
 				// when the error ended the transaction, a retry cannot run in it: on PostgreSQL it fails, on SQL Server it would run
 				// in autocommit mode and be committed with the files after it, while the deployment is rolled back.
-				canRetry = !endedTransaction && await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
+				canRetry = await CanRetryInTransactionAsync(codeItem.FileData.RelativePath).ConfigureAwait(false);
 
-				errorMessage = canRetry ? errorMessage
-					: endedTransaction ? $"{errorMessage}. The file ended the deployment transaction, so it is not retried."
-					: $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.";
+				errorMessage = canRetry ? errorMessage : $"{errorMessage}. The error ended the deployment transaction, so the file is not retried.";
 			}
 			else
 			{
-				canRetry = !endedTransaction;
-
-				errorMessage = endedTransaction ? $"{errorMessage}. The file ended its transaction, so it is not retried." : errorMessage;
+				canRetry = true;
 			}
 
 			return new CodeItemDeployResult

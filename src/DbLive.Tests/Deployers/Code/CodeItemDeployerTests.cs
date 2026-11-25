@@ -204,6 +204,40 @@ public class CodeItemDeployerTests
 		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
 	}
 
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public async Task Code_item_that_left_a_transaction_open_is_not_retried(bool inDeploymentTransaction)
+	{
+		// it leaves the transaction open on every run, and the data access rolled back the deployment transaction with it.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(true);
+
+		DbLiveTransactionLeftOpenException scriptError = new("DbLive rolled back ...");
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope? _ = inDeploymentTransaction ? TransactionScopeManager.Create() : null)
+		{
+			res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+		}
+
+		Assert.False(res.IsSuccess);
+		Assert.False(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal(
+			Message("Deploy code file error. File path: Code/dbo/GetUser.sql. The file left a transaction open, so it is not retried.", scriptError.Message),
+			ex.Message
+		);
+		Assert.Same(scriptError, ex.InnerException);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+		await mockSet.DbLiveDA.DidNotReceiveWithAnyArgs().SaveCodeItemAsync(default!);
+	}
+
 	[Fact]
 	public async Task Failed_code_item_without_a_transaction_does_not_check_the_transaction()
 	{

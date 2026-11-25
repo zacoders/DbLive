@@ -13,6 +13,11 @@ internal class UnitTestItemRunner(
 		+ "DbLive rolled back what ran after it; what a COMMIT committed stays in the database. "
 		+ "Code called inside a transaction must not end it: on an error it rolls back to a savepoint of its own (save transaction).";
 
+	internal const string TransactionLeftOpenMessage =
+		"The test left a transaction open: the test, its setup.test.sql or the code they call ran BEGIN TRANSACTION without COMMIT, "
+		+ "for example a procedure that returns between them; called by an application, SQL Server fails such a procedure with Msg 266. "
+		+ "DbLive rolled back the transaction of the test. Code that begins a transaction commits it on every path before it returns.";
+
 	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
 		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
@@ -56,7 +61,7 @@ internal class UnitTestItemRunner(
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
 
-				// the data access fails setup.test.sql and the test when they end the transaction (DbLiveTransactionEndedException, below).
+				// the data access fails setup.test.sql and the test when they end the transaction or leave one open (the exceptions below).
 				// This check covers a transaction that ended otherwise without failing them. An exception here (a broken connection,
 				// a transaction that timed out) fails the test as well.
 				if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
@@ -92,6 +97,11 @@ internal class UnitTestItemRunner(
 			// as the check above.
 			result.Output = TransactionEndedMessage;
 			result.ErrorMessage = TransactionEndedMessage;
+		}
+		catch (DbLiveTransactionLeftOpenException)
+		{
+			result.Output = TransactionLeftOpenMessage;
+			result.ErrorMessage = TransactionLeftOpenMessage;
 		}
 		catch (Exception ex)
 		{
