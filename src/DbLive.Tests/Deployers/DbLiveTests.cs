@@ -162,6 +162,27 @@ public class DbLiveTests
 	}
 
 	[Fact]
+	public async Task Error_after_the_deployment_is_thrown_and_logged_as_committed()
+	{
+		// the types of the process stay stale: a warning would let them fail later, far from the cause. Run again, it reloads them.
+		MockSet mockSet = new();
+		IAsyncDisposable deploymentLock = Substitute.For<IAsyncDisposable>();
+		mockSet.DbLiveDA.AcquireDeploymentLockAsync().Returns(deploymentLock);
+		InvalidOperationException reloadError = new("connection is broken");
+		mockSet.DbLiveDA.OnDeployedAsync().Returns(Task.FromException(reloadError));
+
+		DbLive dbLive = mockSet.CreateUsingMocks<DbLive>();
+
+		InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
+			() => dbLive.DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Same(reloadError, ex);
+		mockSet.Logger.Received(1).Error(reloadError, Arg.Is<string>(m => m.StartsWith("The deployment is committed, but the types of the database were not reloaded", StringComparison.Ordinal)));
+		await deploymentLock.Received(1).DisposeAsync();
+	}
+
+	[Fact]
 	public async Task Data_access_is_not_told_when_the_deployment_fails()
 	{
 		MockSet mockSet = new();

@@ -59,7 +59,8 @@ internal interface IDbLiveDA
 	/// rolled back: on SQL Server in an ambient transaction or a transaction of a code file with the whole transaction (on PostgreSQL
 	/// <c>BEGIN</c> in a transaction is only a warning), and without a transaction on both servers. Without one an open transaction is
 	/// rolled back also after an error of the script: on SQL Server the next session of the pool would roll it back, and until then it
-	/// keeps its locks.
+	/// keeps its locks. On SQL Server so is a transaction that the script left open with an error in a transaction of DbLive, with the
+	/// whole transaction; the error is thrown, with <see cref="DbLiveSqlException.RolledBackWithTransactionLeftOpen"/> set.
 	/// </summary>
 	/// <param name="sqlStatement">The script; on SQL Server with <c>GO</c> batches.</param>
 	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>

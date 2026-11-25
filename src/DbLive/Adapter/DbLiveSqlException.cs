@@ -16,6 +16,13 @@ public class DbLiveSqlException : Exception
 	/// </summary>
 	public string SqlError { get; internal set; }
 
+	/// <summary>
+	/// SQL Server: the script failed with this error inside a transaction that it began itself (<c>BEGIN TRANSACTION</c> before the
+	/// error, no <c>COMMIT</c> after it), while it ran in a transaction of DbLive. The error left the transaction usable, but SQL Server
+	/// cannot roll back a nested transaction alone: the data access rolled back the transaction of DbLive with it.
+	/// </summary>
+	internal bool RolledBackWithTransactionLeftOpen { get; set; }
+
 	internal DbLiveSqlException(string errorMessage, string sqlError, Exception? innerException)
 		: base(errorMessage, innerException)
 	{

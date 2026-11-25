@@ -429,12 +429,18 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		{
 			result = await script().ConfigureAwait(false);
 		}
-		catch
+		catch (Exception e)
 		{
 			// the error of the script is the one to throw, also when the script ended the transaction before it: an error can end it too
 			// (XACT_ABORT ON, a failed conversion, a deadlock), and the two cannot be told apart. A transaction that the script left open
-			// is rolled back with the transaction of DbLive: a code file is not retried in it then.
-			await TryEndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
+			// is rolled back with the transaction of DbLive: a code file is not retried in it then. The error says so, or the caller
+			// finds no transaction and reads it as one that the error ended.
+			if (await TryEndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false) == TransactionGuardResult.LeftOpen
+				&& e is DbLiveSqlException sqlException)
+			{
+				sqlException.RolledBackWithTransactionLeftOpen = true;
+			}
+
 			throw;
 		}
 
@@ -461,15 +467,16 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			return true;
 		});
 
-	// the connection may be broken by the error of the script, which is the error to throw.
-	private static async Task TryEndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start)
+	// the connection may be broken by the error of the script, which is the error to throw: null then.
+	private static async Task<TransactionGuardResult?> TryEndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start)
 	{
 		try
 		{
-			_ = await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
+			return await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{
+			return null;
 		}
 	}
 

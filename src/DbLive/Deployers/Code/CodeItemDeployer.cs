@@ -58,12 +58,15 @@ internal class CodeItemDeployer(
 			// a file that ended the transaction it ran in with COMMIT or ROLLBACK ends it on every run, and a file that left a transaction
 			// open leaves it open on every run. In the deployment transaction nothing is left to retry it in (the data access rolled back
 			// the transaction that the file left open); in a transaction of its own a retry would run on top of what its COMMIT committed,
-			// or fail the same way.
+			// or fail the same way. A file that failed inside a transaction it began (SQL Server) left the deployment transaction usable,
+			// but the data access rolled it back with the transaction of the file: it is not the error that ended it.
 			string? notRetried = ex switch
 			{
 				DbLiveTransactionEndedException when Transaction.Current is not null => "The file ended the deployment transaction",
 				DbLiveTransactionEndedException => "The file ended its transaction",
 				DbLiveTransactionLeftOpenException => "The file left a transaction open",
+				DbLiveSqlException { RolledBackWithTransactionLeftOpen: true } when Transaction.Current is not null =>
+					"The file failed inside a transaction that it began, and DbLive rolled back the deployment transaction with it",
 				_ => null
 			};
 

@@ -61,11 +61,32 @@ internal class DbLive(
 			await _deployer.DeployAsync(project, parameters).ConfigureAwait(false);
 
 			// for the connections of this process: the SQL tests after the deployment (DbLive.xunit), an application that deploys at its startup.
-			await _da.OnDeployedAsync().ConfigureAwait(false);
+			await OnDeployedAsync().ConfigureAwait(false);
 		}
 		finally
 		{
 			await ReleaseDeploymentLockAsync(deploymentLock).ConfigureAwait(false);
+		}
+	}
+
+	private async Task OnDeployedAsync()
+	{
+		try
+		{
+			await _da.OnDeployedAsync().ConfigureAwait(false);
+		}
+		catch (Exception e)
+		{
+			// thrown, unlike the error of the lock release: the connections of this process would read the types of the database as they
+			// were before the deployment, and an enum that it created would fail later with InvalidCastException, far from this cause.
+			// The error of the provider does not say that the deployment is committed, nor that running it again is safe.
+			_logger.Error(
+				e,
+				"The deployment is committed, but the types of the database were not reloaded for the connections of this process "
+				+ "(PostgreSQL): they may fail to read the enums and domains that the deployment created. Run the deployment again: "
+				+ "it deploys nothing and reloads the types."
+			);
+			throw;
 		}
 	}
 

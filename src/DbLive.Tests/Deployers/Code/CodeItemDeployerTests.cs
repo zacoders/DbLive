@@ -239,6 +239,62 @@ public class CodeItemDeployerTests
 	}
 
 	[Fact]
+	public async Task Code_item_that_failed_inside_its_own_transaction_is_not_retried_in_the_deployment_transaction()
+	{
+		// the error left the deployment transaction usable: the data access rolled it back with the transaction that the file began.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(false);
+
+		DbLiveSqlException scriptError = new("Could not find stored procedure 'dbo.Missing'.") { RolledBackWithTransactionLeftOpen = true };
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(scriptError));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res;
+		using (TransactionScope _ = TransactionScopeManager.Create())
+		{
+			res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+		}
+
+		Assert.False(res.IsSuccess);
+		Assert.False(res.CanRetry);
+		CodeDeploymentException ex = Assert.IsType<CodeDeploymentException>(res.Exception);
+		Assert.Equal(
+			Message(
+				"Deploy code file error. File path: Code/dbo/GetUser.sql. The file failed inside a transaction that it began, "
+				+ "and DbLive rolled back the deployment transaction with it, so it is not retried.",
+				scriptError.Message
+			),
+			ex.Message
+		);
+		Assert.Same(scriptError, ex.InnerException);
+		_ = await mockSet.DbLiveDA.DidNotReceive().IsTransactionUsableAsync();
+	}
+
+	[Fact]
+	public async Task Code_item_that_failed_inside_its_own_transaction_is_retried_without_the_deployment_transaction()
+	{
+		// in a transaction of its own the data access rolled back only what the file ran.
+		MockSet mockSet = new();
+		mockSet.DbLiveDA
+			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
+			.Returns(Task.FromException(new DbLiveSqlException("Could not find stored procedure 'dbo.Missing'.") { RolledBackWithTransactionLeftOpen = true }));
+
+		CodeItemDeployer deployer = mockSet.CreateUsingMocks<CodeItemDeployer>();
+
+		CodeItemDeployResult res = await deployer.DeployAsync(GetCodeItem(relativePath: "Code/dbo/GetUser.sql"));
+
+		Assert.False(res.IsSuccess);
+		Assert.True(res.CanRetry);
+		Assert.Equal(
+			Message("Deploy code file error. File path: Code/dbo/GetUser.sql", "Could not find stored procedure 'dbo.Missing'."),
+			Assert.IsType<CodeDeploymentException>(res.Exception).Message
+		);
+	}
+
+	[Fact]
 	public async Task Failed_code_item_without_a_transaction_does_not_check_the_transaction()
 	{
 		// on SQL Server the check is '@@trancount > 0': without a transaction it would tell that no file can be retried.
