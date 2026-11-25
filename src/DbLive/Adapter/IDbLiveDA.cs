@@ -10,7 +10,8 @@ internal interface IDbLiveDA
 
 	/// <summary>
 	/// Checks the settings of the connection string with which DbLive cannot work, without connecting: <c>Enlist=False</c>, and on
-	/// SQL Server <c>Pooling=False</c>. At the start of a deployment and of <see cref="Testing.IDbLiveTester.RunAllTestsAsync"/>.
+	/// SQL Server <c>Pooling=False</c> and <c>MultipleActiveResultSets=True</c>. At the start of a deployment and of
+	/// <see cref="Testing.IDbLiveTester.RunAllTestsAsync"/>.
 	/// </summary>
 	/// <exception cref="NotSupportedException">The connection string has such a setting (<see cref="ConnectionStringNotSupported"/>).</exception>
 	void CheckConnectionString();

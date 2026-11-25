@@ -6,7 +6,8 @@ namespace DbLive.MSSQL.Tests;
 
 /// <summary>
 /// Without the check, Pooling=False failed the self-deployment with "Implicit distributed transactions have not been enabled", and
-/// Enlist=False failed every script in a transaction with DbLiveTransactionEndedException (both verified).
+/// Enlist=False failed every script in a transaction with DbLiveTransactionEndedException, MultipleActiveResultSets=True every code file
+/// with Msg 3997 (all verified).
 /// </summary>
 [SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
 public class ConnectionStringSettingsTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
@@ -35,6 +36,21 @@ public class ConnectionStringSettingsTests(SqlServerIntegrationFixture fixture, 
 		);
 
 		Assert.Equal(ConnectionStringNotSupported.Enlist().Message, ex.Message);
+		Assert.Equal(0, await CountTablesAsync());
+	}
+
+	// 0096-182: without the check the migration was applied, and the code file failed with Msg 3997.
+	[Fact]
+	public async Task Deployment_with_mars_fails_before_it_connects()
+	{
+		using TempProject project = CreateProject()
+			.AddFile("Code/dbo.GetT1.sql", "create or alter procedure dbo.GetT1 as select id from dbo.t1;");
+
+		NotSupportedException ex = await Assert.ThrowsAsync<NotSupportedException>(
+			() => CreateBuilder(project, new SqlConnectionStringBuilder(DbCnnString) { MultipleActiveResultSets = true }).CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal(ConnectionStringNotSupported.MultipleActiveResultSets().Message, ex.Message);
 		Assert.Equal(0, await CountTablesAsync());
 	}
 

@@ -19,6 +19,7 @@ internal class DbLive(
 		_logger.Information("Starting deployment.");
 
 		// Pooling=False (SQL Server) or Enlist=False: every deployment would fail, under an error of the provider that does not name it.
+		// MultipleActiveResultSets=True (SQL Server): every code file would fail, after the migrations were committed.
 		_da.CheckConnectionString();
 
 		// before the server: an error of the project leaves the server as it was. The self-migrations below cannot be undone, and

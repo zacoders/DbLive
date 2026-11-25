@@ -361,7 +361,7 @@ On SQL Server, C# tests in the same process that connect with the same connectio
 
 Before the first test, `RunAllTestsAsync` checks the connection string and the database, and runs no test if a check fails:
 
-- Connection pooling and enlistment are on, as by default. Otherwise `NotSupportedException` before any connection (see [A deployer](../deployment/index.md#a-deployer)).
+- Connection pooling and enlistment are on, as by default, and on SQL Server `MultipleActiveResultSets` is off. Otherwise `NotSupportedException` before any connection (see [A deployer](../deployment/index.md#a-deployer)).
 - The database exists. Otherwise `DatabaseNotFoundException`, which names the database and the server.
 - The DbLive tables exist. Otherwise `DatabaseNotDeployedException`: the project was never deployed there, or the connection string points to another database.
 - The database does not require a newer DbLive. Otherwise `DatabaseRequiresNewerDbLiveException`: a newer DbLive has deployed it (see [The DbLive version a database requires](../deployment/index.md#the-dblive-version-a-database-requires)).

@@ -61,6 +61,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (!builder.Pooling) throw ConnectionStringNotSupported.Pooling();
 		if (!builder.Enlist) throw ConnectionStringNotSupported.Enlist();
+		if (builder.MultipleActiveResultSets) throw ConnectionStringNotSupported.MultipleActiveResultSets();
 	}
 
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
@@ -328,7 +329,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	private static bool IsCommandTimeout(SqlException e) => e.Errors.Cast<SqlError>().Any(err => err.Number == TimeoutExpiredError);
 
 	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, and the isolation level set on the
-	// connection applies to it.
+	// connection applies to it. Under MARS it would end with its first batch (Msg 3997): CheckConnectionString rejects MARS.
 	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
 	{
 		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);

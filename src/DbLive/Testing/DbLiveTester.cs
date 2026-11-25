@@ -22,6 +22,7 @@ internal class DbLiveTester(
 	public async Task RunAllTestsAsync()
 	{
 		// Pooling=False (SQL Server) or Enlist=False: every test would fail, under an error of the provider that does not name it.
+		// MultipleActiveResultSets=True (SQL Server) as in a deployment: the tests run on the database that it deployed.
 		_da.CheckConnectionString();
 
 		await _da.CheckDatabaseExistsAsync().ConfigureAwait(false);

@@ -11,7 +11,8 @@ public interface IDbLiveTester
 	/// Not part of a deployment: a production deployer does not call it.
 	/// </summary>
 	/// <exception cref="UnitTestsFailedException">A test failed. All tests run first.</exception>
-	/// <exception cref="NotSupportedException">The connection string sets <c>Pooling=False</c> on SQL Server or <c>Enlist=False</c>.
+	/// <exception cref="NotSupportedException">The connection string sets <c>Enlist=False</c>, or on SQL Server <c>Pooling=False</c> or
+	/// <c>MultipleActiveResultSets=True</c>.
 	/// Checked before connecting.</exception>
 	/// <exception cref="DatabaseNotFoundException">The database does not exist.</exception>
 	/// <exception cref="DatabaseNotDeployedException">The database has no DbLive tables.</exception>
