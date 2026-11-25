@@ -213,7 +213,7 @@ public class CodeItemDeployerTests
 		MockSet mockSet = new();
 		mockSet.DbLiveDA.IsTransactionUsableAsync().Returns(true);
 
-		DbLiveTransactionLeftOpenException scriptError = new("DbLive rolled back ...");
+		DbLiveTransactionLeftOpenException scriptError = new("it ran BEGIN without COMMIT", "DbLive rolled back ...");
 		mockSet.DbLiveDA
 			.ExecuteCodeItemAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())
 			.Returns(Task.FromException(scriptError));

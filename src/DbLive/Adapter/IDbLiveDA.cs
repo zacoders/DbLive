@@ -53,17 +53,19 @@ internal interface IDbLiveDA
 	/// <summary>
 	/// Executes a script. In an ambient transaction it fails with <see cref="DbLiveTransactionEndedException"/> when the script ended that
 	/// transaction with COMMIT or ROLLBACK, and what the script ran after the end is rolled back; so do <see cref="ExecuteCodeItemAsync"/>
-	/// and <see cref="ExecuteQueryMultipleAsync"/>, and a code file in a transaction of its own. On SQL Server it also fails with
+	/// and <see cref="ExecuteQueryMultipleAsync"/>, and a code file in a transaction of its own. It also fails with
 	/// <see cref="DbLiveTransactionLeftOpenException"/> when the script left a transaction of its own open, and that transaction is
-	/// rolled back: in an ambient transaction or a transaction of a code file with the whole transaction, and without one also after
-	/// an error of the script (the next session of the pool would roll it back, and until then it keeps its locks).
+	/// rolled back: on SQL Server in an ambient transaction or a transaction of a code file with the whole transaction (on PostgreSQL
+	/// <c>BEGIN</c> in a transaction is only a warning), and without a transaction on both servers. Without one an open transaction is
+	/// rolled back also after an error of the script: on SQL Server the next session of the pool would roll it back, and until then it
+	/// keeps its locks.
 	/// </summary>
 	/// <param name="sqlStatement">The script; on SQL Server with <c>GO</c> batches.</param>
 	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
 	/// <param name="timeout">The timeout of the whole script, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
 	/// <exception cref="DbLiveSqlException"/>
 	/// <exception cref="DbLiveTransactionEndedException">The script ended the ambient transaction.</exception>
-	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open (SQL Server).</exception>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open: on PostgreSQL only without a transaction of DbLive.</exception>
 	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
 	Task ExecuteNonQueryAsync(
 		string sqlStatement,

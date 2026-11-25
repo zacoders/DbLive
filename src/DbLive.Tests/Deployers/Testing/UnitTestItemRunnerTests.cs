@@ -262,7 +262,7 @@ public class UnitTestItemRunnerTests
 	{
 		// the data access fails the script that left a transaction open; its message speaks of a script, not of the test.
 		MockSet mockSet = CreateMockSet();
-		DbLiveTransactionLeftOpenException scriptError = new("DbLive rolled back ...");
+		DbLiveTransactionLeftOpenException scriptError = new("it ran BEGIN without COMMIT", "DbLive rolled back ...");
 		if (inSetup)
 		{
 			mockSet.DbLiveDA.ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>())

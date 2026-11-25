@@ -261,12 +261,51 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 			else
 			{
-				_ = await ExecuteCommandAsync(cnn, sqlStatement, timeout).ConfigureAwait(false);
+				await ExecuteWithoutTransactionAsync(cnn, sqlStatement, timeout).ConfigureAwait(false);
 			}
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
 			throw ScriptError(e, sqlStatement);
+		}
+	}
+
+	internal const string LeftOpenCause = "it ran BEGIN without COMMIT";
+
+	internal const string LeftOpenWithoutTransaction =
+		"DbLive rolled it back: what the script ran after its last COMMIT is gone, also the statements before BEGIN; "
+		+ "without a COMMIT in the script, all of it.";
+
+	// a transaction block that wrote has an ID. One that wrote nothing has none and is not found: its rollback loses nothing.
+	// Not a statement added to the script: a script without a transaction is often one that cannot run in a transaction block
+	// ('create index concurrently', 'vacuum'), and statements of one command run in one implicit transaction.
+	private const string TransactionBlockWroteSql = "select pg_current_xact_id_if_assigned() is not null";
+
+	/// <summary>
+	/// Runs a script without a transaction of DbLive, and fails when the script left a transaction block open: <c>BEGIN</c> without
+	/// <c>COMMIT</c>. Npgsql would roll the block back when the connection goes back to the pool, without an error. <c>BEGIN</c> turns the
+	/// implicit transaction of the command into the block, so the statements before it in the script are in the block too, up to the last
+	/// <c>COMMIT</c> of the script (verified). The block is rolled back, also after an error of the script, which is the error to throw then.
+	/// Npgsql rolls back the block of an error at once too, when the connection goes back to the pool, not when it is reused as SQL Server
+	/// does (verified with Npgsql 10.0.1): the rollback here does not rely on it.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction block open.</exception>
+	private static async Task ExecuteWithoutTransactionAsync(NpgsqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		try
+		{
+			_ = await ExecuteCommandAsync(cnn, sqlStatement, timeout).ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(cnn).ConfigureAwait(false);
+			throw;
+		}
+
+		if (await cnn.ExecuteScalarAsync<bool>(TransactionBlockWroteSql).ConfigureAwait(false))
+		{
+			_ = await cnn.ExecuteAsync("rollback;").ConfigureAwait(false);
+			throw new DbLiveTransactionLeftOpenException(LeftOpenCause, LeftOpenWithoutTransaction);
 		}
 	}
 

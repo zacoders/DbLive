@@ -346,6 +346,8 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	internal const string TransactionEndedExample = "for example 'if @@trancount > 0 rollback' in a CATCH block that does not rethrow the error";
 
+	internal const string LeftOpenCause = "it ran BEGIN TRANSACTION without COMMIT, by itself or in a procedure it called";
+
 	internal const string LeftOpenInTransaction = "DbLive rolled back the transaction that it runs the script in: nothing of the script stays.";
 
 	internal const string LeftOpenWithoutTransaction =
@@ -376,7 +378,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		if (await sqlConnection.ExecuteScalarAsync<int>(RollbackOpenTransactionSql).ConfigureAwait(false) == 1)
 		{
-			throw new DbLiveTransactionLeftOpenException(LeftOpenWithoutTransaction);
+			throw new DbLiveTransactionLeftOpenException(LeftOpenCause, LeftOpenWithoutTransaction);
 		}
 	}
 
@@ -440,7 +442,7 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			case TransactionGuardResult.Ended:
 				throw new DbLiveTransactionEndedException(TransactionEndedExample);
 			case TransactionGuardResult.LeftOpen:
-				throw new DbLiveTransactionLeftOpenException(LeftOpenInTransaction);
+				throw new DbLiveTransactionLeftOpenException(LeftOpenCause, LeftOpenInTransaction);
 		}
 
 		return result;
