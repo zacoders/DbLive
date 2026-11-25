@@ -36,6 +36,8 @@ public class CodeFileFailureTests(PostgreSqlFixture fixture, ITestOutputHelper o
 		);
 		Assert.Contains("syntax error at or near \"selec\"", message);
 		Assert.Contains("Position: ", message);
+		// the hint is for a script with the words 'begin atomic' only (BeginAtomicBodyTests).
+		Assert.DoesNotContain(PostgreSqlDA.BeginAtomicHint, message);
 
 		Assert.Empty(await builder.GetRequiredService<IDbLiveDA>().GetCodeItemsAsync());
 	}

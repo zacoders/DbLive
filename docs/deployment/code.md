@@ -14,6 +14,8 @@ Code objects are the **interface** of the database: procedures, functions, views
 | SQL Server | `create or alter proc / function / view / trigger` |
 | PostgreSQL | `create or replace function / view`; `drop function if exists f(args);` followed by `create function` when the signature or the return type changes |
 
+On PostgreSQL write the body of a function or procedure as a string (`as $$ ... $$`) or, for one expression, as `return <expression>`. The SQL-standard body `begin atomic ... end` (PostgreSQL 14) cannot be deployed, in a code file or in any other script: Npgsql splits a script into statements at each `;` outside quotes, comments and parentheses, also inside that body. The file fails on every deployment with `42601: syntax error at end of input`, and DbLive adds a line that names `begin atomic` to the error. `pg_dump` scripts a function created with `begin atomic` with that body: rewrite it when you move existing functions into `Code`.
+
 ```sql
 -- Code/dbo/GetUser.sql (SQL Server)
 create or alter proc dbo.GetUser_v2

@@ -9,10 +9,11 @@ using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Text.RegularExpressions;
 
 namespace DbLive.PostgreSQL;
 
-internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
+internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.PostgreSql;
 
@@ -265,7 +266,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
-			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
+			throw ScriptError(e, sqlStatement);
 		}
 	}
 
@@ -404,7 +405,7 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (Exception e) when (e is not DbLiveSqlException)
 		{
-			throw new DbLiveSqlException(GetMessage(e), GetSqlError(e), e);
+			throw ScriptError(e, sqlStatement);
 		}
 	}
 
@@ -1031,6 +1032,30 @@ internal class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		return string.Join(Environment.NewLine, messages);
 	}
+
+	/// <summary>
+	/// The error of a script, with <see cref="BeginAtomicHint"/> in the message and in <see cref="DbLiveSqlException.SqlError"/>: a failed
+	/// SQL test shows the message, the error of a deployment the SQL error.
+	/// </summary>
+	private static DbLiveSqlException ScriptError(Exception ex, string sqlStatement)
+	{
+		string hint = ex is PostgresException { SqlState: PostgresErrorCodes.SyntaxError } && BeginAtomicRegex().IsMatch(sqlStatement)
+			? Environment.NewLine + BeginAtomicHint
+			: "";
+
+		return new DbLiveSqlException(GetMessage(ex) + hint, GetSqlError(ex) + hint, ex);
+	}
+
+	internal const string BeginAtomicHint =
+		"The script has the words 'begin atomic'. Npgsql splits a script into statements at each ';' outside quotes, comments and "
+		+ "parentheses, also inside the body 'begin atomic ... end' of a function or procedure, so DbLive cannot deploy such a body. "
+		+ "Write the body as a string ('as $$ ... $$'), or as 'return <expression>' for one expression.";
+
+	// Npgsql does not know the SQL-standard body of PostgreSQL 14: the ';' inside it ends the statement, and the server reports the cut
+	// statement as 42601 'syntax error at end of input', on every deployment (verified with Npgsql 10.0.1). The words are matched in the
+	// whole text, also in a comment or a string: a hint to a script that failed anyway.
+	[GeneratedRegex(@"\bbegin\s+atomic\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+	private static partial Regex BeginAtomicRegex();
 
 	private static string GetSqlError(Exception ex)
 	{
