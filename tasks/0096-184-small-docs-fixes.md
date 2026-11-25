@@ -29,11 +29,24 @@ created: 2026-11-25
 
 ## Docs to update
 - `docs/llms-full.txt` rule 8, rule 22, §2, §3.3, §6, §9.3 or §10, §11.5 or §13, §16, §17
-- `docs/deployment/index.md`, `docs/deployment/migrations.md`, `docs/unit-testing/deployment-tests.md`, `docs/unit-testing/index.md`, `docs/unit-testing/stored-proc-and-unit-test.md`, `docs/gettingstarted.md`, `README.md`, `docs/examples/index.md`, `docs/database-as-service.md` (after the answer in 11)
+- `docs/deployment/index.md`, `docs/deployment/migrations.md`, `docs/unit-testing/deployment-tests.md`, `docs/unit-testing/index.md`, `docs/unit-testing/stored-proc-and-unit-test.md`, `docs/gettingstarted.md`, `README.md`, `docs/examples/index.md`, `docs/database-as-service.md` (after the answer in 11), `docs/project/configuration.md` (5)
 
 ## Done when
 - [ ] 1–12 fixed
-- [ ] `mkdocs build --strict` passes
+- [x] `mkdocs build --strict` passes
 
 ## Notes
 - Found by the code review of 2026-11-25 (the branch as release 2.0); 2 and 7 verified by experiment the same day.
+- 5 verified on 2026-11-26 on PostgreSQL 18 with psql: `begin; select pg_current_xact_id()::text; set transaction isolation level serializable;` fails with `25001: SET TRANSACTION ISOLATION LEVEL must be called before any query`; `set transaction deferrable` and `set transaction snapshot` after the read fail the same way. Without the read it works, and so does `set transaction isolation level serializable; select ...` sent as one command, as a script without a transaction of DbLive runs. So the line is for scripts in a transaction of DbLive only; written in §9.3 (row `TransactionIsolationLevel`) and in "Item settings" of `docs/project/configuration.md`.
+- All 12 are fixed in the docs (2026-11-26); 11 waits for the answer of the maintainer:
+  - 1: `docs/deployment/index.md`, `docs/unit-testing/deployment-tests.md` name PostgreSQL; the PostgreSQL paragraph of `docs/deployment/migrations.md` names BeforeDeploy, AfterDeploy and the breaking scripts of the Code folder without `Deployment`.
+  - 2: §10, rule 22, §16 and §17 (the row "The script left a transaction open"), and "No transaction left open" of `docs/deployment/migrations.md`: a procedure that leaves a transaction open, called by a SQL Server script without a transaction of DbLive, fails it with Msg 266, and DbLive rolls the transaction back.
+  - 3: §16 "Error details" lists the fields of §11.2.
+  - 4: §6 and the §17 rows of `MigrationDeploymentException` and `CodeDeploymentAggregateException`.
+  - 6: rule 8 and "Assertions" of `docs/unit-testing/index.md`.
+  - 7: §2 (Native AOT and trimming are not supported) and §3.3 (`#:property PublishAot=false`).
+  - 8: `docs/unit-testing/index.md` says to run the commands in the folder that contains `MyDb` and adds `dotnet sln add MyDb.Tests`; `stored-proc-and-unit-test.md` step 4 starts with `cd ..`.
+  - 9: steps 4 and 5 of Getting Started have tabs for SQL Server and PostgreSQL (the table and the connection string of the template); the stored procedure tutorial says it is for SQL Server and points to the template for PostgreSQL; the section "By hand" of `README.md` creates the console project first.
+  - 10: the breaking script of 007 drops the trigger and the column once, in the breaking deployment.
+  - 11: corrected in the least words: online index builds are no longer a statement that cannot run in a transaction; an index build is named as a long operation, whose locks `None` releases when each statement ends. The maintainer may rewrite it.
+  - 12: §11.5 and "A fixture builder" of `docs/unit-testing/index.md`, with the queries for `DbLive--%` and `dblive--%`.

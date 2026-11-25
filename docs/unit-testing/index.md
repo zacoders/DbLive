@@ -35,7 +35,7 @@ select 10 as UserId, 'TestUser10' as Name;
 
 The **assert result set** is a result set whose first column is named `assert` (in any case). Its value chooses the assertion. Result sets returned **before** it are the actual results; result sets **after** it are the expected results. Statements that return no result set (`insert`, `set`, `declare`) are ignored.
 
-A misspelled column (`select asstert = 'rows'`) or a missing alias of a literal (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column. On PostgreSQL a cast or a function call without an alias is not caught: PostgreSQL names the column after the type or the function (`select 'rows'::text` returns a column `text`), and the test has no assertion. Always write `as assert`.
+A misspelled column (`select asstert = 'rows'`) or a missing alias of a literal (`select 'rows'`) does not silently turn the assertion off: the test fails with a message that names the column. On PostgreSQL a cast or a function call without an alias is not caught: PostgreSQL names the column after the type or the function (`select 'rows'::text` returns a column `text`), and the test has no assertion. Neither is an `assert` column that is not the first one: `select count(*) as n, 'row-count=3' as assert` is not an assert result set, and the test passes. Always write `as assert`, in the first column.
 
 !!! warning "No `GO` in SQL Server test files"
     A test file is executed as a single batch, so `GO` is a syntax error there. `setup.test.sql`, migrations and code files may use `GO`.
@@ -193,13 +193,14 @@ A `begin transaction` without `commit` in the test itself fails it the same way.
 
 ## Running tests in Visual Studio and CI (xUnit)
 
-`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. For a new solution, `dotnet new dblive` creates the SQL project together with this test project, its fixture and both test classes ([Getting Started](../gettingstarted.md#with-the-template)). To add the tests to an existing SQL project, create a test project next to it (here `MyDb`) and reference it:
+`DbLive.xunit` (xUnit v2) turns every SQL test file into an xUnit test case. For a new solution, `dotnet new dblive` creates the SQL project together with this test project, its fixture and both test classes ([Getting Started](../gettingstarted.md#with-the-template)). To add the tests to an existing SQL project, create a test project next to it (here `MyDb`) and reference it. Run the commands in the folder that contains the project folder `MyDb`, not inside it (after [Getting Started](../gettingstarted.md), `cd ..` first): a project created inside `MyDb` becomes part of it, because the SDK compiles every `.cs` file under the project folder, and `MyDb` stops building.
 
 ```bash
 dotnet new xunit -n MyDb.Tests
 dotnet add MyDb.Tests reference MyDb
 dotnet add MyDb.Tests package DbLive.xunit
 dotnet add MyDb.Tests package DbLive.Testcontainers.MSSQL   # SQL Server in Docker
+dotnet sln add MyDb.Tests                                    # when the folder has a solution file (Visual Studio creates one)
 ```
 
 - The `xunit` template adds `Microsoft.NET.Test.Sdk`, `xunit` and `xunit.runner.visualstudio`. `DbLive.xunit` works with xUnit v2, `xunit` 2.9.2 or later; if the template created an xUnit v3 project, switch it to the `xunit` 2.x package (2.9.3 is the last one). With an older `xunit` 2 the restore fails with `NU1107: Version conflict detected for xunit.extensibility.core`: update the `xunit` package rather than adding `xunit.extensibility.core` as the message suggests.
@@ -226,6 +227,7 @@ new MsSqlFixtureBuilder(Assembly.Load("MyDb"), "Server=localhost;Database=master
 
 - `Assembly.Load("MyDb")` loads the SQL project by its assembly name, so the test project must reference it. A type from it works too: `typeof(MyDbMarker).Assembly`.
 - The container builders start one container per test process with [Testcontainers](https://dotnet.testcontainers.org/): `dotnet test` runs each test project in a process of its own, with a container of its own. The first fixture starts it; fixtures that start at the same time wait for that start and share the container. Testcontainers removes it when the process ends, unless its resource reaper is turned off (`TESTCONTAINERS_RYUK_DISABLED=true`, set on some CI runners). Docker must be running.
+- With `MsSqlFixtureBuilder` and `PostgreSqlFixtureBuilder` the fixture drops its database at the end of the tests. A test run that stops before that, in the debugger, by Ctrl+C or by a crash, leaves the database on the server, and nothing removes it later. Find such databases when no tests run, and drop them: `select name from sys.databases where name like 'DbLive--%';` (PostgreSQL: `select datname from pg_database where datname like 'dblive--%';`).
 - The default images are `mcr.microsoft.com/mssql/server:2025-latest` and `postgres:18`. A new major version of the database engine in them comes only in a major DbLive release (see [Versioning](../versioning.md)). Pass another image as the second argument: `new PostgreSqlContainerFixtureBuilder(project, "postgres:17")`. Each image gets its own container.
 - For a database set up in another way (a server from the configuration, a container with other options), implement `IDbLiveFixtureBuilder` (namespace `DbLive`). `GetBuilderAsync()` is called once per fixture and returns a new `DbLiveBuilder` with the provider, the connection string of a new database and the project; the fixture or the deployment test disposes it at the end, so never return a shared one. `GetProjectAssembly()` returns the SQL project assembly; test discovery reads the tests from it. The ready-made builders are a few lines each, for example [MsSqlFixtureBuilder](https://github.com/zacoders/DbLive/blob/main/src/DbLive.MSSQL/MsSqlFixtureBuilder.cs).
 

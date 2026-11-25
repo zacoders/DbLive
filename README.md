@@ -70,7 +70,11 @@ The steps below set up the SQL project and the deployer without the template; th
 
 #### 1. Install packages
 
+The SQL project is a console project, which is also the deployer. Create one, or use an existing one:
+
 ```bash
+dotnet new console -n MyDb
+cd MyDb
 dotnet add package DbLive.MSSQL      # or DbLive.PostgreSQL; brings the DbLive package
 ```
 
