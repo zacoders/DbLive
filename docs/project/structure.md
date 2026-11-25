@@ -103,6 +103,14 @@ See [Unit Testing](../unit-testing/index.md).
 
 These scripts run on every deployment, also when only breaking changes are deployed, so they must be idempotent. The database may still be empty when `BeforeDeploy` runs for the first time. Typical uses: permissions, database options, reference data kept up to date with `merge`.
 
+A database option that needs the database to itself, such as `READ_COMMITTED_SNAPSHOT` on SQL Server, takes `WITH ROLLBACK IMMEDIATE`, which ends the other sessions of the database (see [Item settings](configuration.md#item-settings)). Check the option first, so that the statement runs only when the option changes, not on every deployment:
+
+```sql
+-- BeforeDeploy/read-committed-snapshot.sql
+if (select is_read_committed_snapshot_on from sys.databases where database_id = db_id()) = 0
+    alter database current set read_committed_snapshot on with rollback immediate;
+```
+
 A failed script stops the deployment with `FolderDeploymentException`: the message names the file and contains the SQL error, and the inner exception is the `DbLiveSqlException`. The scripts after it do not run.
 
 ## File encoding
