@@ -1,5 +1,9 @@
 {
-  "TransactionWrapLevel": "none", // no transaction for online index creation.
+  // No transaction of DbLive: an index build releases its locks when it ends, not at the commit of a transaction, and the
+  // database stays available. On PostgreSQL a file of several statements is still one implicit transaction, so the three
+  // "create index" of this file hold their locks until the last one ends: put each index into a migration version of its own,
+  // and use "create index concurrently", alone in its file, to build it without blocking writes (docs/llms-full.txt, Section 18.7).
+  "TransactionWrapLevel": "None",
   "TransactionIsolationLevel": "ReadCommitted",
   "Timeout": "01:00:00" // should not take more than 1 hour
 }

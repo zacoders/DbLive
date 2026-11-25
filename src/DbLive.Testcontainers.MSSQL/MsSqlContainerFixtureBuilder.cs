@@ -7,7 +7,8 @@ namespace DbLive.MSSQL;
 /// Gives every test fixture a new database with a random name (<c>DbLive--&lt;guid&gt;</c>) on SQL Server in Docker.
 /// One container per image per test process: the first fixture starts it, the others wait for that start and share the
 /// container. <c>dotnet test</c> runs each test project in a process of its own, with a container of its own. Testcontainers
-/// removes the container when the test process ends.
+/// removes the container when the test process ends, unless its resource reaper is turned off (<c>TESTCONTAINERS_RYUK_DISABLED=true</c>,
+/// set on some CI runners): then nothing removes it.
 /// </summary>
 /// <param name="project">The SQL project assembly.</param>
 /// <param name="image">The SQL Server image.</param>

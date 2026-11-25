@@ -2,8 +2,12 @@
 type: docs
 priority: low
 created: 2026-11-25
+closed: 2026-11-25
 ---
 # Small docs fixes from the review of 2026-11-25
+
+## Release note
+None. Corrections of the XML docs of `IDbLive`, `CodeDeploymentException` and the container fixture builders, of the docs pages and of the demo settings files; DbLive behaves as before.
 
 ## Problem
 Statements of the docs, XML docs and demos that the code does not match, each small.
@@ -27,7 +31,18 @@ Statements of the docs, XML docs and demos that the code does not match, each sm
 - the demo files of 10 and 11
 
 ## Done when
-- [ ] 1–11 fixed, `mkdocs build --strict` passes
+- [x] 1–11 fixed, `mkdocs build --strict` passes
 
 ## Notes
 - Found by the code review of 2026-11-25.
+- `docs/unit-testing/deployment-tests.md` does not name the physical options, so item 2 needs no change there.
+- 2026-11-25, the maintainer decided: index builds, online or not, run without a transaction (`None`). In a transaction the locks of a build are held to the commit, without one they are released when the build ends, and the database stays available (24/7, database as a service). So item 11 keeps `"TransactionWrapLevel": "None"` in the Chinook settings file and corrects only its comment: on PostgreSQL the three `create index` of the file are one implicit transaction all the same, and the comment says to give each index a version of its own. The `.sql` file is applied in the demo databases and stays; settings items are never checksum-validated (§5.4).
+- Left as it is: `docs/database-as-service.md:101` lists "online index builds" among the statements that cannot run in a transaction (item 4). The page is the maintainer's own text.
+
+## Result
+- `docs/llms-full.txt`: §10, §11.1 and §16 name `No Reset On Close=true`, with which a `SET`, a temporary table and the isolation level set for a script without a transaction stay on the pooled PostgreSQL connection (§11.1: leave it out of the connection string of DbLive); §13.3 says that the physical options are not compared on SQL Server, and that the storage parameters of a PostgreSQL index are compared, not those of the index of a primary key or unique constraint; §12.1: an `idle_session_timeout` shorter than the keep-alive ends the session of the lock; §9.3 and §16: an index build, also an online one, runs in a transaction, and gets `None` so that its locks are released when it ends; §18.7: `with (online = on)` needs Enterprise or Developer edition or Azure SQL; §11: "DbLive's exceptions of Section 17".
+- `docs/deployment/index.md` (`No Reset On Close`), `docs/deployment/migrations.md` (the edition of an online index build).
+- XML docs: `CodeDeploymentException` (the `applying` row of a code file), both container builders (`TESTCONTAINERS_RYUK_DISABLED`), `IDbLive.DeployAsync` (`NotSupportedTransactionIsolationLevelException`, `InvalidProjectSettingsException` and the errors of the project files). A comment of `PostgreSqlDA.SetTransactionIsolationLevelAsync`.
+- `Development.md`: no symbols package for `DbLive.Templates`; "After a release" lists the description of the GitHub repository after 2.0. The release note of 0096-18 says "every package with an assembly".
+- Demos: the comments of `TransactionWrapLevel` in the `settings.json` of DemoMSSQL and AdventureWorks; the comment of the Chinook `20260208142812.migration.settings.json`, which keeps `None` (decision above).
+- `mkdocs build --strict` passes; `DbLive`, `DbLive.Testcontainers.MSSQL` and `DbLive.Testcontainers.PostgreSQL` build without warnings.

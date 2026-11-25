@@ -8,7 +8,8 @@
   /* Options:
       Deployment - the whole deployment in one transaction
       Migration - each migration and breaking script in its own transaction
-      None - no transactions */
+      None - no transaction for migrations and breaking scripts; each code file,
+             each SQL test and the self-deployment of DbLive still run in their own */
   "TransactionWrapLevel": "Migration",
 
   /* Options:

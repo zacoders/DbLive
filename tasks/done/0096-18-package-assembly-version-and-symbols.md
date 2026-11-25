@@ -7,7 +7,7 @@ closed: 2026-11-02
 # Published DLLs have version 0.0.0.0, and there are no symbols
 
 ## Release note
-The DbLive assemblies now carry the package version (AssemblyVersion and FileVersion were `0.0.0.0`), and every package has a symbols package on nuget.org with Source Link. To step into DbLive code, enable the NuGet.org symbol server in the debugger.
+The DbLive assemblies now carry the package version (AssemblyVersion and FileVersion were `0.0.0.0`), and every package with an assembly has a symbols package on nuget.org with Source Link. To step into DbLive code, enable the NuGet.org symbol server in the debugger.
 
 ## Problem
 Verified on all four packages 1.5.0 from the local NuGet cache, every DLL (net8.0, net9.0, net10.0):

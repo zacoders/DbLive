@@ -412,7 +412,8 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	// 'set transaction' outside a transaction block only emits a warning and has no effect.
 	// The session default applies to the implicit transaction of each next command on this connection,
 	// also to a command that cannot run in a transaction block ('create index concurrently', 'vacuum').
-	// Npgsql resets the session ('discard all') when the connection goes back to the pool.
+	// Npgsql resets the session ('discard all') when the connection goes back to the pool, unless the connection string sets
+	// No Reset On Close (docs/llms-full.txt, Section 11.1).
 	private static async Task SetTransactionIsolationLevelAsync(NpgsqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
 		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.PostgreSql);

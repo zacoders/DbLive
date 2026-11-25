@@ -103,7 +103,7 @@ gh api -X PUT repos/zacoders/DbLive/rulesets/<id> --input .github/rulesets/main.
 ```
 
 ### Assembly version and symbols
-CI builds the solution once in Release with `-p:Version=<NuGetVersionV2>`, runs the tests on that build and packs it with `--no-build`. The assemblies get AssemblyVersion and FileVersion `Major.Minor.Patch.0` and the informational version `<version>+<commit sha>`. Every package gets a symbols package (`.snupkg`, with Source Link to GitHub), pushed to nuget.org together with the `.nupkg`. `src/Directory.Build.props` turns on the symbols package and, on GitHub Actions only, `ContinuousIntegrationBuild`. Local builds keep the placeholder version `0.0.0-placeholder` from the `.csproj` files.
+CI builds the solution once in Release with `-p:Version=<NuGetVersionV2>`, runs the tests on that build and packs it with `--no-build`. The assemblies get AssemblyVersion and FileVersion `Major.Minor.Patch.0` and the informational version `<version>+<commit sha>`. Every package with an assembly gets a symbols package (`.snupkg`, with Source Link to GitHub), pushed to nuget.org together with the `.nupkg`; `DbLive.Templates` has no assembly and no symbols package (`IncludeSymbols=false` in its `.csproj`). `src/Directory.Build.props` turns on the symbols package and, on GitHub Actions only, `ContinuousIntegrationBuild`. Local builds keep the placeholder version `0.0.0-placeholder` from the `.csproj` files.
 
 The GitVersion action also exports its outputs as environment variables without a prefix (`informationalVersion`, `sha`, ...), and MSBuild reads environment variables as properties, ignoring case. So CI passes `InformationalVersion` explicitly; a property that the SDK reads and that is not passed on the command line or set in a project file may come from GitVersion.
 
@@ -111,6 +111,7 @@ The GitVersion action also exports its outputs as environment variables without 
 A few results can be checked only on the published release. Check them by hand after a release; they are not a task, since a task closed after the release would be a release of its own. A problem they find is fixed in a task of its own and ships with its release.
 
 - The version is the one the PR title gives, and the GitHub Release has the notes built from the tasks.
-- Every package on nuget.org has its symbols package (`.snupkg`).
+- Every package on nuget.org but `DbLive.Templates` has its symbols package (`.snupkg`).
 - NuGet Package Explorer shows Source Link, deterministic build and compiler flags as valid for the published packages.
 - The links from `docs/llms.txt` to `raw.githubusercontent.com/zacoders/DbLive/main/` open: they point to `main`, so they work only after the merge.
+- After the release of 2.0 only: the description of the GitHub repository (Settings, outside the code) no longer says "safe rollback", which fits 1.5 with its undo scripts; for example "Versioned SQL migrations, code deployment, SQL unit tests and zero-downtime releases in one workflow" (0096-93).
