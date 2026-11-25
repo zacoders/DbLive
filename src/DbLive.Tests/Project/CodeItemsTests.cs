@@ -209,9 +209,23 @@ public class CodeItemsTests
 	{
 		MockSet mockSet = new();
 
+		mockSet.ScriptSource.AddFiles("Migrations/001.migration.sql", "Code/a.test.sql");
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		Assert.Empty(await sqlProject.GetCodeGroupsAsync());
+
+		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>(), Arg.Any<string>());
+	}
+
+	[Fact]
+	public async Task GetCodeItems_No_Code_Warns_For_Each_CodeSubFolder()
+	{
+		MockSet mockSet = new();
+
 		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
 		{
-			CodeSubFoldersDeploymentOrder = ["sub1"]
+			CodeSubFoldersDeploymentOrder = ["sub1", "sub2"]
 		});
 
 		mockSet.ScriptSource.AddFiles("Migrations/001.migration.sql", "Code/a.test.sql");
@@ -220,7 +234,8 @@ public class CodeItemsTests
 
 		Assert.Empty(await sqlProject.GetCodeGroupsAsync());
 
-		mockSet.Logger.DidNotReceive().Warning(Arg.Any<string>(), Arg.Any<string>());
+		mockSet.Logger.Received(1).Warning(Arg.Any<string>(), Arg.Is("sub1"));
+		mockSet.Logger.Received(1).Warning(Arg.Any<string>(), Arg.Is("sub2"));
 	}
 
 	[Fact]

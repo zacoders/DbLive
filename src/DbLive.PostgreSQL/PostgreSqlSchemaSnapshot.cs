@@ -3,7 +3,7 @@ using DbLive.Schema;
 namespace DbLive.PostgreSQL;
 
 /// <summary>
-/// The schema snapshot of PostgreSQL, read from <c>pg_catalog</c> (PostgreSQL 12 or later). Definitions come from the
+/// The schema snapshot of PostgreSQL, read from <c>pg_catalog</c> (PostgreSQL 13 or later, as DbLive). Definitions come from the
 /// <c>pg_get_*def</c> functions, which print them in one form; names are compared as they are, PostgreSQL derives the ones
 /// it generates from the table and columns. Columns are identified by name, not by <c>attnum</c>.
 /// </summary>

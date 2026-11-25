@@ -47,7 +47,7 @@ On every deploy, DbLive compares the settings value with `dblive.version.project
 
 ## Storage
 
-The value is stored in the `project_id` column on the singleton `dblive.version` table. The column is added automatically during DbLive self-deploy (internal migration). Values are normalized to lowercase on write; comparison is case insensitive.
+The value is stored in the `project_id` column on the singleton `dblive.version` table. The column is added automatically during DbLive self-deploy (internal migration). Values are normalized to lower case on write (.NET `ToLowerInvariant()`), and compared in that form, so the comparison ignores case.
 
 ## See also
 

@@ -179,7 +179,10 @@ internal interface IDbLiveDA
 
 	Task SetProjectIdAsync(string projectId);
 
-	/// <exception cref="DbLiveSqlException"/>
+	/// <summary>
+	/// Writes the row of the file to <c>dblive.code</c>: inserts it, or updates the row of its path. An error is the exception of the
+	/// provider, not a <see cref="DbLiveSqlException"/>.
+	/// </summary>
 	Task SaveCodeItemAsync(CodeItemDto item);
 
 	/// <summary>

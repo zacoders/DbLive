@@ -141,6 +141,42 @@ public class FolderDeployerTests
 		Assert.Same(scriptError, ex.InnerException);
 	}
 
+	[Fact]
+	public async Task Failed_write_of_the_row_names_the_file()
+	{
+		MockSet mockSet = new();
+
+		ProjectFolder projectFolder = ProjectFolder.AfterDeploy;
+
+		ProjectSnapshot project = WithFolderItems(projectFolder, new List<GenericItem>{
+			GetGenericItem("file1.sql"),
+			GetGenericItem("file2.sql")
+		}.AsReadOnly());
+
+		// the write of the row is not a script: its error is the exception of the provider.
+		InvalidOperationException writeError = new("The connection is broken.");
+		mockSet.DbLiveDA
+			.MarkItemAsAppliedAsync(projectFolder, "folder/file1.sql", Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<long>(), Arg.Any<long>())
+			.Returns(Task.FromException(writeError));
+
+		FolderDeployer deploy = mockSet.CreateUsingMocks<FolderDeployer>();
+
+		FolderDeploymentException ex = await Assert.ThrowsAsync<FolderDeploymentException>(
+			() => deploy.DeployAsync(project, projectFolder)
+		);
+
+		Assert.Equal("""
+			Error deploying folder/file1.sql file.
+			The connection is broken.
+			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
+		Assert.Equal("folder/file1.sql", ex.RelativePath);
+		Assert.Same(writeError, ex.InnerException);
+		mockSet.Logger.Received(1).Error(writeError, Arg.Any<string>(), "folder/file1.sql", "The connection is broken.");
+
+		await mockSet.DbLiveDA.DidNotReceive()
+			.ExecuteNonQueryAsync("Content of file2.sql", Arg.Any<TranIsolationLevel>(), Arg.Any<TimeSpan>());
+	}
+
 	private static GenericItem GetGenericItem(string fileName)
 	{
 		string relativePath = @$"folder/{fileName}";

@@ -95,6 +95,36 @@ public class ProjectIdValidatorTests
 		_ = mockSet.DbLiveDA.DidNotReceive().SetProjectIdAsync(Arg.Any<string>());
 	}
 
+	[Theory]
+	// ẞ is stored as ß, the Kelvin sign as k: OrdinalIgnoreCase takes neither pair as equal.
+	[InlineData("Straẞe-db", "straße-db")]
+	[InlineData("Kelvin-db", "kelvin-db")]
+	public async Task A_stored_project_id_matches_its_own_settings_value(string settingsProjectId, string storedProjectId)
+	{
+		MockSet mockSet = new();
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			ProjectId = settingsProjectId
+		});
+		mockSet.DbLiveDA.DbLiveInstalledAsync().Returns(true);
+
+		string? stored = null;
+		mockSet.DbLiveDA.GetProjectIdAsync().Returns(_ => stored);
+		mockSet.DbLiveDA.SetProjectIdAsync(Arg.Do<string>(value => stored = value)).Returns(Task.CompletedTask);
+
+		ProjectIdValidator validator = mockSet.CreateUsingMocks<ProjectIdValidator>();
+
+		// the first deployment binds the database, the next ones and the tests compare.
+		await validator.BindAsync();
+		Assert.Equal(storedProjectId, stored);
+
+		await validator.ValidateAsync();
+		await validator.BindAsync();
+		await validator.ValidateBeforeTestsAsync();
+
+		await mockSet.DbLiveDA.Received(1).SetProjectIdAsync(Arg.Any<string>());
+	}
+
 	[Fact]
 	public async Task ValidateAsync_throws_when_project_id_mismatch()
 	{

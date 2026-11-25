@@ -35,11 +35,31 @@ public class CodeFileFailureTests(PostgreSqlFixture fixture, ITestOutputHelper o
 			message
 		);
 		Assert.Contains("syntax error at or near \"selec\"", message);
-		Assert.Contains("Position: ", message);
+		// Npgsql writes the position into the message of the server; DbLive does not repeat it.
+		Assert.Contains("POSITION: ", message);
+		Assert.DoesNotContain("Position: ", message);
 		// the hint is for a script with the words 'begin atomic' only (BeginAtomicBodyTests).
 		Assert.DoesNotContain(PostgreSqlDA.BeginAtomicHint, message);
 
 		Assert.Empty(await builder.GetRequiredService<IDbLiveDA>().GetCodeItemsAsync());
+	}
+
+	[Fact]
+	public async Task Failed_code_file_has_the_hint_of_the_server_in_its_message()
+	{
+		// the body of a SQL function is checked when it is created: abs(text) does not exist.
+		using TempProject project = new TempProject()
+			.AddFile("Code/public/get_abs.sql", "create or replace function get_abs() returns int language sql as $$ select abs('x'::text) $$;");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		CodeDeploymentAggregateException ex = await Assert.ThrowsAsync<CodeDeploymentAggregateException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		string[] lines = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions)).Message.ReplaceLineEndings("\n").Split('\n');
+		Assert.Contains("SqlState: 42883", lines);
+		Assert.Contains("Hint: No function matches the given name and argument types. You might need to add explicit type casts.", lines);
 	}
 
 	// the row is applying, with the hash and the time of the last success: the failed content runs again, and so does the content of the

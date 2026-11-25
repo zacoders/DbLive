@@ -10,7 +10,7 @@ breaking: true
 ## Release note
 **Failures are no longer written to the `dblive` tables.** The tables keep what the next deployment needs and the history of successful runs; an error is in the exception and the log, with every `TransactionWrapLevel`. A failed breaking script of the Code folder writes no row: its row keeps its last success. A failed code file runs again on the next deployment, as before. `RunAllTestsAsync` writes nothing: each result is in the log. The first deployment with this version deletes the rows with `status = 'error'` from `dblive.code` and drops the columns `error` of `dblive.code` and `dblive.migration` and the table `dblive.unit_test_run`.
 
-The message of `CodeDeploymentException` now holds the error of the server on the lines after the one that names the file, as `MigrationDeploymentException` and `FolderDeploymentException` do: on SQL Server `Msg`, `Line`, `Procedure` and the line of the file where the failed `GO` batch starts, on PostgreSQL `SqlState` and `Position`. So the log has it too.
+The message of `CodeDeploymentException` now holds the error of the server on the lines after the one that names the file, as `MigrationDeploymentException` and `FolderDeploymentException` do: on SQL Server `Msg`, `Line`, `Procedure` and the line of the file where the failed `GO` batch starts, on PostgreSQL `SqlState`, the position of the error and `Hint`. So the log has it too.
 
 To upgrade: read failures from the log or the exception; remove queries and reports that read `dblive.code.error`, `dblive.migration.error`, `status = 'error'` or `dblive.unit_test_run`. A test that compares the whole message of a `CodeDeploymentException` gets the error of the server after its first line.
 

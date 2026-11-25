@@ -57,26 +57,27 @@ internal class FolderDeployer(
 				projectSettings.TransactionIsolationLevel,
 				timeout
 			).ConfigureAwait(false);
+
+			DateTime completedUtc = _timeProvider.UtcNow();
+
+			await _da.MarkItemAsAppliedAsync(
+				projectFolder,
+				item.FileData.RelativePath,
+				startedUtc,
+				completedUtc,
+				(long)(completedUtc - startedUtc).TotalMilliseconds,
+				item.FileData.ContentHash
+			).ConfigureAwait(false);
 		}
-		catch (DbLiveSqlException ex)
+		catch (Exception ex)
 		{
-			// SqlError is empty for an error that does not come from the server, such as a command timeout.
+			// SqlError is empty for an error that does not come from the server, such as a command timeout. An error of the write of
+			// the row after the script ran is the exception of the provider: its message.
 			string error = ex.GetSqlErrorOrMessage();
 
 			_logger.Error(ex, "Error deploying {RelativePath}. SQL Error: {SqlError}", item.FileData.RelativePath, error);
 
 			throw new FolderDeploymentException(item.FileData.RelativePath, error, ex);
 		}
-
-		DateTime completedUtc = _timeProvider.UtcNow();
-
-		await _da.MarkItemAsAppliedAsync(
-			projectFolder,
-			item.FileData.RelativePath,
-			startedUtc,
-			completedUtc,
-			(long)(completedUtc - startedUtc).TotalMilliseconds,
-			item.FileData.ContentHash
-		).ConfigureAwait(false);
 	}
 }

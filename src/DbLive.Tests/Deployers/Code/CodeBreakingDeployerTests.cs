@@ -106,6 +106,31 @@ public class CodeBreakingDeployerTests
 	}
 
 	[Fact]
+	public async Task Failed_write_of_the_row_names_the_file()
+	{
+		MockSet mockSet = new();
+
+		ProjectSnapshot project = ProjectSnapshots.Empty with { CodeBreakingItems = [GetItem("Code/a.breaking.sql", "drop proc if exists dbo.a_v1")] };
+
+		// the write of the row is not a script: its error is the exception of the provider.
+		InvalidOperationException writeError = new("The connection is broken.");
+		mockSet.DbLiveDA
+			.SaveCodeItemAsync(Arg.Any<CodeItemDto>())
+			.Returns(Task.FromException(writeError));
+
+		CodeBreakingDeployer deployer = mockSet.CreateUsingMocks<CodeBreakingDeployer>();
+
+		CodeDeploymentException ex = await Assert.ThrowsAsync<CodeDeploymentException>(() => deployer.DeployAsync(project));
+
+		Assert.Equal(
+			$"Deploy code breaking script error. File path: Code/a.breaking.sql{Environment.NewLine}The connection is broken.",
+			ex.Message
+		);
+		Assert.Same(writeError, ex.InnerException);
+		mockSet.Logger.Received(1).Error(ex, "Deploy code breaking script error. File path: {FilePath}", "Code/a.breaking.sql");
+	}
+
+	[Fact]
 	public async Task Failed_script_in_a_transaction_fails_with_its_own_error()
 	{
 		MockSet mockSet = new();

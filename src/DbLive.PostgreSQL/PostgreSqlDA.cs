@@ -1098,7 +1098,12 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 	[GeneratedRegex(@"\bbegin\s+atomic\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
 	private static partial Regex BeginAtomicRegex();
 
-	private static string GetSqlError(Exception ex)
+	/// <summary>
+	/// The details of an error of the server. Npgsql writes <c>POSITION</c> and <c>DETAIL</c> into the message of the exception
+	/// (<c>DETAIL</c> redacted unless the connection string has <c>Include Error Detail=true</c>), so they are not repeated;
+	/// <see cref="PostgresException.Hint"/> is not in the message.
+	/// </summary>
+	internal static string GetSqlError(Exception ex)
 	{
 		if (ex is PostgresException pgex)
 		{
@@ -1107,7 +1112,7 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				Severity: {pgex.Severity}
 				SqlState: {pgex.SqlState}
 				Message: {pgex.Message}
-				Position: {pgex.Position}
+				Hint: {pgex.Hint}
 				InternalQuery: {pgex.InternalQuery}
 				Where: {pgex.Where}
 				Routine: {pgex.Routine}

@@ -187,6 +187,69 @@ public class MigrationItemDeployerTests
 	}
 
 	[Fact]
+	public async Task Error_that_is_not_a_sql_error_puts_its_cause_in_the_message_and_the_log()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		// the write of the state after the script ran is not a script: its error is the exception of the provider.
+		InvalidOperationException writeError = new("The connection is broken.");
+		mockSet.DbLiveDA
+			.UpdateMigrationStateAsync(Arg.Any<MigrationItemStateDto>())
+			.Returns(Task.FromException(writeError));
+
+		// Act
+		Task act() => deployer.DeployAsync(1, NewMigrationItem(), new MigrationItemSettings());
+
+		// Assert
+		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
+		Assert.Equal("""
+			Error deploying db/migrations/001.m.some-migration.sql file.
+			The connection is broken.
+			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
+		Assert.Same(writeError, ex.InnerException);
+
+		mockSet.Logger.Received(1).Error(
+			writeError,
+			Arg.Any<string>(),
+			"db/migrations/001.m.some-migration.sql",
+			MigrationItemType.Migration,
+			"The connection is broken."
+		);
+	}
+
+	[Fact]
+	public async Task Item_in_the_deployment_transaction_runs_and_logs_the_isolation_level_of_the_deployment()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			TransactionWrapLevel = TransactionWrapLevel.Deployment,
+			TransactionIsolationLevel = TranIsolationLevel.RepeatableRead
+		});
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		MigrationItem migrationItem = NewMigrationItem();
+
+		// Act
+		await deployer.DeployAsync(1, migrationItem, new MigrationItemSettings { TransactionIsolationLevel = TranIsolationLevel.Serializable });
+
+		// Assert
+		await mockSet.DbLiveDA.Received(1)
+			.ExecuteNonQueryAsync(migrationItem.FileData.Content, TranIsolationLevel.RepeatableRead, Arg.Any<TimeSpan>());
+
+		mockSet.Logger.Received(1).Information(
+			Arg.Is<string>(template => template.StartsWith("Deploying {relativePath}.", StringComparison.Ordinal)),
+			Arg.Is<object?[]>(values => Equals(values[2], TransactionWrapLevel.Deployment) && Equals(values[3], TranIsolationLevel.RepeatableRead))
+		);
+	}
+
+	[Fact]
 	public async Task Item_settings_reach_the_transaction_and_the_sql_command()
 	{
 		// Arrange

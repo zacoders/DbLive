@@ -49,6 +49,12 @@ internal class DbLiveProject(
 
 		if (codeFiles.Count == 0)
 		{
+			// no groups, but each entry still matches no code files.
+			foreach (string subFolder in projectSettings.CodeSubFoldersDeploymentOrder)
+			{
+				WarnSubFolderWithoutFiles(subFolder);
+			}
+
 			return [];
 		}
 
@@ -62,10 +68,7 @@ internal class DbLiveProject(
 
 			if (files.Count == 0)
 			{
-				_logger.Warning(
-					"Code subfolder '{SubFolder}' from CodeSubFoldersDeploymentOrder matches no code files.",
-					subFolder
-				);
+				WarnSubFolderWithoutFiles(subFolder);
 			}
 
 			result.Add(new CodeGroup
@@ -84,6 +87,9 @@ internal class DbLiveProject(
 
 		return result;
 	}
+
+	private void WarnSubFolderWithoutFiles(string subFolder) =>
+		_logger.Warning("Code subfolder '{SubFolder}' from CodeSubFoldersDeploymentOrder matches no code files.", subFolder);
 
 	private async Task<List<CodeItem>> GetCodeGroupItemsAsync(List<string> codeFiles)
 	{

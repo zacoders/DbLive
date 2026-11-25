@@ -201,7 +201,7 @@ DbLive keeps its state in the `dblive` schema of the target database. Do not cre
 
 The tables keep what the next deployment needs and the history of successful runs. A failure is not written there: the error is in the exception and the log.
 
-Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`).
+Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`). Migrations are identified by version and type: a migration moved or renamed without a change of its content keeps its old `relative_path` and `name` in `dblive.migration`.
 
 ### The DbLive version a database requires
 

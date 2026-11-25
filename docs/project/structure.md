@@ -83,7 +83,7 @@ There are no undo scripts. A file whose type part is `undo` or `u` (`005.undo.sq
 | `005.b.s.json` | 5 | settings of the breaking script | |
 | `20260808104925.create-users.sql` | 20260808104925 | migration | create-users |
 
-Migrations are matched by version and type, not by path. You can move old migrations into a subfolder such as `Migrations/Old/` at any time.
+Migrations are matched by version and type, not by path. You can move old migrations into a subfolder such as `Migrations/Old/` at any time. Their rows in `dblive.migration` keep the old `relative_path`.
 
 ## Code files
 

@@ -46,10 +46,24 @@ internal class CodeBreakingDeployer(
 				projectSettings.TransactionIsolationLevel,
 				projectSettings.CodeItemTimeout
 			).ConfigureAwait(false);
+
+			DateTime appliedUtc = _timeProvider.UtcNow();
+
+			await _da.SaveCodeItemAsync(new CodeItemDto
+			{
+				RelativePath = item.FileData.RelativePath,
+				ItemType = CodeItemType.Breaking,
+				Status = CodeItemStatus.Applied,
+				ContentHash = item.FileData.ContentHash,
+				AppliedUtc = appliedUtc,
+				ExecutionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds,
+				CreatedUtc = appliedUtc
+			}).ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
-			// no row is written: the row of the script stays its last success, and the error is in the exception and the log.
+			// no row is written: the row of the script stays its last success, and the error is in the exception and the log. An error
+			// of the write of the row after the script ran names the file too.
 			CodeDeploymentException error = new(
 				ex.WithSqlErrorOrMessage($"Deploy code breaking script error. File path: {item.FileData.RelativePath}"),
 				ex
@@ -59,18 +73,5 @@ internal class CodeBreakingDeployer(
 
 			throw error;
 		}
-
-		DateTime appliedUtc = _timeProvider.UtcNow();
-
-		await _da.SaveCodeItemAsync(new CodeItemDto
-		{
-			RelativePath = item.FileData.RelativePath,
-			ItemType = CodeItemType.Breaking,
-			Status = CodeItemStatus.Applied,
-			ContentHash = item.FileData.ContentHash,
-			AppliedUtc = appliedUtc,
-			ExecutionTimeMs = (int)(appliedUtc - startedUtc).TotalMilliseconds,
-			CreatedUtc = appliedUtc
-		}).ConfigureAwait(false);
 	}
 }
