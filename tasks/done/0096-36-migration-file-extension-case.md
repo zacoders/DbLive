@@ -7,7 +7,7 @@ closed: 2026-11-03
 # Migration file extensions are compared case-sensitively
 
 ## Release note
-Migration files whose extension is not in lower case (`001.migration.SQL`, `001.users.Sql`, `001.m.s.JSON`) are now read like `.sql` / `.json` files. Before, DbLive found them but stopped the deployment with `InvalidMigrationItemTypeException` or `UnknownMigrationItemTypeException`. Nothing to change on upgrade.
+Migration files whose extension is not in lower case (`001.migration.SQL`, `001.users.Sql`) are now read like `.sql` files. Before, on Windows DbLive found them but stopped the deployment with `InvalidMigrationItemTypeException` or `UnknownMigrationItemTypeException`; on Linux it did not find them, and they were not deployed. Nothing to change on upgrade.
 
 ## Problem
 DbLive matches folders, file patterns and `settings.json` ignoring case, and so does the search for migration files (`*.sql`, `*.json`). The parser of migration file names then compares the extension case-sensitively, so a file that was found is rejected:

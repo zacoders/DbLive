@@ -7,7 +7,7 @@ closed: 2026-11-15
 # The isolation level of a migration settings file is checked only when its script runs
 
 ## Release note
-A migration or breaking settings file with a `TransactionIsolationLevel` the provider does not support (`Snapshot` on PostgreSQL) now fails the deployment at its start, before anything is deployed. Before, the migrations ahead of it were applied and committed first. The message of `NotSupportedTransactionIsolationLevelException` now names the settings file and the provider. Nothing to change on upgrade.
+A migration or breaking settings file with a `TransactionIsolationLevel` the provider does not support (`Snapshot` on PostgreSQL) now fails the deployment at its start, before anything is deployed. Before, with such a level in `<version>.settings.json`, the migrations ahead of it were applied and committed first. The message of `NotSupportedTransactionIsolationLevelException` now names the settings file and the provider. Nothing to change on upgrade.
 
 ## Problem
 `TranIsolationLevelMapper.ValidateForProvider` checks the `TransactionIsolationLevel` of a migration or breaking settings file only in `MigrationItemDeployer`, right before that script runs. The read of the project checks only the JSON and `TransactionWrapLevel: Deployment` of the file, and `TransactionSettingsValidator` checks only `settings.json`.

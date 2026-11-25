@@ -7,7 +7,7 @@ closed: 2026-11-23
 # The database name goes into `create database` and `drop database` without escaping
 
 ## Release note
-A database whose name has a `]` (SQL Server) or a `"` (PostgreSQL) can be created and dropped. SQL Server creates it (`CreateDbIfNotExists`, `RecreateDatabase`), and both providers drop it (`RecreateDatabase`, the test fixtures and `[SqlDeployFact]`). Before, these statements failed with a syntax error, because the name went into the SQL without escaping. Nothing to change on upgrade.
+A database whose name has a `]` (SQL Server) or a `"` (PostgreSQL) can be created and dropped. SQL Server creates it (`CreateDbIfNotExists`), and both providers drop it (the test fixtures and `[SqlDeployFact]`). Before, these statements failed with a syntax error, because the name went into the SQL without escaping. Nothing to change on upgrade.
 
 ## Problem
 - SQL Server: `create database [{databaseToCreate}];` (`src/DbLive.MSSQL/MsSqlDA.cs:605`), `alter database [{databaseToDrop}] ...; drop database [{databaseToDrop}];` (`:746-747`).

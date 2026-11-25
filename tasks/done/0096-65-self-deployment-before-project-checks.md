@@ -7,7 +7,7 @@ closed: 2026-11-13
 # The self-deployment changes the `dblive` tables before the project is checked
 
 ## Release note
-A deployment that stops on a mistake in the project no longer changes anything on the server: an undo script left in `Migrations`, an old `<version>.settings.json`, a file outside the project folders, a wrong file name or item settings file, an isolation level the database engine does not support, a script file that cannot be read. Before, DbLive had already created the database (with `CreateDbIfNotExists`) and upgraded its `dblive` tables at that point, so after a first deployment with DbLive 2.0 that failed this way, the previous DbLive version could no longer deploy the database. DbLive now reads and checks the whole project first.
+A deployment that stops on a mistake in the project no longer changes anything on the server: an undo script left in `Migrations`, an old `<version>.settings.json`, a file outside the project folders, a wrong file name or item settings file, an isolation level the database engine does not support, a script file that cannot be read. Before, DbLive created the database (with `CreateDbIfNotExists`) and upgraded its `dblive` tables before it read the project. DbLive now reads and checks the whole project first, so a first deployment with DbLive 2.0 that stops on such a mistake leaves the database as DbLive 1.5 left it.
 
 The deployment phases (`IDbLiveDeployer`, `ICodeDeployer`, `IMigrationsDeployer` and the others) and the class `DbLive` behind `IDbLive` are internal now. They were not documented; only `ConfigureServices` could replace them. Nothing to change on upgrade.
 

@@ -12,7 +12,7 @@ Small corrections of checks, messages and arguments. Nothing to change on upgrad
 - With `EnforceTimestampVersion`, the version of a migration file is checked as written: a leading zero (`020260808104925.migration.sql`) fails with `InvalidMigrationVersionException`, and the message shows the version as written (`Bad version 001.`, not `Bad version 1.`). Remove the leading zeros: the version, a number, stays the same.
 - The assert `rows` compares column names character by character, as `rows-with-schema` does: names that differ only by an invisible character (a zero-width space, a soft hyphen) or by the Unicode form of an accented letter no longer match. Before, the result depended on the globalization mode of the machine.
 - An unknown assert value fails with a list that names `row-count=N` instead of `row-count`.
-- `SetProject(null)`, `SetScriptsFolder(null)` and `SetDbConnection(null)` throw `ArgumentNullException` for their parameter. Before, the first threw `NullReferenceException`, the second named the parameter `path`, and the third accepted `null`.
+- `SetProject(null)`, `SetScriptsFolder(null)` and `SetDbConnection(null)` throw `ArgumentNullException` for their parameter. Before, `SetProject(null)` threw it for the parameter `element`, and `SetDbConnection(null)` accepted `null`.
 
 ## Problem
 Each small; none changes what a correct project does.

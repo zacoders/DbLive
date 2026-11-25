@@ -7,7 +7,7 @@ closed: 2026-11-24
 # PostgreSQL: a SQL test fails on an array of numbers, dates or ranges with a NULL element
 
 ## Release note
-**PostgreSQL: a SQL test reads an array with a NULL element.** An array of numbers, dates, times, ranges, `uuid`, `cidr` or a geometric type with a NULL element, such as `array_agg` of a nullable column returns, failed the test whatever it asserted: `Cannot read a non-nullable collection of elements because the returned array contains nulls. Call GetFieldValue with a nullable collection type instead.` Now `rows` compares it with `null` for the NULL element: `[10,null,30]` equals `array[10, null, 30]`. With `Array Nullability Mode` in the connection string, an open `path` in an array equaled the closed one; now it differs, as without the setting. Nothing to change on upgrade.
+**PostgreSQL: a SQL test reads an array with a NULL element.** An array of numbers, dates, times, ranges, `uuid`, `cidr` or a geometric type with a NULL element, such as `array_agg` of a nullable column returns, failed the test whatever it asserted: `Cannot read a non-nullable collection of elements because the returned array contains nulls. Call GetFieldValue with a nullable collection type instead.` Now `rows` compares it with `null` for the NULL element: `[10,null,30]` equals `array[10, null, 30]`. Nothing to change on upgrade.
 
 ## Problem
 Npgsql reads an array of a .NET value type with `GetValue` as an array of non-nullable elements (`int[]`), and throws when the array has a NULL element. DbLive reads every value of every result set with `GetValue` (`PostgreSqlDA.ReadValue`), so a SQL test with such a value fails, with any assert and without one:

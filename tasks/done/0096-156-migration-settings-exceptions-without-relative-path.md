@@ -7,7 +7,7 @@ closed: 2026-11-24
 # `UnknownMigrationSettingsException` and `ObsoleteMigrationSettingsFileException` name the file without its folder
 
 ## Release note
-`UnknownMigrationSettingsException` and `ObsoleteMigrationSettingsFileException` have a new property `RelativePath`, and their messages name the file by its relative path: `Unknown migration settings file Migrations/Old/004.custom.json. ...`. A file in a subfolder of `Migrations` is found by the message now. `ObsoleteMigrationSettingsFileException.FileName` stays, the name of the file without its folder. Nothing to change on upgrade.
+`UnknownMigrationSettingsException` has a new property `RelativePath`, and its message names the file by its relative path: `Unknown migration settings file Migrations/Old/004.custom.json. ...`. A file in a subfolder of `Migrations` is found by the message now. Nothing to change on upgrade.
 
 ## Problem
 `MigrationFileNameParser` passes the file name, not the relative path, to these two exceptions (`MigrationFileNameParser.cs:49` and `:54`). `Migrations` is read with all its subfolders, so `Migrations/Old/004.custom.json` fails with "Unknown migration settings file 004.custom.json." and the user searches for it. Verified by the review on 2026-11-24. `UnknownMigrationSettingsException` has no property with the file; `ObsoleteMigrationSettingsFileException` has `FileName` only.

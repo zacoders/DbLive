@@ -7,7 +7,7 @@ closed: 2026-11-08
 # A failed read of a script file is cached for the life of the builder
 
 ## Release note
-A deployment that failed because a script file or `settings.json` could not be read (for example, a file of `SetScriptsFolder` locked for a moment by an antivirus or an editor) can now be repeated from the same builder: the file is read again. Before, the same error came back until a new builder was created. Files read successfully are still read once per builder. Nothing to change on upgrade.
+A deployment that failed because `settings.json` could not be read (for example, locked for a moment by an antivirus or an editor) can now be repeated from the same builder: the file is read again. Before, the same error came back until a new builder was created. Nothing to change on upgrade.
 
 ## Problem
 `DbLiveProject` caches the read of each file as a `Task` (`_fileData.GetOrAdd`), and `SettingsAccessor` caches the read of `settings.json` (`_settingsTask`). A failed read is cached too: a temporary I/O error stays until the builder is gone. The list of files is not cached when its checks fail, so it is read again on the next deployment; the files themselves are not.

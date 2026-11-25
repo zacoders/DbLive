@@ -7,7 +7,7 @@ closed: 2026-11-23
 # PostgreSQL: the scripts of one transaction share one session
 
 ## Release note
-The docs no longer say that `setup.test.sql` and the SQL test run in separate sessions on PostgreSQL. A PostgreSQL transaction is one session, so the test sees the temporary tables and `SET` options of `setup.test.sql`, and with `TransactionWrapLevel: Deployment` a `SET` of one script, also `SET LOCAL`, stays for every script after it: a `set search_path` in a migration makes the code files after it create their objects in that schema. A script that changes a setting under `Deployment` restores it at its end (`reset search_path;`). SQL Server gives each script a reset session, as before. DbLive behaves as before; nothing to change on upgrade.
+None. A correction of the docs written for 2.0; DbLive behaves as before.
 
 ## Problem
 `docs/llms-full.txt` §8.2 and `docs/unit-testing/index.md` say that `setup.test.sql` and the test run on separate connections, so the test does not see the session state of the setup (temporary tables, variables, `SET` options). That holds on SQL Server only.

@@ -7,7 +7,7 @@ closed: 2026-11-23
 # `InvalidMigrationVersionException.FileName` is a file name or a path, and one message is wrong
 
 ## Release note
-`InvalidMigrationVersionException` has a new property `RelativePath`, and its message names the file by its relative path: `Invalid migration version in file 'Migrations/+001.migration.sql'. ...`. `FileName` is always the name of the file without its folder (with `EnforceTimestampVersion` it held the path). A migration version of digits only that is larger than 9223372036854775807 fails with `The version '...' is larger than 9223372036854775807.` instead of saying that the version is not digits only. Nothing to change on upgrade.
+`InvalidMigrationVersionException` has a new property `RelativePath`, and its message names the file by its relative path: `Invalid migration version in file 'Migrations/+001.migration.sql'. ...`. `FileName` is always the name of the file without its folder (with `EnforceTimestampVersion` it held the path). A migration version of digits only that is larger than 9223372036854775807 fails with `The version '...' is larger than 9223372036854775807.` Nothing to change on upgrade.
 
 ## Problem
 - The XML doc of `InvalidMigrationVersionException.FileName` says "The name of the file, without its folder". `MigrationFileNameParser` passes `Path.GetFileName` (`src/DbLive/Project/MigrationFileNameParser.cs:39`), but `DbLiveProject` passes the relative path to `MigrationVersionValidator.Validate` (`src/DbLive/Project/DbLiveProject.cs:145`), which puts it into `FileName` and the message. So with `EnforceTimestampVersion` the property holds `Migrations/001.migration.sql`, otherwise `001.migration.sql`.

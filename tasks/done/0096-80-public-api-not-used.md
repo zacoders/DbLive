@@ -12,7 +12,7 @@ breaking: true
 
 To upgrade:
 
-- `IDbLiveDA.Provider`, `CreateDBAsync`, `ExecuteNonQueryAsync` and `ExecuteQueryMultipleAsync` are internal, and so are `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider` and `TranIsolationLevel`. To create the database, deploy with `CreateDbIfNotExists = true`. To run other SQL, also to query the `dblive` tables, use a connection of your own (ADO.NET, Dapper) with the same connection string.
+- `IDbLiveDA` and `DbLiveBuilder.CreateDbLiveDA()` are internal, and so are `SqlResult`, `SqlRow`, `SqlColumn`, `DbProvider` and `TranIsolationLevel`. To create the database, deploy with `CreateDbIfNotExists = true`. To run other SQL, also to query the `dblive` tables, use a connection of your own (ADO.NET, Dapper) with the same connection string.
 - `TestRunResult.Output` and `ExecutionTimeMs` are internal: `RunTestAsync` writes the output of the test to its `writeLine`, and the test framework measures the time.
 - `InvalidMigrationVersionException.MigrationVersionStr` is removed: the message has the reason.
 - `DeploymentTest` is sealed: create it with `new`, as the template does.

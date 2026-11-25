@@ -7,7 +7,7 @@ closed: 2026-11-23
 # PostgreSQL: `create database` and `drop database` keep the default timeout of 30 seconds
 
 ## Release note
-PostgreSQL: creating the database (`CreateDbIfNotExists`, `RecreateDatabase`) and dropping it (`RecreateDatabase`, the test fixtures and `[SqlDeployFact]`) may take up to 10 minutes, as on SQL Server. Before, Npgsql stopped them after 30 seconds, which a `CREATE DATABASE` on a busy server can exceed. Nothing to change on upgrade.
+PostgreSQL: creating the database (`CreateDbIfNotExists`) and dropping it (the test fixtures and `[SqlDeployFact]`) may take up to 10 minutes, as on SQL Server. Before, Npgsql stopped them after 30 seconds, which a `CREATE DATABASE` on a busy server can exceed. Nothing to change on upgrade.
 
 ## Problem
 SQL Server runs `create database` and `drop database` with `CreateDropTimeoutSeconds = 600` (`src/DbLive.MSSQL/MsSqlDA.cs:605-610`, `:749`; comment "both wait for the files"). PostgreSQL sets no timeout (`src/DbLive.PostgreSQL/PostgreSqlDA.cs:515-518` for `CREATE DATABASE`, `:620-631` for `revoke` and `drop`), so Npgsql's default of 30 seconds applies.

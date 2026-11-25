@@ -8,7 +8,7 @@ breaking: true
 # `rows` check is incomplete
 
 ## Release note
-**`rows` and `rows-with-schema` compare the whole actual output.** A test fails when the actual results have more or fewer result sets or rows than expected (before, only the expected rows were compared, and extra output passed unnoticed). Output from the Arrange part, such as `update ... output`, now counts as an actual result set: remove it or move the setup into `setup.test.sql`.
+**`rows` and `rows-with-schema` compare the whole actual output.** A test fails when the actual results have more or fewer result sets or rows than expected (before, only the expected rows were compared, and extra output passed unnoticed).
 
 ## Problem
 Only the expected rows are compared. Extra rows and extra result sets in the actual output go unnoticed. When there are fewer actual rows or result sets than expected, the test fails with `ArgumentOutOfRangeException` instead of a clear message.

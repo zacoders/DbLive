@@ -7,7 +7,7 @@ closed: 2026-11-23
 # A `ProjectId` longer than 128 characters is caught after the database is created
 
 ## Release note
-**A `ProjectId` longer than 128 characters is an error of `settings.json`.** DbLive 1.5 failed the deployment with `ProjectIdMismatchException` after it had created the database (with `CreateDbIfNotExists` an empty database was left), and a missing database failed with `DatabaseNotFoundException` instead. Now the deployment fails when it loads the project, before anything touches the server, with `InvalidProjectSettingsException`, as for the other errors of `settings.json`: `Invalid project settings file settings.json: The value of 'ProjectId' cannot be longer than 128 characters. Path: $.ProjectId.` `RunAllTestsAsync` and the `[SqlFact]` tests fail the same way.
+**A `ProjectId` longer than 128 characters is an error of `settings.json`.** DbLive 1.5 failed the deployment with `ProjectIdMismatchException` after it had created the database (with `CreateDbIfNotExists` a new database with only the `dblive` tables was left). Now the deployment fails when it loads the project, before anything touches the server, with `InvalidProjectSettingsException`, as for the other errors of `settings.json`: `Invalid project settings file settings.json: The value of 'ProjectId' cannot be longer than 128 characters. Path: $.ProjectId.` `RunAllTestsAsync` and the `[SqlFact]` tests fail the same way.
 
 ## Problem
 §12 step 1 of `docs/llms-full.txt` (line 853) says that an error in `settings.json` fails the deployment when the project is loaded, before anything touches the server, and creates no database. The XML doc of `IDbLive.DeployAsync` and the release note of 0096-65 say the same.

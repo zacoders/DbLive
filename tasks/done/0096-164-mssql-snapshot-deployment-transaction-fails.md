@@ -7,7 +7,7 @@ closed: 2026-11-24
 # SQL Server: every deployment fails with `Snapshot` and `TransactionWrapLevel: Deployment`
 
 ## Release note
-SQL Server: a deployment with `"TransactionWrapLevel": "Deployment"` and `"TransactionIsolationLevel": "Snapshot"` in `settings.json` no longer fails on DbLive's own SQL. Before, every such deployment failed with Msg 3964 ("this DDL statement is not allowed inside a snapshot isolation transaction"), also of a project whose scripts have no DDL. A migration that alters a table or an index still fails in a snapshot transaction, as the docs say. Nothing to change on upgrade.
+None. DbLive 1.5 did not fail this way: the SQL of DbLive that failed came in 2.0.
 
 ## Problem
 With `"TransactionWrapLevel": "Deployment", "TransactionIsolationLevel": "Snapshot"` in `settings.json` every deployment fails, also of a project without a code file:

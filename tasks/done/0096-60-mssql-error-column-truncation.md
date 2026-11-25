@@ -7,7 +7,7 @@ closed: 2026-11-08
 # A long error text can fail the write of the error row on SQL Server
 
 ## Release note
-On SQL Server, a code file, a breaking script of the Code folder or a SQL test whose error was longer than 4000 characters (for example a view with many invalid columns, or a test that compares wide values) failed the deployment or `RunAllTestsAsync` with `String or binary data would be truncated ... column 'error'` instead of its own error. It now fails with its own error: DbLive no longer writes errors to its tables. Nothing to change on upgrade.
+On SQL Server, a code file or a SQL test whose error was longer than 4000 characters (for example a view with many invalid columns, or a test that compares wide values) failed the deployment or `RunAllTestsAsync` with `String or binary data would be truncated ... column 'error'` instead of its own error. It now fails with its own error: DbLive no longer writes errors to its tables. Nothing to change on upgrade.
 
 ## Problem
 On SQL Server the column `error` of `dblive.code`, `dblive.unit_test_run` and `dblive.migration` is `nvarchar(4000)` (PostgreSQL: `text`). DbLive writes there:

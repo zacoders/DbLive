@@ -8,7 +8,7 @@ breaking: true
 # Test setup file: `init.sql` in `Code` is deployed as code, rename to `setup.test.sql`
 
 ## Release note
-**The test setup file is now `setup.test.sql` (was `init.sql`).** It runs before each test in its folder, in `Tests` and in `Code`, and is never deployed as code. Rename your `init.sql` files: an `init.sql` is now a plain test in `Tests` and a code object in `Code`.
+**The test setup file is now `setup.test.sql` (was `init.sql`).** It runs before each test in its folder, in `Tests` and in `Code`, and is never deployed as code. Rename your `init.sql` files: in `Tests` an `init.sql` is now a plain test; in `Code` it is still deployed as code, as before, but no longer runs before the tests.
 
 ## Problem
 Code deployment excluded only files matching `TestFilePatterns`. An `init.sql` next to tests in `Code` was attached to the tests of its folder and also deployed as a code object: it ran (without rollback) whenever its content changed and left test data in the database (verified in code: `GetCodeGroupsAsync` did not exclude it, `GetFolderTestsAsync` loaded it for `Code` folders too). The docs worked around it with "keep `init.sql` in `Tests` only".

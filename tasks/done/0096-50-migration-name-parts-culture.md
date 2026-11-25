@@ -7,7 +7,7 @@ closed: 2026-11-07
 # Upper-case parts of migration file names depend on the culture
 
 ## Release note
-Upper-case type and settings parts of migration file names are now recognized in every culture. In the Turkish and Azerbaijani cultures, where `I` lower-cases to the dotless `ı`, `001.BREAKING.sql` was read as a migration named `BREAKING`, and `001.MIGRATION.SETTINGS.json` failed with `UnknownMigrationSettingsException`.
+Upper-case type parts of migration file names are now recognized in every culture. In the Turkish and Azerbaijani cultures, where `I` lower-cases to the dotless `ı`, `001.BREAKING.sql` was read as a migration named `BREAKING`.
 
 ## Problem
 `MigrationFileNameParser` lower-cased the type part and the settings part with `string.ToLower()`, which uses the current culture. The docs say the parts are matched ignoring case on every OS. In `tr-TR` `"BREAKING".ToLower()` is `"breakıng"`, so (verified by the new unit test on the old code, 4 of 4 failed):

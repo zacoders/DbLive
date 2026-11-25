@@ -7,7 +7,7 @@ closed: 2026-11-23
 # SQL Server: `Snapshot` isolation fails migrations with `ALTER TABLE` or index DDL
 
 ## Release note
-The docs no longer present `"TransactionIsolationLevel": "Snapshot"` in `settings.json` as fine for SQL Server: SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction (Msg 3964), so at the project level `Snapshot` fails each migration in a transaction that alters a table or an index. Set `Snapshot` in the item settings file of a data migration instead. The warning that DbLive logs for `Snapshot` in `settings.json` on SQL Server says so too. DbLive behaves as before; nothing to change on upgrade.
+SQL Server: the warning that DbLive logs for `"TransactionIsolationLevel": "Snapshot"` in `settings.json` now also says that SQL Server does not allow `ALTER TABLE` and index DDL in a snapshot transaction (Msg 3964), so at the project level `Snapshot` fails each migration in a transaction that alters a table or an index. Set `Snapshot` in the item settings file of a data migration instead. The docs say so too. DbLive behaves as before; nothing to change on upgrade.
 
 ## Problem
 The docs say that `Snapshot` is supported on SQL Server and needs only `ALLOW_SNAPSHOT_ISOLATION ON`. SQL Server does not allow `ALTER TABLE`, `CREATE INDEX`, `ALTER INDEX`, `DROP INDEX`, `CREATE XML INDEX` and partition DDL in a snapshot transaction (Msg 3964). Verified on 2026-11-23 on SQL Server 2025, in a database with `allow_snapshot_isolation on`, after `set transaction isolation level snapshot; begin transaction`:

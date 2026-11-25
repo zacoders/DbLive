@@ -7,7 +7,7 @@ closed: 2026-11-23
 # `DbLive.xunit` needs xunit 2.9.2 or later, the docs say 2.x
 
 ## Release note
-`DbLive.xunit` declares its minimum xunit: `xunit` 2.9.2 or later (v2). It needed 2.9.2 before too, through `Serilog.Sinks.XUnit`, while the docs said 2.x; now the package depends on `xunit.extensibility.execution` 2.9.2 directly. With an older `xunit` 2 the restore fails with `NU1107: Version conflict detected for xunit.extensibility.core`: update the `xunit` package. Nothing to change on upgrade.
+`DbLive.xunit` declares its minimum xunit: `xunit` 2.9.2 or later (v2). It needed 2.9.2 before too, through `Serilog.Sinks.XUnit`; now the package depends on `xunit.extensibility.execution` 2.9.2 directly. With an older `xunit` 2 the restore fails with `NU1107: Version conflict detected for xunit.extensibility.core`: update the `xunit` package. Nothing to change on upgrade.
 
 ## Problem
 `docs/llms-full.txt` §13 ("`xunit` (2.x)") and `docs/unit-testing/index.md:188` ("switch it to the `xunit` 2.x package").

@@ -8,7 +8,7 @@ breaking: true
 # A `null` value in `settings.json` fails with `NullReferenceException`
 
 ## Release note
-**`null` in `settings.json` is an error that names the key.** `null` for a folder key, `TestFilePatterns` or `CodeSubFoldersDeploymentOrder` failed the load of the project with a `NullReferenceException` that named neither the file nor the key. A `null` item of `TestFilePatterns` matched every file of `Code/`: every code file ran as a test, and none was deployed. Both now fail with `InvalidProjectSettingsException`, before anything runs: `Invalid project settings file settings.json: The value of 'CodeFolder' cannot be null. Path: $.CodeFolder.`, `... An item of 'TestFilePatterns' cannot be null. Path: $.TestFilePatterns[1].`
+**`null` in `settings.json` is an error that names the key.** `null` for a folder key, `TestFilePatterns` or `CodeSubFoldersDeploymentOrder`, or a `null` item of `TestFilePatterns`, failed the deployment with an `ArgumentNullException` that named neither the file nor the key, for some keys only after the migrations had run. Now they fail with `InvalidProjectSettingsException`, before anything runs: `Invalid project settings file settings.json: The value of 'CodeFolder' cannot be null. Path: $.CodeFolder.`, `... An item of 'TestFilePatterns' cannot be null. Path: $.TestFilePatterns[1].`
 
 To upgrade: remove a key set to `null` to keep its default, write `[]` for an empty list, and remove `null` items from lists.
 

@@ -7,7 +7,7 @@ closed: 2026-11-07
 # One deployment reads and hashes the project files many times
 
 ## Release note
-A deployment where nothing changed makes fewer round trips to the database: the code deployment and the guard of the breaking phase read `dblive.code` with one query instead of one per code file, and the `verified_utc` of the skipped files is set with one command. A builder now reads the project files once, on first use, like `settings.json`: a later deployment from the same builder does not see files changed since, so create a new builder for each build you deploy (a release pipeline does).
+A deployment where nothing changed makes fewer round trips to the database: the code deployment reads `dblive.code` with one query instead of one per code file, and the `verified_utc` of the skipped files is set with one command. A builder now reads the project files once, on first use, like `settings.json`: a later deployment from the same builder does not see files changed since, so create a new builder for each build you deploy (a release pipeline does). A file that could not be read is read again by the next deployment.
 
 ## Problem
 Each call of `IDbLiveProject` (`GetMigrationsAsync`, `GetCodeGroupsAsync`, `GetCodeBreakingItemsAsync`, ...) runs the checks of `GetFiles` again (paths differing only by case, files outside the project folders, breaking and test files) and reads and hashes the files again. With `SetScriptsFolder` that is a walk over the disk each time.
