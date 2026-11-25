@@ -811,8 +811,10 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			revoke connect on database {quotedName} from public;
 		""").ConfigureAwait(false);
 
+		// client sessions only: a login that is not a superuser (the admin of Azure, Amazon RDS) may not end an autovacuum worker, and one
+		// such process fails the whole statement with 42501; drop database ends autovacuum workers in the database itself.
 		_ = await cnn.ExecuteAsync(
-			"select pg_terminate_backend(pid) from pg_stat_activity where datname = @name;",
+			"select pg_terminate_backend(pid) from pg_stat_activity where datname = @name and backend_type = 'client backend';",
 			new { name = dbName }
 		).ConfigureAwait(false);
 
