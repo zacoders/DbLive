@@ -98,7 +98,7 @@ How a migration expands the schema is up to the SQL developers. For example, to 
 DbLive does **not** wrap a deployment in one transaction by default, and that is part of the model:
 
 - Each migration commits or rolls back **on its own**. Between migrations the database stays consistent and the applications keep working.
-- A script can run **without a transaction** (`"TransactionWrapLevel": "None"` in its item settings file). This is for statements that cannot run inside a transaction (online index builds, `CREATE INDEX CONCURRENTLY`, some `ALTER DATABASE` options) and for long operations that would otherwise lock a busy table.
+- A script can run **without a transaction** (`"TransactionWrapLevel": "None"` in its item settings file). This is for statements that cannot run inside a transaction (`CREATE INDEX CONCURRENTLY`, some `ALTER DATABASE` options) and for long operations that would otherwise lock a busy table, such as an index build: each statement releases its locks when it ends, not at a commit.
 - One transaction for the whole deployment (`TransactionWrapLevel: Deployment`) exists for small databases and test environments, not for 24/7 systems.
 
 Details: [Choosing a transaction level](project/configuration.md#choosing-a-transaction-level).

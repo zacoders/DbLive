@@ -1,6 +1,6 @@
 # Add a Stored Procedure and a Unit Test
 
-This tutorial continues [Getting Started](../gettingstarted.md). You have a console project, here `MyDb`, with a `Scripts` folder and a migration that creates `dbo.Users (UserId, Name)`. Now you add a stored procedure and two SQL tests for it, run the tests in Visual Studio, and see what a failing test looks like.
+This tutorial continues [Getting Started](../gettingstarted.md). You have a console project, here `MyDb`, with a `Scripts` folder and a migration that creates `dbo.Users (UserId, Name)`. Now you add a stored procedure and two SQL tests for it, run the tests in Visual Studio, and see what a failing test looks like. The tutorial is for SQL Server; for PostgreSQL, the template (`dotnet new dblive --provider postgresql`, see [Getting Started](../gettingstarted.md#with-the-template)) creates a function with its test.
 
 ## 1. Add the procedure
 
@@ -59,7 +59,7 @@ Run it again: the procedure is skipped (`[hash match]`) because the file did not
 
 ## 4. Run the tests
 
-Create the test project `MyDb.Tests` with the fixture and the `[SqlFact]` test class as described in [Running tests in Visual Studio and CI](index.md#running-tests-in-visual-studio-and-ci-xunit). Without Docker, use the `MsSqlFixtureBuilder` line from [A fixture builder](index.md#1-a-fixture-builder): it points to your local SQL Server.
+Go back to the folder that contains `MyDb` (`cd ..`), and create the test project `MyDb.Tests` there with the fixture and the `[SqlFact]` test class as described in [Running tests in Visual Studio and CI](index.md#running-tests-in-visual-studio-and-ci-xunit). Without Docker, use the `MsSqlFixtureBuilder` line from [A fixture builder](index.md#1-a-fixture-builder): it points to your local SQL Server.
 
 Build and open Test Explorer. It shows one test per file, named after its path: `Code/dbo.GetUser.test.sql` and `Code/dbo.GetUser.not-found.test.sql`. Run them; both pass. The fixture deploys `MyDb` into a new database before the tests and drops it afterwards, so the tests never touch the database of your console app.
 
