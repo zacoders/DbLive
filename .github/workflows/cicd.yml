@@ -66,6 +66,8 @@ jobs:
     - name: Build
       run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release -p:Version=${{ steps.gitversion.outputs.NuGetVersionV2 }} -p:InformationalVersion=${{ steps.gitversion.outputs.NuGetVersionV2 }}
 
+    # -m:1: one test project at a time, so one database container at a time. In parallel, the tests that depend on time failed
+    # under the load, and a SQL Server 2025 container crashed at its start (tasks/done/0096-194-flaky-mssql-drop-tests.md).
     - name: Test
       run: dotnet test ${{ env.SOLUTION_PATH }} --filter "Category!=LocalOnly" --no-build --configuration Release --verbosity normal
 

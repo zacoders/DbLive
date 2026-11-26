@@ -14,6 +14,9 @@ public class MsSqlDADropDbTests(SqlServerIntegrationFixture fixture, ITestOutput
 	: SqlServerDbTests(fixture, output, createDb: false)
 {
 	[Fact]
+	// a time limit: on CI, with all test projects running at once, the drop took 2186 and 2405 ms (2026-11-26). Not on CI; that the
+	// drop kills the sessions of the database, and only those, CI checks with Kill_spares_a_session_of_another_database_....
+	[Trait("Category", "LocalOnly")]
 	public async Task Drops_a_database_in_use_without_waiting_for_rollback_immediate()
 	{
 		await using DbLiveBuilder builder = CreateBuilder();
@@ -123,14 +126,7 @@ public class MsSqlDADropDbTests(SqlServerIntegrationFixture fixture, ITestOutput
 		}
 		finally
 		{
-			// a session of a connection closed just before can still be ending, and 'drop login' fails while it is.
-			await ExecuteAsync(Fixture.MasterDbConnectionString, $"""
-				declare @deadline datetime2 = dateadd(second, 10, sysutcdatetime());
-				while exists (select * from sys.dm_exec_sessions where login_name = '{login}') and sysutcdatetime() < @deadline
-					waitfor delay '00:00:00.100';
-
-				drop login [{login}];
-				""");
+			await DropLoginAsync(login);
 		}
 	}
 
