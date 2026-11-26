@@ -119,6 +119,9 @@ public class UnitTestResultCheckerAssertColumnTests
 	[Theory]
 	[InlineData("row-count")]
 	[InlineData("row-count=abc")]
+	// N is digits only: a negative count is never met, and a sign is not a count.
+	[InlineData("row-count=-1")]
+	[InlineData("row-count=+3")]
 	public void AssertValue_RowCountWithoutNumber_Throws(string assertValue)
 	{
 		// Arrange

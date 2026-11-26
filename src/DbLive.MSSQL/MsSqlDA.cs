@@ -928,7 +928,15 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 			foreach (short session in sessions)
 			{
-				_ = await cnn.ExecuteAsync($"kill {session};").ConfigureAwait(false);
+				try
+				{
+					_ = await cnn.ExecuteAsync($"kill {session};").ConfigureAwait(false);
+				}
+				catch (SqlException ex) when (ex.Number == SessionNotActiveErrorNumber)
+				{
+					// the session ended between the query and its kill, as the one of a pooled connection closed just before the drop.
+					// The other sessions are still killed, and the wait below still runs.
+				}
 			}
 
 			// a killed session ends asynchronously, as does the session of a connection closed just before the drop.
@@ -948,9 +956,12 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 		catch (SqlException)
 		{
-			// no permission: to kill (6102), to read sys.dm_tran_locks (300); or a session ended before its kill (6106).
+			// no permission: to kill (6102), to read sys.dm_tran_locks (300).
 		}
 	}
+
+	// Msg 6106: "Process ID %d is not an active process ID."
+	private const int SessionNotActiveErrorNumber = 6106;
 
 	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)

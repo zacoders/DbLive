@@ -351,6 +351,33 @@ public class UnitTestItemRunnerTests
 	}
 
 	[Fact]
+	public async Task RunTest_TimeoutTooLargeToDouble_TransactionGetsTheLargestTimeout()
+	{
+		MockSet mockSet = CreateMockSet();
+		// settings.json takes any time span up to TimeSpan.MaxValue: "10675199.00:00:00", meant as no limit.
+		TimeSpan timeout = TimeSpan.FromDays(10675199);
+		mockSet.SettingsAccessor.GetProjectSettingsAsync().Returns(new DbLiveSettings
+		{
+			UnitTestItemTimeout = timeout
+		});
+		mockSet.UnitTestResultChecker.ValidateTestResult(Arg.Any<List<SqlResult>>())
+			.Returns(new ValidationResult { IsValid = true });
+
+		UnitTestItemRunner runner = mockSet.CreateUsingMocks<UnitTestItemRunner>();
+
+		TestRunResult result = await runner.RunTestAsync(new TestItem
+		{
+			Name = "test1",
+			FileData = GetFileData("/test/folder/test1.sql"),
+			SetupFileData = null
+		});
+
+		// twice the timeout would overflow TimeSpan: the transaction gets TimeSpan.MaxValue, the test its own timeout.
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+		_ = await mockSet.DbLiveDA.Received().ExecuteQueryMultipleAsync(Arg.Any<string>(), Arg.Any<TranIsolationLevel>(), timeout);
+	}
+
+	[Fact]
 	public async Task RunTest_TestScriptFails_TransactionNotChecked()
 	{
 		MockSet mockSet = CreateMockSet();
