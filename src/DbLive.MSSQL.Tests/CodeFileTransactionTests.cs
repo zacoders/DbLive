@@ -34,8 +34,10 @@ public class CodeFileTransactionTests(SqlServerIntegrationFixture fixture, ITest
 		// a failure writes no row.
 		Assert.Empty(await da.ListAsync("select relative_path from dblive.code"));
 
-		// the connection of the file went back to the pool without an open transaction, which would keep its locks.
-		Assert.Equal(["0"], await da.ListAsync("select count(*) from sys.dm_exec_sessions where database_id = db_id() and open_transaction_count > 0 and session_id <> @@spid"));
+		// the connection of the file went back to the pool without an open transaction, which would keep its locks. User sessions only:
+		// a background task of SQL Server can be in the database with a system transaction for a moment (both cases of this test failed
+		// at once on CI, a server-wide moment; inferred, not reproduced).
+		Assert.Equal(["0"], await da.ListAsync("select count(*) from sys.dm_exec_sessions where database_id = db_id() and open_transaction_count > 0 and is_user_process = 1 and session_id <> @@spid"));
 	}
 
 	[Fact]

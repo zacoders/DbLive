@@ -930,12 +930,11 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			{
 				try
 				{
-					_ = await cnn.ExecuteAsync($"kill {session};").ConfigureAwait(false);
+					await KillSessionAsync(cnn, session, database).ConfigureAwait(false);
 				}
 				catch (SqlException ex) when (ex.Number == SessionNotActiveErrorNumber)
 				{
-					// the session ended between the query and its kill, as the one of a pooled connection closed just before the drop.
-					// The other sessions are still killed, and the wait below still runs.
+					// the session ended between the check and its kill. The other sessions are still killed, and the wait below still runs.
 				}
 			}
 
@@ -962,6 +961,23 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 	// Msg 6106: "Process ID %d is not an active process ID."
 	private const int SessionNotActiveErrorNumber = 6106;
+
+	/// <summary>
+	/// Kills the session when it is still a session of the database. SQL Server gives the ID of an ended session to the next new one: a
+	/// session found in the database can end before its kill (the connection of the deployment lock, closed just before the drop), and
+	/// a <c>kill</c> of its ID alone would end a session of another database, such as the connection of a test of another class that runs
+	/// at the same time. The check and the kill are one batch, so the ID can change hands only between two statements on the server.
+	/// </summary>
+	internal static Task KillSessionAsync(SqlConnection cnn, short session, string database) =>
+		cnn.ExecuteAsync("""
+			if exists (select 1 from sys.dm_exec_sessions where session_id = @session and database_id = db_id(@name) and is_user_process = 1)
+			begin
+				declare @kill nvarchar(30) = concat(N'kill ', @session, N';');
+				exec (@kill);
+			end
+			""",
+			new { session, name = database }
+		);
 
 	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)

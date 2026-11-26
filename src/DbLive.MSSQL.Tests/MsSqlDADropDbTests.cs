@@ -51,6 +51,46 @@ public class MsSqlDADropDbTests(SqlServerIntegrationFixture fixture, ITestOutput
 	}
 
 	[Fact]
+	public async Task Kill_spares_a_session_of_another_database_that_has_the_id_of_a_session_found_in_the_database()
+	{
+		await using DbLiveBuilder builder = CreateBuilder();
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		await da.CreateDBAsync();
+
+		// SQL Server gives the ID of an ended session to the next new one: the session of a test of another class, in another database,
+		// can have the ID of a session that the drop found in its database. A session of master stands for it.
+		// ConnectRetryCount = 0: SqlClient would open a new session for the next command of a killed idle connection, unnoticed.
+		string unpooledMaster = new SqlConnectionStringBuilder(Fixture.MasterDbConnectionString) { Pooling = false, ConnectRetryCount = 0 }.ConnectionString;
+		await using SqlConnection otherDatabase = new(unpooledMaster);
+		await otherDatabase.OpenAsync();
+		short otherSession = await ScalarAsync<short>(otherDatabase, "select cast(@@spid as smallint);");
+
+		await using SqlConnection killer = new(unpooledMaster);
+		await killer.OpenAsync();
+		await MsSqlDA.KillSessionAsync(killer, otherSession, DbName);
+
+		Assert.Equal(1, await ScalarAsync<int>(otherDatabase, "select 1;"));
+
+		// a session of the database is killed.
+		string unpooled = new SqlConnectionStringBuilder(DbCnnString) { Pooling = false, ConnectRetryCount = 0 }.ConnectionString;
+		await using SqlConnection inDatabase = new(unpooled);
+		await inDatabase.OpenAsync();
+		short session = await ScalarAsync<short>(inDatabase, "select cast(@@spid as smallint);");
+
+		await MsSqlDA.KillSessionAsync(killer, session, DbName);
+
+		_ = await Assert.ThrowsAsync<SqlException>(() => ScalarAsync<int>(inDatabase, "select 1;"));
+
+		await da.DropDbAsync(skipIfNotExists: false);
+	}
+
+	private static async Task<T> ScalarAsync<T>(SqlConnection cnn, string sql)
+	{
+		await using SqlCommand cmd = new(sql, cnn);
+		return (T)(await cmd.ExecuteScalarAsync())!;
+	}
+
+	[Fact]
 	public async Task Login_that_may_not_kill_sessions_drops_a_database_in_use()
 	{
 		string login = $"dblive-dbcreator-{Guid.NewGuid():N}";
