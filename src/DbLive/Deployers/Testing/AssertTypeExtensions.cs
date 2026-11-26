@@ -1,4 +1,5 @@
-﻿
+﻿using System.Globalization;
+
 namespace DbLive.Deployers.Testing;
 
 internal static class AssertTypeExtensions
@@ -47,10 +48,11 @@ internal static class AssertTypeExtensions
 			return true;
 		}
 
+		// N is digits only, with spaces around: not a sign (a negative count is never met), not the separators of a culture.
 		string[] parts = definition.Split('=', 2);
 		if (parts.Length == 2
 			&& parts[0].Trim() == "row-count"
-			&& int.TryParse(parts[1], out int rowCount))
+			&& int.TryParse(parts[1], NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture, out int rowCount))
 		{
 			assertInfo = new AssertInfo { AssertType = AssertType.RowCount, RowCount = rowCount };
 			return true;

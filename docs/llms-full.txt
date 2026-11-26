@@ -553,7 +553,7 @@ The test script returns result sets. One of them may be the **assert result set*
 | `empty` | Same as `row-count=0`. |
 | `single-row` | Same as `row-count=1`. |
 
-Assert values are case-insensitive, and spaces around them and around `=` are ignored (`Row-Count = 3` works). An unknown value fails the test with a list of supported values; `row-count` without a number (`row-count`, `row-count=abc`) fails with `Please use row-count=[Number] to assert row count. Example: row-count=10.`
+Assert values are case-insensitive, and spaces around them and around `=` are ignored (`Row-Count = 3` works). An unknown value fails the test with a list of supported values; `row-count` without a number of digits (`row-count`, `row-count=abc`, also a sign: `row-count=-1`, `row-count=+3`) fails with `Please use row-count=[Number] to assert row count. Example: row-count=10.`
 
 Value comparison in `rows`: each value is written as JSON (`System.Text.Json`) and the texts are compared. A failed test prints these texts, whatever the culture of the machine: `Expected values: null, 150.00, "test-user", "2026-01-01T00:00:00"` (a string in double quotes, `NULL` as `null`).
 - `int` 10 equals `bigint` 10. `decimal` 150.00 does **not** equal `int` 150 or `decimal` 150.0; the scale must match. Cast expected values: `cast(150 as decimal(10,2))`.

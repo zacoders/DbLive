@@ -33,7 +33,7 @@ internal class UnitTestItemRunner(
 		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
 		// setup.test.sql and the test get UnitTestItemTimeout each; their transaction twice that, so that it does not cut the two together.
 		TransactionTimeout transactionTimeout = new(
-			projectSettings.UnitTestItemTimeout * 2,
+			Twice(projectSettings.UnitTestItemTimeout),
 			"The transaction of the test",
 			$"twice {nameof(DbLiveSettings.UnitTestItemTimeout)}"
 		);
@@ -124,4 +124,9 @@ internal class UnitTestItemRunner(
 
 		return result;
 	}
+
+	// settings.json takes a time span up to TimeSpan.MaxValue ("10675199.00:00:00" meant as no limit), and twice more than half of it
+	// overflows. Integer ticks: TimeSpan * 2 goes through double, which rounds near the limit. 00:00:00, no limit, stays 00:00:00.
+	internal static TimeSpan Twice(TimeSpan timeout) =>
+		timeout.Ticks > TimeSpan.MaxValue.Ticks / 2 ? TimeSpan.MaxValue : TimeSpan.FromTicks(timeout.Ticks * 2);
 }
