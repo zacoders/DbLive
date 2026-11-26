@@ -1,42 +1,80 @@
 ﻿namespace DbLive.Project;
 
-public class SettingsAccessor(IProjectPath projectPath, IFileSystem fileSystem) : ISettingsAccessor
+internal class SettingsAccessor(IScriptSource scriptSource) : ISettingsAccessor
 {
-	private readonly string _projectPath = projectPath.Path;
-	private readonly IFileSystem _fileSystem = fileSystem;
+	internal const string SettingsFileName = "settings.json";
 
 	private readonly DbLiveSettings _defaultSettings = new();
 
 	private Task<DbLiveSettings>? _settingsTask;
 	private readonly object _settingsLock = new();
 
-	public Task<DbLiveSettings> GetProjectSettingsAsync()
+	public async Task<DbLiveSettings> GetProjectSettingsAsync()
 	{
-		if (_settingsTask is not null) return _settingsTask;
+		Task<DbLiveSettings> load;
 		lock (_settingsLock)
 		{
-			return _settingsTask ??= LoadSettingsAsync();
+			load = _settingsTask ??= LoadSettingsAsync();
+		}
+
+		try
+		{
+			return await load.ConfigureAwait(false);
+		}
+		catch
+		{
+			// a failed read is not kept, so the next deployment from this builder reads settings.json again (a file locked
+			// for a moment by an antivirus).
+			lock (_settingsLock)
+			{
+				if (_settingsTask == load)
+				{
+					_settingsTask = null;
+				}
+			}
+			throw;
 		}
 	}
 
+	/// <exception cref="InvalidProjectSettingsException"/>
 	private async Task<DbLiveSettings> LoadSettingsAsync()
 	{
-		string settingsPath = _projectPath.CombineWith("settings.json");
+		string? settingsPath = scriptSource.GetFiles()
+			.FirstOrDefault(f => f.Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase));
 
-		if (_fileSystem.FileExists(settingsPath))
+		if (settingsPath is null)
 		{
-			string settingsJson = await _fileSystem.FileReadAllTextAsync(settingsPath).ConfigureAwait(false);
-
-			DbLiveSettings? settings = JsonSerializer.Deserialize<DbLiveSettings>(
-				settingsJson,
-				SettingsTools.JsonSerializerOptions);
-
-			if (settings is not null)
-			{
-				return settings;
-			}
+			return _defaultSettings;
 		}
 
-		return _defaultSettings;
+		string settingsJson = await scriptSource.ReadAsync(settingsPath).ConfigureAwait(false);
+
+		try
+		{
+			// an empty file gives the defaults, as an empty item settings file does.
+			DbLiveSettings settings = SettingsTools.GetSettings<DbLiveSettings>(settingsJson);
+			CheckProjectIdLength(settings.ProjectId);
+			return settings;
+		}
+		catch (JsonException e)
+		{
+			throw new InvalidProjectSettingsException(settingsPath, e.Message, e);
+		}
+	}
+
+	/// <summary>
+	/// Here and not in the check of the ProjectId, which runs after the database is created: an error of settings.json creates
+	/// no database.
+	/// </summary>
+	/// <exception cref="JsonException"/>
+	private static void CheckProjectIdLength(string? projectId)
+	{
+		if (projectId?.Length > ProjectIdTools.MaxLength)
+		{
+			const string path = $"$.{nameof(DbLiveSettings.ProjectId)}";
+			throw new JsonException(
+				$"The value of '{nameof(DbLiveSettings.ProjectId)}' cannot be longer than {ProjectIdTools.MaxLength} characters. Path: {path}.",
+				path, null, null);
+		}
 	}
 }

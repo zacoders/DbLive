@@ -5,26 +5,12 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- The DbLive package embeds this folder in the assembly when the project builds. -->
+		<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
 	</PropertyGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\DbLive.PostgreSQL\DbLive.PostgreSQL.csproj" />
 	</ItemGroup>
 	
-	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
-	</Target>
-
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-			<_Parameter1>ProjectDir</_Parameter1>
-			<_Parameter2>$(ProjectDir)</_Parameter2>
-		</AssemblyAttribute>
-
-		<None Include="Scripts\**\*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
-	</ItemGroup>
-
 </Project>

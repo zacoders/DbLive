@@ -1,9 +1,8 @@
 
 namespace DbLive.Deployers.Folder;
 
-public class FolderDeployer(
+internal class FolderDeployer(
 		ILogger _logger,
-		IDbLiveProject _project,
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		ISettingsAccessor _projectSettingsAccessor
@@ -11,11 +10,16 @@ public class FolderDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(FolderDeployer));
 
-	public async Task DeployAsync(ProjectFolder projectFolder, DeployParameters parameters)
+	public async Task DeployAsync(ProjectSnapshot project, ProjectFolder projectFolder)
 	{
 		_logger.Information("Deploying folder {ProjectFolder}.", projectFolder);
 
-		ReadOnlyCollection<GenericItem> items = await _project.GetFolderItemsAsync(projectFolder).ConfigureAwait(false);
+		IReadOnlyList<GenericItem> items = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => project.BeforeDeployItems,
+			ProjectFolder.AfterDeploy => project.AfterDeployItems,
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolder.")
+		};
 
 		if (items.Count == 0)
 		{
@@ -28,37 +32,52 @@ public class FolderDeployer(
 			await DeployItemAsync(projectFolder, item).ConfigureAwait(false);
 		}
 
-		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed..", projectFolder);
+		_logger.Debug("Deployment of the folder {ProjectFolder} successfully completed.", projectFolder);
 	}
 
 	private async Task DeployItemAsync(ProjectFolder projectFolder, GenericItem item)
 	{
-		_logger.Information("Deploying item: {filePath}", item.FileData.FileName);
+		_logger.Information("Deploying item: {RelativePath}", item.FileData.RelativePath);
 
 		DateTime startedUtc = _timeProvider.UtcNow();
 
 		DbLiveSettings projectSettings = await _projectSettingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
 
-		await _da.ExecuteNonQueryAsync(
-			item.FileData.Content,
-			projectSettings.TransactionIsolationLevel,
-			projectFolder switch
-			{
-				ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
-				ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
-				_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolded.")
-			}
-		).ConfigureAwait(false);
+		TimeSpan timeout = projectFolder switch
+		{
+			ProjectFolder.BeforeDeploy => projectSettings.BeforeDeployFolderTimeout,
+			ProjectFolder.AfterDeploy => projectSettings.AfterDeployFolderTimeout,
+			_ => throw new ArgumentOutOfRangeException(nameof(projectFolder), projectFolder, "Unknown ProjectFolder.")
+		};
 
-		DateTime completedUtc = _timeProvider.UtcNow();
+		try
+		{
+			await _da.ExecuteNonQueryAsync(
+				item.FileData.Content,
+				projectSettings.TransactionIsolationLevel,
+				timeout
+			).ConfigureAwait(false);
 
-		await _da.MarkItemAsAppliedAsync(
-			projectFolder,
-			item.FileData.RelativePath,
-			startedUtc,
-			completedUtc,
-			(long)(completedUtc - startedUtc).TotalMilliseconds,
-			item.FileData.ContentHash
-		).ConfigureAwait(false);
+			DateTime completedUtc = _timeProvider.UtcNow();
+
+			await _da.MarkItemAsAppliedAsync(
+				projectFolder,
+				item.FileData.RelativePath,
+				startedUtc,
+				completedUtc,
+				(long)(completedUtc - startedUtc).TotalMilliseconds,
+				item.FileData.ContentHash
+			).ConfigureAwait(false);
+		}
+		catch (Exception ex)
+		{
+			// SqlError is empty for an error that does not come from the server, such as a command timeout. An error of the write of
+			// the row after the script ran is the exception of the provider: its message.
+			string error = ex.GetSqlErrorOrMessage();
+
+			_logger.Error(ex, "Error deploying {RelativePath}. SQL Error: {SqlError}", item.FileData.RelativePath, error);
+
+			throw new FolderDeploymentException(item.FileData.RelativePath, error, ex);
+		}
 	}
 }

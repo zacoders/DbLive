@@ -2,30 +2,25 @@
 
 namespace DbLive.Deployers.Testing;
 
-public class UnitTestsRunner(
+internal class UnitTestsRunner(
 		ILogger _logger,
 		IDbLiveProject _project,
-		IDbLiveDA _da,
 		IUnitTestItemRunner _unitTestItemRunner,
 		ISettingsAccessor settingsAccessor
 	) : IUnitTestsRunner
 {
-	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestItemRunner));
+	private readonly ILogger _logger = _logger.ForContext(typeof(UnitTestsRunner));
 
-	public async Task RunAllTestsAsync(DeployParameters parameters)
+	public async Task RunAllTestsAsync()
 	{
 		DbLiveSettings projectSettings = await settingsAccessor.GetProjectSettingsAsync().ConfigureAwait(false);
-
-		if (!parameters.RunTests)
-		{
-			return;
-		}
 
 		_logger.Information("Running Tests.");
 
 		IReadOnlyCollection<TestItem> tests = await _project.GetTestsAsync().ConfigureAwait(false);
 
 		TestsRunResults runResults = new();
+		ConcurrentBag<string> failedTests = [];
 
 		var parallelOptions = new ParallelOptions
 		{
@@ -38,28 +33,18 @@ public class UnitTestsRunner(
 
 			TestRunResult testResult = await _unitTestItemRunner.RunTestAsync(test).ConfigureAwait(false);
 
+			// by the relative path, not the file name: tests of different folders may have the same name.
 			if (testResult.IsSuccess)
 			{
 				runResults.IncremenPassed();
-				_logger.Information("PASSED: {testName}", test.Name);
+				_logger.Information("PASSED: {filePath}", test.FileData.RelativePath);
 			}
 			else
 			{
 				runResults.IncremenFailed();
-				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.Name, testResult.ErrorMessage);
+				failedTests.Add(test.FileData.RelativePath);
+				_logger.Error(testResult.Exception, "FAILED: {filePath}. Error Message: {errorMessage}", test.FileData.RelativePath, testResult.ErrorMessage);
 			}
-
-			await _da.SaveUnitTestResultAsync(
-				new UnitTestItemDto
-				{
-					RelativePath = test.FileData.RelativePath,
-					ContentHash = test.FileData.ContentHash,
-					StartedUtc = testResult.StartedUtc,
-					ExecutionTimeMs = testResult.ExecutionTimeMs,
-					IsSuccess = testResult.IsSuccess,
-					ErrorMessage = testResult.ErrorMessage
-				}
-			).ConfigureAwait(false);
 		}).ConfigureAwait(false);
 
 		_logger.Information("Tests Run Result> Passed: {PassedCount}, Failed: {FailedCount}.",
@@ -67,7 +52,11 @@ public class UnitTestsRunner(
 
 		if (runResults.FailedCount > 0)
 		{
-			throw new UnitTestsFailedException($"Unit test run failed. Failed test count {runResults.FailedCount} of {runResults.Total}.");
+			throw new UnitTestsFailedException(
+				runResults.FailedCount,
+				runResults.Total,
+				[.. failedTests.Order(StringComparer.Ordinal)]
+			);
 		}
 	}
 }

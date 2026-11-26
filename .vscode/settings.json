@@ -4,5 +4,9 @@
         "**/obj": true,
         "**/TestResults": true
     },
-    "dotnet.unitTests.runSettingsPath": "src/.runsettings"
+    "dotnet.unitTests.runSettingsPath": "src/.runsettings",
+    "cSpell.words": [
+        "Deployers",
+        "Serilog"
+    ]
 }

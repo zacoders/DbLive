@@ -1,0 +1,10 @@
+#nullable enable
+DbLive.PostgreSQL.DbLiveBuilderExtensions
+DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.GetBuilderAsync() -> System.Threading.Tasks.Task<DbLive.DbLiveBuilder!>!
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.GetProjectAssembly() -> System.Reflection.Assembly!
+DbLive.PostgreSQL.PostgreSqlFixtureBuilder.PostgreSqlFixtureBuilder(System.Reflection.Assembly! project, string! connectionString) -> void
+static DbLive.PostgreSQL.DbLiveBuilderExtensions.PostgreSQL(this DbLive.DbLiveBuilder! builder) -> DbLive.DbLiveBuilder!
+static DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions.SetPostgreSqlDatabaseName(this string! pgConnectionString, string! dbName) -> string!
+static DbLive.PostgreSQL.PostgreSqlConnectionStringExtensions.SetRandomPostgreSqlDatabaseName(this string! pgConnectionString) -> string!

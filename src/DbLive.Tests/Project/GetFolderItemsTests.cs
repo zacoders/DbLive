@@ -7,30 +7,44 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.ScriptSource.AddFiles(
+			"BeforeDeploy/file2.sql",
+			"BeforeDeploy/File1.sql",
+			"BeforeDeploy/file3.sql",
+			"BeforeDeploy/notes.txt",
+			"AfterDeploy/file0.sql"
+		);
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
 
-		string folderPath = Path.Combine(@"C:/DB/", "BeforeDeploy");
-
-		mockSet.FileSystem.PathExists(folderPath).Returns(true);
-
-		mockSet.FileSystem.EnumerateFiles(folderPath, "*.sql", true)
-			.Returns(
-			[
-				folderPath.CombineWith("file2.sql"),
-				folderPath.CombineWith("file1.sql"),
-				folderPath.CombineWith("file3.sql")
-			]);
-
 		GenericItem[] items = (await sqlProject.GetFolderItemsAsync(ProjectFolder.BeforeDeploy)).ToArray();
 
-		Assert.Equal(3, items.Length);
+		// checking order, this is important.
+		Assert.Equal(["File1.sql", "file2.sql", "file3.sql"], items.Select(i => i.Name));
+		Assert.Equal("BeforeDeploy/File1.sql", items[0].FileData.RelativePath);
+	}
 
-		// checking order, this is important. 
-		Assert.Equal("file1.sql", items[0].Name);
-		Assert.Equal("file2.sql", items[1].Name);
-		Assert.Equal("file3.sql", items[2].Name);
+	[Fact]
+	public async Task FolderItems_SortedByRelativePath_IncludingSubfolders()
+	{
+		MockSet mockSet = new();
+
+		mockSet.ScriptSource.AddFiles(
+			"AfterDeploy/b/1.sql",
+			"AfterDeploy/b.sql",
+			"AfterDeploy/a/2.sql",
+			"AfterDeploy/A_1.sql"
+		);
+
+		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
+
+		GenericItem[] items = (await sqlProject.GetFolderItemsAsync(ProjectFolder.AfterDeploy)).ToArray();
+
+		// ordinal ignoring case, the same on every OS and in every culture.
+		Assert.Equal(
+			["AfterDeploy/a/2.sql", "AfterDeploy/A_1.sql", "AfterDeploy/b.sql", "AfterDeploy/b/1.sql"],
+			items.Select(i => i.FileData.RelativePath)
+		);
 	}
 
 	[Fact]
@@ -38,20 +52,13 @@ public class GetFolderItemsTests
 	{
 		MockSet mockSet = new();
 
-		mockSet.ProjectPath.Path.Returns(@"C:/DB/");
+		mockSet.ScriptSource.AddFile("BeforeDeploy/file1.sql");
 
 		DbLiveProject sqlProject = mockSet.CreateUsingMocks<DbLiveProject>();
-
-		string folderPath = Path.Combine(@"C:/DB/", "AfterDeploy");
-
-		mockSet.FileSystem.PathExists(folderPath).Returns(true);
 
 		GenericItem[] items = (await sqlProject.GetFolderItemsAsync(ProjectFolder.AfterDeploy)).ToArray();
 
 		Assert.Empty(items);
-
-		mockSet.FileSystem.Received(1).PathExists(folderPath);
-		mockSet.FileSystem.Received(1).EnumerateFiles(folderPath, "*.sql", true);
 	}
 
 	[Fact]

@@ -19,8 +19,12 @@
 
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>sql database xunit testing deployment migration rollback devops cicd db-deployment sql-deployment</PackageTags>
+        <PackageTags>sql database xunit testing deployment migration devops cicd db-deployment sql-deployment</PackageTags>
 		<PackageIcon>dblive-icon.png</PackageIcon>
+
+		<!-- The .xml file of the doc comments goes into the package next to the DLL, for IntelliSense. CS1591 (a public
+		     member without a doc comment) is an error with TreatWarningsAsErrors: see "The public API" in Development.md. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,13 +32,27 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
         <PackageReference Include="Serilog.Sinks.XUnit" />
+		<!-- The xunit v2 types the code uses (XunitTestCase, ExecutionErrorTestCase, XunitTestCaseDiscoverer), and the
+		     minimum xunit of the users: 2.9.2, the first version that reports an exception of the discoverer as a failing
+		     test ("Exception during discovery"). Declared here, not taken from Serilog.Sinks.XUnit. xunit.core pins the
+		     extensibility packages to its own version, so a test project on xunit 2.9.1 or older fails to restore (NU1107). -->
+		<PackageReference Include="xunit.extensibility.execution" />
     </ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbLive\DbLive.csproj" />
 	</ItemGroup>
-	
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbLive.Tests" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<None Include="..\dblive-icon.png">
 			<Pack>True</Pack>

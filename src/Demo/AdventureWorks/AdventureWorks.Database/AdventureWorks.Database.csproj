@@ -4,23 +4,13 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- The DbLive package embeds this folder in the assembly when the project builds. -->
+		<DbLiveScriptsFolder>Scripts</DbLiveScriptsFolder>
 	</PropertyGroup>
 
-	<Target Name="ClearOutput" BeforeTargets="BeforeBuild">
-		<RemoveDir Directories="$(TargetDir)$(AssemblyName)" />
-	</Target>
-
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-			<_Parameter1>ProjectDir</_Parameter1>
-			<_Parameter2>$(ProjectDir)</_Parameter2>
-		</AssemblyAttribute>
-
-		<None Include="Scripts\**\*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>$(AssemblyName).Scripts\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</None>
-	</ItemGroup>
-
+	<!--
+	Only scripts. With the packages, this project references DbLive, which embeds the folder:
+	<PackageReference Include="DbLive" />. The demos get the same from src/Demo/Directory.Build.props.
+	-->
 
 </Project>

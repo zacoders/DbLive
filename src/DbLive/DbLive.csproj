@@ -19,13 +19,22 @@
 
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>sql mssql sqlserver sql-server database deployment migration rollback testing devops cicd db-deployment sql-deployment</PackageTags>
+		<PackageTags>sql mssql sqlserver sql-server database deployment migration zero-downtime expand-contract testing devops cicd db-deployment sql-deployment</PackageTags>
         <PackageIcon>dblive-icon.png</PackageIcon>
+
+        <!-- The .xml file of the doc comments goes into the package next to the DLL, for IntelliSense. CS1591 (a public
+             member without a doc comment) is an error with TreatWarningsAsErrors: see "The public API" in Development.md. -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
 	<ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -36,9 +45,12 @@
     <ItemGroup>
         <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
+        <InternalsVisibleTo Include="DbLive.PostgreSQL.Tests" />
         <InternalsVisibleTo Include="DbLive.MSSQL" />
         <InternalsVisibleTo Include="DbLive.PostgreSQL" />
         <InternalsVisibleTo Include="DbLive.xunit" />
+        <!-- NSubstitute (Castle DynamicProxy) mocks the internal interfaces in the tests. The assembly is not signed: no public key. -->
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
 	<ItemGroup>
@@ -47,6 +59,8 @@
 			<PackagePath>\</PackagePath>
 		</None>
 		<None Include="README.md" Pack="true" PackagePath="/" />
+		<!-- Embeds the scripts folder that a project with DbLive in its graph names in DbLiveScriptsFolder; NuGet imports only files named after the package. -->
+		<None Include="buildTransitive\DbLive.props" Pack="true" PackagePath="buildTransitive/" />
 	</ItemGroup>
 	
 </Project>

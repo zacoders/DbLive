@@ -12,6 +12,17 @@ internal static class TranIsolationLevelMapper
 			_ => throw new NotSupportedTransactionIsolationLevelException(level)
 		};
 
+	/// <summary>The level of a transaction of DbLive: one that <see cref="ToSystemTransaction"/> gave.</summary>
+	public static TranIsolationLevel FromSystemTransaction(IsolationLevel level)
+		=> level switch
+		{
+			IsolationLevel.ReadCommitted => TranIsolationLevel.ReadCommitted,
+			IsolationLevel.RepeatableRead => TranIsolationLevel.RepeatableRead,
+			IsolationLevel.Serializable => TranIsolationLevel.Serializable,
+			IsolationLevel.Snapshot => TranIsolationLevel.Snapshot,
+			_ => throw new ArgumentOutOfRangeException(nameof(level), level, "Not the isolation level of a transaction of DbLive.")
+		};
+
 	public static string ToSql(TranIsolationLevel level, DbProvider provider)
 	{
 		ValidateForProvider(level, provider);
@@ -56,20 +67,19 @@ internal static class TranIsolationLevelMapper
 			_ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
 		};
 
-	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider)
+	/// <param name="level">The level that the settings set.</param>
+	/// <param name="provider">The provider of the database.</param>
+	/// <param name="relativePath">The settings file of a migration or breaking script that sets the level, for the message; null for settings.json.</param>
+	/// <exception cref="NotSupportedTransactionIsolationLevelException">The provider does not support the level.</exception>
+	public static void ValidateForProvider(TranIsolationLevel level, DbProvider provider, string? relativePath = null)
 	{
-		if (provider == DbProvider.PostgreSql && level == TranIsolationLevel.Snapshot)
-		{
-			throw new NotSupportedTransactionIsolationLevelException(level);
-		}
-
 		if (provider == DbProvider.PostgreSql
 			&& level is not (
 				TranIsolationLevel.ReadCommitted
 				or TranIsolationLevel.RepeatableRead
 				or TranIsolationLevel.Serializable))
 		{
-			throw new NotSupportedTransactionIsolationLevelException(level);
+			throw new NotSupportedTransactionIsolationLevelException(level, provider, relativePath);
 		}
 	}
 }

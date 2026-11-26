@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Testing;
 
-public class TestRunSqlResults
+internal class TestRunSqlResults
 {
 	public AssertInfo AssertInfo { get; set; } = new AssertInfo { AssertType = AssertType.None };
 

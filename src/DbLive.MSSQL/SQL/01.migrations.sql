@@ -1,4 +1,5 @@
-create schema dblive;
+-- an empty schema dblive can exist: an administrator created it. create schema must be alone in its batch.
+if schema_id('dblive') is null exec('create schema dblive');
 go
 
 create table dblive.migration (

@@ -1,49 +1,214 @@
-﻿
 namespace DbLive.Adapter;
 
-public interface IDbLiveDA
+/// <summary>
+/// The data access that the deployment and the tests use: the database, DbLive's own tables (<c>dblive</c>) and the code files.
+/// Internal: a provider outside this repository is not supported.
+/// </summary>
+internal interface IDbLiveDA
 {
 	DbProvider Provider { get; }
 
-	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
+	/// <summary>
+	/// Checks the settings of the connection string with which DbLive cannot work, without connecting: <c>Enlist=False</c>, and on
+	/// SQL Server <c>Pooling=False</c> and <c>MultipleActiveResultSets=True</c>. At the start of a deployment and of
+	/// <see cref="Testing.IDbLiveTester.RunAllTestsAsync"/>.
+	/// </summary>
+	/// <exception cref="NotSupportedException">The connection string has such a setting (<see cref="ConnectionStringNotSupported"/>).</exception>
+	void CheckConnectionString();
 
-	Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType);
+	Task CreateDBAsync(bool skipIfExists = true);
+
+	/// <summary>
+	/// Drops the database of the connection string, also while other connections use it: SQL Server kills its sessions when the
+	/// login may, then sets it to <c>single_user with rollback immediate</c>; PostgreSQL terminates its sessions. For the fixtures of <c>DbLive.xunit</c>
+	/// and the internal option <see cref="DeployParameters.RecreateDatabase"/>.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">The database does not exist, and <paramref name="skipIfNotExists"/> is false.</exception>
+	Task DropDbAsync(bool skipIfNotExists = true);
+
+	/// <summary>
+	/// Checks that the database of the connection string exists. Returns when it exists, and when the server
+	/// does not tell: the next connection to the database then fails with the error of the provider.
+	/// </summary>
+	/// <exception cref="DatabaseNotFoundException">The server confirms that the database does not exist.</exception>
+	Task CheckDatabaseExistsAsync();
+
+	/// <summary>
+	/// Takes the deployment lock of the database, so that one deployment of it runs at a time: an exclusive lock of the database,
+	/// owned by the session of a connection of its own (SQL Server <c>sp_getapplock</c>, PostgreSQL <c>pg_try_advisory_lock</c>).
+	/// It does not wait. The connection is not pooled, so its closing ends the session, and not enlisted in an ambient transaction.
+	/// Disposing the result releases the lock and closes the connection, and throws the error of the release, if any; the server also
+	/// releases the lock when the session ends. On PostgreSQL the connection sends a keep-alive every 30 seconds without traffic, both ways.
+	/// </summary>
+	/// <exception cref="DeploymentInProgressException">Another session holds the lock.</exception>
+	Task<IAsyncDisposable> AcquireDeploymentLockAsync();
+
+	/// <summary>
+	/// Called after a deployment that succeeded: the deployment changed the schema, and the provider updates what it keeps of it for
+	/// the connections of the process with the connection string. PostgreSQL: Npgsql loads the types of the database once for a
+	/// connection string, when its first connection opens, and does not know a type created after that; this reloads them.
+	/// SQL Server: nothing, SqlClient keeps no types of the database.
+	/// </summary>
+	Task OnDeployedAsync();
+
+	/// <summary>
+	/// Executes a script. In an ambient transaction it fails with <see cref="DbLiveTransactionEndedException"/> when the script ended that
+	/// transaction with COMMIT or ROLLBACK, and what the script ran after the end is rolled back; so do <see cref="ExecuteCodeItemAsync"/>
+	/// and <see cref="ExecuteQueryMultipleAsync"/>, and a code file in a transaction of its own. It also fails with
+	/// <see cref="DbLiveTransactionLeftOpenException"/> when the script left a transaction of its own open, and that transaction is
+	/// rolled back: on SQL Server in an ambient transaction or a transaction of a code file with the whole transaction (on PostgreSQL
+	/// <c>BEGIN</c> in a transaction is only a warning), and without a transaction on both servers. Without one an open transaction is
+	/// rolled back also after an error of the script: on SQL Server the next session of the pool would roll it back, and until then it
+	/// keeps its locks. On SQL Server so is a transaction that the script left open with an error in a transaction of DbLive, with the
+	/// whole transaction; the error is thrown, with <see cref="DbLiveSqlException.RolledBackWithTransactionLeftOpen"/> set.
+	/// </summary>
+	/// <param name="sqlStatement">The script; on SQL Server with <c>GO</c> batches.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
+	/// <param name="timeout">The timeout of the whole script, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
+	/// <exception cref="DbLiveSqlException"/>
+	/// <exception cref="DbLiveTransactionEndedException">The script ended the ambient transaction.</exception>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open: on PostgreSQL only without a transaction of DbLive.</exception>
+	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
+	Task ExecuteNonQueryAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	);
+
+	/// <param name="sqlStatement">The script; every result set it returns is an item of the result.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
+	/// <param name="timeout">The timeout of the script; <see cref="TimeSpan.Zero"/> is no limit.</param>
+	/// <exception cref="DbLiveSqlException"/>
+	/// <exception cref="ExecutionTimeoutException">The script ran longer than <paramref name="timeout"/>.</exception>
+	Task<List<SqlResult>> ExecuteQueryMultipleAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	);
+
+	/// <summary>
+	/// Reads the schema of the database from its catalog, for the schema check of the deployment test (<see cref="SchemaChangedException"/>).
+	/// </summary>
+	Task<SchemaSnapshot> GetSchemaSnapshotAsync();
+
+	/// <summary>
+	/// Called inside the ambient transaction after a script ran in it: true when later statements still run in that transaction.
+	/// Has no side effects. On PostgreSQL an error aborts the transaction until the end of the transaction (<see cref="ExecuteCodeItemAsync"/>
+	/// undoes that for its own error). On SQL Server most errors leave it open, but some roll it back: any run-time error with
+	/// <c>XACT_ABORT ON</c>, a failed conversion, a deadlock. The next statements then do not fail, they run in autocommit mode
+	/// and are committed at once, even when the deployment fails and is rolled back. A script can also end the transaction without
+	/// an error, with COMMIT or ROLLBACK: <see cref="ExecuteNonQueryAsync"/> fails then. On PostgreSQL the answer relies on the ID of
+	/// the transaction, which is assigned before every script in it: a transaction in which no script ran and nothing was written is
+	/// not usable by this answer.
+	/// </summary>
+	Task<bool> IsTransactionUsableAsync();
+
+	/// <summary>
+	/// Executes a code file. Inside the ambient transaction, an error of the file leaves the transaction usable when the provider can,
+	/// so that the file can be retried in it after the files it depends on; <see cref="IsTransactionUsableAsync"/> tells whether it did.
+	/// On PostgreSQL the error also undoes the statements of the file that ran before it. On SQL Server they stay in the transaction,
+	/// and an error that rolls back the whole transaction leaves it unusable. Outside a transaction the file runs in a transaction
+	/// of its own, so it is applied as a whole: it runs between <c>begin</c> and <c>commit</c> on the connection, and fails when it ended
+	/// that transaction (<see cref="ExecuteNonQueryAsync"/>). Except a file for which <see cref="RunsCodeItemWithoutTransaction"/>
+	/// is true: its batches commit one by one.
+	/// </summary>
+	/// <param name="sqlStatement">The content of the code file; on SQL Server with <c>GO</c> batches.</param>
+	/// <param name="isolationLevel">The isolation level of the session when no ambient transaction runs; in one, the level of that transaction applies.</param>
+	/// <param name="timeout">The timeout of the whole file, not of each of its commands; <see cref="TimeSpan.Zero"/> is no limit.</param>
+	/// <exception cref="DbLiveSqlException">The error of the file.</exception>
+	/// <exception cref="ExecutionTimeoutException">The file ran longer than <paramref name="timeout"/>.</exception>
+	Task ExecuteCodeItemAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	);
+
+	/// <summary>
+	/// True when <see cref="ExecuteCodeItemAsync"/>, outside a transaction, runs the file without a transaction of its own: the file has
+	/// DDL that the server does not allow in a user transaction. On SQL Server a file with In-Memory OLTP DDL, found by its words
+	/// <c>native_compilation</c> and <c>memory_optimized</c>; on PostgreSQL never. Read from the text only, without a connection.
+	/// </summary>
+	bool RunsCodeItemWithoutTransaction(string sqlStatement);
+
+	/// <summary>
+	/// The longest relative path, in UTF-16 characters, of a code file or a breaking script of the Code folder that
+	/// <see cref="SaveCodeItemAsync"/> stores; null when the provider has no fixed limit. The project load rejects a longer path
+	/// (<see cref="ProjectLoader"/>), so the file does not run and then fail to be recorded. Without a connection.
+	/// </summary>
+	int? MaxCodePathLength { get; }
+
+	/// <summary>
+	/// The longest relative path, in UTF-16 characters, of a BeforeDeploy or AfterDeploy file that <see cref="MarkItemAsAppliedAsync"/>
+	/// stores; null when the provider has no fixed limit. As <see cref="MaxCodePathLength"/>.
+	/// </summary>
+	int? MaxFolderItemPathLength { get; }
+
+	Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync();
 
 	Task<IReadOnlyCollection<long>> GetAppliedMigrationVersionsAsync();
 
 	Task<bool> DbLiveInstalledAsync();
 
-	Task<long> GetDbLiveVersionAsync();
+	/// <summary>
+	/// The number of the last self-migration applied to the <c>dblive</c> schema, from <c>dblive.version.version</c>.
+	/// Not a DbLive release version: that is <see cref="GetMinDbLiveLibVersionAsync"/>.
+	/// </summary>
+	Task<long> GetSelfMigrationVersionAsync();
 
-	Task SetDbLiveVersionAsync(long version, DateTime migrationDatetime);
+	/// <summary>
+	/// Stores the number of the last self-migration applied in <c>dblive.version.version</c>.
+	/// </summary>
+	Task SetSelfMigrationVersionAsync(long version, DateTime migrationDatetime);
 
+	/// <summary>
+	/// The oldest DbLive version that can deploy the database, from <c>dblive.version.min_dblive_lib_version</c>.
+	/// Null when there is no requirement, also when the column does not exist yet (a database deployed before the
+	/// self-migration that adds it). Call it only when the database has the DbLive tables (<see cref="DbLiveInstalledAsync"/>).
+	/// </summary>
+	Task<Version?> GetMinDbLiveLibVersionAsync();
+
+	/// <summary>
+	/// Stores the oldest DbLive version that can deploy the database in <c>dblive.version.min_dblive_lib_version</c>.
+	/// </summary>
+	Task SetMinDbLiveLibVersionAsync(Version version);
+
+	/// <summary>
+	/// The ProjectId bound to the database, from <c>dblive.version.project_id</c>. Null when there is none, also when the column
+	/// does not exist yet (a database deployed before the self-migration that adds it). Call it only when the database has the
+	/// DbLive tables (<see cref="DbLiveInstalledAsync"/>).
+	/// </summary>
 	Task<string?> GetProjectIdAsync();
 
 	Task SetProjectIdAsync(string projectId);
 
-	/// <exception cref="DbLiveSqlException"/>
+	/// <summary>
+	/// Writes the row of the file to <c>dblive.code</c>: inserts it, or updates the row of its path. An error is the exception of the
+	/// provider, not a <see cref="DbLiveSqlException"/>.
+	/// </summary>
 	Task SaveCodeItemAsync(CodeItemDto item);
 
-	Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc);
+	/// <summary>
+	/// Sets <c>verified_utc</c> of the rows of <c>dblive.code</c> of <paramref name="relativePaths"/>, with one command.
+	/// </summary>
+	Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc);
 
-	Task CreateDBAsync(bool skipIfExists = true);
+	/// <summary>
+	/// Sets <c>status = 'applying'</c> on the <c>applied</c> rows of <c>dblive.code</c> of <paramref name="relativePaths"/>, with one
+	/// command, before these code files run (<see cref="CodeItemStatus.Applying"/>). Other rows and the other columns are not changed.
+	/// </summary>
+	Task MarkCodeAsApplyingAsync(IReadOnlyCollection<string> relativePaths);
 
-	Task DropDbAsync(bool skipIfNotExists = true);
+	/// <summary>
+	/// Marks the rows of <c>dblive.code</c> whose file is not one of <paramref name="projectRelativePaths"/> as removed,
+	/// with <paramref name="verifiedUtc"/> as the time the file was found missing. Rows already removed are not changed.
+	/// </summary>
+	/// <returns>The stored (lower-case) paths of the rows marked now.</returns>
+	Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc);
 
-	/// <exception cref="DbLiveSqlException"/>
-	Task ExecuteNonQueryAsync(
-		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
-	);
-
-	Task<List<SqlResult>> ExecuteQueryMultipleAsync(
-		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
-	);
-
-	Task<CodeItemDto?> FindCodeItemAsync(string relativePath);
+	/// <summary>
+	/// All rows of <c>dblive.code</c>, with one query.
+	/// </summary>
+	Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync();
 
 	Task SaveMigrationItemAsync(MigrationItemSaveDto item);
 
@@ -54,12 +219,6 @@ public interface IDbLiveDA
 	/// </summary>
 	/// <exception cref="DbLiveMigrationItemMissedSqlException"></exception>
 	Task UpdateMigrationStateAsync(MigrationItemStateDto item);
-
-	Task<bool> MigrationItemExistsAsync(long version, MigrationItemType itemType);
-
-	Task<string?> GetMigrationContentAsync(long version, MigrationItemType undo);
-
-	Task SaveUnitTestResultAsync(UnitTestItemDto item);
 
 	Task MarkItemAsAppliedAsync(
 		ProjectFolder projectFolder,

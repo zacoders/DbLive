@@ -11,6 +11,15 @@ internal class DbLiveSelfDeployer(
 {
 	private readonly ILogger _logger = _logger.ForContext(typeof(DbLiveSelfDeployer));
 
+	private const TranIsolationLevel IsolationLevel = TranIsolationLevel.Serializable;
+
+	// a constant, not a setting: the message names none.
+	private static readonly TransactionTimeout TransactionTimeout = new(TimeSpan.FromMinutes(5), "The self-deployment of DbLive");
+
+	// the timeout of each self-migration, inside the transaction: 30 seconds, the value it had while the data access gave a script
+	// without a timeout this one by default.
+	private static readonly TimeSpan SelfMigrationTimeout = TimeSpan.FromSeconds(30);
+
 	public async Task DeployAsync()
 	{
 		DbLiveSettings projectSettings = await _projectSettings.GetProjectSettingsAsync().ConfigureAwait(false);
@@ -20,30 +29,65 @@ internal class DbLiveSelfDeployer(
 			_logger.Information("Starting self deploy.");
 		}
 
-		IEnumerable<InternalMigration> migrationsToApply = await _internalProject.GetMigrationsAsync().ConfigureAwait(false);
-
-		if (await _da.DbLiveInstalledAsync().ConfigureAwait(false))
-		{
-			long appliedVersion = await _da.GetDbLiveVersionAsync().ConfigureAwait(false);
-			migrationsToApply = migrationsToApply.Where(m => m.Version > appliedVersion);
-		}
+		IReadOnlyList<InternalMigration> migrations = await _internalProject.GetMigrationsAsync().ConfigureAwait(false);
 
 		await _transactionRunner.ExecuteWithinTransactionAsync(
 			true,
-			TranIsolationLevel.Serializable,
-			TimeSpan.FromMinutes(5),
+			IsolationLevel,
+			TransactionTimeout,
 			async () =>
 			{
-				foreach (InternalMigration migration in migrationsToApply)
+				long appliedSelfMigrationVersion = 0;
+				Version? minDbLiveLibVersion = null;
+
+				if (await _da.DbLiveInstalledAsync().ConfigureAwait(false))
 				{
-					await _da.ExecuteNonQueryAsync(migration.FileData.Content).ConfigureAwait(false);
-					await _da.SetDbLiveVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
+					// before any change: a newer DbLive may have changed the dblive tables in a way this one cannot read.
+					minDbLiveLibVersion = await _da.GetMinDbLiveLibVersionAsync().ConfigureAwait(false);
+
+					DbLiveCompatibility.Check(minDbLiveLibVersion);
+
+					appliedSelfMigrationVersion = await _da.GetSelfMigrationVersionAsync().ConfigureAwait(false);
+
+					LogNewerSelfMigrations(migrations, appliedSelfMigrationVersion, minDbLiveLibVersion);
+				}
+
+				foreach (InternalMigration migration in migrations.Where(m => m.Version > appliedSelfMigrationVersion))
+				{
+					await _da.ExecuteNonQueryAsync(migration.FileData.Content, IsolationLevel, SelfMigrationTimeout).ConfigureAwait(false);
+					await _da.SetSelfMigrationVersionAsync(migration.Version, _timeProvider.UtcNow()).ConfigureAwait(false);
+				}
+
+				// at the start of the deployment, not after it: the self-migrations cannot be undone, and a deployment
+				// that fails later may already have written rows in the format of this DbLive.
+				// After the check the database has this version or an older one, so it is never lowered.
+				if (minDbLiveLibVersion is null || minDbLiveLibVersion < DbLiveCompatibility.MinCompatibleVersion)
+				{
+					await _da.SetMinDbLiveLibVersionAsync(DbLiveCompatibility.MinCompatibleVersion).ConfigureAwait(false);
 				}
 			}).ConfigureAwait(false);
 
 		if (projectSettings.LogSelfDeploy)
 		{
 			_logger.Information("Self deploy completed.");
+		}
+	}
+
+	// not an error: a newer DbLive deployed the database, and its requirement allows this DbLive (a rollback of the application,
+	// or an older build deployed again). Its self-migrations stay; this DbLive applies none of its own.
+	private void LogNewerSelfMigrations(IReadOnlyList<InternalMigration> migrations, long appliedVersion, Version? minDbLiveLibVersion)
+	{
+		long lastVersion = migrations.Select(m => m.Version).DefaultIfEmpty().Max();
+
+		if (appliedVersion > lastVersion)
+		{
+			_logger.Information(
+				"The dblive schema of the database is at self-migration {AppliedVersion}, newer than the last one of this DbLive ({LastVersion}): "
+				+ "a newer DbLive deployed the database. Its minimum DbLive version ({MinDbLiveLibVersion}) allows this DbLive, so the deployment goes on.",
+				appliedVersion,
+				lastVersion,
+				minDbLiveLibVersion
+			);
 		}
 	}
 }

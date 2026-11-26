@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Version>0.0.0-placeholder</Version>
+
+		<PackageId>DbLive.Templates</PackageId>
+		<PackageType>Template</PackageType>
+		<Authors>ZACoders</Authors>
+		<Company>DbLive</Company>
+		<Description>dotnet new template for DbLive: "dotnet new dblive" creates a SQL Server or PostgreSQL database project with a deployer, and an xUnit project that runs its SQL tests against a database in Docker</Description>
+
+		<PackageProjectUrl>https://github.com/zacoders/DbLive</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/zacoders/DbLive</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>dotnet-new templates sql mssql sqlserver postgresql database deployment migration testing xunit</PackageTags>
+		<PackageIcon>dblive-icon.png</PackageIcon>
+
+		<!-- A template package: the templates are content; no assembly, no dependencies, no symbols package. -->
+		<EnableDefaultItems>false</EnableDefaultItems>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+		<IncludeSymbols>false</IncludeSymbols>
+		<!-- NuGet leaves out files in folders that start with a dot, such as .template.config. -->
+		<NoDefaultExcludes>true</NoDefaultExcludes>
+		<BeforePack>$(BeforePack);DbLiveAddTemplates</BeforePack>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Shown in the IDE only; the packed files come from DbLiveAddTemplates. -->
+		<None Include="templates\**" Exclude="templates\**\bin\**;templates\**\obj\**" />
+		<None Include="..\dblive-icon.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
+
+	<!--
+	The template of release N creates projects on the DbLive packages of release N. The templates are copied to obj/,
+	and the version of this package is written into the copy of template.json, as the value of the symbol dbLiveVersion
+	("0.0.0-placeholder" in the source, the version of a local build). The copies are packed into content/.
+	-->
+	<Target Name="DbLiveAddTemplates">
+		<PropertyGroup>
+			<_DbLiveTemplatesDir>$(IntermediateOutputPath)templates\</_DbLiveTemplatesDir>
+			<_DbLiveTemplateJson>$(_DbLiveTemplatesDir)dblive\.template.config\template.json</_DbLiveTemplateJson>
+			<_DbLiveVersionPlaceholder>"value": "0.0.0-placeholder"</_DbLiveVersionPlaceholder>
+		</PropertyGroup>
+		<ItemGroup>
+			<_DbLiveTemplateFile Include="templates\**" Exclude="templates\**\bin\**;templates\**\obj\**" />
+		</ItemGroup>
+
+		<RemoveDir Directories="$(_DbLiveTemplatesDir)" />
+		<Copy SourceFiles="@(_DbLiveTemplateFile)" DestinationFiles="@(_DbLiveTemplateFile->'$(_DbLiveTemplatesDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+
+		<DbLiveSetTemplateVersion TemplateJson="$(_DbLiveTemplateJson)" Placeholder="$(_DbLiveVersionPlaceholder)" Value="&quot;value&quot;: &quot;$(Version)&quot;" />
+
+		<ItemGroup>
+			<_DbLivePackedTemplateFile Include="$(_DbLiveTemplatesDir)**" />
+			<None Include="@(_DbLivePackedTemplateFile)" Pack="true" PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
+		</ItemGroup>
+	</Target>
+
+	<!--
+	Replaces the placeholder in the copy of template.json; fails when the source has no placeholder. A task, because
+	WriteLinesToFile on Linux and macOS turns the backslashes of its lines into slashes: the escaped quotes of
+	template.json, \", came out as /", and the template did not load (task 0096-39).
+	-->
+	<UsingTask TaskName="DbLiveSetTemplateVersion" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<TemplateJson ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
+			<Placeholder Required="true" />
+			<Value Required="true" />
+		</ParameterGroup>
+		<Task>
+			<Code Type="Fragment" Language="cs"><![CDATA[
+				string path = TemplateJson.GetMetadata("FullPath");
+				string text = System.IO.File.ReadAllText(path);
+				if (!text.Contains(Placeholder))
+					Log.LogError("templates/dblive/.template.config/template.json has no '" + Placeholder + "': the symbol dbLiveVersion, which the pack sets to the version of the DbLive packages.");
+				else
+					System.IO.File.WriteAllText(path, text.Replace(Placeholder, Value));
+			]]></Code>
+		</Task>
+	</UsingTask>
+
+</Project>

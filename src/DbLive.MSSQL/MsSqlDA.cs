@@ -1,51 +1,110 @@
 ﻿using DbLive.Adapter;
 using DbLive.Common;
 using DbLive.Project;
+using DbLive.Schema;
 using System.Data;
+using System.Globalization;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace DbLive.MSSQL;
 
-public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
+internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 {
 	public DbProvider Provider => DbProvider.MsSql;
 
-	static MsSqlDA()
+	public async Task<bool> IsTransactionUsableAsync()
 	{
-		SqlMapper.AddTypeMap(typeof(DateTime), DbType.DateTime2);
-		DefaultTypeMap.MatchNamesWithUnderscores = true;
+		// a transaction rolled back by the server does not fail the next commands of the scope: they run in autocommit mode.
+		// Transaction.Current stays Active then, only the server knows.
+		using var cnn = GetConnection();
+		return await cnn.ExecuteScalarAsync<int>("select @@trancount").ConfigureAwait(false) > 0;
+	}
+
+	// in the deployment transaction no savepoint: an error that does not roll back the whole transaction leaves it usable, and after one
+	// that does (XACT_ABORT ON, a failed conversion, a deadlock) there is no savepoint to return to.
+	// Outside it the file runs in a transaction of its own: its GO batches would commit one by one, and a batch that fails would leave
+	// the batches before it applied. A file with In-Memory OLTP DDL runs without one, as DbLive 1.5 ran every code file.
+	public Task ExecuteCodeItemAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	) => ExecuteScriptAsync(
+		sqlStatement,
+		isolationLevel,
+		timeout,
+		ownTransaction: Transaction.Current is null && !RunsCodeItemWithoutTransaction(sqlStatement)
+	);
+
+	// SQL Server does not allow the DDL of natively compiled modules and of memory-optimized objects in a user transaction: Msg 12331
+	// rolls back the whole transaction, so the file could never deploy. The words are matched in the whole text: one in a comment or a
+	// string only takes the transaction away from the file. DDL in dynamic SQL, or a drop that names neither word, still fails.
+	public bool RunsCodeItemWithoutTransaction(string sqlStatement) => InMemoryOltpDdlRegex().IsMatch(sqlStatement);
+
+	// whole words: not is_memory_optimized and uses_native_compilation of the catalog views, not memory_optimized_data of a filegroup.
+	[GeneratedRegex(@"\b(?:native_compilation|memory_optimized)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+	private static partial Regex InMemoryOltpDdlRegex();
+
+	// the relative path is the clustered primary key of dblive.code, and of dblive.folder_items after folder_type, and a clustered
+	// index key holds at most 900 bytes: two per character of nvarchar, one per character of folder_type (varchar, the name of
+	// ProjectFolder, BeforeDeploy at the longest). A longer path fails with Msg 1946 after its file ran.
+	private const int MaxClusteredKeyBytes = 900;
+
+	public int? MaxCodePathLength => MaxClusteredKeyBytes / 2;
+
+	public int? MaxFolderItemPathLength => (MaxClusteredKeyBytes - Enum.GetNames<ProjectFolder>().Max(name => name.Length)) / 2;
+
+	public void CheckConnectionString()
+	{
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString);
+
+		if (!builder.Pooling) throw ConnectionStringNotSupported.Pooling();
+		if (!builder.Enlist) throw ConnectionStringNotSupported.Enlist();
+		if (builder.MultipleActiveResultSets) throw ConnectionStringNotSupported.MultipleActiveResultSets();
 	}
 
 	private SqlConnection GetConnection() => new(_cnn.ConnectionString);
+
+	// nothing to update: SqlClient keeps no types of the database, it takes the types of a result set from the server with each
+	// result set (an alias type comes as its base type).
+	public Task OnDeployedAsync() => Task.CompletedTask;
+
+	/// <summary>
+	/// The parameters of a query from the properties of <paramref name="values"/>, a <see cref="DateTime"/> as <c>datetime2</c>: Dapper
+	/// sends it as <c>datetime</c>, rounded to 1/300 of a second, and the dates of the dblive tables are <c>datetime2(7)</c>. Every query
+	/// with a <see cref="DateTime"/> parameter takes its parameters from here.
+	/// Not <c>SqlMapper.AddTypeMap</c>: the settings of Dapper are global for the process, also for PostgreSQL and for the queries of the
+	/// application.
+	/// </summary>
+	private static DynamicParameters Parameters(object values)
+	{
+		DynamicParameters parameters = new();
+		foreach (PropertyInfo property in values.GetType().GetProperties())
+		{
+			Type type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+			parameters.Add(property.Name, property.GetValue(values), type == typeof(DateTime) ? DbType.DateTime2 : null);
+		}
+		return parameters;
+	}
 
 	public async Task<IReadOnlyCollection<MigrationItemDto>> GetMigrationsAsync()
 	{
 		const string query = @"
 			select version
 				 , name
-				 , item_type
-				 , relative_path
+				 , item_type as ItemType
+				 , relative_path as RelativePath
 				 , status
-				 , content_hash
-				 , created_utc
-				 , applied_utc
-				 , execution_time_ms
+				 , content_hash as ContentHash
+				 , created_utc as CreatedUtc
+				 , applied_utc as AppliedUtc
+				 , execution_time_ms as ExecutionTimeMs
 			from dblive.migration
 		";
 
 		using var cnn = GetConnection();
-		return (await cnn.QueryAsync<MigrationItemDto>(query).ConfigureAwait(false)).ToList();
-	}
-
-	public async Task<long?> GetMigrationHashAsync(long version, MigrationItemType itemType)
-	{
-		const string query = @"
-			select content_hash
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-		";
-		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<long?>(query, new { version, item_type = itemType.ToString().ToLower() }).ConfigureAwait(false);
+		return (await cnn.QueryAsync<MigrationItemRow>(query).ConfigureAwait(false)).Select(r => r.ToDto()).ToList();
 	}
 
 	public async Task<bool> DbLiveInstalledAsync()
@@ -70,7 +129,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return (await cnn.QueryAsync<long>(query).ConfigureAwait(false)).ToList();
 	}
 
-	public async Task<long> GetDbLiveVersionAsync()
+	public async Task<long> GetSelfMigrationVersionAsync()
 	{
 		const string query = @"
 			select version
@@ -80,7 +139,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return await cnn.ExecuteScalarAsync<long?>(query).ConfigureAwait(false) ?? 0;
 	}
 
-	public async Task SetDbLiveVersionAsync(long version, DateTime migrationDateTime)
+	public async Task SetSelfMigrationVersionAsync(long version, DateTime migrationDateTime)
 	{
 		const string query = @"
 			update dblive.version
@@ -88,14 +147,39 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			  , applied_utc = @applied_utc;
 		";
 		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(query, new { version, applied_utc = migrationDateTime }).ConfigureAwait(false);
+		_ = await cnn.ExecuteAsync(query, Parameters(new { version, applied_utc = migrationDateTime })).ConfigureAwait(false);
 	}
 
+	// the column comes with self-migration 12: a database deployed before it has none, and a batch that names
+	// a missing column does not compile. Without the column the batch returns no result set, and the value is null.
+	public async Task<Version?> GetMinDbLiveLibVersionAsync()
+	{
+		const string query = @"
+			if col_length('dblive.version', 'min_dblive_lib_version') is not null
+				exec sys.sp_executesql N'select min_dblive_lib_version from dblive.version';
+		";
+		using var cnn = GetConnection();
+		string? version = await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
+		return version is null ? null : Version.Parse(version);
+	}
+
+	public async Task SetMinDbLiveLibVersionAsync(Version version)
+	{
+		const string query = @"
+			update dblive.version
+			set min_dblive_lib_version = @min_dblive_lib_version;
+		";
+		using var cnn = GetConnection();
+		_ = await cnn.ExecuteAsync(query, new { min_dblive_lib_version = version.ToString() }).ConfigureAwait(false);
+	}
+
+	// the column comes with self-migration 6, and the ProjectId is checked before the self-deployment: a database deployed
+	// before it has none. Without the column the batch returns no result set, and the value is null.
 	public async Task<string?> GetProjectIdAsync()
 	{
 		const string query = @"
-			select project_id
-			from dblive.version
+			if col_length('dblive.version', 'project_id') is not null
+				exec sys.sp_executesql N'select project_id from dblive.version';
 		";
 		using var cnn = GetConnection();
 		return await cnn.ExecuteScalarAsync<string?>(query).ConfigureAwait(false);
@@ -111,52 +195,325 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		_ = await cnn.ExecuteAsync(query, new { project_id = ProjectIdTools.Normalize(projectId) }).ConfigureAwait(false);
 	}
 
-	public async Task ExecuteNonQueryAsync(
+	public Task ExecuteNonQueryAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
+	) => ExecuteScriptAsync(sqlStatement, isolationLevel, timeout, ownTransaction: false);
+
+	private async Task ExecuteScriptAsync(
+		string sqlStatement,
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout,
+		bool ownTransaction
 	)
 	{
 		try
 		{
+			// before the connection: a syntax error of a GO line fails the file before any batch runs, as it did when SMO ran the file.
+			IReadOnlyList<ScriptBatch> batches = SplitIntoBatches(sqlStatement);
+
 			using SqlConnection sqlConnection = GetConnection();
 			await sqlConnection.OpenAsync().ConfigureAwait(false);
-			if (Transaction.Current is null)
+			await SetScriptIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
+			if (ownTransaction)
 			{
-				await SetTransactionIsolationLevelAsync(sqlConnection, isolationLevel).ConfigureAwait(false);
+				await ExecuteInOwnTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
 			}
-			ServerConnection serverConnection = new(sqlConnection)
+			else if (Transaction.Current is not null)
 			{
-				StatementTimeout = GetTimeoutSeconds(timeout)
-			};
-			_ = serverConnection.ExecuteNonQuery(sqlStatement);
-			serverConnection.Disconnect();
+				_ = await ExecuteGuardedAsync(sqlConnection, () => ExecuteBatchesAsync(sqlConnection, batches, timeout)).ConfigureAwait(false);
+			}
+			else
+			{
+				await ExecuteWithoutTransactionAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
+			}
+		}
+		catch (Exception e) when (e is not DbLiveSqlException)
+		{
+			// not an error of a batch: begin or commit of the transaction of the file, the isolation level, the connection.
+			// It has no line of the file.
+			SqlException? sqlException = e.Get<SqlException>();
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(sqlException), e);
+		}
+	}
+
+	/// <summary>
+	/// A <c>GO</c> batch of a script: its text, and the line of the file where it starts, from 1.
+	/// </summary>
+	internal sealed record ScriptBatch(string Text, int StartLine);
+
+	/// <summary>
+	/// The <c>GO</c> batches of a script, split by SMO in its capture mode: it splits the script as its <c>ExecuteNonQuery</c> does,
+	/// runs nothing and needs no connection. <c>GO</c> alone on its line, in any case, with an optional count and <c>-- comment</c>;
+	/// not inside comments, strings and brackets. The batch before <c>GO &lt;count&gt;</c> is in the list count times; <c>GO</c> on the
+	/// first line and two <c>GO</c> in a row give an empty batch. A comment without its end and a <c>GO</c> line with anything else
+	/// throw <c>BatchParserException</c>. The text of a batch is the piece of the file up to the line end before its <c>GO</c> line.
+	/// <para>
+	/// SMO gives the texts, not the lines where they start: the next batch starts after the line ends of the text and the <c>GO</c>
+	/// line. The count of <c>GO &lt;count&gt;</c> is not read, it is rare: each repetition counts as a batch of its own, and the
+	/// batches after it get lines further down than they are.
+	/// </para>
+	/// </summary>
+	internal static IReadOnlyList<ScriptBatch> SplitIntoBatches(string script)
+	{
+		ServerConnection splitter = new() { SqlExecutionModes = SqlExecutionModes.CaptureSql };
+		_ = splitter.ExecuteNonQuery(script);
+
+		List<ScriptBatch> batches = [];
+		int startLine = 1;
+
+		foreach (string text in splitter.CapturedSql.Text.Cast<string>())
+		{
+			batches.Add(new ScriptBatch(text, startLine));
+			startLine += CountLineEnds(text) + 1;
+		}
+
+		return batches;
+	}
+
+	// LF, CRLF and CR alone: SMO ends a line at CR alone too, as editors do.
+	private static int CountLineEnds(string text)
+	{
+		int count = 0;
+
+		for (int i = 0; i < text.Length; i++)
+		{
+			if (text[i] == '\n' || (text[i] == '\r' && (i + 1 == text.Length || text[i + 1] != '\n')))
+			{
+				count++;
+			}
+		}
+
+		return count;
+	}
+
+	// each batch is a command of its own, and gets the time left of the file as its command timeout: the timeout is the timeout of the
+	// file, not of each batch.
+	// An error of a batch names the line of the file where the batch starts: SQL Server counts the line of an error from the start of
+	// its batch, or of the procedure or the dynamic SQL where it is, and does not say which batch failed.
+	private static async Task ExecuteBatchesAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
+	{
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		foreach (ScriptBatch batch in batches)
+		{
+			// SqlCommand fails on an empty text, and SMO did not run one either; a batch of white space does nothing.
+			if (string.IsNullOrWhiteSpace(batch.Text))
+			{
+				continue;
+			}
+
+			using SqlCommand cmd = sqlConnection.CreateCommand();
+			cmd.CommandText = batch.Text;
+			cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+
+			try
+			{
+				_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+			}
+			catch (SqlException e) when (IsCommandTimeout(e))
+			{
+				throw scriptTimeout.Expired(e);
+			}
+			catch (SqlException e)
+			{
+				throw new DbLiveSqlException(e.Message, GetSqlServerError(e, batch.StartLine), e);
+			}
+		}
+	}
+
+	// "Execution Timeout Expired". A connection timeout has the same number, so only the commands of a script are checked for it.
+	private const int TimeoutExpiredError = -2;
+
+	private static bool IsCommandTimeout(SqlException e) => e.Errors.Cast<SqlError>().Any(err => err.Number == TimeoutExpiredError);
+
+	// a transaction of T-SQL on the connection, not a TransactionScope: it has no timeout of its own, and the isolation level set on the
+	// connection applies to it. Under MARS it would end with its first batch (Msg 3997): CheckConnectionString rejects MARS.
+	private static async Task ExecuteInOwnTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
+	{
+		_ = await sqlConnection.ExecuteAsync("begin transaction;").ConfigureAwait(false);
+		try
+		{
+			_ = await ExecuteGuardedAsync(sqlConnection, () => ExecuteBatchesAsync(sqlConnection, batches, timeout)).ConfigureAwait(false);
+			_ = await sqlConnection.ExecuteAsync("commit transaction;").ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(sqlConnection).ConfigureAwait(false);
+			throw;
+		}
+	}
+
+	internal const string TransactionEndedExample = "for example 'if @@trancount > 0 rollback' in a CATCH block that does not rethrow the error";
+
+	internal const string LeftOpenCause = "it ran BEGIN TRANSACTION without COMMIT, by itself or in a procedure it called";
+
+	internal const string LeftOpenInTransaction = "DbLive rolled back the transaction that it runs the script in: nothing of the script stays.";
+
+	internal const string LeftOpenWithoutTransaction =
+		"DbLive rolled it back: what the script ran after BEGIN TRANSACTION is gone, what it ran before stays.";
+
+	// a transaction that the script left open would go back to the pool with the connection: SQL Server rolls it back when the session
+	// is reused (sp_reset_connection), and until then it keeps its locks. Neither statement opens a transaction when the script turned
+	// IMPLICIT_TRANSACTIONS on: a select without a table does not.
+	private const string RollbackOpenTransactionSql = "if @@trancount = 0 select 0; else begin rollback; select 1; end;";
+
+	/// <summary>
+	/// Runs a script without a transaction of DbLive, and fails when the script left a transaction of its own open: <c>BEGIN TRANSACTION</c>
+	/// without <c>COMMIT</c>, or <c>IMPLICIT_TRANSACTIONS ON</c>. The transaction is rolled back, also after an error of the script, which
+	/// is the error to throw then: what the script ran before it began the transaction stays, committed in autocommit mode.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open.</exception>
+	private static async Task ExecuteWithoutTransactionAsync(SqlConnection sqlConnection, IReadOnlyList<ScriptBatch> batches, TimeSpan timeout)
+	{
+		try
+		{
+			await ExecuteBatchesAsync(sqlConnection, batches, timeout).ConfigureAwait(false);
+		}
+		catch
+		{
+			await TryRollbackAsync(sqlConnection).ConfigureAwait(false);
+			throw;
+		}
+
+		if (await sqlConnection.ExecuteScalarAsync<int>(RollbackOpenTransactionSql).ConfigureAwait(false) == 1)
+		{
+			throw new DbLiveTransactionLeftOpenException(LeftOpenCause, LeftOpenWithoutTransaction);
+		}
+	}
+
+	// the ID and the count of open transactions before the script, then IMPLICIT_TRANSACTIONS: with the setting on, the read itself
+	// would open a transaction when the one of DbLive is gone already, and the script would run in it unnoticed.
+	private const string StartTransactionGuardSql = "select current_transaction_id() as Id, @@trancount as TranCount; set implicit_transactions on;";
+
+	private sealed record TransactionGuardStart(long Id, int TranCount);
+
+	private enum TransactionGuardResult
+	{
+		Kept = 0,
+		Ended = 1,
+		LeftOpen = 2
+	}
+
+	// another ID: the script ended the transaction of DbLive, and IMPLICIT_TRANSACTIONS made its statements after the end open a new one
+	// instead of committing at once. The same ID and more open transactions: the script began one and did not commit it, and the commit
+	// of DbLive would only lower the count. Either is rolled back, the whole transaction: SQL Server cannot roll back a nested one alone.
+	// So nothing of it stays, and the caller finds no transaction on the connection. None of these statements opens a transaction of its
+	// own with the setting on: a select without a table does not.
+	private const string EndTransactionGuardSql = """
+		declare @result int = iif(current_transaction_id() = @id, iif(@@trancount > @tranCount, 2, 0), 1);
+		if @result <> 0 and @@trancount > 0 rollback;
+		set implicit_transactions off;
+		select @result;
+		""";
+
+	/// <summary>
+	/// Runs a script in the transaction of DbLive, the ambient one or the own transaction of a code file, and fails when the script ended
+	/// it: <c>COMMIT</c> or <c>ROLLBACK</c> in the script. SQL Server does not tell: the statements after the end run in autocommit mode, and
+	/// a script that begins a transaction of its own after it leaves <c>@@trancount</c> as it was, so the ID of the transaction is compared.
+	/// With <c>IMPLICIT_TRANSACTIONS ON</c> the statements after the end open a new transaction instead, which is rolled back: what the
+	/// script committed with its <c>COMMIT</c> stays, nothing else. While the transaction of DbLive is open, the setting changes nothing.
+	/// Only for a script in a transaction: without one, every statement would open a transaction that nothing commits.
+	/// It also fails when the script left a transaction of its own open (<c>BEGIN TRANSACTION</c> without <c>COMMIT</c>), by
+	/// <c>@@trancount</c>: SQL Server raises no Msg 266 for a procedure that does it while <c>IMPLICIT_TRANSACTIONS</c> is on.
+	/// </summary>
+	/// <exception cref="DbLiveTransactionEndedException">The script ended the transaction.</exception>
+	/// <exception cref="DbLiveTransactionLeftOpenException">The script left a transaction open.</exception>
+	private static async Task<T> ExecuteGuardedAsync<T>(SqlConnection sqlConnection, Func<Task<T>> script)
+	{
+		TransactionGuardStart start = await sqlConnection.QuerySingleAsync<TransactionGuardStart>(StartTransactionGuardSql).ConfigureAwait(false);
+
+		T result;
+		try
+		{
+			result = await script().ConfigureAwait(false);
 		}
 		catch (Exception e)
 		{
-			// todo: We are using Microsoft.SqlServer.Management.Common.ServerConnection
-			//       It does not provide global error line number, just line number in the 'GO' batch
-			//       Consider splitting statements manually.
-			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+			// the error of the script is the one to throw, also when the script ended the transaction before it: an error can end it too
+			// (XACT_ABORT ON, a failed conversion, a deadlock), and the two cannot be told apart. A transaction that the script left open
+			// is rolled back with the transaction of DbLive: a code file is not retried in it then. The error says so, or the caller
+			// finds no transaction and reads it as one that the error ended.
+			if (await TryEndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false) == TransactionGuardResult.LeftOpen
+				&& e is DbLiveSqlException sqlException)
+			{
+				sqlException.RolledBackWithTransactionLeftOpen = true;
+			}
+
+			throw;
+		}
+
+		switch (await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false))
+		{
+			case TransactionGuardResult.Ended:
+				throw new DbLiveTransactionEndedException(TransactionEndedExample);
+			case TransactionGuardResult.LeftOpen:
+				throw new DbLiveTransactionLeftOpenException(LeftOpenCause, LeftOpenInTransaction);
+		}
+
+		return result;
+	}
+
+	private static async Task<TransactionGuardResult> EndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start) =>
+		(TransactionGuardResult)await sqlConnection
+			.ExecuteScalarAsync<int>(EndTransactionGuardSql, new { id = start.Id, tranCount = start.TranCount })
+			.ConfigureAwait(false);
+
+	private static Task<bool> ExecuteGuardedAsync(SqlConnection sqlConnection, Func<Task> script) =>
+		ExecuteGuardedAsync(sqlConnection, async () =>
+		{
+			await script().ConfigureAwait(false);
+			return true;
+		});
+
+	// the connection may be broken by the error of the script, which is the error to throw: null then.
+	private static async Task<TransactionGuardResult?> TryEndTransactionGuardAsync(SqlConnection sqlConnection, TransactionGuardStart start)
+	{
+		try
+		{
+			return await EndTransactionGuardAsync(sqlConnection, start).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			return null;
 		}
 	}
 
-	private static async Task SetTransactionIsolationLevelAsync(SqlConnection cnn, TranIsolationLevel isolationLevel)
+	// the error may have rolled the transaction back already (XACT_ABORT ON, a failed conversion, a deadlock) or broken the connection,
+	// and it is the error to throw. A connection that went back to the pool with an open transaction would keep its locks.
+	private static async Task TryRollbackAsync(SqlConnection sqlConnection)
 	{
-		string isolationLevelSql = TranIsolationLevelMapper.ToSql(isolationLevel, DbProvider.MsSql);
-		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
+		try
+		{
+			_ = await sqlConnection.ExecuteAsync("if @@trancount > 0 rollback transaction;").ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+		}
 	}
 
-	private static int GetTimeoutSeconds(TimeSpan? timeout)
+	/// <summary>
+	/// Sets the isolation level before a script: in a transaction the level of the transaction, without one <paramref name="isolationLevel"/>.
+	/// SQL Server keeps the level of a session when a pooled connection is reused (<c>sp_reset_connection</c> resets the <c>SET</c> options
+	/// and the temporary tables, not the level), also when the next connection of a <c>TransactionScope</c> gets the session of its
+	/// transaction back: without it a script would run at the level a script before it set, <c>setup.test.sql</c> for its test.
+	/// A transaction that began in snapshot goes back to it after a script changed the level.
+	/// </summary>
+	private static async Task SetScriptIsolationLevelAsync(SqlConnection cnn, TranIsolationLevel isolationLevel)
 	{
-		return timeout.HasValue ? (int)timeout.Value.TotalSeconds : 30;
+		TranIsolationLevel level = Transaction.Current is { } transaction
+			? TranIsolationLevelMapper.FromSystemTransaction(transaction.IsolationLevel)
+			: isolationLevel;
+
+		string isolationLevelSql = TranIsolationLevelMapper.ToSql(level, DbProvider.MsSql);
+		_ = await cnn.ExecuteAsync($"SET TRANSACTION ISOLATION LEVEL {isolationLevelSql};").ConfigureAwait(false);
 	}
 
 	public async Task<List<SqlResult>> ExecuteQueryMultipleAsync(
 		string sqlStatement,
-		TranIsolationLevel isolationLevel = TranIsolationLevel.ReadCommitted,
-		TimeSpan? timeout = null
+		TranIsolationLevel isolationLevel,
+		TimeSpan timeout
 	)
 	{
 		try
@@ -164,21 +521,44 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			using SqlConnection cnn = GetConnection();
 
 			await cnn.OpenAsync().ConfigureAwait(false);
-			if (Transaction.Current is null)
-			{
-				await SetTransactionIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
-			}
+			await SetScriptIsolationLevelAsync(cnn, isolationLevel).ConfigureAwait(false);
 
-			using SqlCommand cmd = cnn.CreateCommand();
-			cmd.CommandTimeout = GetTimeoutSeconds(timeout);
-			cmd.CommandText = sqlStatement;
+			// a SQL test runs in a transaction of DbLive, which it must not end.
+			return Transaction.Current is null
+				? await QueryMultipleAsync(cnn, sqlStatement, timeout).ConfigureAwait(false)
+				: await ExecuteGuardedAsync(cnn, () => QueryMultipleAsync(cnn, sqlStatement, timeout)).ConfigureAwait(false);
+		}
+		catch (Exception e) when (e is not DbLiveSqlException)
+		{
+			SqlException? sqlException = e.Get<SqlException>();
+			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(sqlException), e);
+		}
+	}
 
-			using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.KeyInfo).ConfigureAwait(false);
+	// the reader is closed when it returns: the connection takes no other command while a reader is open.
+	private static async Task<List<SqlResult>> QueryMultipleAsync(SqlConnection cnn, string sqlStatement, TimeSpan timeout)
+	{
+		// SqlCommand fails on an empty text, as in ExecuteBatchesAsync: a test of white space returns no result sets, as on PostgreSQL.
+		if (string.IsNullOrWhiteSpace(sqlStatement))
+		{
+			return [];
+		}
+
+		ScriptTimeout scriptTimeout = ScriptTimeout.Start(timeout);
+
+		using SqlCommand cmd = cnn.CreateCommand();
+		cmd.CommandTimeout = scriptTimeout.GetCommandTimeoutSeconds();
+		cmd.CommandText = sqlStatement;
+
+		try
+		{
+			// no CommandBehavior.KeyInfo: it turns on browse mode, and SQL Server adds the key columns of the base table as hidden columns.
+			using SqlDataReader reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
 
 			List<SqlResult> multipleResults = [];
 			do
 			{
-				SqlResult? sqlResult = await ReadResultAsync(reader).ConfigureAwait(false);
+				SqlResult? sqlResult = await ReadResultAsync(reader, multipleResults.Count + 1).ConfigureAwait(false);
 				if (sqlResult is not null)
 				{
 					multipleResults.Add(sqlResult);
@@ -186,17 +566,16 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 			while (await reader.NextResultAsync().ConfigureAwait(false));
 
-
 			return multipleResults;
 		}
-		catch (Exception e)
+		catch (SqlException e) when (IsCommandTimeout(e))
 		{
-			SqlException? sqlException = e.Get<SqlException>();
-			throw new DbLiveSqlException(sqlException?.Message ?? e.Message, GetSqlServerError(e), e);
+			throw scriptTimeout.Expired(e);
 		}
 	}
 
-	private static async Task<SqlResult?> ReadResultAsync(SqlDataReader reader)
+	// resultSetNumber: the number of the result set among those of the script, from 1, for the error of a value.
+	private static async Task<SqlResult?> ReadResultAsync(SqlDataReader reader, int resultSetNumber)
 	{
 		DataTable? schemaTable = await reader.GetSchemaTableAsync().ConfigureAwait(false);
 
@@ -217,7 +596,7 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlRow row = [];
 			for (int i = 0; i < reader.FieldCount; i++)
 			{
-				row.Add(reader.GetValue(i));
+				row.Add(ReadValue(reader, i, sqlColumns[i], rows.Count + 1, resultSetNumber));
 			}
 			rows.Add(row);
 		}
@@ -225,12 +604,30 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		return new SqlResult(sqlColumns, rows);
 	}
 
+	// ReadAsync reads the row whole before its values (no CommandBehavior.SequentialAccess): GetValue of a varchar(max) of 50 MB returned
+	// it after the session was killed, and failed with a SqlException with SequentialAccess or after a synchronous Read (verified with
+	// Microsoft.Data.SqlClient 6.1.4, 0096-170). So an error here is one of the value: a CLR type (geography, geometry, hierarchyid, a type
+	// of the user) whose assembly the process cannot load (FileNotFoundException), a decimal beyond the .NET decimal, also in a sql_variant
+	// (OverflowException). The error of SqlClient names neither the column nor what to do.
+	private static object ReadValue(SqlDataReader reader, int ordinal, SqlColumn column, int rowNumber, int resultSetNumber)
+	{
+		try
+		{
+			return reader.GetValue(ordinal);
+		}
+		catch (Exception e) when (e is not SqlException)
+		{
+			throw DbLiveSqlException.CannotReadValue(column, rowNumber, resultSetNumber, e);
+		}
+	}
+
 	private static SqlColumn GetSqlColumn(DataRow row)
 	{
 		return new SqlColumn(
-			ColumnName: GetValue<string>(row["ColumnName"]),
-			DataType: GetSqlTypeName(
+			columnName: GetValue<string>(row["ColumnName"]),
+			dataType: GetSqlTypeName(
 				providerType: GetValue<int>(row["ProviderType"]),
+				dataTypeName: GetValue<string>(row["DataTypeName"]),
 				numericPrecision: GetValueN<short?>(row["NumericPrecision"]),
 				numericScale: GetValue<short?>(row["NumericScale"]),
 				columnSize: GetValue<int>(row["ColumnSize"])
@@ -238,7 +635,14 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		);
 	}
 
-	private static string GetSqlTypeName(int providerType, short? numericPrecision, short? numericScale, int columnSize)
+	// The ColumnSize that SqlClient gives the max types: nvarchar(max), varchar(max), varbinary(max).
+	private const int MaxColumnSize = int.MaxValue;
+
+	// The type of a column for rows-with-schema, as T-SQL writes it, with its length, precision or scale: columns of different types
+	// never get the same name. A type without a case here (json and vector of SQL Server 2025, a type of a later version) gets the name
+	// SqlClient gives, without its length. A CLR type (geography, geometry, hierarchyid, a type of the user) gets its own name: SqlClient
+	// gives it with the current database and the schema, mydb.sys.geography.
+	private static string GetSqlTypeName(int providerType, string dataTypeName, short? numericPrecision, short? numericScale, int columnSize)
 	{
 		SqlDbType dbType = (SqlDbType)providerType;
 
@@ -259,20 +663,22 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			SqlDbType.Money => "money",
 			SqlDbType.NChar => $"nchar({columnSize})",
 			SqlDbType.NText => "ntext",
-			SqlDbType.NVarChar => columnSize == -1 ? "nvarchar(max)" : $"nvarchar({columnSize})",
+			SqlDbType.NVarChar => columnSize == MaxColumnSize ? "nvarchar(max)" : $"nvarchar({columnSize})",
 			SqlDbType.Real => "real",
 			SqlDbType.UniqueIdentifier => "uniqueidentifier",
 			SqlDbType.SmallDateTime => "smalldatetime",
 			SqlDbType.SmallInt => "smallint",
 			SqlDbType.SmallMoney => "smallmoney",
 			SqlDbType.Text => "text",
+			SqlDbType.Time => $"time({numericScale ?? 7})",
 			SqlDbType.Timestamp => "timestamp",
 			SqlDbType.TinyInt => "tinyint",
-			SqlDbType.VarBinary => columnSize == -1 ? "varbinary(max)" : $"varbinary({columnSize})",
-			SqlDbType.VarChar => columnSize == -1 ? "varchar(max)" : $"varchar({columnSize})",
+			SqlDbType.Udt => dataTypeName[(dataTypeName.LastIndexOf('.') + 1)..],
+			SqlDbType.VarBinary => columnSize == MaxColumnSize ? "varbinary(max)" : $"varbinary({columnSize})",
+			SqlDbType.VarChar => columnSize == MaxColumnSize ? "varchar(max)" : $"varchar({columnSize})",
 			SqlDbType.Variant => "sql_variant",
 			SqlDbType.Xml => "xml",
-			_ => "unknown"
+			_ => dataTypeName
 		};
 	}
 
@@ -297,17 +703,144 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
+		// waits while another session creates the database, then finds it (verified).
+		if (skipIfExists && await DbExistsAsync(cnn, databaseToCreate).ConfigureAwait(false)) return;
+
+		try
+		{
+			_ = await cnn.ExecuteAsync($"create database {QuoteDbName(databaseToCreate)};", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
+		}
+		// another deployment created the database after the check: two deployments of a new database. The create waits for the other
+		// one, then fails with 1801 "Database ... already exists", or with "A severe error occurred on the current command" without an
+		// error number (both verified, the second more often). The database exists, as skipIfExists asks, and the deployment goes on to
+		// the deployment lock: DeploymentInProgressException, or a deployment after the other one. Checked again instead of by the
+		// error: whatever failed the create, the database exists. An error that closed the connection is not checked.
+		catch (SqlException) when (skipIfExists && cnn.State == ConnectionState.Open)
+		{
+			if (!await DbExistsAsync(cnn, databaseToCreate).ConfigureAwait(false)) throw;
+		}
+	}
+
+	private static async Task<bool> DbExistsAsync(SqlConnection cnn, string dbName)
+	{
 		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
-		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
-		bool dbExists = (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
+		_ = cmd.Parameters.AddWithValue("name", dbName);
+		return (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
+	}
 
-		if (dbExists && skipIfExists) return;
+	// the name in brackets, with ']' doubled: a database name may have any character, also a ']'.
+	private static string QuoteDbName(string name)
+	{
+		using SqlCommandBuilder builder = new();
+		return builder.QuoteIdentifier(name);
+	}
 
-		ServerConnection serverCnn = new(cnn);
-		_ = serverCnn.ExecuteNonQuery($"create database [{databaseToCreate}];");
+	// the timeout of SMO, which ran the create and the drop before: both wait for the files, and the drop for the rollback of the
+	// transactions of the sessions it ends.
+	private const int CreateDropTimeoutSeconds = 600;
 
-		serverCnn.Disconnect();
+	// Cannot open database "..." requested by the login. The login failed.
+	private const int CannotOpenDatabaseError = 4060;
+
+	public async Task CheckDatabaseExistsAsync()
+	{
+		// without retries: SqlClient retries error 4060 for 10 seconds. Any other outcome is left to the next connection,
+		// which retries transient errors (a database on Azure SQL coming online) by the settings of the connection string.
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { ConnectRetryCount = 0 };
+
+		try
+		{
+			using SqlConnection cnn = new(builder.ConnectionString);
+			await cnn.OpenAsync().ConfigureAwait(false);
+		}
+		catch (SqlException e) when (e.Number == CannotOpenDatabaseError)
+		{
+			// a login without access to an existing database gets the same error: master tells the two apart.
+			if (await DatabaseIsMissingAsync(builder).ConfigureAwait(false))
+			{
+				throw new DatabaseNotFoundException(builder.InitialCatalog, builder.DataSource, e);
+			}
+		}
+		catch (SqlException)
+		{
+			// not a missing database: the next connection fails with this error, or succeeds after a retry.
+		}
+	}
+
+	/// <summary>
+	/// True only when master shows that the database does not exist. False when it exists, and when master cannot tell:
+	/// the login cannot connect to master, or sees only its own databases (no VIEW ANY DATABASE permission).
+	/// </summary>
+	private static async Task<bool> DatabaseIsMissingAsync(SqlConnectionStringBuilder builder)
+	{
+		const string query = @"
+			select case
+				when exists (select 1 from sys.databases where name = @name) then 0
+				when has_perms_by_name(null, null, 'VIEW ANY DATABASE') = 1 then 1
+				else 0
+			end
+		";
+
+		SqlConnectionStringBuilder masterBuilder = new(builder.ConnectionString) { InitialCatalog = "master" };
+
+		try
+		{
+			using SqlConnection cnn = new(masterBuilder.ConnectionString);
+			return await cnn.ExecuteScalarAsync<bool>(query, new { name = builder.InitialCatalog }).ConfigureAwait(false);
+		}
+		catch (SqlException)
+		{
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// The resource of the deployment lock. An application lock is local to the database.
+	/// </summary>
+	internal const string DeploymentLockResource = "dblive.deployment";
+
+	public async Task<IAsyncDisposable> AcquireDeploymentLockAsync()
+	{
+		SqlConnectionStringBuilder builder = new(_cnn.ConnectionString) { Pooling = false, Enlist = false };
+		SqlConnection cnn = new(builder.ConnectionString);
+
+		try
+		{
+			await cnn.OpenAsync().ConfigureAwait(false);
+
+			// 0: granted. -1: another session holds the lock, and @LockTimeout = 0 does not wait for it. Below -1: an error of the call.
+			int result = await cnn.ExecuteScalarAsync<int>("""
+				declare @result int;
+				exec @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 0;
+				select @result;
+				""",
+				new { resource = DeploymentLockResource }
+			).ConfigureAwait(false);
+
+			if (result == -1)
+			{
+				throw new DeploymentInProgressException(builder.InitialCatalog, builder.DataSource);
+			}
+
+			if (result < 0)
+			{
+				throw new InternalException($"sp_getapplock returned {result} for the deployment lock.");
+			}
+
+			return new DeploymentLock(
+				cnn,
+				c => c.ExecuteAsync(
+					"exec sp_releaseapplock @Resource = @resource, @LockOwner = 'Session';",
+					new { resource = DeploymentLockResource }
+				)
+			);
+		}
+		catch
+		{
+			await cnn.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
 	}
 
 	public async Task DropDbAsync(bool skipIfNotExists = true)
@@ -332,95 +865,268 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 			else
 			{
-				throw new Exception($"Database '{databaseToDrop}' does not exists.");
+				throw new InvalidOperationException($"Database '{databaseToDrop}' does not exist.");
 			}
 		}
 
-		ServerConnection serverCnn = new(cnn);
-		_ = serverCnn.ExecuteNonQuery([
-			$"alter database [{databaseToDrop}] set single_user with rollback immediate;",
-			$"drop database [{databaseToDrop}];"
-		]);
+		int engineEdition = await cnn.ExecuteScalarAsync<int>("select cast(serverproperty('EngineEdition') as int);").ConfigureAwait(false);
 
-		serverCnn.Disconnect();
+		// the drop of Azure SQL Database ends the sessions of the database itself.
+		if (engineEdition != AzureSqlDatabaseEngineEdition)
+		{
+			await KillSessionsAsync(cnn, databaseToDrop).ConfigureAwait(false);
+		}
+
+		_ = await cnn.ExecuteAsync(
+			GetDropDbSql(QuoteDbName(databaseToDrop), engineEdition),
+			commandTimeout: CreateDropTimeoutSeconds
+		).ConfigureAwait(false);
 	}
 
+	// SERVERPROPERTY('EngineEdition') of Azure SQL Database. Azure SQL Managed Instance is 8, and takes single_user as SQL Server does.
+	internal const int AzureSqlDatabaseEngineEdition = 5;
+
+	/// <summary>
+	/// The batch that drops the database. Azure SQL Database has no <c>single_user</c> (its <c>ALTER DATABASE ... SET</c> takes only
+	/// <c>RESTRICTED_USER</c> and <c>MULTI_USER</c>), and its drop ends the sessions itself: <c>drop database</c> alone.
+	/// </summary>
+	internal static string GetDropDbSql(string quotedName, int engineEdition)
+	{
+		if (engineEdition == AzureSqlDatabaseEngineEdition)
+		{
+			return $"drop database {quotedName};";
+		}
+
+		// single_user ends the sessions that are left: of a login that may not kill them, or opened after the kill.
+		// One batch: between two, another connection could take the single user of the database, and the drop would fail.
+		return $"""
+			alter database {quotedName} set single_user with rollback immediate;
+			drop database {quotedName};
+			""";
+	}
+
+	// a killed session that takes longer to end, a long rollback, is left to single_user.
+	private static readonly TimeSpan KilledSessionsEndTimeout = TimeSpan.FromSeconds(2);
+
+	/// <summary>
+	/// Kills the sessions of the database and waits until they end, so that <c>single_user with rollback immediate</c> finds none: for
+	/// any session it has to end, also an idle one of a connection pool or one of a connection closed just before, it waits about
+	/// 3 seconds. Without the permissions (<c>VIEW SERVER STATE</c>, <c>ALTER ANY CONNECTION</c>) the login sees or kills nothing, and
+	/// single_user ends the sessions, slower.
+	/// </summary>
+	private static async Task KillSessionsAsync(SqlConnection cnn, string database)
+	{
+		try
+		{
+			IEnumerable<short> sessions = await cnn.QueryAsync<short>("""
+				select session_id
+				from sys.dm_exec_sessions
+				where database_id = db_id(@name) and is_user_process = 1 and session_id <> @@spid
+				""",
+				new { name = database }
+			).ConfigureAwait(false);
+
+			foreach (short session in sessions)
+			{
+				try
+				{
+					await KillSessionAsync(cnn, session, database).ConfigureAwait(false);
+				}
+				catch (SqlException ex) when (ex.Number == SessionNotActiveErrorNumber)
+				{
+					// the session ended between the check and its kill. The other sessions are still killed, and the wait below still runs.
+				}
+			}
+
+			// a killed session ends asynchronously, as does the session of a connection closed just before the drop.
+			DateTime deadline = DateTime.UtcNow + KilledSessionsEndTimeout;
+			while (DateTime.UtcNow < deadline && await cnn.ExecuteScalarAsync<bool>("""
+				select case when exists (
+					select 1
+					from sys.dm_tran_locks
+					where resource_type = 'DATABASE' and resource_database_id = db_id(@name) and request_session_id <> @@spid
+				) then 1 else 0 end
+				""",
+				new { name = database }
+			).ConfigureAwait(false))
+			{
+				await Task.Delay(20).ConfigureAwait(false);
+			}
+		}
+		catch (SqlException)
+		{
+			// no permission: to kill (6102), to read sys.dm_tran_locks (300).
+		}
+	}
+
+	// Msg 6106: "Process ID %d is not an active process ID."
+	private const int SessionNotActiveErrorNumber = 6106;
+
+	/// <summary>
+	/// Kills the session when it is still a session of the database. SQL Server gives the ID of an ended session to the next new one: a
+	/// session found in the database can end before its kill (the connection of the deployment lock, closed just before the drop), and
+	/// a <c>kill</c> of its ID alone would end a session of another database, such as the connection of a test of another class that runs
+	/// at the same time. The check and the kill are one batch, so the ID can change hands only between two statements on the server.
+	/// </summary>
+	internal static Task KillSessionAsync(SqlConnection cnn, short session, string database) =>
+		cnn.ExecuteAsync("""
+			if exists (select 1 from sys.dm_exec_sessions where session_id = @session and database_id = db_id(@name) and is_user_process = 1)
+			begin
+				declare @kill nvarchar(30) = concat(N'kill ', @session, N';');
+				exec (@kill);
+			end
+			""",
+			new { session, name = database }
+		);
+
+	// relative_path is stored in lower case (ToStoredPath), so a file is identified ignoring case, the same way it is found in the project.
 	public async Task SaveCodeItemAsync(CodeItemDto item)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync("""
 			merge into dblive.code as t
 			using ( select 1 ) s(c) on t.relative_path = @relative_path
-			when matched then update 
-				set status = @status
+			when matched then update
+				set item_type = @item_type
+					, status = @status
 					, content_hash = @content_hash
 					, applied_utc = @applied_utc
 					, execution_time_ms = @execution_time_ms
-					, error = @error
-			when not matched then 
+			when not matched then
 				insert (
 					relative_path
+					, item_type
 					, status
 					, content_hash
 					, applied_utc
 					, execution_time_ms
 					, created_utc
-					, error
 				)
 				values (
 					@relative_path
+					, @item_type
 					, @status
 					, @content_hash
 					, @applied_utc
 					, @execution_time_ms
 					, @created_utc
-					, @error
 				);
 			""",
-			new
+			Parameters(new
 			{
-				relative_path = item.RelativePath,
-				status = item.Status.ToString().ToLower(),
+				relative_path = item.RelativePath.ToStoredPath(),
+				item_type = item.ItemType.ToString().ToLowerInvariant(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				content_hash = item.ContentHash,
 				applied_utc = item.AppliedUtc,
 				execution_time_ms = item.ExecutionTimeMs,
-				created_utc = item.CreatedUtc,
-				error = item.ErrorMessage
-			}
+				created_utc = item.CreatedUtc
+			})
 		).ConfigureAwait(false);
 	}
 
-	public async Task MarkCodeAsVerifiedAsync(string relativePath, DateTime verifiedUtc)
+	/// <summary>
+	/// The paths as one xml parameter <c>@paths</c>, whatever their number: a command takes at most 2100 parameters.
+	/// <see cref="PathsTableSql"/> reads them into the temporary table <c>#paths</c>.
+	/// </summary>
+	private static XElement ToPathList(IEnumerable<string> relativePaths) =>
+		new("paths", relativePaths.Select(p => new XElement("p", p.ToStoredPath())));
+
+	/// <summary>
+	/// <c>#paths</c> from the xml of <see cref="ToPathList"/>, with an index and its statistics: the plan of the query that follows
+	/// does not depend on a guess of the number of xml nodes. The table is dropped when the command ends (sp_executesql).
+	/// <list type="bullet">
+	/// <item>No user-defined table type: a login needs EXECUTE on the type, which db_ddladmin, db_datareader and db_datawriter
+	/// do not give when the schema dblive belongs to dbo. A temporary table and xml need no permission and work with any
+	/// compatibility level (openjson needs 130).</item>
+	/// <item><c>collate database_default</c>: a temporary table takes the collation of tempdb, and the comparison with
+	/// <c>dblive.code.relative_path</c> would fail with a collation conflict. The queries compare with
+	/// <c>c.relative_path collate database_default</c> too: after <c>alter database ... collate</c> the column keeps the collation
+	/// it was created with. Both indexes are scanned with or without it (verified); the paths are in lower case, so a change from a
+	/// case-insensitive collation to a case-sensitive one changes nothing.</item>
+	/// <item>The index is not unique: paths that differ only by accent or width are different files for DbLive and equal
+	/// for an accent- or width-insensitive collation.</item>
+	/// <item>The index is part of <c>create table</c>: with <c>TransactionWrapLevel</c> <c>Deployment</c> and
+	/// <c>TransactionIsolationLevel</c> <c>Snapshot</c> the command runs in a snapshot transaction, where SQL Server does not allow
+	/// <c>create index</c> (Msg 3964), also on a temporary table. An index inside <c>create table</c> is allowed there (verified).</item>
+	/// <item><c>nvarchar(450)</c>: a clustered key holds at most 900 bytes, so <c>dblive.code</c> never stores a longer path
+	/// (<see cref="MaxCodePathLength"/>).</item>
+	/// </list>
+	/// </summary>
+	private const string PathsTableSql = """
+		create table #paths (
+			value nvarchar(450) collate database_default not null,
+			index ix_paths clustered ( value )
+		);
+
+		insert into #paths ( value )
+		select x.p.value('text()[1]', 'nvarchar(450)')
+		from @paths.nodes('/paths/p') as x(p);
+
+		""";
+
+	public async Task MarkCodeAsVerifiedAsync(IReadOnlyCollection<string> relativePaths, DateTime verifiedUtc)
 	{
 		using var cnn = GetConnection();
 		_ = await cnn.ExecuteAsync(
-			"""
-			update dblive.code
+			PathsTableSql + """
+			update c
 			set verified_utc = @verified_utc
-			where relative_path = @relative_path
+			from dblive.code as c
+			join #paths as p on p.value = c.relative_path collate database_default;
 			""",
-			new { relative_path = relativePath, verified_utc = verifiedUtc }
+			Parameters(new { paths = ToPathList(relativePaths), verified_utc = verifiedUtc })
 		).ConfigureAwait(false);
 	}
 
-	public async Task<CodeItemDto?> FindCodeItemAsync(string relativePath)
+	public async Task MarkCodeAsApplyingAsync(IReadOnlyCollection<string> relativePaths)
 	{
 		using var cnn = GetConnection();
-		return await cnn.QueryFirstOrDefaultAsync<CodeItemDto>(
-			"""
-			select relative_path
-				 , content_hash
-				 , applied_utc
-				 , created_utc
-				 , execution_time_ms
-				 , verified_utc
-				 , error as error_message
-			     , status			  
-			from dblive.code
-			where relative_path = @relative_path
+		_ = await cnn.ExecuteAsync(
+			PathsTableSql + """
+			update c
+			set status = 'applying'
+			from dblive.code as c
+			join #paths as p on p.value = c.relative_path collate database_default
+			where c.status = 'applied';
 			""",
-			new { relative_path = relativePath }
+			Parameters(new { paths = ToPathList(relativePaths) })
 		).ConfigureAwait(false);
+	}
+
+	public async Task<IReadOnlyCollection<string>> MarkMissingCodeAsRemovedAsync(IReadOnlyCollection<string> projectRelativePaths, DateTime verifiedUtc)
+	{
+		using var cnn = GetConnection();
+		return (await cnn.QueryAsync<string>(
+			PathsTableSql + """
+			update c
+			set status = 'removed'
+			  , verified_utc = @verified_utc
+			output inserted.relative_path
+			from dblive.code as c
+			where c.status <> 'removed'
+			  and not exists ( select 1 from #paths as p where p.value = c.relative_path collate database_default );
+			""",
+			Parameters(new { paths = ToPathList(projectRelativePaths), verified_utc = verifiedUtc })
+		).ConfigureAwait(false)).ToList();
+	}
+
+	public async Task<IReadOnlyCollection<CodeItemDto>> GetCodeItemsAsync()
+	{
+		using var cnn = GetConnection();
+		return (await cnn.QueryAsync<CodeItemDto>(
+			"""
+			select relative_path as RelativePath
+				 , item_type as ItemType
+				 , content_hash as ContentHash
+				 , applied_utc as AppliedUtc
+				 , created_utc as CreatedUtc
+				 , execution_time_ms as ExecutionTimeMs
+				 , verified_utc as VerifiedUtc
+				 , status
+			from dblive.code
+			"""
+		).ConfigureAwait(false)).ToList();
 	}
 
 	public async Task SaveMigrationItemAsync(MigrationItemSaveDto item)
@@ -432,9 +1138,8 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			when matched then update 
 			set status = @status
 				, content_hash = @content_hash
-				, content = @content
 				, relative_path = @relative_path
-			when not matched then 
+			when not matched then
 			insert (
 				version
 				, name
@@ -442,7 +1147,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, relative_path
 				, status
 				, content_hash
-				, content
 				, created_utc
 			)
 			values (
@@ -452,21 +1156,19 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 				, @relative_path
 				, @status
 				, @content_hash
-				, @content
 				, @created_utc
 			);
 			""",
-			new
+			Parameters(new
 			{
 				version = item.Version,
 				name = item.Name,
-				item_type = item.ItemType.ToString().ToLower(),
-				relative_path = item.RelativePath,
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+				relative_path = item.RelativePath.ToStoredPath(),
 				content_hash = item.ContentHash,
-				content = item.Content,
-				status = item.Status.ToString().ToLower(),
+				status = item.Status.ToString().ToLowerInvariant(),
 				created_utc = item.CreatedUtc
-			}
+			})
 		).ConfigureAwait(false);
 	}
 
@@ -476,7 +1178,6 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		int rowsAffected = await cnn.ExecuteAsync("""
 			update dblive.migration
 			set content_hash = @content_hash
-			  , content = @content
 			  , relative_path = @relative_path
 			where version = @version
 			  and item_type = @item_type
@@ -485,10 +1186,9 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
 				content_hash = item.ContentHash,
-				content = item.Content,
-				relative_path = item.RelativePath
+				relative_path = item.RelativePath.ToStoredPath()
 			}
 		).ConfigureAwait(false);
 
@@ -507,20 +1207,18 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			set status = @status
 			  , applied_utc = @applied_utc
 			  , execution_time_ms = @execution_time_ms
-			  , error = @error
 			output inserted.version
 			where version = @version
 			  and item_type = @item_type
 			""",
-			new
+			Parameters(new
 			{
 				version = item.Version,
-				item_type = item.ItemType.ToString().ToLower(),
-				status = item.Status.ToString().ToLower(),
+				item_type = MigrationItemTypeMapper.ToDbValue(item.ItemType),
+				status = item.Status.ToString().ToLowerInvariant(),
 				applied_utc = item.AppliedUtc,
-				execution_time_ms = item.ExecutionTimeMs,
-				error = item.ErrorMessage
-			}
+				execution_time_ms = item.ExecutionTimeMs
+			})
 		).ConfigureAwait(false);
 
 		if (ver is null)
@@ -529,83 +1227,11 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 	}
 
-	public async Task<bool> MigrationItemExistsAsync(long version, MigrationItemType ItemType)
+	public async Task<SchemaSnapshot> GetSchemaSnapshotAsync()
 	{
 		using var cnn = GetConnection();
-		int? exists = await cnn.QueryFirstOrDefaultAsync<int?>("""
-			select 1
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = ItemType.ToString().ToLower()
-			}
-		).ConfigureAwait(false);
-		return exists is not null;
-	}
-
-	public async Task<string?> GetMigrationContentAsync(long version, MigrationItemType migrationType)
-	{
-		using var cnn = GetConnection();
-		string? content = await cnn.QueryFirstOrDefaultAsync<string?>("""
-			select content
-			from dblive.migration
-			where version = @version
-			  and item_type = @item_type
-			""",
-			new
-			{
-				version,
-				item_type = migrationType.ToString().ToLower()
-			}
-		).ConfigureAwait(false);
-		return content;
-	}
-
-	public async Task SaveUnitTestResultAsync(UnitTestItemDto item)
-	{
-		using var cnn = GetConnection();
-		_ = await cnn.ExecuteAsync(
-			"""			
-			merge into dblive.unit_test_run as t
-			using ( select 1 ) s(c) on t.relative_path = @relative_path
-			when matched then update 
-				set content_hash = @content_hash
-				  , run_utc = @run_utc
-				  , execution_time_ms = @execution_time_ms
-				  , pass = @pass
-				  , error = @error
-			when not matched then 
-				insert (
-					relative_path
-				  , content_hash
-				  , run_utc
-				  , execution_time_ms
-				  , pass
-				  , error
-				)
-				values (
-					@relative_path
-				  , @content_hash
-				  , @run_utc
-				  , @execution_time_ms
-				  , @pass
-				  , @error
-				);
-			""",
-			new
-			{
-				relative_path = item.RelativePath,
-				content_hash = item.ContentHash,
-				run_utc = item.StartedUtc,
-				execution_time_ms = item.ExecutionTimeMs,
-				pass = item.IsSuccess,
-				error = item.ErrorMessage
-			}
-		).ConfigureAwait(false);
+		IEnumerable<SchemaObjectRow> rows = await cnn.QueryAsync<SchemaObjectRow>(MsSqlSchemaSnapshot.Query).ConfigureAwait(false);
+		return new SchemaSnapshot(rows.Select(r => MsSqlSchemaSnapshot.Normalize(r.ToSchemaObject())));
 	}
 
 	public async Task MarkItemAsAppliedAsync(ProjectFolder projectFolder, string relativePath, DateTime startedUtc, DateTime completedUtc, long executionTimeMs, long contentHash)
@@ -641,22 +1267,24 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 					, @content_hash
 				);
 			""",
-			new
+			Parameters(new
 			{
 				folder_type = projectFolder.ToString(),
-				relative_path = relativePath,
+				relative_path = relativePath.ToStoredPath(),
 				started_utc = startedUtc,
 				completed_utc = completedUtc,
 				execution_time_ms = executionTimeMs,
 				content_hash = contentHash
-			}
+			})
 		).ConfigureAwait(false);
 	}
 
-	private static string GetSqlServerError(Exception ex)
+	/// <summary>
+	/// The errors of SQL Server as it gives them. An error of a <c>GO</c> batch names the line of the file where the batch starts above
+	/// them: the line of an error in the batch itself is its line in the batch, and its line in the file is <c>start + Line - 1</c>.
+	/// </summary>
+	private static string GetSqlServerError(SqlException? sqlEx, int? batchStartLine = null)
 	{
-		SqlException? sqlEx = FindSqlException(ex);
-
 		if (sqlEx == null)
 			return "";
 
@@ -664,11 +1292,16 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 
 		_ = sb.AppendLine("SQL Server error:");
 
+		if (batchStartLine is not null)
+		{
+			_ = sb.AppendLine(CultureInfo.InvariantCulture, $"The batch starts at line {batchStartLine} of the file.");
+		}
+
 		foreach (SqlError err in sqlEx.Errors)
 		{
 			_ = sb.AppendLine($"""
 			Msg {err.Number}, Level {err.Class}, State {err.State}, Line {err.LineNumber}
-			{err.Message}			
+			{err.Message}
 			""");
 
 			if (!string.IsNullOrEmpty(err.Procedure))
@@ -678,20 +1311,5 @@ public class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		}
 
 		return sb.ToString();
-	}
-
-	private static SqlException? FindSqlException(Exception ex)
-	{
-		Exception? cur = ex;
-
-		while (cur != null)
-		{
-			if (cur is SqlException sql)
-				return sql;
-
-			cur = cur.InnerException;
-		}
-
-		return null;
 	}
 }

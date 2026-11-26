@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Deployers.Testing;
 
-public interface IUnitTestResultChecker
+internal interface IUnitTestResultChecker
 {
 	ValidationResult ValidateTestResult(List<SqlResult> multiResult);
 }

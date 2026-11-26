@@ -1,0 +1,59 @@
+---
+type: docs
+priority: medium
+created: 2026-11-25
+closed: 2026-11-26
+---
+# Small docs fixes from the review of 2026-11-25 (second)
+
+## Release note
+None. Corrections of `docs/llms-full.txt` and of the docs pages; DbLive behaves as before.
+
+## Problem
+1. **The pages still say that only SQL Server finds a script that leaves a transaction open.** Since 0096-181 PostgreSQL fails a script without a transaction of DbLive that leaves a transaction block open (§10 line 745, §13.3 line 996, rule 22). The list "Docs to update" of 0096-181 missed two pages:
+   - `docs/deployment/index.md:64`: "On SQL Server no script, with a transaction or without one, may leave a transaction of its own open ...".
+   - `docs/unit-testing/deployment-tests.md:39`: "On SQL Server it finds a script that leaves a transaction open too ...".
+   - `docs/deployment/migrations.md:44` names only "A script without a transaction (`TransactionWrapLevel: None`)"; §10 and §16 (line 1083) also name BeforeDeploy, AfterDeploy and the breaking scripts of the Code folder without `Deployment`.
+2. **A procedure that leaves a transaction open, called by a script without a transaction of DbLive, fails with Msg 266, not with "The script left a transaction open".** Verified on 2026-11-25 on SQL Server 2025: `BeforeDeploy/2.sql` `exec dbo.LeaveOpen;`, the procedure `begin transaction; select 1;` without `commit`, fails with `FolderDeploymentException` and `Transaction count after EXECUTE indicates a mismatching number of BEGIN and COMMIT statements. Previous count = 0, current count = 1.`: `ExecuteWithoutTransactionAsync` (`src/DbLive.MSSQL/MsSqlDA.cs:367-383`) does not turn `IMPLICIT_TRANSACTIONS` on, so SQL Server raises Msg 266. The outcome is right (the script fails, the transaction is rolled back); the text is not:
+   - §10 (line 745): "a `BEGIN TRANSACTION` without `COMMIT`, in the script or in a procedure it calls, raises no error";
+   - rule 22 (line 34) and §17 (line 1138) promise "The script left a transaction open: ..." for the procedure, also without a transaction.
+3. **§16 "Error details" of PostgreSQL** (line 1079): "SqlState, severity, position, where". Since 0096-177 `SqlError` has `Severity`, `SqlState`, `Message` (with `POSITION` and `DETAIL` of Npgsql), `Hint`, `InternalQuery`, `Where`, `Routine` (§11.2 line 807).
+4. **"Left a transaction open, so it is not retried" is missing from the reference.** `CodeItemDeployer.cs:62-75` writes `... The file left a transaction open, so it is not retried.`, and the deployment stops at once with that error. `docs/deployment/code.md:80` has it; `docs/llms-full.txt` does not: §6 (line 349) and the §17 rows of `CodeDeploymentAggregateException` (line 1112) and `MigrationDeploymentException` (line 1111) name only the end of the transaction.
+5. **PostgreSQL: a script in a transaction of DbLive cannot set its own isolation level.** `ExecuteGuardedAsync` (`src/DbLive.PostgreSQL/PostgreSqlDA.cs:380`) runs `select pg_current_xact_id()::text` in the transaction before the script, and the snapshot of that `select` makes `set transaction isolation level ...` of the script fail with `25001: SET TRANSACTION ISOLATION LEVEL must be called before any query` (also `SET TRANSACTION [NOT] DEFERRABLE` and `SET TRANSACTION SNAPSHOT`): a migration with `Migration`, a code file, `setup.test.sql` and a test. Not run, read in the code and in the rules of PostgreSQL: verify first. The docs are silent (§9.3, §10, §16). One line: the level of a script comes from `TransactionIsolationLevel` of the settings, not from `SET TRANSACTION` in the script.
+6. **Rule 8 does not name the failure of an `assert` column that is not the first one.** `UnitTestResultChecker.cs:127-152` recognizes the assert result set and runs the typo guard by the first column only: `select count(*) as n, 'row-count=3' as assert` gives a test without an assertion, which passes. Rule 8 says "must be the first column" and names failures only for a misspelled name and a missing alias, while §0 promises that each rule names the failure it causes.
+7. **A deployer written as a file-based app of .NET 10 fails.** `dotnet run deploy.cs` with `#:package DbLive.MSSQL@2.0.0` fails in `DeployAsync` with `PlatformNotSupportedException: Dynamic code generation is not supported on this platform.` or `InvalidOperationException: Reflection-based serialization has been disabled for this application.` (verified on 2026-11-25 with the .NET 10.0.404 SDK): a file-based app sets `PublishAot=true` by default, which turns off dynamic code and the reflection of `System.Text.Json`. With `#:property PublishAot=false` it deploys. DbLive (Dapper, the reflection-based JSON of the settings) does not support Native AOT. An agent asked for "a small console app" (§1, §3.3) can write such a file. One line in §3.3, and in §2 that DbLive does not support Native AOT or trimming.
+8. **The steps for a test project do not work from the folder of Getting Started.**
+   - `docs/gettingstarted.md:49` ends step 1 with `cd MyDb`. `docs/unit-testing/stored-proc-and-unit-test.md:62` then sends the reader to `docs/unit-testing/index.md:196-203`, whose `dotnet new xunit -n MyDb.Tests` run there creates `MyDb/MyDb.Tests/`. The default compile items of `MyDb` then take its `.cs` files and `obj/*.AssemblyInfo.cs`, and `MyDb` stops building (no `Xunit` types, duplicate assembly attributes). Inferred from the default items of the SDK, not run. Say "from the folder that contains `MyDb`" or add `cd ..`.
+   - A project made in Visual Studio ("in Visual Studio: Console App") has a solution that does not get the test project: no page says `dotnet sln add`.
+9. **Getting Started "by hand" offers PostgreSQL, but its steps are for SQL Server only.** `docs/gettingstarted.md:55` "# or DbLive.PostgreSQL"; step 4 (line 96) is T-SQL (`dbo.Users`, `identity(1,1)`, `nvarchar`) and step 5 (lines 111-119) uses `using DbLive.MSSQL`, `.SqlServer()` and a SQL Server connection string. Say what changes for PostgreSQL, or keep the step to SQL Server and point to the template for PostgreSQL. The section "By hand" of `README.md` (lines 67-71) starts with `dotnet add package`, without a step that creates the project.
+10. **`docs/examples/index.md:23`**: "the breaking script drops the trigger and the old column and can run twice": a leftover of the second run of migration breaking scripts removed in 0096-53. §13.3 (lines 993-994) and `deployment-tests.md:37`: a migration breaking script runs once.
+11. **`docs/database-as-service.md:101`** (the maintainer's page): "This is for statements that cannot run inside a transaction (online index builds, `CREATE INDEX CONCURRENTLY`, ...)". §9.3 (line 709) and §16 (line 1076): an index build runs in a transaction, also an online one (verified on SQL Server 2025); `None` only releases its locks when it ends (decided on 2026-11-25 in 0096-179). `zero-downtime.md:201` and `configuration.md:130` already say so.
+    - [x] May the line be corrected, or does the maintainer rewrite it? Corrected; the maintainer reviews it (2026-11-26).
+12. **A test run that is killed leaves its database on a server you run.** `DbLiveTestFixture` and `DeploymentTest` drop the database at their end only (`src/DbLive.xunit/SqlTest/DbLiveTestFixture.cs:79-99`, `src/DbLive.xunit/Deploy/DeploymentTest.cs:26-50`): a test host stopped in the debugger, by Ctrl+C or by a crash leaves `DbLive--<guid>` (`dblive--<guid>`) with `MsSqlFixtureBuilder` or `PostgreSqlFixtureBuilder`, and nothing removes it. The container builders are not affected (Ryuk removes the container). §8.2 (line 485) says it only for the recipe without xUnit. One line in §11.5 or §13, with a query that finds such databases.
+
+## Docs to update
+- `docs/llms-full.txt` rule 8, rule 22, §2, §3.3, §6, §9.3 or §10, §11.5 or §13, §16, §17
+- `docs/deployment/index.md`, `docs/deployment/migrations.md`, `docs/unit-testing/deployment-tests.md`, `docs/unit-testing/index.md`, `docs/unit-testing/stored-proc-and-unit-test.md`, `docs/gettingstarted.md`, `README.md`, `docs/examples/index.md`, `docs/database-as-service.md` (after the answer in 11), `docs/project/configuration.md` (5)
+
+## Done when
+- [x] 1–12 fixed
+- [x] `mkdocs build --strict` passes
+
+## Notes
+- Found by the code review of 2026-11-25 (the branch as release 2.0); 2 and 7 verified by experiment the same day.
+- 5 verified on 2026-11-26 on PostgreSQL 18 with psql: `begin; select pg_current_xact_id()::text; set transaction isolation level serializable;` fails with `25001: SET TRANSACTION ISOLATION LEVEL must be called before any query`; `set transaction deferrable` and `set transaction snapshot` after the read fail the same way. Without the read it works, and so does `set transaction isolation level serializable; select ...` sent as one command, as a script without a transaction of DbLive runs. So the line is for scripts in a transaction of DbLive only; written in §9.3 (row `TransactionIsolationLevel`) and in "Item settings" of `docs/project/configuration.md`.
+- All 12 are fixed in the docs (2026-11-26); 11 waits for the answer of the maintainer:
+  - 1: `docs/deployment/index.md`, `docs/unit-testing/deployment-tests.md` name PostgreSQL; the PostgreSQL paragraph of `docs/deployment/migrations.md` names BeforeDeploy, AfterDeploy and the breaking scripts of the Code folder without `Deployment`.
+  - 2: §10, rule 22, §16 and §17 (the row "The script left a transaction open"), and "No transaction left open" of `docs/deployment/migrations.md`: a procedure that leaves a transaction open, called by a SQL Server script without a transaction of DbLive, fails it with Msg 266, and DbLive rolls the transaction back.
+  - 3: §16 "Error details" lists the fields of §11.2.
+  - 4: §6 and the §17 rows of `MigrationDeploymentException` and `CodeDeploymentAggregateException`.
+  - 6: rule 8 and "Assertions" of `docs/unit-testing/index.md`.
+  - 7: §2 (Native AOT and trimming are not supported) and §3.3 (`#:property PublishAot=false`).
+  - 8: `docs/unit-testing/index.md` says to run the commands in the folder that contains `MyDb` and adds `dotnet sln add MyDb.Tests`; `stored-proc-and-unit-test.md` step 4 starts with `cd ..`.
+  - 9: steps 4 and 5 of Getting Started have tabs for SQL Server and PostgreSQL (the table and the connection string of the template); the stored procedure tutorial says it is for SQL Server and points to the template for PostgreSQL; the section "By hand" of `README.md` creates the console project first.
+  - 10: the breaking script of 007 drops the trigger and the column once, in the breaking deployment.
+  - 11: corrected in the least words: online index builds are no longer a statement that cannot run in a transaction; an index build is named as a long operation, whose locks `None` releases when each statement ends. The maintainer, 2026-11-26: correct it, the maintainer reviews it; the final review made the reason explicit ("without a transaction each statement releases its locks when it ends, not when the whole script commits").
+  - 12: §11.5 and "A fixture builder" of `docs/unit-testing/index.md`, with the queries for `DbLive--%` and `dblive--%`.
+
+## Result
+All 12 fixed in the docs, as listed in Notes; no code changed. Item 11 is a correction in the fewest words on the maintainer's page `docs/database-as-service.md`, which the maintainer reviews.

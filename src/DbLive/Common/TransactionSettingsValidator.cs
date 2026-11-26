@@ -1,6 +1,6 @@
 namespace DbLive.Common;
 
-public class TransactionSettingsValidator(
+internal class TransactionSettingsValidator(
 		IDbLiveDA _da,
 		ILogger _logger
 	) : ITransactionSettingsValidator
@@ -22,10 +22,29 @@ public class TransactionSettingsValidator(
 			&& _da.Provider == DbProvider.MsSql)
 		{
 			_logger.Warning(
-				"Snapshot isolation requires ALLOW_SNAPSHOT_ISOLATION ON on the database."
+				"Snapshot isolation requires ALLOW_SNAPSHOT_ISOLATION ON on the database. SQL Server does not allow ALTER TABLE and index DDL "
+				+ "in a snapshot transaction (Msg 3964): a migration that runs in a transaction and alters a table or an index fails. "
+				+ "Set Snapshot in the item settings of a data migration instead."
 			);
 		}
 
 		return Task.CompletedTask;
+	}
+
+	/// <inheritdoc/>
+	public void ValidateMigrations(IReadOnlyList<Migration> migrations)
+	{
+		foreach (Migration migration in migrations)
+		{
+			foreach (MigrationItem settingsItem in migration.Items.Values.Where(i => MigrationItemTypeMapper.IsSettings(i.MigrationItemType)))
+			{
+				MigrationItemSettings settings = SettingsTools.GetMigrationItemSettings(settingsItem.FileData.Content, settingsItem.FileData.RelativePath);
+
+				if (settings.TransactionIsolationLevel is TranIsolationLevel isolationLevel)
+				{
+					TranIsolationLevelMapper.ValidateForProvider(isolationLevel, _da.Provider, settingsItem.FileData.RelativePath);
+				}
+			}
+		}
 	}
 }

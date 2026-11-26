@@ -1,0 +1,220 @@
+# Deployment
+
+A deployment is one call to `IDbLive.DeployAsync(DeployParameters)`. DbLive has no command-line tool; you start deployments from your own code: a small console app (the *deployer*), a test, or a step of your application's tooling.
+
+- [Migrations](migrations.md): versions, checksums, rolling back a release
+- [Code Deployment](code.md): procedures, functions, views
+- [Breaking Changes](breaking-changes.md): the contract phase
+- [Zero-Downtime Deployment](zero-downtime.md): the release runbook
+
+## A deployer
+
+```csharp
+using DbLive;
+using DbLive.MSSQL;
+using System.Reflection;
+
+string connectionString = Environment.GetEnvironmentVariable("MYDB_CONNECTION_STRING")
+    ?? throw new InvalidOperationException("MYDB_CONNECTION_STRING is not set.");
+
+bool breaking = args.Contains("--breaking");
+
+IDbLive deployer = new DbLiveBuilder()
+    .LogToConsole()
+    .SqlServer()                                   // or .PostgreSQL()
+    .SetDbConnection(connectionString)
+    .SetProject(Assembly.GetExecutingAssembly())
+    .CreateDeployer();
+
+await deployer.DeployAsync(breaking
+    ? DeployParameters.Breaking
+    : DeployParameters.Default);
+```
+
+It reads the scripts embedded in the SQL project assembly, so it deploys exactly what was built and can be started from any working directory (see [How DbLive finds the scripts](../project/index.md#how-dblive-finds-the-scripts)). A failed deployment throws, so the process exits with a non-zero code and your CI step fails. It does not run the SQL tests: they run in CI (see [SQL tests](#sql-tests)).
+
+`DeployParameters.Default` does not create the database: create it before the first deployment, or, for a local or test database, deploy with `DeployParameters.Default with { CreateDbIfNotExists = true }`. The settings of a production deployment are collected in [Production](#production).
+
+Keep connection pooling and enlistment on in the connection string, as they are by default. DbLive opens several connections in one transaction, and on SQL Server only the connection pool gives them the session of the transaction. So `Pooling=False` on SQL Server and `Enlist=False` on either database engine fail the deployment at its start with `NotSupportedException`, before it connects. PostgreSQL works with `Pooling=false`.
+
+On SQL Server, leave `MultipleActiveResultSets=True` (MARS) out of the connection string of DbLive: the ASP.NET Core and EF Core templates put it into the connection string of the application. Under MARS a transaction begun with `BEGIN TRANSACTION` ends with its batch, and DbLive runs the `GO` batches of a code file in one such transaction, so the deployment fails at its start with `NotSupportedException`, before it connects. DbLive does not use MARS; your application can keep it in its own connection string.
+
+!!! warning "DbLive in the process of your application (SQL Server)"
+    Run the deployer as a process of its own. When your application deploys its database at startup, or the SQL tests run in the process of C# tests, and both use the same connection string, give DbLive another `Application Name` (`...;Application Name=MyApp.DbLive`). DbLive passes the connection string to SqlClient as it is, so with the same string its connections and the application's share one connection pool, and SQL Server does not reset the transaction isolation level of a connection taken from the pool. A connection that DbLive used last at `Serializable` (the SQL tests by default, a `TransactionIsolationLevel` other than `ReadCommitted`, a script that sets a level of its own) goes back to the pool at that level, and the application's statements and transactions without a level then run at `Serializable` on it: more blocking, more deadlocks. Another `Application Name` is another pool. PostgreSQL is not affected: Npgsql resets the session when a connection goes back to the pool, unless the connection string sets `No Reset On Close=true`. Leave that setting out of the connection string of DbLive: with it, a `SET` of a script (`search_path`, `role`) and a temporary table stay on the pooled connection.
+
+!!! note "Types created by a deployment (PostgreSQL)"
+    Npgsql loads the types of the database, such as enums and domains, once for a connection string: when the first connection of the process opens, before the migrations of a deployment. After a deployment that succeeded DbLive reloads them for its connection string, so the SQL tests that run after the deployment in the same process, and the connections of your application with the same connection string, read the types that the deployment created. An `NpgsqlDataSource` of your application keeps types of its own: open its first connection after the deployment, or call its `ReloadTypesAsync()` after the deployment. Otherwise reading such a value fails with `InvalidCastException: Reading as 'System.Object' is not supported for fields having DataTypeName '-.-'`. When the reload itself fails, for example on a broken connection, `DeployAsync` fails with the error of Npgsql although the deployment is committed, and the log says so. Run the deployment again: it deploys nothing and reloads the types.
+
+## What a deployment does
+
+Every `DeployAsync` call runs these steps in this order:
+
+1. **Load the project**: read `settings.json` and every script the deployment runs, and check them: the isolation levels against the database engine, the file names, files outside the project folders, the item settings files. A mistake in the project stops the deployment here, before it changes anything on the server: no database is created and the `dblive` schema is not touched.
+2. **Create the database** if it does not exist and `CreateDbIfNotExists` is on. It is off by default: then a missing database fails the deployment with `DatabaseNotFoundException`, which names the database and the server.
+3. **Lock the database** for this deployment, to its end: while another deployment of the database runs, this one fails here with `DeploymentInProgressException` (see [One deployment at a time](#one-deployment-at-a-time)).
+4. **Self-deploy**: create or upgrade DbLive's own `dblive` schema. A database of another project ([ProjectId](../features/project-id.md)) stops the deployment before this step, and a database that a newer DbLive changed in a way this version cannot read stops it here, both before any change (see [The DbLive version a database requires](#the-dblive-version-a-database-requires)).
+5. **Validate**: that every migration version applied to the database is in the project (otherwise `DatabaseAheadOfProjectException`, see [Which migrations run](migrations.md#which-migrations-run)), and the [checksums](migrations.md#checksums) of applied migrations.
+6. **Record** all migration files of the project in `dblive.migration`.
+7. **BeforeDeploy** scripts.
+8. **Migrations**: pending versions in ascending order (`DeployMigrations`).
+9. **Code**: new and changed code files (`DeployCode`).
+10. **Breaking** (`DeployBreaking`): fails unless every code file is deployed with its current content; then every breaking script of the Code folder, then the pending breaking scripts of migrations (see [Breaking Changes](breaking-changes.md#when-breaking-scripts-run)).
+11. **AfterDeploy** scripts.
+
+With `TransactionWrapLevel: Deployment`, steps 5 to 11 run in one transaction. The SQL tests are not a step of the deployment (see [SQL tests](#sql-tests)).
+
+A script that runs in a transaction, also a BeforeDeploy or AfterDeploy script inside the deployment transaction, must not end it with `COMMIT` or `ROLLBACK`: the deployment fails with the file, and only what the script committed stays (see [No COMMIT or ROLLBACK in a script](migrations.md#no-commit-or-rollback-in-a-script)). No script may leave a transaction of its own open: on SQL Server a script with a transaction or without one, on PostgreSQL a script without a transaction of DbLive (inside one, `BEGIN` is only a warning). The deployment fails with the file, and DbLive rolls that transaction back (see [No transaction left open](migrations.md#no-transaction-left-open)).
+
+Steps 1, 3 to 7 and 11 run whatever the flags say. A breaking-only deployment therefore still reads the whole project, validates, records migrations and runs BeforeDeploy and AfterDeploy.
+
+## DeployParameters
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| `CreateDbIfNotExists` | `false` | Create the database if missing. SQL Server connects to `master`, PostgreSQL to `postgres`; the login needs permission to create databases. Off by default, so that a typo in the database name fails the deployment instead of creating an empty database; turn it on for local and test databases. |
+| `DeployMigrations` | `true` | Apply pending migrations. |
+| `DeployCode` | `true` | Deploy new and changed code files. |
+| `DeployBreaking` | `false` | Run the breaking phase: the breaking scripts of the Code folder and the pending breaking scripts of migrations. |
+| `RepairMigrationChecksums` | `false` | Accept changed applied migration files by updating their stored checksums. |
+
+### Presets
+
+| Preset | Create DB | Migrations | Code | Breaking |
+|--------|-----------|------------|------|----------|
+| `DeployParameters.Default` | no | yes | yes | no |
+| `DeployParameters.Breaking` | no | no | no | yes |
+
+`DeployParameters` is a record, so adjust a preset with `with`:
+
+```csharp
+await deployer.DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true });
+```
+
+## SQL tests
+
+A deployment does not run the SQL tests, so a production deployer cannot run them by mistake. Run them in CI with `dotnet test`, against a disposable database: `[SqlFact]` runs each test, and the [deployment test](../unit-testing/deployment-tests.md) deploys the project as production does and runs all tests after the release and after the breaking phase. See [Unit Testing](../unit-testing/index.md), and [Running all tests without xUnit](../unit-testing/index.md#running-all-tests-without-xunit) for other test frameworks.
+
+!!! tip "Tests and production"
+    SQL tests roll back everything they change, but by default they run with `Serializable` isolation and take locks on the tables they read. Do not run them against production.
+
+## Logging
+
+DbLive logs through Serilog. Without configuration nothing is logged.
+
+```csharp
+builder.LogToConsole();                                   // console
+builder.LogToXUnitOutput(testOutputHelper);               // xUnit test output (DbLive.xunit)
+builder.LogTo(myLogger);                                  // any Serilog logger
+```
+
+## A typical pipeline
+
+1. **Build** the solution.
+2. **Test**: `dotnet test` deploys the database into a Docker container (Testcontainers) as production does, with the breaking phase twice, and runs all SQL tests. See [Unit Testing](../unit-testing/index.md).
+3. **Deploy the database**: run the deployer with `Default`.
+4. **Deploy the application**. Old and new versions run side by side.
+5. **Remove the old application version.**
+6. **Deploy breaking changes**: run the deployer with `Breaking`, once the release is confirmed.
+
+Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md). Until step 6 a release is rolled back by rolling back the application; the database stays (see [Roll back a release](migrations.md#roll-back-a-release)).
+
+## One deployment at a time
+
+Two deployments of one database at the same time would both read which migrations are applied and both run the new ones: a migration that changes data would run twice without an error. So a deployment locks the database (step 3 of [What a deployment does](#what-a-deployment-does)) and holds the lock to its end, also when it fails. A deployment that starts meanwhile fails at once with `DeploymentInProgressException`, before it reads or changes anything. It does not wait for the lock: two pipeline runs would then deploy their builds in either order, and the older build could deploy its code over the newer one.
+
+Deployments that create the database (`CreateDbIfNotExists`) behave the same way. When two of them find no database, one creates it, and the other fails on the lock, or deploys after the first one if that one has already ended.
+
+Let your pipeline run one deployment of a database at a time. In GitHub Actions put every job that deploys the database into one concurrency group, without cancelling a deployment that runs:
+
+```yaml
+concurrency:
+  group: deploy-mydb-production
+  cancel-in-progress: false
+```
+
+Do not deploy the database at the startup of an application that runs in several instances: all instances but one fail. Run the deployer as a step before the application starts.
+
+The lock is local to the database: deployments of different databases on one server do not block each other. On SQL Server it is an application lock (`sp_getapplock`), on PostgreSQL an advisory lock; DbLive takes it on a connection of its own.
+
+### A lock left by a lost deployment
+
+The server releases the lock when the session that holds it ends. A deployer that crashes or is killed closes its connection, and the lock is free at once. A deployer machine that loses its network leaves the session open until the server notices it, within about a minute: the connection of the lock sends TCP keep-alives after 30 seconds without traffic (on PostgreSQL DbLive sets `tcp_keepalives_idle` and the Npgsql `Keepalive` on this connection). Until then every deployment fails with `DeploymentInProgressException`.
+
+The keep-alives also keep a NAT gateway, a firewall or a load balancer on the way from dropping the connection during a long deployment: such devices drop a connection idle for a few minutes. When the release of the lock fails at the end of a deployment, the deployment does not fail: DbLive logs the warning "The deployment lock was not released". A script of the deployment can end the session of the lock too, such as `alter database ... with rollback immediate` (see [Item settings](../project/configuration.md#item-settings)): the rest of that deployment runs without the lock, and the warning is expected then.
+
+To release the lock sooner, find the session that holds it and end it. Make sure first that no deployment runs: ending the session does not stop a running deployment, it only lets another one start beside it.
+
+=== "SQL Server"
+
+    The query needs `VIEW SERVER STATE` (`VIEW DATABASE STATE` on Azure SQL Database), `kill` needs `ALTER ANY CONNECTION`. Run it in the database of the deployment.
+
+    ```sql
+    select l.request_session_id, s.host_name, s.program_name, s.login_time
+    from sys.dm_tran_locks l
+    join sys.dm_exec_sessions s on s.session_id = l.request_session_id
+    where l.resource_type = 'APPLICATION'
+      and l.resource_database_id = db_id()
+      and l.resource_description like '%:\[dblive.deployment\]:%' escape '\';
+
+    kill 57; -- the request_session_id from the query
+    ```
+
+=== "PostgreSQL"
+
+    Run it in the database of the deployment.
+
+    ```sql
+    select a.pid, a.client_addr, a.application_name, a.backend_start
+    from pg_locks l
+    join pg_stat_activity a on a.pid = l.pid
+    where l.locktype = 'advisory'
+      and l.database = (select oid from pg_database where datname = current_database())
+      and l.classid = 25698 and l.objid = 1818850917 and l.objsubid = 1;
+
+    select pg_terminate_backend(12345); -- the pid from the query
+    ```
+
+!!! warning "PgBouncer"
+    The PostgreSQL lock belongs to a session. Through PgBouncer in transaction or statement pooling mode a session is not bound to one server connection, and the lock does not work. Deploy directly to PostgreSQL, or through a pool in session mode.
+
+## Production
+
+The settings of a deployment to a production database, in one place. The defaults are the safe values, except `ProjectId`, which only you can choose.
+
+| Setting | In production | Why |
+|---------|---------------|-----|
+| `ProjectId` in `settings.json` | Set, unique per project | Stops a deployment into the database of another project. Without it every deployment logs a warning. See [ProjectId](../features/project-id.md). |
+| `CreateDbIfNotExists` | `false` (default) | Create the production database yourself. A typo in the database name then fails the deployment instead of creating an empty database and deploying the whole schema into it, and the deployer's login needs no permission to create databases. |
+| `RepairMigrationChecksums` | `false` (default); `true` only for one deployment, after you checked that the database matches the files | Left on, it accepts every edited applied migration without a check. See [Checksums](migrations.md#checksums). |
+| `MigrationChecksumMode` | `Strict` (default) | `Warn` deploys although an applied migration was edited, so the files no longer describe the database. |
+| `TransactionWrapLevel` | `Migration` (default); `None` in the [item settings](../project/configuration.md#item-settings) of a script that cannot run in a transaction | `Deployment` holds locks for the whole deployment and deploys code single-threaded: it is for small databases and test environments. See [Choosing a transaction level](../project/configuration.md#choosing-a-transaction-level). |
+| `MigrationTimeout`, `CodeItemTimeout` | What your release window allows; `Timeout` in the item settings of a longer migration script | A script that runs longer fails, and the deployment with it. Defaults: 12 hours per migration script, 30 seconds per code file. See [Timeouts](../project/configuration.md#timeouts). |
+| SQL tests | Not in the deployer | They run in CI against a disposable database. See [SQL tests](#sql-tests). |
+| The deployer's login (SQL Server) | `db_ddladmin`, `db_datareader` and `db_datawriter` in the database, and what your scripts need; `db_owner` is not needed | Enough for everything DbLive does itself, also when the `dblive` schema belongs to `dbo` because an administrator deployed the database first or created the empty schema. Your scripts need the permissions of their statements: a `grant` needs a permission that `db_ddladmin` does not give. |
+
+## Bookkeeping tables
+
+DbLive keeps its state in the `dblive` schema of the target database. Do not create your own objects in that schema.
+
+| Table | Content |
+|-------|---------|
+| `dblive.version` | DbLive's own schema version, the bound `project_id`, and the oldest DbLive version that can deploy the database (`min_dblive_lib_version`) |
+| `dblive.migration` | One row per migration file: version, type, status (`none`, `applied`), checksum, applied time |
+| `dblive.code` | One row per code file and per breaking script of the Code folder: status (`applied`, `applying` while a run of new content is not confirmed, `removed`), checksum, last successful run |
+| `dblive.folder_items` | Last run of each BeforeDeploy and AfterDeploy script |
+
+The tables keep what the next deployment needs and the history of successful runs. A failure is not written there: the error is in the exception and the log.
+
+Files are identified by their path relative to the scripts root, stored in lower case with `/` (`code/dbo/getuser.sql`). Migrations are identified by version and type: a migration moved or renamed without a change of its content keeps its old `relative_path` and `name` in `dblive.migration`.
+
+### The DbLive version a database requires
+
+A newer DbLive can store in these tables what an older one cannot read. So the database keeps the oldest DbLive version that can deploy it, in `dblive.version.min_dblive_lib_version`. Every deployment raises it to the minimum of its DbLive version and never lowers it; a deployment that stops on a mistake in the project (step 1 of [What a deployment does](#what-a-deployment-does)), such as an undo script left in it, does not raise it. A deployment or `RunAllTestsAsync()` with an older DbLive fails with `DatabaseRequiresNewerDbLiveException` before it changes anything; the message names the version to update the DbLive packages to.
+
+A release of DbLive after which older versions can no longer deploy the database says so in its [release notes](https://github.com/zacoders/DbLive/releases). If you roll back a release that upgraded to such a version, roll back the application and keep the database (see [Roll back a release](migrations.md#roll-back-a-release)): the previous build of the database fails with this exception. DbLive versions before 2.0.0 do not check the required version: do not deploy a database that DbLive 2.0 or later has deployed with them.
+
+```sql
+select version, item_type, status, applied_utc, relative_path
+from dblive.migration
+order by version, item_type;
+```

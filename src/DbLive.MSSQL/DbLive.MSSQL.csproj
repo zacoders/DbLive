@@ -19,8 +19,12 @@
 
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>sql mssql sqlserver sql-server database deployment migration rollback testing devops cicd db-deployment sql-deployment</PackageTags>
+		<PackageTags>sql mssql sqlserver sql-server database deployment migration zero-downtime expand-contract testing devops cicd db-deployment sql-deployment</PackageTags>
 		<PackageIcon>dblive-icon.png</PackageIcon>
+
+		<!-- The .xml file of the doc comments goes into the package next to the DLL, for IntelliSense. CS1591 (a public
+		     member without a doc comment) is an error with TreatWarningsAsErrors: see "The public API" in Development.md. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
     <ItemGroup>
@@ -29,33 +33,30 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<!-- Tracks the public API in PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt: see "The public API" in Development.md. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
         <PackageReference Include="Microsoft.Data.SqlClient" />
+        <!-- Pins a transitive dependency of Microsoft.Data.SqlClient to a patched version (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx).
+             Remove once Microsoft.Data.SqlClient references a fixed version. -->
+        <PackageReference Include="System.Security.Cryptography.Pkcs" />
         <PackageReference Include="Dapper" />
     </ItemGroup>
   
-    <!-- For development -->
-    <ItemGroup>
-        <None Include="SQL\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <TargetPath>$(AssemblyName)\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-        </None>
-    </ItemGroup>
-
-	<!-- For nuget -->
+	<!-- DbLive's own scripts (the dblive schema), read by the self-deployer from this assembly. -->
 	<ItemGroup>
-		<None Include="SQL\**\*.sql" Pack="true" PackagePath="scripts" />
-		<None Include="DbLive.MSSQL.targets" Pack="true" PackagePath="buildTransitive\" />
+		<EmbeddedResource Include="SQL\**\*.sql" LogicalName="DbLive.Internal/%(RecursiveDir)%(Filename)%(Extension)" WithCulture="false" />
 	</ItemGroup>
-
-	<!-- Disable false positive nuget warning in github action -->
-	<PropertyGroup>
-		<NoWarn>$(NoWarn);NU5129</NoWarn>
-	</PropertyGroup>
 	
     <ItemGroup>
 	    <ProjectReference Include="..\DbLive\DbLive.csproj" />
     </ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbLive.MSSQL.Tests" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="..\dblive-icon.png">

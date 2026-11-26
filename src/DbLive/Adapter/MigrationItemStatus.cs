@@ -1,10 +1,7 @@
 ﻿namespace DbLive.Adapter;
 
-public enum MigrationItemStatus
+internal enum MigrationItemStatus
 {
 	None,
-	Skipped,
-	Applied,
-	//Failed,
-	Reverted
+	Applied
 }

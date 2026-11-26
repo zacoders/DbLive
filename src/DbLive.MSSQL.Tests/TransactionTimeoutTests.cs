@@ -1,0 +1,97 @@
+using DbLive.Adapter;
+using DbLive.Testing;
+using System.Diagnostics.CodeAnalysis;
+
+namespace DbLive.MSSQL.Tests;
+
+
+// The timer of System.Transactions runs on the thread pool: while the other tests of the project run in parallel, it fired more
+// than 17 seconds late, after the deployment had committed. Alone, the tests do not depend on the load of the others.
+[CollectionDefinition(nameof(TransactionTimeoutTests), DisableParallelization = true)]
+public class TransactionTimeoutTestsCollection;
+
+/// <summary>
+/// When the timeout of a transaction of DbLive runs out, System.Transactions aborts the transaction, and on SQL Server the next step in
+/// the scope fails: the next batch, a new connection. DbLive makes that error <see cref="ExecutionTimeoutException"/> that names the
+/// timeout of the transaction, with the error of the step inside.
+/// </summary>
+[Collection(nameof(TransactionTimeoutTests))]
+[SuppressMessage("Usage", "xUnit1041:Fixture arguments to test classes must have fixture sources", Justification = "AssemblyFixture will be properly supported in xUnit v3. waiting.")]
+public class TransactionTimeoutTests(SqlServerIntegrationFixture fixture, ITestOutputHelper output)
+	: SqlServerDbTests(fixture, output)
+{
+	[Fact]
+	public async Task Deployment_that_runs_longer_than_DeploymentTimeout_fails_with_its_timeout_and_leaves_nothing()
+	{
+		// 20 batches of 0.5 seconds: the migration has 12 hours, the deployment 3 seconds. The batch after the end of the transaction
+		// fails in SqlClient. 10 seconds, not 5: the timer of System.Transactions runs on the thread pool, and while all test projects run
+		// it was once more than 2 seconds late, after the deployment had committed.
+		string batches = string.Concat(Enumerable.Repeat("insert into dbo.T values ( 1 );\nwaitfor delay '00:00:00.500';\ngo\n", 20));
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "TransactionWrapLevel": "Deployment", "DeploymentTimeout": "00:00:03" }""")
+			.AddFile("Migrations/001.migration.sql", "create table dbo.T ( Id int );\ngo\n" + batches);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		ExecutionTimeoutException ex = await Assert.ThrowsAsync<ExecutionTimeoutException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal("Execution Timeout Expired. The deployment ran longer than its timeout of 00:00:03 (DeploymentTimeout).", ex.Message);
+		Assert.Equal(TimeSpan.FromSeconds(3), ex.Timeout);
+		// the error of the file where the time ran out is inside.
+		MigrationDeploymentException fileEx = Assert.IsType<MigrationDeploymentException>(ex.InnerException);
+		Assert.Contains("001.migration.sql", fileEx.Message);
+
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from sys.tables where name = 'T'"));
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from dblive.migration where status = 'applied'"));
+	}
+
+	[Fact]
+	public async Task Code_file_that_outlives_the_deployment_timeout_fails_the_deployment_with_its_path()
+	{
+		// the file runs 10 seconds, the deployment has 2: under the load of all test projects 4 seconds were once not enough, and the
+		// deployment committed. The file is not interrupted, so the test takes the 10 seconds.
+		using TempProject project = CodeRetryInDeploymentTransactionTests.CreateProject(
+			"waitfor delay '00:00:10';",
+			"""{ "TransactionWrapLevel": "Deployment", "DeploymentTimeout": "00:00:02" }"""
+		);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		ExecutionTimeoutException timeoutEx = await Assert.ThrowsAsync<ExecutionTimeoutException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal("Execution Timeout Expired. The deployment ran longer than its timeout of 00:00:02 (DeploymentTimeout).", timeoutEx.Message);
+		// the error of the file where the time ran out is inside.
+		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
+		// the script is not interrupted: the check of its transaction after it cannot run on the connection of the transaction that timed out.
+		DbLiveSqlException sqlEx = Assert.IsType<DbLiveSqlException>(codeEx.InnerException);
+		Assert.StartsWith("The transaction associated with the current connection has completed but has not been disposed.", sqlEx.Message);
+
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Empty(await da.ListAsync("select name from sys.tables where schema_id = schema_id('dbo')"));
+		Assert.Empty(await da.ListAsync("select version from dblive.migration"));
+	}
+
+	[Fact]
+	public async Task Setup_and_test_that_each_fit_into_UnitTestItemTimeout_pass_together()
+	{
+		// 4 seconds together, longer than UnitTestItemTimeout: each file has its own limit, and the transaction of the test twice that.
+		using TempProject project = new TempProject()
+			.AddFile("settings.json", """{ "UnitTestItemTimeout": "00:00:03" }""")
+			.AddFile("Tests/Slow/setup.test.sql", "waitfor delay '00:00:02';")
+			.AddFile("Tests/Slow/slow.sql", "waitfor delay '00:00:02';");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+		await builder.CreateDeployer().DeployAsync(DeployParameters.Default);
+
+		TestRunResult result = await builder.CreateTester().RunTestAsync(Output.WriteLine, "Tests/Slow/slow.sql");
+
+		Assert.True(result.IsSuccess, result.ErrorMessage);
+	}
+}

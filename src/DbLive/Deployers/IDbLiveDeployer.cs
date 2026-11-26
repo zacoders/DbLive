@@ -1,6 +1,9 @@
 ﻿namespace DbLive.Deployers;
 
-public interface IDbLiveDeployer
+internal interface IDbLiveDeployer
 {
-	Task DeployAsync(DeployParameters parameters);
+	/// <summary>
+	/// Deploys the project loaded by <see cref="IProjectLoader"/>, after the self-deployment. Reads no project file.
+	/// </summary>
+	Task DeployAsync(ProjectSnapshot project, DeployParameters parameters);
 }

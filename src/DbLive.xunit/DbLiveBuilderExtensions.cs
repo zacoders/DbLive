@@ -5,9 +5,17 @@ using Xunit.Abstractions;
 
 namespace DbLive.xunit;
 
-
+/// <summary>
+/// Configures a <see cref="DbLiveBuilder"/> in an xUnit test.
+/// </summary>
 public static class DbLiveBuilderExtensions
 {
+	/// <summary>
+	/// Logs to the output of the xUnit test, which shows the log of DbLive next to the result of the test.
+	/// </summary>
+	/// <param name="builder">The builder instance to configure.</param>
+	/// <param name="output">The output of the test, from its constructor.</param>
+	/// <returns>The same builder instance for chaining.</returns>
 	public static DbLiveBuilder LogToXUnitOutput(this DbLiveBuilder builder, ITestOutputHelper output)
 	{
 		return builder.ConfigureServices(services =>

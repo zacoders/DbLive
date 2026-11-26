@@ -1,6 +1,6 @@
 ﻿namespace DbLive.Common.Settings;
 
-public class DbLiveSettings
+internal class DbLiveSettings
 {
 	public TransactionWrapLevel TransactionWrapLevel { get; init; } = TransactionWrapLevel.Migration;
 
@@ -24,17 +24,21 @@ public class DbLiveSettings
 	public string TestsFolder { get; init; } = "Tests";
 
 	public TimeSpan DeploymentTimeout { get; init; } = TimeSpan.FromDays(1);
+	/// <summary>
+	/// Default timeout of a migration or breaking script, its transaction and its SQL command.
+	/// An item settings file overrides it with <see cref="MigrationItemSettings.Timeout"/>.
+	/// </summary>
 	public TimeSpan MigrationTimeout { get; init; } = TimeSpan.FromHours(12);
 	public TimeSpan BeforeDeployFolderTimeout { get; init; } = TimeSpan.FromHours(6);
 	public TimeSpan AfterDeployFolderTimeout { get; init; } = TimeSpan.FromHours(6);
 	public TimeSpan CodeItemTimeout { get; init; } = TimeSpan.FromSeconds(30);
 	public TimeSpan UnitTestItemTimeout { get; init; } = TimeSpan.FromMinutes(1);
-	public TimeSpan DowngradeTimeout { get; init; } = TimeSpan.FromHours(12);
 
-	public bool LogSelfDeploy { get; internal set; } = false;
+	// for the tests, not a key of settings.json: System.Text.Json reads only public properties, so the key fails as unknown.
+	// A public getter with an internal setter would accept the key and ignore its value.
+	internal bool LogSelfDeploy { get; set; } = false;
 
 	public int NumberOfThreadsForCodeDeploy { get; set; } = 10;
-	public int MaxCodeDeployRetries { get; set; } = 5;
 	public int NumberOfThreadsForTestsRun { get; set; } = 10;
 
 	/// <summary>

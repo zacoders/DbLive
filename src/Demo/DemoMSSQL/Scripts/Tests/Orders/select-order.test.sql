@@ -1,13 +1,13 @@
 -- Arrange
--- Note: Test data was prepared in init.sql file.
+-- Note: Test data was prepared in setup.test.sql file.
 
 
 -- Act
-select count(*) from dbo.Orders
+select OrderId from dbo.Orders
 
 
 -- Assert
-select asstert = 'row-count=3'
+select assert = 'row-count=3'
 
 
 

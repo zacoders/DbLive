@@ -1,12 +1,22 @@
 namespace DbLive.Deployers.Testing;
 
-public class UnitTestItemRunner(
+internal class UnitTestItemRunner(
 		IDbLiveDA _da,
 		ITimeProvider _timeProvider,
 		IUnitTestResultChecker _unitTestResultChecker,
 		ISettingsAccessor _projectSettingsAccessor
 	) : IUnitTestItemRunner
 {
+	internal const string TransactionEndedMessage =
+		"The transaction of the test ended before the test did: the test, its setup.test.sql or the code they call ran ROLLBACK or COMMIT, "
+		+ "for example a CATCH block with 'if @@trancount > 0 rollback' on SQL Server, or COMMIT in the test on PostgreSQL. "
+		+ "DbLive rolled back what ran after it; what a COMMIT committed stays in the database. "
+		+ "Code called inside a transaction must not end it: on an error it rolls back to a savepoint of its own (save transaction).";
+
+	internal const string TransactionLeftOpenMessage =
+		"The test left a transaction open: the test, its setup.test.sql or the code they call ran BEGIN TRANSACTION without COMMIT, "
+		+ "for example a procedure that returns between them; called by an application, SQL Server fails such a procedure with Msg 266. "
+		+ "DbLive rolled back the transaction of the test. Code that begins a transaction commits it on every path before it returns.";
 
 	public async Task<TestRunResult> RunTestAsync(TestItem test)
 	{
@@ -18,61 +28,92 @@ public class UnitTestItemRunner(
 			StartedUtc = _timeProvider.UtcNow()
 		};
 
-		bool initFileDeployed = false;
+		bool setupFileDeployed = false;
 		IStopWatch stopWatch = _timeProvider.StartNewStopwatch();
 		TranIsolationLevel testsIsolationLevel = projectSettings.TestsTransactionIsolationLevel;
+		// setup.test.sql and the test get UnitTestItemTimeout each; their transaction twice that, so that it does not cut the two together.
+		TransactionTimeout transactionTimeout = new(
+			Twice(projectSettings.UnitTestItemTimeout),
+			"The transaction of the test",
+			$"twice {nameof(DbLiveSettings.UnitTestItemTimeout)}"
+		);
 		try
 		{
-			using TransactionScope _transactionScope = TransactionScopeManager.Create(
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			);
+			long transactionStarted = Stopwatch.GetTimestamp();
+			using TransactionScope _transactionScope = TransactionScopeManager.Create(testsIsolationLevel, transactionTimeout.Value);
+			using Transaction transaction = Transaction.Current!.Clone();
 
-			if (test.InitFileData is not null)
+			try
 			{
-				await _da.ExecuteNonQueryAsync(
-					test.InitFileData.Content,
+				if (test.SetupFileData is not null)
+				{
+					await _da.ExecuteNonQueryAsync(
+						test.SetupFileData.Content,
+						testsIsolationLevel,
+						projectSettings.UnitTestItemTimeout
+					).ConfigureAwait(false);
+					setupFileDeployed = true;
+				}
+
+				List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
+					test.FileData.Content,
 					testsIsolationLevel,
 					projectSettings.UnitTestItemTimeout
 				).ConfigureAwait(false);
-				initFileDeployed = true;
+
+				// the data access fails setup.test.sql and the test when they end the transaction or leave one open (the exceptions below).
+				// This check covers a transaction that ended otherwise without failing them. An exception here (a broken connection,
+				// a transaction that timed out) fails the test as well.
+				if (!await _da.IsTransactionUsableAsync().ConfigureAwait(false))
+				{
+					result.Output = TransactionEndedMessage;
+					result.ErrorMessage = TransactionEndedMessage;
+					return result;
+				}
+
+				ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
+				if (!compareResult.IsValid)
+				{
+					result.Output = compareResult.Output;
+					result.ErrorMessage = compareResult.Output;
+					result.IsSuccess = false;
+				}
+				else
+				{
+					result.IsSuccess = true;
+					result.Output = "Success";
+				}
+
+				_transactionScope.Dispose(); //canceling transaction
 			}
-
-			List<SqlResult> resutls = await _da.ExecuteQueryMultipleAsync(
-				test.FileData.Content,
-				testsIsolationLevel,
-				projectSettings.UnitTestItemTimeout
-			).ConfigureAwait(false);
-
-			ValidationResult compareResult = _unitTestResultChecker.ValidateTestResult(resutls);
-			if (!compareResult.IsValid)
+			catch (Exception ex) when (transactionTimeout.IsCauseOf(transaction, transactionStarted, ex))
 			{
-				result.Output = compareResult.Output;
-				result.ErrorMessage = compareResult.Output;
-				result.IsSuccess = false;
+				throw transactionTimeout.Expired(ex);
 			}
-			else
-			{
-				result.IsSuccess = true;
-				result.Output = "Success";
-			}
-
-			_transactionScope.Dispose(); //canceling transaction
+		}
+		catch (DbLiveTransactionEndedException)
+		{
+			// the message of the data access speaks of a script; this one of the test, its setup.test.sql and the code they call,
+			// as the check above.
+			result.Output = TransactionEndedMessage;
+			result.ErrorMessage = TransactionEndedMessage;
+		}
+		catch (DbLiveTransactionLeftOpenException)
+		{
+			result.Output = TransactionLeftOpenMessage;
+			result.ErrorMessage = TransactionLeftOpenMessage;
 		}
 		catch (Exception ex)
 		{
-			if (test.InitFileData is not null && !initFileDeployed)
-			{
-				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR: Init file deployment error. " + ex.Message + Environment.NewLine + result.Output;
-				result.Exception = ex;
-			}
-			else
-			{
-				result.ErrorMessage = ex.Message;
-				result.Output = "ERROR:" + ex.Message + Environment.NewLine + result.Output;
-				result.Exception = ex;
-			}
+			// ErrorMessage is what [SqlFact] fails with and RunAllTestsAsync logs: it names setup.test.sql when that failed,
+			// also when it ran out of time, otherwise the error reads as one of the test file.
+			string errorMessage = test.SetupFileData is not null && !setupFileDeployed
+				? $"Setup file error ({test.SetupFileData.RelativePath}): {ex.Message}"
+				: ex.Message;
+
+			result.ErrorMessage = errorMessage;
+			result.Output = "ERROR: " + errorMessage + Environment.NewLine + result.Output;
+			result.Exception = ex;
 		}
 		finally
 		{
@@ -83,4 +124,9 @@ public class UnitTestItemRunner(
 
 		return result;
 	}
+
+	// settings.json takes a time span up to TimeSpan.MaxValue ("10675199.00:00:00" meant as no limit), and twice more than half of it
+	// overflows. Integer ticks: TimeSpan * 2 goes through double, which rounds near the limit. 00:00:00, no limit, stays 00:00:00.
+	internal static TimeSpan Twice(TimeSpan timeout) =>
+		timeout.Ticks > TimeSpan.MaxValue.Ticks / 2 ? TimeSpan.MaxValue : TimeSpan.FromTicks(timeout.Ticks * 2);
 }
