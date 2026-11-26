@@ -122,6 +122,8 @@ Steps 3 to 6 are explained in [Zero-Downtime Deployment](zero-downtime.md). Unti
 
 Two deployments of one database at the same time would both read which migrations are applied and both run the new ones: a migration that changes data would run twice without an error. So a deployment locks the database (step 3 of [What a deployment does](#what-a-deployment-does)) and holds the lock to its end, also when it fails. A deployment that starts meanwhile fails at once with `DeploymentInProgressException`, before it reads or changes anything. It does not wait for the lock: two pipeline runs would then deploy their builds in either order, and the older build could deploy its code over the newer one.
 
+Deployments that create the database (`CreateDbIfNotExists`) behave the same way. When two of them find no database, one creates it, and the other fails on the lock, or deploys after the first one if that one has already ended.
+
 Let your pipeline run one deployment of a database at a time. In GitHub Actions put every job that deploys the database into one concurrency group, without cancelling a deployment that runs:
 
 ```yaml

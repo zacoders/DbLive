@@ -6,6 +6,7 @@ using Npgsql.PostgresTypes;
 using Npgsql.Schema;
 using NpgsqlTypes;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.Data.Common;
 using System.Net;
 using System.Runtime.ExceptionServices;
@@ -682,18 +683,28 @@ internal partial class PostgreSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using var cnn = new NpgsqlConnection(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
-		bool exists = await cnn.ExecuteScalarAsync<bool>(
-			"select exists(select 1 from pg_database where datname = @name);",
-			new { name = dbName }
-		).ConfigureAwait(false);
+		if (skipIfExists && await DbExistsAsync(cnn, dbName!).ConfigureAwait(false)) return;
 
-		if (exists && skipIfExists) return;
-
-		using NpgsqlCommand cmd = cnn.CreateCommand();
-		cmd.CommandText = $"CREATE DATABASE {QuoteDbName(dbName!)};";
-		cmd.CommandTimeout = CreateDropTimeoutSeconds;
-		_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+		try
+		{
+			using NpgsqlCommand cmd = cnn.CreateCommand();
+			cmd.CommandText = $"CREATE DATABASE {QuoteDbName(dbName!)};";
+			cmd.CommandTimeout = CreateDropTimeoutSeconds;
+			_ = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+		}
+		// another deployment created the database after the check: two deployments of a new database. The create waits for the other
+		// one to commit, then fails with 23505 on pg_database_datname_index (verified), or with 42P04 when it starts after that commit.
+		// The database exists, as skipIfExists asks, and the deployment goes on to the deployment lock: DeploymentInProgressException,
+		// or a deployment after the other one. Checked again instead of by the error: whatever failed the create, the database exists.
+		// An error that ended the connection (FATAL) is not checked.
+		catch (PostgresException) when (skipIfExists && cnn.State == ConnectionState.Open)
+		{
+			if (!await DbExistsAsync(cnn, dbName!).ConfigureAwait(false)) throw;
+		}
 	}
+
+	private static Task<bool> DbExistsAsync(NpgsqlConnection cnn, string dbName) =>
+		cnn.ExecuteScalarAsync<bool>("select exists(select 1 from pg_database where datname = @name);", new { name = dbName });
 
 	// the name in double quotes, with '"' doubled: a database name may have any character, also a '"'. Quoted, the case of the name
 	// stays as in the connection string.

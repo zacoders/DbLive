@@ -703,14 +703,30 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 		using SqlConnection cnn = new(builder.ConnectionString);
 		await cnn.OpenAsync().ConfigureAwait(false);
 
+		// waits while another session creates the database, then finds it (verified).
+		if (skipIfExists && await DbExistsAsync(cnn, databaseToCreate).ConfigureAwait(false)) return;
+
+		try
+		{
+			_ = await cnn.ExecuteAsync($"create database {QuoteDbName(databaseToCreate)};", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
+		}
+		// another deployment created the database after the check: two deployments of a new database. The create waits for the other
+		// one, then fails with 1801 "Database ... already exists", or with "A severe error occurred on the current command" without an
+		// error number (both verified, the second more often). The database exists, as skipIfExists asks, and the deployment goes on to
+		// the deployment lock: DeploymentInProgressException, or a deployment after the other one. Checked again instead of by the
+		// error: whatever failed the create, the database exists. An error that closed the connection is not checked.
+		catch (SqlException) when (skipIfExists && cnn.State == ConnectionState.Open)
+		{
+			if (!await DbExistsAsync(cnn, databaseToCreate).ConfigureAwait(false)) throw;
+		}
+	}
+
+	private static async Task<bool> DbExistsAsync(SqlConnection cnn, string dbName)
+	{
 		using SqlCommand cmd = cnn.CreateCommand();
 		cmd.CommandText = "select 1 from sys.databases where name = @name";
-		_ = cmd.Parameters.AddWithValue("name", databaseToCreate);
-		bool dbExists = (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
-
-		if (dbExists && skipIfExists) return;
-
-		_ = await cnn.ExecuteAsync($"create database {QuoteDbName(databaseToCreate)};", commandTimeout: CreateDropTimeoutSeconds).ConfigureAwait(false);
+		_ = cmd.Parameters.AddWithValue("name", dbName);
+		return (int?)(await cmd.ExecuteScalarAsync().ConfigureAwait(false)) == 1;
 	}
 
 	// the name in brackets, with ']' doubled: a database name may have any character, also a ']'.

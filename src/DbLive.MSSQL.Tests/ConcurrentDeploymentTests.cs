@@ -14,6 +14,9 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture fixture, ITes
 {
 	private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(30);
 
+	// deployments that create the database at the same time.
+	private const int Deployments = 8;
+
 	// the query of the docs ("One deployment at a time"): the session that holds the deployment lock.
 	private const string LockHolderQuery = """
 		select request_session_id
@@ -85,6 +88,44 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture fixture, ITes
 	}
 
 	[Fact]
+	public async Task Deployments_that_create_the_database_at_the_same_time_deploy_or_fail_on_the_lock()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table dbo.Counter ( Note nvarchar(100) not null );
+				insert into dbo.Counter ( Note ) values ( 'migration 001' );
+				""");
+
+		// the check of a deployment waits while another one creates the database, then finds it: only deployments that check before
+		// the first create starts lose the race. With connections waiting in the pool, they take no time to connect to master.
+		await FillPoolOfMasterAsync(Deployments);
+
+		// deployments of a database that does not exist yet, started together: they find no database, and all of them create it.
+		Task[] deployments = [.. Enumerable.Range(0, Deployments).Select(_ => Task.Run(
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true })
+		))];
+
+		int deployed = 0;
+
+		foreach (Task deployment in deployments)
+		{
+			try
+			{
+				await deployment.WaitAsync(WaitLimit);
+				deployed++;
+			}
+			// not the error of a create that lost the race ("A severe error occurred on the current command", 1801): such a deployment
+			// goes on to the lock.
+			catch (DeploymentInProgressException)
+			{
+			}
+		}
+
+		Assert.True(deployed > 0);
+		Assert.Equal(1, await ScalarAsync<int>("select count(*) from dbo.Counter;"));
+	}
+
+	[Fact]
 	public async Task Lock_is_released_when_the_deployment_fails()
 	{
 		using TempProject project = new TempProject()
@@ -128,6 +169,30 @@ public class ConcurrentDeploymentTests(SqlServerIntegrationFixture fixture, ITes
 
 		// the release fails on the ended session; the deployment logs the error as a warning.
 		_ = await Assert.ThrowsAsync<SqlException>(async () => await lostDeploymentLock.DisposeAsync());
+	}
+
+	// connections of the connection string with which DbLive creates the database, idle in its pool.
+	private async Task FillPoolOfMasterAsync(int count)
+	{
+		string masterCnnString = new SqlConnectionStringBuilder(DbCnnString) { InitialCatalog = "master" }.ConnectionString;
+		List<SqlConnection> connections = [];
+
+		try
+		{
+			for (int i = 0; i < count; i++)
+			{
+				SqlConnection cnn = new(masterCnnString);
+				connections.Add(cnn);
+				await cnn.OpenAsync();
+			}
+		}
+		finally
+		{
+			foreach (SqlConnection cnn in connections)
+			{
+				await cnn.DisposeAsync();
+			}
+		}
 	}
 
 	private async Task<T> ScalarAsync<T>(string query)

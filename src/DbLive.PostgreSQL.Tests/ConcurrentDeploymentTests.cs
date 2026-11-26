@@ -86,6 +86,39 @@ public class ConcurrentDeploymentTests(PostgreSqlFixture fixture, ITestOutputHel
 	}
 
 	[Fact]
+	public async Task Deployments_that_create_the_database_at_the_same_time_deploy_or_fail_on_the_lock()
+	{
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table counter ( note text not null );
+				insert into counter ( note ) values ( 'migration 001' );
+				""");
+
+		// deployments of a database that does not exist yet, started together: they find no database, and all of them create it.
+		Task[] deployments = [.. Enumerable.Range(0, 8).Select(_ => Task.Run(
+			() => CreateBuilder(project).CreateDeployer().DeployAsync(DeployParameters.Default with { CreateDbIfNotExists = true })
+		))];
+
+		int deployed = 0;
+
+		foreach (Task deployment in deployments)
+		{
+			try
+			{
+				await deployment.WaitAsync(WaitLimit);
+				deployed++;
+			}
+			// not the error of a create that lost the race (23505 on pg_database_datname_index): such a deployment goes on to the lock.
+			catch (DeploymentInProgressException)
+			{
+			}
+		}
+
+		Assert.True(deployed > 0);
+		Assert.Equal(1, await ScalarAsync<long>("select count(*) from counter;"));
+	}
+
+	[Fact]
 	public async Task Lock_is_released_when_the_deployment_fails()
 	{
 		using TempProject project = new TempProject()
