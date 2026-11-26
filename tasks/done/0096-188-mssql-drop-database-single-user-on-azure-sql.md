@@ -21,20 +21,20 @@ The recipe of the docs for tests without `DbLive.xunit` (`docs/unit-testing/inde
 ## Fix
 On Azure SQL Database (`SERVERPROPERTY('EngineEdition') = 5`) the drop runs `drop database` alone, without `single_user` and without the kill of the sessions before it. Other editions keep the kill, `single_user with rollback immediate` and the drop.
 - [x] What ends the sessions of the database on Azure SQL Database? `drop database` itself (the maintainer, 2026-11-26: never saw the drop fail there because of open connections). So nothing is killed before it: `KillSessionsAsync` runs in `master`, which on Azure SQL Database likely shows no session of another database.
-- [ ] The CI has no Azure server: a manual run on Azure SQL Database, written in Notes as verified?
+- [x] The CI has no Azure server: a manual run on Azure SQL Database, written in Notes as verified? No (the maintainer, 2026-11-26): not run on Azure. The fix follows the syntax of `ALTER DATABASE ... SET` for Azure SQL Database in the docs of Microsoft.
 
 ## Docs to update
 - `docs/llms-full.txt` §13.2 and `docs/unit-testing/index.md` (section "2. SQL tests: `[SqlFact]`"): the drop of the fixtures on Azure SQL Database
 - `docs/llms-full.txt` §8.2 and `docs/unit-testing/index.md` (section "A test database without xUnit"): the recipe on Azure SQL Database leaves out the `alter database` line
 
 ## Done when
-- [x] Verified on Azure SQL Database: the drop fails today, and works after the fix
 - [x] Fixed, with a unit test where the code branches on the edition
 
 ## Notes
 - Found by the code review of 2026-11-26 (the branch as release 2.0).
 - 2026-11-26, the maintainer: on Azure SQL Database just `drop database`; tests on Azure SQL Database are not a recommended setup (a database there takes long to create), but they should work for whoever runs them.
 - `MsSqlDA.GetDropDbSql(quotedName, engineEdition)` builds the batch of the drop; `DropDbAsync` reads the edition in `master` after the check that the database exists, and skips `KillSessionsAsync` on Azure SQL Database.
+- Not run on Azure SQL Database (the maintainer, 2026-11-26): the item "Verified on Azure SQL Database" left `## Done when`. The fix rests on the docs of Microsoft and on `MsSqlDADropDbSqlTests`.
 - Tests: `MsSqlDADropDbSqlTests` checks the SQL of both branches without a server (edition 5; editions 2, 3, 4, 8). `MsSqlDADropDbTests` and `QuotedDatabaseNameTests` run the branch of SQL Server against the container, with the edition read from the server: pass.
 - The docs: the fixtures and the recipe without `DbLive.xunit` say that Azure SQL Database drops without `single_user`. The code of the recipe stays as it is: it is for SQL Server, and the sentence under it says which line to leave out on Azure SQL Database.
 
