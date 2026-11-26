@@ -38,6 +38,33 @@ Came up 2026-11-06 in the discussion of 0096-46 (remove undo scripts).
 - [ ] Schema diff (reliable, needs a database, the snapshot already exists) or a text analysis of the scripts (`drop column`, `sp_rename`, `alter column`: works without a database, but misses dynamic SQL and needs a SQL parser for each engine)? The schema diff first.
 - [ ] Inside `[SqlDeployFact]`, which then deploys the versions one by one with a snapshot after each (as the undo cycle did before 0096-46), or a run of its own?
 
+## Proposal: run the SQL tests of the previous release
+2026-11-26, from a review of the docs by an agent that played a new user (chat with the maintainer), not decided. It builds on (a) of the first open question: the deployment test deploys the scripts of the previous release first. On top of that it runs the SQL tests of that release against the new schema. They are the contract of the previous application, written by the team, so they check behavior, which a schema diff cannot reach ("Out of reach of a schema diff" above).
+
+Steps:
+1. Deploy build N (the scripts of the previous release) to a new database.
+2. Deploy build N+1 with `DeployParameters.Default`.
+3. Run the SQL tests of N and of N+1. A failed test of N: the release breaks the previous application before the breaking phase, so a rollback of the application to N does not work.
+4. `DeployParameters.Breaking` of N+1, then the tests of N+1, and the breaking phase again with the schema check, as now. The tests of N do not run after the breaking phase: it drops what N uses.
+
+What it catches that the deployment test on an empty database does not:
+- the contract of an object changed in place, without the next version name (rule 14 of `docs/llms-full.txt`): the test of N calls the object with the old parameters or expects the old result columns;
+- a migration that breaks the code of N: `GetUser_v1` stays in the database and runs on the new schema;
+- a breaking script that drops an `_v1` that really exists (the known limit of `[SqlDeployFact]`, `docs/llms-full.txt` §13.3);
+- what an incremental deployment does: the code of N+1 over the code of N, the migrations of N+1 over those of N, as production does.
+
+Limits:
+- A test of N fails on a change that does not break the application: a test that reads a table with `select *` and `rows` fails on an added column, and so does an `insert` without a column list in its arrange. Tests through procedures and functions (the "database as a service" model) do not depend on the columns of tables; tests of tables do.
+- A bug fix in N+1 changes behavior on purpose, and the test of N that checked the old behavior fails. It needs a way to accept it, the same question as "Error or warning?" above.
+- Data: the tests of N run in rolled-back transactions, so the tables are empty when N+1 is deployed. Data migrations stay for `migration-step-tests.md`.
+- CI gives the scripts of N: a checkout of the last tag, deployed with `SetScriptsFolder`. The SQL project assembly of N next to the one of N+1 in one process needs an `AssemblyLoadContext` of its own (not verified), so a folder is simpler. Without the scripts of N the step is skipped with a message.
+
+Open questions:
+- [ ] A recipe in the docs first? A user can write it today with public API only: a container fixture builder for the database, a builder with `SetScriptsFolder` (N) and one with `SetProject` (N+1) on the same connection string, `DeployAsync` of each, `RunAllTestsAsync` of each tester (not verified).
+- [ ] As a feature: part of `DeploymentTest`, with the scripts of N as an optional parameter, or a test of its own?
+- [ ] Which tests of N run: all of them, or only the tests in `Code/` next to the interface objects, so that tests of tables give no false failures?
+- [ ] Together with the schema diff of this idea, or the tests of N alone first (no new comparison code)?
+
 ## Depends on
 - `tasks/done/0096-32-undo-test-schema-compare.md` (the schema snapshot and its diff: missing, extra, changed)
 - `tasks/0096-46-remove-undo.md` (why: a rollback relies on expand/contract)

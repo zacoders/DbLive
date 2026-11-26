@@ -23,3 +23,5 @@ Open questions:
 - [ ] The deployment test without xUnit: keep the schema check internal (the result is `SchemaChangedException` with the differences in its message), or make the snapshot public?
 
 Came up 2026-11-14, in 0096-81: with `DropDbAsync` internal, who drops a test database with a random name without xUnit. A fixture without xUnit for that alone would add a public type in place of `IDbLiveDA` and cover only a part of what such a user does not get.
+
+2026-11-26: a review of the docs by an agent that played a new user (chat with the maintainer) named xUnit v2 the main technical risk of choosing DbLive for a project of several years. A new solution is likely on xUnit v3, MSTest or TUnit; such a solution keeps a test project of its own on xUnit v2 for the SQL tests, or gives up a test case per SQL file and the deployment test. The review suggested the core without a test framework first (the first direction above, with the deployment test writing to an `Action<string>`), then an adapter for xUnit v3. It is not a request of a user: DbLive has none yet besides the maintainer.

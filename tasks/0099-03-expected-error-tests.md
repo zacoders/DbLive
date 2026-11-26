@@ -86,3 +86,4 @@ Open questions:
   ```
   Still open here: an error that dooms the transaction, PostgreSQL, the docs of the test side.
 - 2026-11-24, decision of the maintainer: the assert becomes mandatory after 2.0.0 ("Mandatory assert" in `0099-unit-testing-improvements.md`). Then a pattern that checks with `throw` ends with the new assert value, or checks the error message with `rows` as the pattern above does.
+- 2026-11-26: a review of the docs by an agent that played a new user (chat with the maintainer) is for building the `error` assert (the first open question of the Proposal): documented patterns alone leave every test with the pitfalls the Proposal lists, and such a test is among the first ones of a project. It put this task first among the tasks of #99 (Notes of `0099-unit-testing-improvements.md`). Input for the maintainer, not a decision.
