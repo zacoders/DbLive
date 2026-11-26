@@ -18,7 +18,7 @@ internal sealed class TimeSpanSettingConverter : JsonConverter<TimeSpan>
 		// a TimeSpan? key (the Timeout of the item settings) never gets here with null: SettingsTools.CheckNoNulls rejects it.
 		if (reader.TokenType == JsonTokenType.Null)
 		{
-			throw new InvalidTimeSpanException("cannot be null");
+			throw new InvalidSettingValueException("cannot be null");
 		}
 
 		// the format c with both colons: [-][d.]hh:mm:ss[.fffffff], without the short forms "d", "hh:mm" and "d.hh:mm".
@@ -27,12 +27,12 @@ internal sealed class TimeSpanSettingConverter : JsonConverter<TimeSpan>
 			|| text.Count(c => c == ':') != 2
 			|| !TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out TimeSpan value))
 		{
-			throw new InvalidTimeSpanException(FormatError);
+			throw new InvalidSettingValueException(FormatError);
 		}
 
 		if (value < TimeSpan.Zero)
 		{
-			throw new InvalidTimeSpanException("cannot be negative");
+			throw new InvalidSettingValueException("cannot be negative");
 		}
 
 		return value;
@@ -41,13 +41,4 @@ internal sealed class TimeSpanSettingConverter : JsonConverter<TimeSpan>
 	// the settings are only read.
 	public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options) =>
 		throw new NotSupportedException();
-
-	/// <summary>
-	/// System.Text.Json sets the <see cref="JsonException.Path"/> when the exception leaves the converter, so the message names
-	/// the key, as the errors of <c>null</c> in <c>settings.json</c> do.
-	/// </summary>
-	private sealed class InvalidTimeSpanException(string error) : JsonException
-	{
-		public override string Message => $"The value of '{Path?[(Path.LastIndexOf('.') + 1)..]}' {error}. Path: {Path}.";
-	}
 }

@@ -367,6 +367,9 @@ public class MigrationsTests
 	[Theory]
 	[InlineData("""{ "TransactionWrapLevel": "Deployment" }""", "Deployment")]
 	[InlineData("""{ "MigrationTimeout": "01:00:00" }""", "MigrationTimeout")]
+	// a number, also in a string, is an error when the project is loaded, not when its migration runs.
+	[InlineData("""{ "TransactionIsolationLevel": 7 }""", "The value of 'TransactionIsolationLevel' must be ")]
+	[InlineData("""{ "TransactionWrapLevel": "3" }""", "The value of 'TransactionWrapLevel' must be ")]
 	// null is an error for every key: the project value is a missing key.
 	[InlineData("""{ "TransactionWrapLevel": null }""", "The value of 'TransactionWrapLevel' cannot be null. Path: $.TransactionWrapLevel.")]
 	[InlineData("""{ "TransactionIsolationLevel": null }""", "The value of 'TransactionIsolationLevel' cannot be null. Path: $.TransactionIsolationLevel.")]

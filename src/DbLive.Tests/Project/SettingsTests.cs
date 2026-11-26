@@ -80,6 +80,9 @@ public class SettingsTests
 	[InlineData("settings.json", """{ "LogSelfDeploy": true }""", "'LogSelfDeploy'")]
 	[InlineData("settings.json", """{ "transactionWrapLevel": "None" }""", "'transactionWrapLevel'")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "Nope" }""", "$.TransactionWrapLevel")]
+	// a number, also in a string, is an error: only the name of a value (EnumSettingConverterTests).
+	[InlineData("settings.json", """{ "TransactionWrapLevel": 3 }""", "The value of 'TransactionWrapLevel' must be \"Deployment\", \"Migration\" or \"None\".")]
+	[InlineData("settings.json", """{ "TransactionIsolationLevel": "7" }""", "The value of 'TransactionIsolationLevel' must be ")]
 	[InlineData("settings.json", """{ "TransactionWrapLevel": "None", }""", "trailing comma")]
 	[InlineData("Settings.JSON", """{ "TransactionWrapLevel": """, "LineNumber")]
 	// a short form of the .NET TimeSpan format (TimeSpanSettingConverterTests).
@@ -96,8 +99,8 @@ public class SettingsTests
 	[InlineData("settings.json", """{ "CodeSubFoldersDeploymentOrder": [ null ] }""", "$.CodeSubFoldersDeploymentOrder[0]")]
 	// null is an error for every key: no ID is a missing key.
 	[InlineData("settings.json", """{ "ProjectId": null }""", "The value of 'ProjectId' cannot be null. Path: $.ProjectId.")]
-	// an enum, a number and true/false: the error of System.Text.Json.
-	[InlineData("settings.json", """{ "TransactionWrapLevel": null }""", "$.TransactionWrapLevel")]
+	// an enum: the error of the converter of DbLive; a number and true/false: the error of System.Text.Json.
+	[InlineData("settings.json", """{ "TransactionWrapLevel": null }""", "The value of 'TransactionWrapLevel' cannot be null. Path: $.TransactionWrapLevel.")]
 	[InlineData("settings.json", "null", "The file cannot be null. Path: $.")]
 	// an unknown key first: the error of System.Text.Json.
 	[InlineData("settings.json", """{ "MaxCodeDeployRetries": null }""", "could not be mapped")]

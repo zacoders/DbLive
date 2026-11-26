@@ -25,7 +25,7 @@ Project settings live in `Scripts/settings.json`. The file is optional; without 
 - **Property names are case-sensitive**: `TransactionWrapLevel`, not `transactionWrapLevel`.
 - **Unknown properties are rejected**, so a typo fails the deployment instead of being silently ignored.
 - **Trailing commas are not allowed.**
-- Enum values are case-insensitive: `"none"` and `"None"` both work.
+- An enum value is the name of the value, in any case: `"none"` and `"None"` both work. **A number is an error**, also in quotes (`2`, `"2"`), and so are names joined by a comma (`"Migration, None"`): the error lists the values, `The value of 'TransactionWrapLevel' must be "Deployment", "Migration" or "None".` DbLive 1.5 took a number, also one the setting does not have: `"TransactionWrapLevel": 3` ran every migration without a transaction.
 - Time spans use `"hh:mm:ss"` or `"d.hh:mm:ss"`, for example `"00:00:30"`, `"01:00:00"` or `"1.00:00:00"`; a fraction of a second is allowed (`"00:00:00.5"`), and `"00:00:00"` is no limit. **Every other form is an error**: `"60"` (seconds or days?) and `"02:00"` (hours or minutes?) as well as a number without quotes (`60`), `"24:00:00"` (write `"1.00:00:00"`) and a negative value.
 - A list replaces the default list; it is not merged with it. An empty list is `[]`.
 - **`null` is an error**, for every key (also `ProjectId`: leave it out for no ID) and for an item of a list. Leave a key out to keep its default.
@@ -119,7 +119,7 @@ Each migration and breaking script can have its own settings file next to it:
 | `<version>.migration.settings.json` | `<version>.m.s.json`, `<version>.m.settings.json`, `<version>.migration.s.json` | the migration script of that version, whatever its file name |
 | `<version>.breaking.settings.json` | `<version>.b.s.json`, ... | the breaking script of that version |
 
-A settings file applies to its own script only. It follows the same format rules as `settings.json` and accepts three keys; a missing key falls back to the project `settings.json` (or its default), never to another item's file. `null` is an error here too: leave the key out for the project value.
+A settings file applies to its own script only. It follows the same [format rules](#file-format) as `settings.json` (an enum value is a name, not a number) and accepts three keys; a missing key falls back to the project `settings.json` (or its default), never to another item's file. `null` is an error here too: leave the key out for the project value.
 
 | Key | Values | Effect |
 |-----|--------|--------|

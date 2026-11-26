@@ -8,7 +8,7 @@ internal static class SettingsTools
 		PropertyNameCaseInsensitive = false,
 		UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
 		ReadCommentHandling = JsonCommentHandling.Skip,
-		Converters = { new JsonStringEnumConverter(), new TimeSpanSettingConverter() }
+		Converters = { new EnumSettingConverter(), new TimeSpanSettingConverter() }
 	};
 
 	/// <summary>
@@ -34,7 +34,8 @@ internal static class SettingsTools
 	/// <summary>
 	/// <c>null</c> is an error for every key, for an item of a list and for the whole file: a key is left out to keep its
 	/// default. System.Text.Json gives <c>null</c> for a string, a list, a nullable key (the item settings) and an item of a
-	/// list, as if the key were missing; for an enum, a number or <c>true</c>/<c>false</c> it fails with an error of its own.
+	/// list, as if the key were missing; for a number or <c>true</c>/<c>false</c> it fails with an error of its own, for an enum
+	/// and a time span the converter of DbLive does (<see cref="EnumSettingConverter"/>, <see cref="TimeSpanSettingConverter"/>).
 	/// Without the check a <c>null</c> folder failed the load later with a NullReferenceException that named neither the file
 	/// nor the key, and a <c>null</c> item of TestFilePatterns matched every file. RespectNullableAnnotations is not on net8.0
 	/// and does not check the items of a list. The settings have no nested objects, so the keys and the items of the lists are
