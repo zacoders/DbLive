@@ -853,17 +853,40 @@ internal partial class MsSqlDA(IDbLiveDbConnection _cnn) : IDbLiveDA
 			}
 		}
 
-		await KillSessionsAsync(cnn, databaseToDrop).ConfigureAwait(false);
+		int engineEdition = await cnn.ExecuteScalarAsync<int>("select cast(serverproperty('EngineEdition') as int);").ConfigureAwait(false);
+
+		// the drop of Azure SQL Database ends the sessions of the database itself.
+		if (engineEdition != AzureSqlDatabaseEngineEdition)
+		{
+			await KillSessionsAsync(cnn, databaseToDrop).ConfigureAwait(false);
+		}
+
+		_ = await cnn.ExecuteAsync(
+			GetDropDbSql(QuoteDbName(databaseToDrop), engineEdition),
+			commandTimeout: CreateDropTimeoutSeconds
+		).ConfigureAwait(false);
+	}
+
+	// SERVERPROPERTY('EngineEdition') of Azure SQL Database. Azure SQL Managed Instance is 8, and takes single_user as SQL Server does.
+	internal const int AzureSqlDatabaseEngineEdition = 5;
+
+	/// <summary>
+	/// The batch that drops the database. Azure SQL Database has no <c>single_user</c> (its <c>ALTER DATABASE ... SET</c> takes only
+	/// <c>RESTRICTED_USER</c> and <c>MULTI_USER</c>), and its drop ends the sessions itself: <c>drop database</c> alone.
+	/// </summary>
+	internal static string GetDropDbSql(string quotedName, int engineEdition)
+	{
+		if (engineEdition == AzureSqlDatabaseEngineEdition)
+		{
+			return $"drop database {quotedName};";
+		}
 
 		// single_user ends the sessions that are left: of a login that may not kill them, or opened after the kill.
 		// One batch: between two, another connection could take the single user of the database, and the drop would fail.
-		string quotedName = QuoteDbName(databaseToDrop);
-		_ = await cnn.ExecuteAsync($"""
+		return $"""
 			alter database {quotedName} set single_user with rollback immediate;
 			drop database {quotedName};
-			""",
-			commandTimeout: CreateDropTimeoutSeconds
-		).ConfigureAwait(false);
+			""";
 	}
 
 	// a killed session that takes longer to end, a long rollback, is left to single_user.
