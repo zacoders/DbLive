@@ -49,6 +49,36 @@ public class TransactionTimeoutTests(SqlServerIntegrationFixture fixture, ITestO
 	}
 
 	[Fact]
+	public async Task Code_file_that_outlives_the_deployment_timeout_fails_the_deployment_with_its_path()
+	{
+		// the file runs 10 seconds, the deployment has 2: under the load of all test projects 4 seconds were once not enough, and the
+		// deployment committed. The file is not interrupted, so the test takes the 10 seconds.
+		using TempProject project = CodeRetryInDeploymentTransactionTests.CreateProject(
+			"waitfor delay '00:00:10';",
+			"""{ "TransactionWrapLevel": "Deployment", "DeploymentTimeout": "00:00:02" }"""
+		);
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		ExecutionTimeoutException timeoutEx = await Assert.ThrowsAsync<ExecutionTimeoutException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.Equal("Execution Timeout Expired. The deployment ran longer than its timeout of 00:00:02 (DeploymentTimeout).", timeoutEx.Message);
+		// the error of the file where the time ran out is inside.
+		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
+		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
+		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
+		// the script is not interrupted: the check of its transaction after it cannot run on the connection of the transaction that timed out.
+		DbLiveSqlException sqlEx = Assert.IsType<DbLiveSqlException>(codeEx.InnerException);
+		Assert.StartsWith("The transaction associated with the current connection has completed but has not been disposed.", sqlEx.Message);
+
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Empty(await da.ListAsync("select name from sys.tables where schema_id = schema_id('dbo')"));
+		Assert.Empty(await da.ListAsync("select version from dblive.migration"));
+	}
+
+	[Fact]
 	public async Task Setup_and_test_that_each_fit_into_UnitTestItemTimeout_pass_together()
 	{
 		// 4 seconds together, longer than UnitTestItemTimeout: each file has its own limit, and the transaction of the test twice that.

@@ -2,6 +2,7 @@ using DbLive.Adapter;
 using DbLive.Project;
 using Npgsql;
 using System.Diagnostics.CodeAnalysis;
+using System.Transactions;
 
 namespace DbLive.PostgreSQL.Tests;
 
@@ -38,6 +39,38 @@ public class ItemTransactionSettingsTests(PostgreSqlFixture fixture, ITestOutput
 		Assert.Equal(MigrationItemStatus.Applied, GetItem(items, 3, MigrationItemType.Breaking).Status);
 		Assert.Contains(items, i => i.Version == 2 && i.ItemType == MigrationItemType.MigrationSettings);
 		Assert.Contains(items, i => i.Version == 3 && i.ItemType == MigrationItemType.BreakingSettings);
+	}
+
+	[Fact]
+	public async Task Migration_that_violates_a_deferred_constraint_fails_with_the_error_of_the_commit()
+	{
+		// a deferred foreign key is checked at COMMIT: Npgsql gives its error from the Dispose() of the TransactionScope, inside
+		// TransactionAbortedException "The transaction has aborted.".
+		using TempProject project = new TempProject()
+			.AddFile("Migrations/001.migration.sql", """
+				create table parent (id int primary key);
+				create table child (id int primary key, parent_id int not null references parent (id) deferrable initially deferred);
+				""")
+			.AddFile("Migrations/002.migration.sql", "insert into child values (1, 42);");
+
+		DbLiveBuilder builder = CreateBuilder(project);
+
+		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(
+			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
+		);
+
+		Assert.StartsWith(
+			"Error deploying Migrations/002.migration.sql file.\n"
+			+ "The transaction has aborted.\n"
+			+ "23503: insert or update on table \"child\" violates foreign key constraint",
+			ex.Message.ReplaceLineEndings("\n")
+		);
+		_ = Assert.IsType<PostgresException>(Assert.IsType<TransactionAbortedException>(ex.InnerException).InnerException);
+
+		// nothing of 002 is committed, and it is not applied: the next deployment runs it again.
+		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
+		Assert.Equal(0, await da.ScalarAsync("select count(*) from child"));
+		Assert.NotEqual(MigrationItemStatus.Applied, GetItem(await da.GetMigrationsAsync(), 2, MigrationItemType.Migration).Status);
 	}
 
 	[Fact]

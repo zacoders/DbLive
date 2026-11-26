@@ -2,8 +2,12 @@
 type: docs
 priority: medium
 created: 2026-11-25
+closed: 2026-11-26
 ---
 # Small docs fixes from the review of 2026-11-25 (second)
+
+## Release note
+None. Corrections of `docs/llms-full.txt` and of the docs pages; DbLive behaves as before.
 
 ## Problem
 1. **The pages still say that only SQL Server finds a script that leaves a transaction open.** Since 0096-181 PostgreSQL fails a script without a transaction of DbLive that leaves a transaction block open (§10 line 745, §13.3 line 996, rule 22). The list "Docs to update" of 0096-181 missed two pages:
@@ -32,7 +36,7 @@ created: 2026-11-25
 - `docs/deployment/index.md`, `docs/deployment/migrations.md`, `docs/unit-testing/deployment-tests.md`, `docs/unit-testing/index.md`, `docs/unit-testing/stored-proc-and-unit-test.md`, `docs/gettingstarted.md`, `README.md`, `docs/examples/index.md`, `docs/database-as-service.md` (after the answer in 11), `docs/project/configuration.md` (5)
 
 ## Done when
-- [ ] 1–12 fixed
+- [x] 1–12 fixed
 - [x] `mkdocs build --strict` passes
 
 ## Notes
@@ -50,3 +54,6 @@ created: 2026-11-25
   - 10: the breaking script of 007 drops the trigger and the column once, in the breaking deployment.
   - 11: corrected in the least words: online index builds are no longer a statement that cannot run in a transaction; an index build is named as a long operation, whose locks `None` releases when each statement ends. The maintainer may rewrite it.
   - 12: §11.5 and "A fixture builder" of `docs/unit-testing/index.md`, with the queries for `DbLive--%` and `dblive--%`.
+
+## Result
+All 12 fixed in the docs, as listed in Notes; no code changed. Item 11 is a correction in the fewest words on the maintainer's page `docs/database-as-service.md`, which the maintainer may rewrite.

@@ -7,7 +7,7 @@ A **DbLive project** is an ordinary .NET project that contains a `Scripts` folde
 
 ## Layouts
 
-**One project.** The scripts and the deployer live in one console application that references the provider package (`DbLive.MSSQL` or `DbLive.PostgreSQL`). This is the simplest option and what the demos use.
+**One project.** The scripts and the deployer live in one console application that references the provider package (`DbLive.MSSQL` or `DbLive.PostgreSQL`). This is the simplest option, and what `dotnet new dblive`, DemoMSSQL and Demo.PostgreSQL.Chinook use.
 
 ```
 MyDb/

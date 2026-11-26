@@ -108,32 +108,8 @@ public class CodeRetryInDeploymentTransactionTests(SqlServerIntegrationFixture f
 		Assert.Empty(await da.ListAsync("select version from dblive.migration"));
 	}
 
-	[Fact]
-	public async Task Code_file_that_outlives_the_deployment_timeout_fails_the_deployment_with_its_path()
-	{
-		using TempProject project = CreateProject("waitfor delay '00:00:04';", """{ "TransactionWrapLevel": "Deployment", "DeploymentTimeout": "00:00:02" }""");
-
-		DbLiveBuilder builder = CreateBuilder(project);
-
-		ExecutionTimeoutException timeoutEx = await Assert.ThrowsAsync<ExecutionTimeoutException>(
-			() => builder.CreateDeployer().DeployAsync(DeployParameters.Default)
-		);
-
-		Assert.Equal("Execution Timeout Expired. The deployment ran longer than its timeout of 00:00:02 (DeploymentTimeout).", timeoutEx.Message);
-		// the error of the file where the time ran out is inside.
-		CodeDeploymentAggregateException ex = Assert.IsType<CodeDeploymentAggregateException>(timeoutEx.InnerException);
-		CodeDeploymentException codeEx = Assert.IsType<CodeDeploymentException>(Assert.Single(ex.InnerExceptions));
-		Assert.StartsWith("Deploy code file error. File path: Code/a.sql. The error ended the deployment transaction, so the file is not retried." + Environment.NewLine, codeEx.Message);
-		// the script is not interrupted: the check of its transaction after it cannot run on the connection of the transaction that timed out.
-		DbLiveSqlException sqlEx = Assert.IsType<DbLiveSqlException>(codeEx.InnerException);
-		Assert.StartsWith("The transaction associated with the current connection has completed but has not been disposed.", sqlEx.Message);
-
-		IDbLiveDA da = builder.GetRequiredService<IDbLiveDA>();
-		Assert.Empty(await da.ListAsync("select name from sys.tables where schema_id = schema_id('dbo')"));
-		Assert.Empty(await da.ListAsync("select version from dblive.migration"));
-	}
-
-	private static TempProject CreateProject(string fileA, string settings = """{ "TransactionWrapLevel": "Deployment" }""")
+	// also for the code file that outlives DeploymentTimeout, in TransactionTimeoutTests: they do not run in parallel with other tests.
+	internal static TempProject CreateProject(string fileA, string settings = """{ "TransactionWrapLevel": "Deployment" }""")
 	{
 		return new TempProject()
 			.AddFile("settings.json", settings)

@@ -14,9 +14,17 @@ internal static class ExceptionExtensions
 	/// <summary>
 	/// The error of the server (SQL Server: Msg, Level, State, Line and the message of each error), or the message of the exception
 	/// when the error does not come from the server. No stack traces: they stay in the exception and in the log.
+	/// An error of the server at the commit of a <see cref="TransactionScope"/> (on PostgreSQL a deferred constraint, checked at
+	/// <c>COMMIT</c>) is a <see cref="TransactionAbortedException"/>, "The transaction has aborted.", with the error inside: its message
+	/// follows on the next line.
 	/// </summary>
 	internal static string GetSqlErrorOrMessage(this Exception ex)
 	{
+		if (ex is TransactionAbortedException { InnerException: Exception cause })
+		{
+			return $"{ex.Message}{Environment.NewLine}{cause.GetSqlErrorOrMessage()}";
+		}
+
 		return ex is DbLiveSqlException { SqlError: string sqlError } && !string.IsNullOrWhiteSpace(sqlError)
 			? sqlError.TrimEnd()
 			: ex.Message;

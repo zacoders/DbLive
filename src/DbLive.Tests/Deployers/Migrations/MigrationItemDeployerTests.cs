@@ -221,6 +221,41 @@ public class MigrationItemDeployerTests
 	}
 
 	[Fact]
+	public async Task Error_at_the_commit_puts_the_error_inside_the_aborted_transaction_in_the_message()
+	{
+		// Arrange
+		MockSet mockSet = new();
+
+		MigrationItemDeployer deployer = mockSet.CreateUsingMocks<MigrationItemDeployer>();
+
+		// what the Dispose() of the TransactionScope throws when PostgreSQL fails the COMMIT on a deferred constraint.
+		TransactionAbortedException commitError = new(
+			"The transaction has aborted.",
+			new Exception("23503: insert or update on table \"child\" violates foreign key constraint \"child_parent_id_fkey\"")
+		);
+		mockSet.TransactionRunner
+			.ExecuteWithinTransactionAsync(
+				Arg.Any<bool>(),
+				Arg.Any<TranIsolationLevel>(),
+				Arg.Any<TransactionTimeout>(),
+				Arg.Any<Func<Task>>()
+			)
+			.Returns(Task.FromException(commitError));
+
+		// Act
+		Task act() => deployer.DeployAsync(1, NewMigrationItem(), new MigrationItemSettings());
+
+		// Assert
+		MigrationDeploymentException ex = await Assert.ThrowsAsync<MigrationDeploymentException>(act);
+		Assert.Equal("""
+			Error deploying db/migrations/001.m.some-migration.sql file.
+			The transaction has aborted.
+			23503: insert or update on table "child" violates foreign key constraint "child_parent_id_fkey"
+			""".ReplaceLineEndings(), ex.Message.ReplaceLineEndings());
+		Assert.Same(commitError, ex.InnerException);
+	}
+
+	[Fact]
 	public async Task Item_in_the_deployment_transaction_runs_and_logs_the_isolation_level_of_the_deployment()
 	{
 		// Arrange
