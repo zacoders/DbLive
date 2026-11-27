@@ -23,7 +23,7 @@ Follow these when you create or change files in a DbLive project. Each rule name
 11. **Do not create anything in the `dblive` schema.** DbLive owns it (Section 15).
 12. **Do not run SQL tests against production.** A deployment never runs them; they run in `dotnet test` against a disposable database (Section 13), and a production deployer does not call `IDbLiveTester.RunAllTestsAsync()` (Section 8.2). Tests run in rolled-back transactions, but with `Serializable` isolation by default, so they take locks on production tables.
 13. **Settings files are per script, not per version**: `<version>.migration.settings.json`, `<version>.breaking.settings.json` (short `<version>.m.s.json`, `.b.s.json`), keys `TransactionWrapLevel` (`Migration`|`None`), `TransactionIsolationLevel`, `Timeout` (Section 9.3). The old `<version>.settings.json` → `ObsoleteMigrationSettingsFileException`; the old key `MigrationTimeout` → `InvalidMigrationItemSettingsException`.
-14. **Follow the way the project uses DbLive** (Section 1). In a classic project (no `_vN` object names in `Code/`, no breaking scripts) change procedures in place and do not introduce versioned names or breaking scripts unless asked. In a project with a versioned interface: when the **contract** of an interface object changes (new required parameter, other result columns, other meaning), rename the object in the same file to the next version (`MyProc_v1` → `MyProc_v2`) and drop the old version in a breaking script next to the file (`my-proc.breaking.sql` next to `my-proc.sql`, Section 18.6); when only the **implementation** changes, keep the name. Breaking this → running applications that still call the old name fail (missing parameter, changed result set), or a classic project collects versions that nobody drops.
+14. **Follow the way the project uses DbLive** (Section 1). In a classic project (no `_vN` object names in `Code/`, no breaking scripts) change procedures in place and do not introduce versioned names or breaking scripts unless asked. In a project with a versioned interface: when the **contract** of an interface object changes (new required parameter, other result columns, other meaning), rename the object in the same file to the next version (`MyProc_v1` → `MyProc_v2`) and drop the old version in a breaking script next to the file (`my-proc.breaking.sql` next to `my-proc.sql`, Section 18.6); when only the **implementation** changes, keep the name. A project with one breaking script that drops the old versions by name (Section 18.6) needs no drop next to the file, and there a file never gets a lower version name again. Breaking this → running applications that still call the old name fail (missing parameter, changed result set), or a classic project collects versions that nobody drops, or the script that drops old versions by name drops the version the application calls.
 15. **Breaking scripts of the Code folder run on every breaking deployment** (`breaking.sql`, `b.sql`, `*.breaking.sql`, `*.b.sql` under `Code/`; Section 6.1). They must be idempotent: `drop proc if exists`, `drop function if exists`; a second run must not drop more than the first one. Breaking this → the second breaking deployment fails or changes the schema (`[SqlDeployFact]` catches both; a schema change → `SchemaChangedException`). Never give a code object file such a name: it is not deployed as code. A name that also matches `TestFilePatterns` (`test.breaking.sql`, `t.b.sql`) → `BreakingScriptMatchesTestPatternException`.
 16. **Put nothing into the scripts root except the project folders and `settings.json`.** Every file must be inside `Migrations`, `Code`, `Tests`, `BeforeDeploy` or `AfterDeploy` (or the folders named in `settings.json`); hidden files and folders (the name starts with a dot: `.DS_Store`, `.gitkeep`) do not count. Breaking this (a `PostDeployment/` folder, a `README.md` or a misspelled `setting.json` in the root) → `FilesOutsideProjectFoldersException` before any script of the project runs (Section 4). Keep other scripts and documents outside the scripts root; notes (`.md`, `.txt`) may sit inside the project folders. No project folder may hold files of another one: a file in two project folders (`TestsFolder: "Code/Tests"`, or `CodeFolder: ""` next to `Migrations/`) → `FilesInSeveralProjectFoldersException` (Section 4).
 17. **Give every project a `ProjectId`** in `Scripts/settings.json` (Section 14): a name unique to the project, the same in every environment (`"ProjectId": "billing-api-db"`). Breaking this → nothing stops the deployer from deploying into another project's database, and every deployment logs the warning "ProjectId is not set in settings.json ...".
@@ -352,7 +352,7 @@ Breaking items of migrations:
 - Per-file timeout: `CodeItemTimeout` (30 seconds by default), for the whole file on both providers: on SQL Server for all `GO` batches of the file together (Section 10). A file that runs longer fails with `ExecutionTimeoutException` (`Execution Timeout Expired. The script ran longer than its timeout of 00:00:30.`), and none of its batches stays applied.
 - One file can create several objects. SQL Server: separate batches with `GO`. Keep one logical object per file so that redeploys stay small.
 
-Versioned interface pattern (zero downtime): keep one file per logical object and rename the object when its contract changes (`GetUsers_v1` becomes `GetUsers_v2` in the same file). The old version stays in the database for old application instances; drop it later in a breaking script next to the file (Section 6.1). To bring `GetUsers_v1` back as the current version, revert the file in git and deploy a new release: its hash differs, so it runs again; `GetUsers_v2` stays (Section 18.8).
+Versioned interface pattern (zero downtime): keep one file per logical object and rename the object when its contract changes (`GetUsers_v1` becomes `GetUsers_v2` in the same file). The old version stays in the database for old application instances; drop it later in a breaking script next to the file (Section 6.1). To bring `GetUsers_v1` back as the current version, revert the file in git and deploy a new release: its hash differs, so it runs again; `GetUsers_v2` stays (Section 18.8). Not in a project with one breaking script that drops the old versions by name (Section 18.6): it would drop `GetUsers_v1`, so give the old contract the next number (`GetUsers_v3`).
 
 SQL Server code file:
 
@@ -1208,6 +1208,116 @@ Migration: add a nullable column, or a non-null column with a default. Update pr
 ### 18.6 Change a procedure's contract
 Rename the object in its file (`GetUser_v1` → `GetUser_v2`), update the test file, and create (or extend) the breaking script next to the file: `Code/dbo/GetUser.breaking.sql` with `drop proc if exists dbo.GetUser_v1;` (PostgreSQL: `drop function if exists get_user_v1(int);`). No migration is needed. Always `if exists`: the script runs on every breaking deployment (Section 6.1). When `_v3` replaces `_v2` later, replace the content with the drop of `_v2`; keeping the old drops is harmless. Do not put the drop into AfterDeploy (Section 7), and do not create a migration version only to carry the drop. If only the implementation changes and the contract stays the same, keep the name and just edit the file.
 
+**One breaking script for all old versions.** Instead of a breaking script next to each file, a project with a versioned interface can drop the old versions by name in one breaking script of the Code folder: every object named `<name>_v<N>` for which an object of the same kind, schema and `<name>` with a greater `N` exists. The breaking phase starts only when no application calls the old versions (step 4 of Section 18.5), so the script drops what the scripts next to the files would drop, and no drop has to be written for each change. Use it only when all of these hold:
+- Every interface object has `_v<N>` in its name from the first version on (`GetUser_v1`, not `GetUser`). An object without it is never dropped by the script.
+- **The version number only grows.** To bring an old contract back, give it the next number (`GetUser_v3` with the body of `_v1`); never revert the file to the lower name, as Section 6 and Section 18.8 describe for a project without this script. DbLive never drops code objects, so `_v2` stays in the database, and the script drops `_v1`, which the application calls again. Neither the SQL tests nor `[SqlDeployFact]` find it: their new database never had `_v2`.
+- No database gets a version that the repository does not have, for example a shared development database where branches are deployed: the same failure.
+
+SQL Server (verified on SQL Server 2017 and 2025):
+```sql
+-- Code/drop-old-versions.breaking.sql
+-- Drops every version but the latest of each procedure, function, view and user-defined type
+-- named <name>_v<N> in the listed schemas: dbo.GetUser_v1 and dbo.GetUser_v2 when dbo.GetUser_v3 exists.
+-- The version number only grows: never give a file a lower version name again.
+declare @drops table (id int identity primary key, stmt nvarchar(max) not null);
+
+with objects as (
+    select schema_name(schema_id) as schema_name, name,
+           case type when 'V' then 1 when 'P' then 2 else 3 end as kind
+    from sys.objects
+    where type in ('V', 'P', 'FN', 'IF', 'TF') and is_ms_shipped = 0
+    union all
+    select schema_name(schema_id), name, 4
+    from sys.types
+    where is_user_defined = 1
+), versioned as (
+    select o.schema_name, o.name, o.kind,
+           left(o.name, len(o.name) - x.p - 1) as base_name,
+           try_cast(d.digits as int) as version
+    from objects o
+    cross apply (select charindex('v_', reverse(o.name)) as p) x
+    cross apply (select case when x.p > 1 then right(o.name, x.p - 1) end as digits) d
+    where o.schema_name in (N'dbo') -- the schemas of the project
+      and d.digits not like '%[^0-9]%'
+), latest as (
+    select *, max(version) over (partition by schema_name, kind, base_name) as latest_version
+    from versioned
+    where version is not null
+)
+insert @drops (stmt)
+select N'drop ' + choose(kind, N'view', N'proc', N'function', N'type') + N' '
+       + quotename(schema_name) + N'.' + quotename(name) + N';'
+from latest
+where version < latest_version
+order by kind, schema_name, name;
+
+declare @id int = 0, @stmt nvarchar(max);
+while 1 = 1
+begin
+    select top (1) @id = id, @stmt = stmt from @drops where id > @id order by id;
+    if @@rowcount = 0 break;
+    exec sp_executesql @stmt;
+end;
+```
+
+PostgreSQL (verified on PostgreSQL 13 and 18):
+```sql
+-- Code/drop-old-versions.breaking.sql
+-- Drops every version but the latest of each function, procedure and view
+-- named <name>_v<N> in the listed schemas: get_user_v1 and get_user_v2 when get_user_v3 exists.
+-- The version number only grows: never give a file a lower version name again.
+do $$
+declare
+  old_views text;
+  old_routines text;
+begin
+  with objects as (
+    select n.nspname as schema_name, p.proname as name, p.prokind::text as kind,
+           format('%I.%I(%s)', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)) as target
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where p.prokind in ('f', 'p')
+      and not exists (select from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+    union all
+    select n.nspname, c.relname, 'v', format('%I.%I', n.nspname, c.relname)
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where c.relkind = 'v'
+      and not exists (select from pg_depend d where d.classid = 'pg_class'::regclass and d.objid = c.oid and d.deptype = 'e')
+  ), versioned as (
+    select *,
+           substring(name from '^(.*)_v[0-9]{1,9}$') as base_name,
+           substring(name from '_v([0-9]{1,9})$')::int as version
+    from objects
+    where schema_name in ('public') -- the schemas of the project
+  ), latest as (
+    select *, max(version) over (partition by schema_name, kind, base_name) as latest_version
+    from versioned
+    where version is not null
+  )
+  select string_agg(target, ', ') filter (where kind = 'v'),
+         string_agg(target, ', ') filter (where kind <> 'v')
+  into old_views, old_routines
+  from latest
+  where version < latest_version;
+
+  -- views first: a view that calls an old function blocks its drop
+  if old_views is not null then
+    execute 'drop view ' || old_views;
+  end if;
+  if old_routines is not null then
+    execute 'drop routine ' || old_routines;
+  end if;
+end $$;
+```
+
+- Kinds: procedures, functions (scalar and table-valued together) and views; on SQL Server also user-defined types (table types). Not sequences, synonyms, triggers, materialized views or PostgreSQL types. A version is compared within its kind only: a procedure `GetUser_v1` stays when `GetUser_v2` is a function, so drop it in a breaking script next to its file. The same for a kind the script does not cover, and for an object retired together with its file (no later version exists).
+- Only the schemas listed in the script: objects that DBAs create outside DbLive in other schemas stay. PostgreSQL: functions and views of extensions are skipped (`uuid-ossp` installs `uuid_generate_v1` to `uuid_generate_v5` in `public`). `_v` is lower case on PostgreSQL (a quoted `"GetUser_V2"` does not match); on SQL Server the collation of the database decides.
+- `N` is compared as a number, up to 9 digits: `_v10` is later than `_v9`.
+- Order. SQL Server: views, then procedures, functions and types, one `drop` each, so a view `with schemabinding` goes before the function it uses and a procedure before its table type; a function `with schemabinding` that uses another old function can fail the script. PostgreSQL: all old views in one `drop view`, then all old functions and procedures in one `drop routine`, so old objects that depend on each other in one statement do not block it; a function that returns the row type of an old view does.
+- An object without a version name that uses an old version (a view that reads `users_v1`) blocks the drop on PostgreSQL: drop it in a breaking script that sorts before this one (by relative path, Section 6.1). On SQL Server a dependency without `schemabinding` does not block the drop, and the object fails when it is called. The SQL tests find such a call when they call the object: their new database has only the current versions.
+- Idempotent: the script reads the catalog, so a second run and a new database find nothing to drop (`[SqlDeployFact]` runs it twice, Section 13.3). A SQL Server run that fails keeps the drops before the failure, and the next breaking deployment finishes the job; the PostgreSQL `do` block is one statement and is rolled back as a whole.
+
 ### 18.7 Long-running index / data backfill
 Own migration version with `<v>.migration.settings.json` `{ "TransactionWrapLevel": "None", "Timeout": "01:00:00" }`. Why: a transaction holds every lock until the migration commits, so the touched tables are blocked for the whole migration; without it each statement commits and releases its locks, and the database stays online. SQL Server: `with (online = on)`, on Enterprise and Developer editions and Azure SQL; Standard edition fails with Msg 1712, leave the option out there: the build then blocks writes to the table while it runs (a clustered index: reads too). PostgreSQL: `create index concurrently if not exists ...`, alone in its file. Make it re-runnable (`if not exists (select * from sys.indexes where name = ...)`), because a failure leaves it partially applied and the next deployment runs the whole script again. On PostgreSQL a failed or cancelled concurrent build leaves an invalid index (`pg_index.indisvalid = false`, PostgreSQL behavior), and `if not exists` skips it on the next run: the deployment succeeds and the index stays invalid (unused by queries, updated on writes). DbLive does not check index validity. Next to the migration, add a BeforeDeploy script that drops the index by name if it is invalid; BeforeDeploy runs on every deployment before the migrations, so after a failure the next deployment drops the index and the migration builds it again:
 ```sql
@@ -1240,7 +1350,7 @@ end $$;
 DbLive has no undo scripts and does not roll back a database. Roll a release back this way:
 
 - **Before the breaking phase: roll back the application, keep the database.** Migrations only add (rule 4, expand/contract), so the previous application runs on the new schema; the old versions of code objects (`GetUser_v1`) are still there, because DbLive never drops code and only the breaking phase drops them. The database serves both versions. Do not deploy the previous build of the database: its project lacks the new migration versions, so it fails with `DatabaseAheadOfProjectException` and changes nothing (Section 5.2).
-- **A bug in a code object**: revert the file in git and deploy a new release (`Default`). Code is deployed by state: the reverted file's hash differs, so it runs and the old version of the object is back; a file the release had deleted runs again when it comes back, because its row is `removed` (Section 6). A code-only release (no new migration version, and no DbLive upgrade that raised the minimum DbLive version) can also be rolled back by deploying the previous build, which redeploys its code. Never run the breaking phase of the newer build afterwards: its guard does not see this case when the newer build only deleted code files (Section 5.5).
+- **A bug in a code object**: revert the file in git and deploy a new release (`Default`). Code is deployed by state: the reverted file's hash differs, so it runs and the old version of the object is back (with one breaking script that drops the old versions by name, a revert must not bring a lower version name back: give the old contract the next number, Section 18.6); a file the release had deleted runs again when it comes back, because its row is `removed` (Section 6). A code-only release (no new migration version, and no DbLive upgrade that raised the minimum DbLive version) can also be rolled back by deploying the previous build, which redeploys its code. Never run the breaking phase of the newer build afterwards: its guard does not see this case when the newer build only deleted code files (Section 5.5).
 - **A wrong migration**: fix it with a new migration version. Never edit or delete an applied one (rules 1 and 2).
 - **A release that upgraded DbLive**: when the release notes of the new DbLive version say that older versions can no longer deploy the database, the previous build fails with `DatabaseRequiresNewerDbLiveException` and changes nothing (Section 15), also when the release has no migrations of its own. Roll back the application, keep the database; the next release of the old code needs the newer DbLive packages. A deployment of the new build that failed on an error in its project files (an undo script left in the project, a file outside the project folders, a wrong file name: Sections 4 and 5.1) changed nothing on the server, so the previous build still deploys the database (Section 12, step 1).
 - **The breaking phase is the point of no return.** It drops what the previous application uses. Run it only when the release is confirmed, and never for a release whose application was rolled back: no guard sees that case, because the code of the release is still deployed (Section 5.5). After the breaking phase, fix forward with a new release, or restore a backup.

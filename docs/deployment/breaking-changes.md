@@ -54,9 +54,127 @@ A code-only release needs no migration for it.
 - **Order.** By relative path, before the breaking scripts of migrations, so dependents are dropped before what they depend on: on PostgreSQL a view `_v1` blocks the `drop column` of a migration breaking script.
 - **Execution.** Each file runs without a transaction of its own (unlike a code file), with the `CodeItemTimeout` timeout for the whole file. With `TransactionWrapLevel: Deployment` it runs inside the deployment transaction. A failed script stops the deployment with `CodeDeploymentException`: its message names the file and holds the error of the server.
 - **Record.** Each successful run is written to the file's row in `dblive.code` (`item_type = 'breaking'`, `status` `applied`). A failed run writes nothing: the error is in the exception and the log.
-- **Bringing an old version back.** Code is deployed by state: revert `GetPerson.sql` in git and deploy a new release, and the file runs again, because its content differs from what was last deployed, so `_v1` is back; `_v2` stays and does not disturb anything. If the old version lived in a file of its own that a release deleted (`GetPerson_v1.sql`), that file's row was marked `removed` when the release deployed its code, so the file is executed again when a later release brings it back.
+- **Bringing an old version back.** Code is deployed by state: revert `GetPerson.sql` in git and deploy a new release, and the file runs again, because its content differs from what was last deployed, so `_v1` is back; `_v2` stays and does not disturb anything. Not with [one script for all old versions](#one-script-for-all-old-versions): there, give the old contract the next number. If the old version lived in a file of its own that a release deleted (`GetPerson_v1.sql`), that file's row was marked `removed` when the release deployed its code, so the file is executed again when a later release brings it back.
 
 Do not drop old versions in `AfterDeploy`: AfterDeploy scripts run on every deployment, including `DeployParameters.Default`, so the drop would run before the old application is gone.
+
+### One script for all old versions
+
+Instead of a breaking script next to each file, a project can drop the old versions by name in one breaking script of the `Code` folder: every object named `<name>_v<N>` for which an object of the same kind, schema and name with a greater `N` exists. The breaking phase starts only when no application calls the old versions, so the script drops what the scripts next to the files would drop, and nobody has to write a drop for each change.
+
+Use it only when all of these hold:
+
+- Every interface object has `_v<N>` in its name from the first version on (`GetPerson_v1`, not `GetPerson`). An object without it is never dropped.
+- **The version number only grows.** To bring an old contract back, give it the next number (`GetPerson_v3` with the body of `_v1`); do not revert the file to the lower name. DbLive never drops code, so `_v2` stays in the database, and the script drops `_v1`, which the application calls again. The tests do not find it: their new database never had `_v2`.
+- No database gets a version that the repository does not have, such as a shared development database where branches are deployed.
+
+=== "SQL Server"
+
+    ```sql
+    -- Code/drop-old-versions.breaking.sql
+    -- Drops every version but the latest of each procedure, function, view and user-defined type
+    -- named <name>_v<N> in the listed schemas: dbo.GetUser_v1 and dbo.GetUser_v2 when dbo.GetUser_v3 exists.
+    -- The version number only grows: never give a file a lower version name again.
+    declare @drops table (id int identity primary key, stmt nvarchar(max) not null);
+
+    with objects as (
+        select schema_name(schema_id) as schema_name, name,
+               case type when 'V' then 1 when 'P' then 2 else 3 end as kind
+        from sys.objects
+        where type in ('V', 'P', 'FN', 'IF', 'TF') and is_ms_shipped = 0
+        union all
+        select schema_name(schema_id), name, 4
+        from sys.types
+        where is_user_defined = 1
+    ), versioned as (
+        select o.schema_name, o.name, o.kind,
+               left(o.name, len(o.name) - x.p - 1) as base_name,
+               try_cast(d.digits as int) as version
+        from objects o
+        cross apply (select charindex('v_', reverse(o.name)) as p) x
+        cross apply (select case when x.p > 1 then right(o.name, x.p - 1) end as digits) d
+        where o.schema_name in (N'dbo') -- the schemas of the project
+          and d.digits not like '%[^0-9]%'
+    ), latest as (
+        select *, max(version) over (partition by schema_name, kind, base_name) as latest_version
+        from versioned
+        where version is not null
+    )
+    insert @drops (stmt)
+    select N'drop ' + choose(kind, N'view', N'proc', N'function', N'type') + N' '
+           + quotename(schema_name) + N'.' + quotename(name) + N';'
+    from latest
+    where version < latest_version
+    order by kind, schema_name, name;
+
+    declare @id int = 0, @stmt nvarchar(max);
+    while 1 = 1
+    begin
+        select top (1) @id = id, @stmt = stmt from @drops where id > @id order by id;
+        if @@rowcount = 0 break;
+        exec sp_executesql @stmt;
+    end;
+    ```
+
+=== "PostgreSQL"
+
+    ```sql
+    -- Code/drop-old-versions.breaking.sql
+    -- Drops every version but the latest of each function, procedure and view
+    -- named <name>_v<N> in the listed schemas: get_user_v1 and get_user_v2 when get_user_v3 exists.
+    -- The version number only grows: never give a file a lower version name again.
+    do $$
+    declare
+      old_views text;
+      old_routines text;
+    begin
+      with objects as (
+        select n.nspname as schema_name, p.proname as name, p.prokind::text as kind,
+               format('%I.%I(%s)', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)) as target
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where p.prokind in ('f', 'p')
+          and not exists (select from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+        union all
+        select n.nspname, c.relname, 'v', format('%I.%I', n.nspname, c.relname)
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where c.relkind = 'v'
+          and not exists (select from pg_depend d where d.classid = 'pg_class'::regclass and d.objid = c.oid and d.deptype = 'e')
+      ), versioned as (
+        select *,
+               substring(name from '^(.*)_v[0-9]{1,9}$') as base_name,
+               substring(name from '_v([0-9]{1,9})$')::int as version
+        from objects
+        where schema_name in ('public') -- the schemas of the project
+      ), latest as (
+        select *, max(version) over (partition by schema_name, kind, base_name) as latest_version
+        from versioned
+        where version is not null
+      )
+      select string_agg(target, ', ') filter (where kind = 'v'),
+             string_agg(target, ', ') filter (where kind <> 'v')
+      into old_views, old_routines
+      from latest
+      where version < latest_version;
+
+      -- views first: a view that calls an old function blocks its drop
+      if old_views is not null then
+        execute 'drop view ' || old_views;
+      end if;
+      if old_routines is not null then
+        execute 'drop routine ' || old_routines;
+      end if;
+    end $$;
+    ```
+
+Set the schemas of your project in the script. What else to know:
+
+- **Kinds.** Procedures, functions and views; on SQL Server also user-defined types (table types). A version is compared within its kind only: a procedure `GetPerson_v1` stays when `GetPerson_v2` is a function. Drop such an object, a kind the script does not cover, and an object retired together with its file in a breaking script next to the file, as above.
+- **What stays.** Objects in other schemas, which DBAs may create outside DbLive, and on PostgreSQL the functions of extensions (`uuid-ossp` installs `uuid_generate_v1` to `uuid_generate_v5` in `public`).
+- **Numbers.** `_v10` is later than `_v9`.
+- **Dependencies.** On SQL Server the script drops views first, then procedures, functions and types, so a view `with schemabinding` goes before its function and a procedure before its table type. On PostgreSQL all old views go in one statement and all old functions and procedures in another, so old objects that depend on each other do not block it. An object without a version name that uses an old version (a view that reads `users_v1`) blocks the drop on PostgreSQL: drop it in a breaking script that sorts before this one. On SQL Server nothing blocks the drop without `schemabinding`, and such an object fails when it is called; the SQL tests find it, because their new database has only the current versions.
+- **Every breaking deployment.** The script reads the catalog, so a second run and a new database find nothing to drop.
 
 ## When breaking scripts run
 

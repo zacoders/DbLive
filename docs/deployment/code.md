@@ -67,7 +67,7 @@ go
 drop proc if exists dbo.GetUsers_v1;
 ```
 
-After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)). Code is deployed by state: to make `_v1` the current version again, revert `GetUsers.sql` in git and deploy a new release; `_v2` stays. See [Roll back a release](migrations.md#roll-back-a-release).
+After deployment the database contains both versions: old application instances call `_v1`, new ones call `_v2`. The breaking phase drops `_v1` once the old application is gone (see [Dropping an old procedure version](breaking-changes.md#dropping-an-old-procedure-version)). Code is deployed by state: to make `_v1` the current version again, revert `GetUsers.sql` in git and deploy a new release; `_v2` stays. Not with [one script for all old versions](breaking-changes.md#one-script-for-all-old-versions): there, give the old contract the next number. See [Roll back a release](migrations.md#roll-back-a-release).
 
 When only the implementation changes and the contract stays the same, keep the name: the object is redeployed and its callers do not notice. See [Database as a Service](../database-as-service.md#a-procedure-is-a-module-with-a-history) and [Zero-Downtime Deployment](zero-downtime.md).
 
